@@ -122,7 +122,10 @@ Rectangle {
                     radius: 8
                     fill: root.current === at ? look.selected : look.raised
                     Column {
-                        x: 12
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: 12
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: 7
                         spacing: 1
                         Text {
@@ -150,7 +153,10 @@ Rectangle {
             // than it needs, and holds still where it fits.
             Flickable {
                 id: detail
-                x: root.narrow ? 0 : root.listWidth + 14
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: root.narrow ? 0 : root.listWidth + 14
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: root.narrow ? list.height + 12 : 0
                 width: root.narrow ? body.width : body.width - root.listWidth - 14
                 height: body.height - y

@@ -22,7 +22,10 @@ Rectangle {
     }
 
     Column {
-        x: 18
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: 18
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: 14
         spacing: 12
 
@@ -47,7 +50,10 @@ Rectangle {
                 radius: 8
                 color: look.raised
                 Text {
-                    x: 10
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: 10
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: 8
                     color: look.ink2
                     font.pixelSize: 18
@@ -55,7 +61,10 @@ Rectangle {
                 }
                 Text {
                     objectName: "teaCount"
-                    x: 10
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: 10
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: 32
                     color: look.muted1
                     font.pixelSize: 16
@@ -76,7 +85,10 @@ Rectangle {
                 radius: 8
                 color: look.raised
                 Text {
-                    x: 10
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: 10
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: 8
                     color: look.ink2
                     font.pixelSize: 18
@@ -84,7 +96,10 @@ Rectangle {
                 }
                 Text {
                     objectName: "breadCount"
-                    x: 10
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: 10
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: 32
                     color: look.muted1
                     font.pixelSize: 16
@@ -105,7 +120,10 @@ Rectangle {
                 radius: 8
                 color: look.raised
                 Text {
-                    x: 10
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: 10
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: 8
                     color: look.ink2
                     font.pixelSize: 18
@@ -113,7 +131,10 @@ Rectangle {
                 }
                 Text {
                     objectName: "jamCount"
-                    x: 10
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: 10
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: 32
                     color: look.muted1
                     font.pixelSize: 16

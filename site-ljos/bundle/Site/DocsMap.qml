@@ -48,7 +48,10 @@ Column {
 
                     NavLink {
                         id: words
-                        x: Theme.xs
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: Theme.xs
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: Theme.narrow ? 0 : Theme.xxs
                         width: parent.width - 2 * Theme.xs
                         height: Theme.narrow ? parent.height : implicitHeight

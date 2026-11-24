@@ -63,7 +63,10 @@ Item {
 
         // A magnifying glass.
         Item {
-            x: 14
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 14
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             width: 16
             height: 16
@@ -78,7 +81,10 @@ Item {
                 border.width: 2
             }
             Rectangle {
-                x: 9
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 9
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: 11
                 width: 7
                 height: 2
@@ -88,11 +94,14 @@ Item {
             }
         }
         Text {
-            x: field.x
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: field.startX
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             // Up to the key's box where it shows, else the field's own
             // edge: a narrow rail's field ends its words, never runs them
             // under the key or out of the box.
-            width: (keyHint.visible ? keyHint.x - Theme.xs : field.x + field.width) - x
+            width: (keyHint.visible ? keyHint.startX - Theme.xs : field.startX + field.width) - startX
             elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
             visible: field.text === ""
@@ -108,7 +117,10 @@ Item {
             // Only where the words fit beside it: a rail as narrow as
             // Cyberpunk's keeps the room for them.
             visible: !Theme.narrow && field.text === "" && !field.activeFocus && search.width >= 220
-            x: parent.width - width - Theme.s
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: parent.width - width - Theme.s
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             width: 22
             height: 22
@@ -128,8 +140,11 @@ Item {
         }
         TextInput {
             id: field
-            x: 38
-            width: parent.width - x - Theme.m
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 38
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            width: parent.width - startX - Theme.m
             // The whole box's height, so a press anywhere in it is the field's.
             height: parent.height
             verticalAlignment: TextInput.AlignVCenter
@@ -188,7 +203,10 @@ Item {
 
         Column {
             id: found
-            x: Theme.xs
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.xs
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: Theme.xs
             width: parent.width - 2 * Theme.xs
 
@@ -244,7 +262,10 @@ Item {
 
                     Column {
                         id: words
-                        x: Theme.s
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: Theme.s
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: Theme.xs
                         width: parent.width - 2 * Theme.s
 

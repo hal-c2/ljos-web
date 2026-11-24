@@ -30,7 +30,10 @@ Rectangle {
     }
 
     Text {
-        x: 12
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: 12
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: 8
         color: look.muted1
         font.pixelSize: 14
@@ -41,7 +44,10 @@ Rectangle {
     TextField {
         id: field
         objectName: "noteField"
-        x: 12
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: 12
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: 26
         width: parent.width - 24
         height: 40

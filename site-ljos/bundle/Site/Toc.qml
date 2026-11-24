@@ -37,8 +37,11 @@ Column {
         NavLink {
             required property var modelData
 
-            x: modelData.level > 2 ? (toc.roomy ? Theme.m : Theme.s) : 0
-            width: toc.width - x
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: modelData.level > 2 ? (toc.roomy ? Theme.m : Theme.s) : 0
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            width: toc.width - startX
             label: modelData.plain
             // The heading's own address, so it can be kept or opened
             // apart; a press lands on it in place.

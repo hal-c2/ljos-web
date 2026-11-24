@@ -38,6 +38,8 @@ Column {
             Accessible.role: Accessible.Heading
         }
         Text {
+            // Read from the side the page starts on (LayoutMirroring).
+            x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
             text: t`Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source.`
             color: Theme.textMuted

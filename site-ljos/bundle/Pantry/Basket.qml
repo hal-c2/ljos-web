@@ -28,7 +28,7 @@ Rectangle {
     readonly property int teaCount: teaBought
     readonly property int breadCount: breadBought
     readonly property int jamCount: jamBought
-    readonly property string summary: t`${count} in the basket · £${total.toFixed(2)}`
+    readonly property string summary: t`${plural(count, { one: "# in the basket", other: "# in the basket" })} · £${total.toFixed(2)}`
 
     signal added(int count)
 
@@ -75,7 +75,10 @@ Rectangle {
 
     Text {
         objectName: "basketText"
-        x: 14
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: 14
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: 10
         color: look.ink
         font.pixelSize: 18
@@ -83,7 +86,10 @@ Rectangle {
     }
     Text {
         objectName: "basketSummary"
-        x: 14
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: 14
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: 36
         color: look.basketMuted
         font.pixelSize: 16

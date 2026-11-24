@@ -85,7 +85,10 @@ Rectangle {
 
     Column {
         id: body
-        x: Theme.s
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: Theme.s
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Theme.s
         width: card.width - 2 * Theme.s
         spacing: Theme.s
@@ -97,6 +100,9 @@ Rectangle {
 
             Column {
                 id: titles
+                // Anchored, so a right-to-left card has them on the right
+                // and the filters, anchored the other way, on the left.
+                anchors.left: parent.left
                 width: parent.width - (card.tight ? 0 : filterRow.width + Theme.s)
                 spacing: 2
 
@@ -132,7 +138,7 @@ Rectangle {
                 }
                 Text {
                     visible: card.tickets.length > 0
-                    text: card.unassigned > 0 ? t`${card.openCount} open, ${card.unassigned} unassigned` : t`${card.openCount} open, all assigned`
+                    text: card.unassigned > 0 ? t`${plural(card.openCount, { one: "# open", other: "# open" })}, ${plural(card.unassigned, { one: "# unassigned", other: "# unassigned" })}` : t`${plural(card.openCount, { one: "# open", other: "# open" })}, all assigned`
                     color: Theme.textMuted
                     font.family: Theme.sans
                     font.size: Theme.captionSize
@@ -291,7 +297,10 @@ Rectangle {
                                 // Its state as a dot and a word, never the colour alone.
                                 Rectangle {
                                     id: dot
-                                    x: Theme.xs
+                                    // Where it starts, read from the left; a right-to-left page
+                                    // sets it as far from the right (LayoutMirroring).
+                                    readonly property real startX: Theme.xs
+                                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                                     y: Theme.xs + 5
                                     width: 8
                                     height: 8
@@ -302,9 +311,12 @@ Rectangle {
                                 }
                                 Column {
                                     id: lines
-                                    x: dot.x + dot.width + Theme.xs
+                                    // Where it starts, read from the left; a right-to-left page
+                                    // sets it as far from the right (LayoutMirroring).
+                                    readonly property real startX: dot.startX + dot.width + Theme.xs
+                                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                                     y: Theme.xs
-                                    width: row.width - x - Theme.xs - (row.boarded ? 0 : crewSide.width + Theme.xs)
+                                    width: row.width - startX - Theme.xs - (row.boarded ? 0 : crewSide.width + Theme.xs)
                                     spacing: 0
 
                                     Text {
@@ -325,7 +337,10 @@ Rectangle {
                                 Item {
                                     id: crewSide
                                     // Under the ticket on the board, at its end in the list.
-                                    x: row.boarded ? lines.x : row.width - width - Theme.xs
+                                    // Where it starts, read from the left; a right-to-left page
+                                    // sets it as far from the right (LayoutMirroring).
+                                    readonly property real startX: row.boarded ? lines.startX : row.width - width - Theme.xs
+                                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                                     y: row.boarded ? lines.y + lines.height + 2 : Theme.xs
                                     width: row.open && row.crew === "" ? assignButton.width : crewName.implicitWidth
                                     height: row.open && row.crew === "" ? assignButton.height : crewName.implicitHeight

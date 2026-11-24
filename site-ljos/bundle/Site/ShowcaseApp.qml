@@ -87,6 +87,8 @@ Column {
             Accessible.role: Accessible.Heading
         }
         Text {
+            // Read from the side the page starts on (LayoutMirroring).
+            x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
             text: app.product.claim
             color: Theme.text
@@ -193,7 +195,7 @@ Column {
                 anchors.verticalCenter: parent.verticalCenter
                 primary: !app.wanted
                 text: app.wanted ? t`Pause` : t`Play`
-                label: (app.wanted ? t`Pause the recording of ` : t`Play the recording of `) + app.product.what
+                label: app.wanted ? t`Pause the recording of ${app.product.what}` : t`Play the recording of ${app.product.what}`
                 onPressed: app.chosen = !app.wanted
             }
         }

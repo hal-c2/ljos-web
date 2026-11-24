@@ -33,7 +33,10 @@ Rectangle {
     Column {
         id: inner
         width: footer.innerWidth
-        x: Math.round((footer.width - width) / 2)
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: Math.round((footer.width - width) / 2)
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Theme.xxl
         spacing: Theme.xl
 
@@ -69,7 +72,10 @@ Rectangle {
             }
             Row {
                 id: links
-                x: footer.spread ? parent.width - width : 0
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: footer.spread ? parent.width - width : 0
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: footer.spread ? Theme.xs : said.implicitHeight + Theme.xl
                 spacing: footer.spread ? Theme.xxxl : Theme.xxl
 
@@ -116,7 +122,7 @@ Rectangle {
         }
         Text {
             width: parent.width
-            text: "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
+            text: t`This site is itself a Ljós app, written to HTML when it’s built and live in your browser.`
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.captionSize

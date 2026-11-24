@@ -1,3 +1,5 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Core
 import QtQuick
 import Site
 import "../Demos/pro-live.js" as Live
@@ -145,6 +147,8 @@ Column {
             Accessible.role: Accessible.Heading
         }
         Text {
+            // Read from the side the page starts on (LayoutMirroring).
+            x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
             text: page.demo.summary
             color: Theme.textMuted
@@ -198,6 +202,8 @@ Column {
     // How to use the app, for a demo whose entry says (`use`).
     Text {
         visible: (page.demo.use ?? "") !== ""
+        // Read from the side the page starts on (LayoutMirroring).
+        x: LayoutMirroring.enabled ? parent.width - width : 0
         width: Math.min(parent.width, Theme.measure)
         text: page.demo.use ?? ""
         color: Theme.textMuted
@@ -214,7 +220,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Its files"
+            text: t`Its files`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: page.wide ? Theme.titleSize + 1 : Theme.titleSize - 1
@@ -225,6 +231,8 @@ Column {
             Accessible.role: Accessible.Heading
         }
         Text {
+            // Read from the side the page starts on (LayoutMirroring).
+            x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
             text: page.demo.tryThis
             color: Theme.textMuted
@@ -239,7 +247,7 @@ Column {
             width: parent.width
             spacing: Theme.xxs
             Accessible.role: Accessible.List
-            Accessible.name: "The files of " + page.demo.what
+            Accessible.name: t`The files of ${page.demo.what}`
 
             Repeater {
                 model: page.files
@@ -309,7 +317,7 @@ Column {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: Object.keys(page.edits).length > 0
-                    text: "Reset every file"
+                    text: t`Reset every file`
                     color: Theme.link
                     font.family: Theme.sans
                     font.pixelSize: Theme.captionSize
@@ -362,7 +370,7 @@ Column {
                     code: page.file ? page.file.code : ""
                     rich: page.file && !Object.hasOwn(page.edits, page.path) ? page.file.rich : ""
                     lang: page.file ? page.file.lang : "qml"
-                    label: "Edit " + page.path + " of " + page.demo.what
+                    label: t`Edit ${page.path} of ${page.demo.what}`
                     errors: told
                     onTextChanged: page.edited(text)
                 }

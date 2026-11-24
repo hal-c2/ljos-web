@@ -21,7 +21,10 @@ Flickable {
 
     DocsMap {
         id: map
-        x: Theme.m
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: Theme.m
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Theme.m
         width: tree.width - 2 * Theme.m
         route: tree.router ? tree.router.route : "/"

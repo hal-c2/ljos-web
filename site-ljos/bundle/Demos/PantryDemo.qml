@@ -133,7 +133,10 @@ Column {
 
         Rectangle {
             id: bench
-            x: 1
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 1
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: 1
             width: parent.width - 2
             height: demo.side ? 400 : stageBox.height + 1 + head.height + editorBox.height
@@ -154,7 +157,7 @@ Column {
                 height: Math.round(400 * fit)
                 color: Theme.stage
                 Accessible.role: Accessible.Grouping
-                Accessible.name: "The Pantry, running"
+                Accessible.name: t`The Pantry, running`
 
                 ShellLoader {
                     id: stage
@@ -163,7 +166,10 @@ Column {
                     height: 400
                     scale: stageBox.fit
                     transformOrigin: Item.TopLeft
-                    x: Math.max(0, (parent.width - width * stageBox.fit) / 2)
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: Math.max(0, (parent.width - width * stageBox.fit) / 2)
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     fallback: appShell
                 }
                 Component {
@@ -173,7 +179,10 @@ Column {
             }
             // The hairline between the app and its source.
             Rectangle {
-                x: demo.side ? stageBox.width : 0
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: demo.side ? stageBox.width : 0
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: demo.side ? 0 : stageBox.height
                 width: demo.side ? 1 : parent.width
                 height: demo.side ? parent.height : 1
@@ -181,9 +190,12 @@ Column {
             }
 
             Column {
-                x: demo.side ? stageBox.width + 1 : 0
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: demo.side ? stageBox.width + 1 : 0
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: demo.side ? 0 : stageBox.height + 1
-                width: parent.width - x
+                width: parent.width - startX
 
                 Rectangle {
                     id: head
@@ -209,13 +221,13 @@ Column {
                             color: Theme.textMuted
                             font.family: Theme.mono
                             font.pixelSize: Theme.captionSize - 1
-                            text: "Shell.qml: edit it live"
+                            text: t`Shell.qml: edit it live`
                         }
                         StageButton {
                             id: resetButton
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Reset"
-                            label: "Reset to the app's shell"
+                            text: t`Reset`
+                            label: t`Reset to the app's shell`
                             onPressed: demo.resetToAppShell()
                         }
                     }
@@ -264,7 +276,7 @@ Column {
                             width: Math.max(parent.width, implicitWidth)
                             code: PantryProject.shellText
                             rich: PantryProject.shellRich
-                            label: "Edit the Pantry's Shell.qml"
+                            label: t`Edit the Pantry's Shell.qml`
                             errors: told
                             onTextChanged: {
                                 if (text !== demo.applied)
@@ -293,7 +305,7 @@ Column {
     Text {
         width: parent.width
         topPadding: Theme.m
-        text: "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+        text: t`Try moving StatusSlot below Basket, setting color: "#241a10", or renaming the shop. Your basket and note stay as they are.`
         color: Theme.textMuted
         font.family: Theme.sans
         font.pixelSize: Theme.uiSize

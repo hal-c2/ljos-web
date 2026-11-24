@@ -133,9 +133,12 @@ Rectangle {
 
         Text {
             id: request
-            x: view.pad
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: view.pad
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: view.pad + Math.round((editButtons.height - height) / 2)
-            width: (view.roomy ? editButtons.x : strip.width - view.pad - view.actWidth) - x - Theme.xs
+            width: (view.roomy ? editButtons.startX : strip.width - view.pad - view.actWidth) - startX - Theme.xs
             text: t`Agent: make this a board`
             color: Theme.text
             font.family: Theme.sans
@@ -145,7 +148,10 @@ Rectangle {
         }
         Row {
             id: editButtons
-            x: view.roomy ? strip.width - view.pad - view.actWidth - Theme.xs - width : view.pad
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: view.roomy ? strip.width - view.pad - view.actWidth - Theme.xs - width : view.pad
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: view.roomy ? view.pad : view.pad + editButtons.height + Theme.xs
             spacing: Theme.xxs
             enabled: view.editable
@@ -169,7 +175,10 @@ Rectangle {
         // accent, so it and these words are what is seen to press.
         Text {
             id: status
-            x: view.pad
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: view.pad
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: view.roomy ? view.pad + editButtons.height + Theme.s : editButtons.y + editButtons.height + Theme.xs
             width: strip.width - 2 * view.pad - (view.roomy ? 176 : 0)
             text: view.edited ? t`Your edit` : view.still ? t`End result, not run` : view.finished ? (card !== null && card.unassigned > 0 ? t`Done. Try Assign crew or List / Board.` : t`Done`) : view.working ? t`Working…` : ""
@@ -187,7 +196,10 @@ Rectangle {
         id: phoneCode
         objectName: "boardStrip"
         visible: !view.wide
-        x: view.pad
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: view.pad
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: strip.height
         width: view.width - 2 * view.pad
         height: view.codeStrip - Theme.xxs
@@ -195,7 +207,10 @@ Rectangle {
         fill: Theme.codeBg
 
         Column {
-            x: Theme.xs
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.xs
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: Math.round((parent.height - height) / 2)
             width: parent.width - 2 * Theme.xs
 
@@ -233,7 +248,10 @@ Rectangle {
     // The app: the one frame here, made by the module the loader holds.
     DispatchShell {
         id: shell
-        x: view.pad
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: view.pad
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: strip.height + view.codeStrip
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
         // A poster's board is drawn with the page: the board module, still.
@@ -278,7 +296,10 @@ Rectangle {
     // The log, the source or the Observer.
     Item {
         id: side
-        x: view.wide ? shell.x + shell.width + view.gap : view.pad
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: view.wide ? shell.startX + shell.width + view.gap : view.pad
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: view.wide ? strip.height : strip.height + view.codeStrip + view.cardRoom + view.gap
         width: view.wide ? view.sideWidth : view.width - 2 * view.pad
         height: view.height - y - view.pad
@@ -295,7 +316,10 @@ Rectangle {
                 visible: view.tabs
                 Accessible.role: Accessible.PageTabList
                 Accessible.name: t`Replay views`
-                x: 2
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 2
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
 
@@ -355,7 +379,10 @@ Rectangle {
             }
             Text {
                 visible: !view.tabs
-                x: Theme.s
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: Theme.s
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 text: t`Agent log`
                 color: Theme.text
@@ -485,7 +512,10 @@ Rectangle {
                     Text {
                         id: source
                         objectName: "boardSource"
-                        x: Theme.xxs
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: Theme.xxs
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: Theme.xs
                         width: parent.width - 2 * Theme.xxs
                         color: Theme.codeFg
@@ -556,9 +586,12 @@ Rectangle {
                                     treeView.contentY = y + height - treeView.height;
                             }
                             Text {
-                                x: 4 + 12 * treeRow.modelData.depth
+                                // Where it starts, read from the left; a right-to-left page
+                                // sets it as far from the right (LayoutMirroring).
+                                readonly property real startX: 4 + 12 * treeRow.modelData.depth
+                                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - x - 4
+                                width: parent.width - startX - 4
                                 text: treeRow.modelData.label
                                 color: Theme.text
                                 font.family: Theme.mono
@@ -586,9 +619,12 @@ Rectangle {
                 }
             }
             Flickable {
-                x: observerView.sideBySide ? treeView.width + 2 * Theme.xs : 0
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: observerView.sideBySide ? treeView.width + 2 * Theme.xs : 0
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: observerView.sideBySide ? 0 : treeView.height + 2 * Theme.xs
-                width: parent.width - x
+                width: parent.width - startX
                 height: parent.height - y
                 contentHeight: propertyColumn.height
                 clip: true
