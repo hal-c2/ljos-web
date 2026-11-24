@@ -1618,8 +1618,9 @@ test("Cyberpunk's front page is a mission console: the Observer tree, the live a
 // "Built for agents" gives up its side-by-side only for a console, and
 // the device is a console only where it has the width for one
 // (DeviceFrame `consoleLayout`): a window that leaves the section
-// narrower than that keeps the words beside the tabbed app.
-for (const width of [1000, 1100, 1200, 1440]) {
+// narrower than that keeps the words beside the tabbed app; 1260 is
+// where the hero's own wash once left its device short of one.
+for (const width of [1000, 1100, 1200, 1260, 1440]) {
   test(`Cyberpunk's front page stands the live app beside the words, or as a console, at ${width}`, async ({ browser }) => {
     const context = await reader(browser, { kept: "cyberpunk", viewport: { width, height: 900 } });
     try {

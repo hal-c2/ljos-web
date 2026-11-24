@@ -386,6 +386,7 @@ Feature: The site is shown in a shell the reader picks
       | 1000  |
       | 1100  |
       | 1200  |
+      | 1260  |
       | 1440  |
 
   Scenario: Cyberpunk stands on a phone, with one menu control and its telemetry at the bottom
