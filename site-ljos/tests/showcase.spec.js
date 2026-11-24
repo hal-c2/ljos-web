@@ -3,6 +3,7 @@
 // runs as its poster, captures and links; with script its recording
 // plays where the reader allows motion, waits for Play where they ask
 // for less, and runs only while it is seen.
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -118,6 +119,74 @@ test("with no script, each app stands with its heading, poster, captures and lin
       // Each picture is drawn, at the size the page gives it.
       const broken = await page.evaluate(() => [...document.querySelectorAll("#app picture img")].filter((img) => img.loading === "eager" && !(img.complete && img.naturalWidth > 0)).map((img) => img.src));
       expect(broken).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+// The apps that name the engine they are built on, and each engine's
+// example as the site keeps it: a copy of the file at the commit named.
+const engines = products.filter((product) => product.engine).map((product) => product.engine);
+const quoted = (example) => readFileSync(join(here, "bundle", example.copy), "utf8");
+// Prose as a page shows it: the phone's prerender writes its line
+// breaks into the text, after a space or a hyphen.
+const prose = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+").replace(/-/g, "-\\s*")}$`);
+const cut = (example, [from, to]) => quoted(example).split("\n").slice(from - 1, to).join("\n");
+
+test("the Office names ljos-play, and the copy of its example is the file at the commit named", () => {
+  const office = products.find((product) => product.id === "office");
+  expect(office?.engine?.href).toBe("https://github.com/hal-c2/ljos-play");
+  for (const { example } of engines) {
+    // Git's own name for the file's bytes: the copy is byte for byte
+    // what the repository holds at that commit.
+    const bytes = readFileSync(join(here, "bundle", example.copy));
+    const blob = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
+    expect(blob).toBe(example.blob);
+    expect(example.commit).toMatch(/^[0-9a-f]{40}$/);
+    expect(example.snippets.length).toBeGreaterThanOrEqual(1);
+    expect(example.snippets.length).toBeLessThanOrEqual(2);
+    const media = join(dist, "showcase/media");
+    for (const ext of [".avif", ".webp", ".png"]) expect(existsSync(join(media, `${example.capture.name}${ext}`)), `${example.capture.name}${ext}`).toBe(true);
+  }
+});
+
+test("with no script, the engine stands in its own words: its lines coloured as code, each linked to them at the commit, its capture beside", async ({ browser }) => {
+  expect(engines.length).toBeGreaterThan(0);
+  for (const width of [390, 1440]) {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 900 } });
+    try {
+      const page = await context.newPage();
+      await page.goto(route);
+      for (const engine of engines) {
+        const { example } = engine;
+        await expect(page.getByRole("heading", { level: 3, name: engine.heading })).toBeVisible();
+        await expect(page.getByText(prose(engine.line)).filter({ visible: true })).toHaveCount(1);
+        await expect(page.getByRole("link", { name: engine.label })).toHaveAttribute("href", engine.href);
+        const blocks = await page.evaluate(() =>
+          [...document.querySelectorAll("#app .qq-rich")].map((block) => ({
+            text: block.innerText.replace(/\u00a0/g, " ").replace(/\n+$/, ""),
+            tokens: block.querySelectorAll("[class*=tok-]").length,
+            invalid: block.querySelectorAll(".tok-invalid").length,
+          })),
+        );
+        for (const snippet of example.snippets) {
+          const [from, to] = snippet.lines;
+          const block = blocks.find((one) => one.text === cut(example, snippet.lines));
+          expect(block, `lines ${from}–${to} as written`).toBeTruthy();
+          expect(block.tokens, `lines ${from}–${to} coloured`).toBeGreaterThan(0);
+          expect(block.invalid, `lines ${from}–${to} read as QML`).toBe(0);
+          await expect(page.getByText(prose(snippet.says)).filter({ visible: true })).toHaveCount(1);
+          await expect(page.getByRole("link", { name: `Lines ${from}–${to} at ${example.commit.slice(0, 7)}`, exact: true })).toHaveAttribute(
+            "href",
+            `https://github.com/${example.repository}/blob/${example.commit}/${example.path}#L${from}-L${to}`,
+          );
+        }
+        const capture = page.locator(`#app picture img[src$="showcase/media/${example.capture.name}.png"]`).filter({ visible: true });
+        await expect(capture).toHaveCount(1);
+        await expect(capture).toHaveAttribute("alt", example.capture.alt);
+        await expect(page.getByText(prose(example.capture.shows)).filter({ visible: true })).toHaveCount(1);
+      }
     } finally {
       await context.close();
     }
