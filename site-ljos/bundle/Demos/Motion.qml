@@ -37,7 +37,7 @@ Rectangle {
     property bool active: true
     property bool calm: false
 
-    readonly property unknown spring: MotionLogic.springTuning(
+    readonly property MotionLogic.SpringTuning spring: MotionLogic.springTuning(
         calm, livelySpring, livelyDamping, calmSpring, calmDamping
     )
     readonly property int tileDuration: MotionLogic.duration(calm, tileMoveMs, calmMoveMs)
@@ -76,7 +76,7 @@ Rectangle {
         // springs on to, drawn no further out than the tray's edge (kept):
         // the spring itself is left be, as one given a new start keeps
         // its velocity and would carry the puck past that edge.
-        function keepPuck() {
+        function keepPuck(): void {
             if (!puck.led)
                 return;
             const inside = MotionLogic.clampPuck(puck.goalX + puck.width / 2, puck.goalY + puck.height / 2, puck.width, width, height);
@@ -127,7 +127,7 @@ Rectangle {
             // from inside, the puck is drawn within the tray wherever its
             // spring is.
             property bool kept: false
-            readonly property unknown held: MotionLogic.clampPuck(x + width / 2, y + height / 2, width, tray.width, tray.height)
+            readonly property MotionLogic.Point held: MotionLogic.clampPuck(x + width / 2, y + height / 2, width, tray.width, tray.height)
             transform: Translate {
                 x: puck.kept ? puck.held.x - puck.x : 0
                 y: puck.kept ? puck.held.y - puck.y : 0
@@ -164,8 +164,9 @@ Rectangle {
             anchors.fill: parent
             Accessible.name: t`Spring tray. Press and move to lead the puck; it springs after the pointer.`
             Accessible.role: Accessible.Slider
-            function lead(mouse) {
-                const target = MotionLogic.clampPuck(mouse.x, mouse.y, puck.width, tray.width, tray.height);
+            // Where the pointer is: the area's own, as its signal's is.
+            function lead(): void {
+                const target = MotionLogic.clampPuck(chase.mouseX, chase.mouseY, puck.width, tray.width, tray.height);
                 puck.led = true;
                 // A spring still past the edge has yet to come in from it.
                 puck.kept = puck.kept && (Math.abs(puck.held.x - puck.x) > 0.5 || Math.abs(puck.held.y - puck.y) > 0.5);
@@ -174,10 +175,10 @@ Rectangle {
                 puck.x = target.x;
                 puck.y = target.y;
             }
-            onPressed: (mouse) => lead(mouse)
-            onPositionChanged: (mouse) => {
+            onPressed: lead()
+            onPositionChanged: {
                 if (pressed)
-                    lead(mouse);
+                    lead();
             }
         }
     }
@@ -257,7 +258,7 @@ Rectangle {
             Accessible.name: t`Shuffle the tiles`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: shuffleButton.shuffle()
-            Keys.onPressed: (event) => {
+            Keys.onPressed: (event: KeyEvent) => {
                 if (event.key === Key.Space || event.key === Key.Return) {
                     shuffleButton.shuffle();
                     event.accepted = true;
@@ -282,8 +283,9 @@ Rectangle {
                 anchors.fill: parent
                 onClicked: shuffleButton.shuffle()
             }
-            function shuffle() {
-                MotionLogic.shuffleMoves(tiles.count).forEach((step) => tiles.move(step.from, step.to, 1));
+            function shuffle(): void {
+                for (const step of MotionLogic.shuffleMoves(tiles.count))
+                    tiles.move(step.from, step.to, 1);
             }
         }
 
@@ -299,7 +301,7 @@ Rectangle {
             Accessible.name: t`About this motion. Tap to open or close.`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: card.open = !card.open
-            Keys.onPressed: (event) => {
+            Keys.onPressed: (event: KeyEvent) => {
                 if (event.key === Key.Space || event.key === Key.Return) {
                     card.open = !card.open;
                     event.accepted = true;
