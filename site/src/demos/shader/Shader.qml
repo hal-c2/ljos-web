@@ -1,4 +1,7 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
+// Ljos.Ui has no `ShaderEffect` yet: it comes from QtQuick, by name.
+import QtQuick as Q
 
 // An item painted entirely by a fragment shader of its own
 // (light.frag beside this file). The QML properties below are the
@@ -9,27 +12,27 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#101320"
+    fill: "#101320"
     activeFocusOnTab: true
 
     property bool active: true
     property bool calm: false
 
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return) {
+        if (event.key === Key.Space || event.key === Key.Return) {
             effect.cycle();
             event.accepted = true;
         }
     }
 
-    ShaderEffect {
+    Q.ShaderEffect {
         id: effect
         anchors.fill: parent
         // The uniforms, in the order light.frag declares them.
         property real time: 0
-        property point pointer: Qt.point(0.3, 0.6)
+        property point pointer: point(0.3, 0.6)
         property real palette: 0
-        property point resolution: Qt.point(Math.max(width, 1), Math.max(height, 1))
+        property point resolution: point(Math.max(width, 1), Math.max(height, 1))
         fragmentShader: "light.frag.qsb"
 
         function cycle() {
@@ -48,14 +51,14 @@ Rectangle {
         }
     }
 
-    MouseArea {
+    PointerArea {
         anchors.fill: parent
         hoverEnabled: true
-        Accessible.name: qsTr("Shader canvas. Move the pointer to stir the light; tap to change the colours.")
+        Accessible.name: t`Shader canvas. Move the pointer to stir the light; tap to change the colours.`
         Accessible.role: Accessible.Button
         Accessible.onPressAction: effect.cycle()
         onPositionChanged: (mouse) => {
-            effect.pointer = Qt.point(mouse.x / Math.max(width, 1), 1.0 - mouse.y / Math.max(height, 1));
+            effect.pointer = point(mouse.x / Math.max(width, 1), 1.0 - mouse.y / Math.max(height, 1));
         }
         onClicked: effect.cycle()
     }
@@ -65,15 +68,15 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.margins: 14
         color: "#e6e9f2"
-        font.pixelSize: 14
-        text: qsTr("Move to stir the light · tap for other colours")
+        font.size: 14
+        text: t`Move to stir the light · tap for other colours`
     }
     Text {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 14
         color: "#aeb6c9"
-        font.pixelSize: 13
-        text: qsTr("A custom fragment shader")
+        font.size: 13
+        text: t`A custom fragment shader`
     }
 }

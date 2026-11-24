@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import Ljos.Blocks
 
 // The app's "status" place, as a block a shell can put anywhere:

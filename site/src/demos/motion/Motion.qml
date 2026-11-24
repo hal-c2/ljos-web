@@ -1,4 +1,6 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
+import Ljos.Layout
 
 // Motion with a job to do: a puck that springs after your pointer
 // (feedback that feels physical), a row of tiles that glide to their
@@ -11,7 +13,7 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#171a23"
+    fill: "#171a23"
     radius: 8
 
     property bool active: true
@@ -25,15 +27,15 @@ Rectangle {
         anchors.top: parent.top
         anchors.margins: 16
         height: 168
-        color: "#1f2432"
+        fill: "#1f2432"
         radius: 10
 
         Text {
             x: 14
             y: 10
             color: "#9aa3b2"
-            font.pixelSize: 13
-            text: qsTr("Press and move — the puck springs after you")
+            font.size: 13
+            text: t`Press and move — the puck springs after you`
         }
 
         Rectangle {
@@ -41,7 +43,7 @@ Rectangle {
             width: 54
             height: 54
             radius: 27
-            color: "#e8a33d"
+            fill: "#e8a33d"
             x: tray.width / 2 - width / 2
             y: tray.height / 2 - height / 2
             property real goalX: x
@@ -74,10 +76,10 @@ Rectangle {
             }
         }
 
-        MouseArea {
+        PointerArea {
             id: chase
             anchors.fill: parent
-            Accessible.name: qsTr("Spring tray. Press and move to lead the puck; it springs after the pointer.")
+            Accessible.name: t`Spring tray. Press and move to lead the puck; it springs after the pointer.`
             Accessible.role: Accessible.Slider
             function lead(mouse) {
                 puck.goalX = Math.max(0, Math.min(tray.width - puck.width, mouse.x - puck.width / 2));
@@ -121,12 +123,12 @@ Rectangle {
             width: (strip.width - strip.spacing * 5) / 6
             height: 64
             radius: 10
-            color: tone
+            fill: tone
             Text {
                 anchors.centerIn: parent
                 color: "#14161d"
-                font.pixelSize: 17
-                font.bold: true
+                font.size: 17
+                font.weight: Font.Bold
                 text: label
             }
         }
@@ -158,14 +160,14 @@ Rectangle {
             width: 168
             height: 42
             radius: 8
-            color: shufflePress.pressed ? "#c77f2a" : "#e8a33d"
+            fill: shufflePress.pressed ? "#c77f2a" : "#e8a33d"
             scale: shufflePress.pressed ? 0.97 : 1.0
             activeFocusOnTab: true
-            Accessible.name: qsTr("Shuffle the tiles")
+            Accessible.name: t`Shuffle the tiles`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: shuffleButton.shuffle()
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Space || event.key === Qt.Key_Return) {
+                if (event.key === Key.Space || event.key === Key.Return) {
                     shuffleButton.shuffle();
                     event.accepted = true;
                 }
@@ -179,11 +181,11 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 color: "#1a1408"
-                font.pixelSize: 15
-                font.bold: true
-                text: qsTr("Shuffle the tiles")
+                font.size: 15
+                font.weight: Font.Bold
+                text: t`Shuffle the tiles`
             }
-            MouseArea {
+            PointerArea {
                 id: shufflePress
                 anchors.fill: parent
                 onClicked: shuffleButton.shuffle()
@@ -204,15 +206,15 @@ Rectangle {
             width: 300
             height: open ? 118 : 42
             radius: 8
-            color: "#232839"
+            fill: "#232839"
             clip: true
             property bool open: false
             activeFocusOnTab: true
-            Accessible.name: qsTr("About this motion. Tap to open or close.")
+            Accessible.name: t`About this motion. Tap to open or close.`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: card.open = !card.open
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Space || event.key === Qt.Key_Return) {
+                if (event.key === Key.Space || event.key === Key.Return) {
                     card.open = !card.open;
                     event.accepted = true;
                 }
@@ -227,16 +229,16 @@ Rectangle {
                 x: 12
                 y: 11
                 color: "#e8eaf0"
-                font.pixelSize: 15
-                text: card.open ? qsTr("About this motion ▾") : qsTr("About this motion ▸")
+                font.size: 15
+                text: card.open ? t`About this motion ▾` : t`About this motion ▸`
             }
             Text {
                 x: 12
                 y: 42
                 width: parent.width - 24
-                wrapMode: Text.WordWrap
+                wrap: Text.WordWrap
                 color: "#b9c0d0"
-                font.pixelSize: 13
+                font.size: 13
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
@@ -244,9 +246,9 @@ Rectangle {
                         easing.type: Easing.OutCubic
                     }
                 }
-                text: qsTr("Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen.")
+                text: t`Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen.`
             }
-            MouseArea {
+            PointerArea {
                 anchors.fill: parent
                 onClicked: card.open = !card.open
             }

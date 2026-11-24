@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
 import Ljos.Blocks
 
 // The basket block: the app's own data, which no shell owns. Its
@@ -13,7 +14,7 @@ Rectangle {
     width: 300
     height: 64
     radius: 8
-    color: "#2a2118"
+    fill: "#2a2118"
 
     property int teaBought: 0
     property int breadBought: 0
@@ -56,7 +57,7 @@ Rectangle {
             Text {
                 objectName: "statusText"
                 color: "#f3c97e"
-                font.pixelSize: 14
+                font.size: 14
                 text: basket.summary
             }
         }
@@ -67,15 +68,15 @@ Rectangle {
         x: 14
         y: 10
         color: "#f5eeda"
-        font.pixelSize: 18
-        text: qsTr("Basket")
+        font.size: 18
+        text: t`Basket`
     }
     Text {
         objectName: "basketSummary"
         x: 14
         y: 36
         color: "#d8c39a"
-        font.pixelSize: 14
+        font.size: 14
         text: basket.summary
     }
 }
