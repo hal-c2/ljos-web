@@ -2,6 +2,7 @@ import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
 import Site
+import "logic/dispatch.ts" as Dispatch
 
 // A field-service dispatch card for Brekka Grid, a made-up grid operator:
 // the app the landing's agent reshapes. Everything it shows is data in its
@@ -20,16 +21,16 @@ Rectangle {
     // What the card shows.
     property string heading: ""
     property string org: "Brekka Grid"
-    property unknown tickets: []
-    property unknown filters: []
+    property list<Dispatch.Ticket> tickets: []
+    property list<string> filters: []
     property bool openOnly: false
     // Which board module made the card: "list" or "board".
     property string layout: ""
     // That module's `lanes`. Without one, the tickets are one list.
-    property unknown lay: null
+    property Dispatch.MaybeLay lay: undefined
     // The crew each ticket was given here, by its key: a person's press
     // or an agent's, over the crew the ticket came with.
-    property unknown crews: ({})
+    property Dispatch.Crews crews: ({})
     // The ticket picked, by its key.
     property string picked: ""
     // Gently, for a reader who asked for less motion: rows fade in place.
@@ -41,34 +42,34 @@ Rectangle {
 
     signal told(string line)
 
-    readonly property unknown shown: openOnly ? tickets.filter((ticket) => ticket.state === "Open") : tickets
-    readonly property int openCount: tickets.filter((ticket) => ticket.state === "Open").length
-    readonly property int unassigned: tickets.filter((ticket) => ticket.state === "Open" && crewOf(ticket) === "").length
+    readonly property list<Dispatch.Ticket> shown: openOnly ? tickets.filter((ticket: Dispatch.Ticket) => ticket.state === "Open") : tickets
+    readonly property int openCount: tickets.filter((ticket: Dispatch.Ticket) => ticket.state === "Open").length
+    readonly property int unassigned: tickets.filter((ticket: Dispatch.Ticket) => ticket.state === "Open" && crewOf(ticket) === "").length
     readonly property bool narrow: width < 420
     // Too narrow for the filters beside the heading.
     readonly property bool tight: width < 360
-    readonly property unknown placed: shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) }))
-    readonly property unknown lanes: lay ? lay(placed) : [{ title: "", tickets: placed }]
+    readonly property list<Dispatch.Ticket> placed: shown.map((ticket: Dispatch.Ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) }))
+    readonly property list<Dispatch.Lane> lanes: Dispatch.laid(lay, placed)
     readonly property bool boarded: lanes.length > 1
     // The board with no ticket left to assign: its crewed lane has all the
     // width, as half a board of nothing reads as something missing.
-    readonly property bool staffed: lanes.length === 2 && lanes[0].tickets.length === 0 && lanes[1].tickets.length > 0
+    readonly property bool staffed: lanes.length === 2 && lanes[0]?.tickets.length === 0 && (lanes[1]?.tickets.length ?? 0) > 0
 
     // Where rows already stood: a row rises in the first time its ticket
     // stands in a layout with that crew, so a change of either is seen to
     // move, and a filter that makes its delegate again is not.
-    property unknown seen: ({})
+    property Dispatch.Seen seen: ({})
 
-    function crewOf(ticket) {
-        return crews[ticket.key] !== undefined ? crews[ticket.key] : (ticket.crew || "");
+    function crewOf(ticket: Dispatch.Ticket): string {
+        return crews[ticket.key] ?? ticket.crew ?? "";
     }
-    function assign(key, crew) {
-        const next = Object.assign({}, crews);
+    function assign(key: string, crew: string): void {
+        const next: Record<string, string> = Object.assign({}, crews);
         next[key] = crew;
         crews = next;
         told(`assigned ${key} to ${crew}`);
     }
-    function toggleOpenOnly() {
+    function toggleOpenOnly(): void {
         openOnly = !openOnly;
         told(openOnly ? `filter open only: ${openCount} of ${tickets.length} tickets` : `filter off: ${tickets.length} tickets`);
     }
@@ -197,7 +198,7 @@ Rectangle {
 
                 Column {
                     id: lane
-                    required property unknown modelData
+                    required property Dispatch.Lane modelData
                     required property int index
                     // Hidden, not unmade: the page as written and as hydrated
                     // make the same parts.
@@ -226,7 +227,7 @@ Rectangle {
 
                             Rectangle {
                                 id: row
-                                required property unknown modelData
+                                required property Dispatch.Ticket modelData
                                 readonly property string crew: modelData.crew
                                 readonly property bool open: modelData.state === "Open"
                                 readonly property bool boarded: card.boarded
@@ -246,7 +247,7 @@ Rectangle {
                                 }
                                 Component.onCompleted: {
                                     const place = `${card.boarded} ${modelData.key} ${crew}`;
-                                    if (card.still || card.seen[place])
+                                    if (card.still || card.seen[place] === true)
                                         return;
                                     card.seen[place] = true;
                                     row.opacity = 0;

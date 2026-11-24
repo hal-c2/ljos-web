@@ -8,6 +8,8 @@ import "../Site/code-editor.js" as Editor
 import "boards.js" as Boards
 import "logic/before/board.ts" as ListBoard
 import "logic/after/board.ts" as LanesBoard
+import "logic/stage.ts" as Stage
+import "logic/replay.ts" as Replay
 
 // What the agent replay looks like: a toolbar with the request, in words,
 // how it stands and the same change in the reader's hands; under that the
@@ -44,12 +46,12 @@ Rectangle {
     property bool editable: !still
     // The small Observer's tree (Stage.treeRows) and the picked object's
     // properties (Stage.propertyRows).
-    property unknown treeRows: []
-    property unknown propertyRows: []
+    property list<Stage.TreeRow> treeRows: []
+    property list<Stage.PropertyRow> propertyRows: []
     property string pickedRef: ""
 
     // The app, once its loader has made it.
-    readonly property unknown card: shell.item
+    readonly property DispatchCard card: shell.card
     readonly property alias log: logModel
     // The module the loader is asked for: "list" or "board".
     property string wanted: still ? "board" : "list"
@@ -63,23 +65,23 @@ Rectangle {
     // The other module in place of the running one, by a reload that
     // carries what the app was given. A poster's loader shows its board
     // until the first, which gives it its source. Answers why it failed,
-    // or "", or null where nothing was reloaded.
-    function swap(layout) {
+    // or "", or nothing where nothing was reloaded.
+    function swap(layout: string): Promise<unknown> | undefined {
         wanted = layout;
-        if (!shell.source) {
-            shell.source = Boards.sourceFor(view);
+        if (shell.module === undefined) {
+            shell.module = Boards.sourceFor(() => view.wanted);
             swaps += 1;
-            return null;
+            return undefined;
         }
-        return shell.reload().then((why) => {
-            if (!why)
+        return Promise.resolve(shell.reload()).then((why: unknown) => {
+            if (Replay.swapped(why))
                 view.swaps += 1;
             return why;
         });
     }
     Component.onCompleted: {
         if (!still)
-            shell.source = Boards.sourceFor(view);
+            shell.module = Boards.sourceFor(() => view.wanted);
     }
 
     signal tabPicked(string tab)
@@ -200,12 +202,13 @@ Rectangle {
             Repeater {
                 model: view.wide ? [] : DispatchSource[view.running].strip
                 Row {
-                    required property unknown modelData
+                    id: stripRow
+                    required property Replay.StripLine modelData
                     spacing: Theme.xs
                     Text {
                         width: 20
                         align: Text.AlignRight
-                        text: String(parent.modelData.line)
+                        text: String(stripRow.modelData.line)
                         color: Theme.codeGutter
                         font.family: Theme.mono
                         font.size: Theme.captionSize - 1
@@ -214,7 +217,7 @@ Rectangle {
                     }
                     Text {
                         width: phoneCode.width - 2 * Theme.xs - 20 - Theme.xs
-                        text: parent.modelData.text
+                        text: stripRow.modelData.text
                         color: Theme.codeFg
                         font.family: Theme.mono
                         font.size: Theme.captionSize - 1
@@ -228,15 +231,15 @@ Rectangle {
     }
 
     // The app: the one frame here, made by the module the loader holds.
-    ShellLoader {
+    DispatchShell {
         id: shell
         x: view.pad
         y: strip.height + view.codeStrip
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
         // A poster's board is drawn with the page: the board module, still.
-        fallback: view.still ? posterBoard : undefined
+        stand: view.still ? posterBoard : undefined
         onItemChanged: {
-            if (item)
+            if (item !== null)
                 item.still = bind(() => view.still);
         }
     }
@@ -258,7 +261,7 @@ Rectangle {
         Repeater {
             model: AgentReplay.reachable
             DispatchCard {
-                required property unknown modelData
+                required property Replay.Reachable modelData
                 width: shell.width
                 still: true
                 heading: AgentReplay.heading
@@ -300,7 +303,7 @@ Rectangle {
                     model: view.tabs ? [{ key: "source", name: t`TypeScript` }, { key: "agent", name: t`Agent` }, { key: "observer", name: t`Observer` }] : []
                     Rectangle {
                         id: tabButton
-                        required property unknown modelData
+                        required property Replay.Tab modelData
                         readonly property bool current: view.tab === modelData.key
                         width: tabWords.implicitWidth + 2 * Theme.xs
                         height: 30
@@ -310,7 +313,7 @@ Rectangle {
                         Accessible.role: Accessible.PageTab
                         Accessible.name: modelData.name
                         Accessible.selected: current
-                        Keys.onPressed: (event) => {
+                        Keys.onPressed: (event: KeyEvent) => {
                             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                                 view.tabPicked(tabButton.modelData.key);
                                 event.accepted = true;
@@ -334,7 +337,7 @@ Rectangle {
                             visible: tabButton.activeFocus
                             anchors.fill: parent
                             anchors.margins: -2
-                            radius: parent.radius + 2
+                            radius: tabButton.radius + 2
                             fill: "transparent"
                             border.color: Theme.focusRing
                             border.width: 2
@@ -528,7 +531,7 @@ Rectangle {
                         model: view.treeRows
                         Rectangle {
                             id: treeRow
-                            required property unknown modelData
+                            required property Stage.TreeRow modelData
                             width: treeColumn.width
                             height: 24
                             radius: 4
@@ -536,7 +539,7 @@ Rectangle {
                             activeFocusOnTab: true
                             Accessible.role: Accessible.Button
                             Accessible.name: t`Inspect ${modelData.label}`
-                            Keys.onPressed: (event) => {
+                            Keys.onPressed: (event: KeyEvent) => {
                                 if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                                     view.treePicked(treeRow.modelData.ref);
                                     event.accepted = true;
@@ -566,7 +569,7 @@ Rectangle {
                             Rectangle {
                                 visible: treeRow.activeFocus
                                 anchors.fill: parent
-                                radius: parent.radius
+                                radius: treeRow.radius
                                 fill: "transparent"
                                 border.color: Theme.focusRing
                                 border.width: 2
@@ -607,7 +610,7 @@ Rectangle {
                     Repeater {
                         model: view.propertyRows
                         Text {
-                            required property unknown modelData
+                            required property Stage.PropertyRow modelData
                             width: propertyColumn.width
                             text: `${modelData.name}: ${modelData.value}${modelData.mine ? "  ·  " + t`set by the agent` : ""}`
                             color: modelData.mine ? Theme.link : Theme.text

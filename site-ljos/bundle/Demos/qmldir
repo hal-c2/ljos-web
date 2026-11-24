@@ -10,3 +10,6 @@ DispatchBoard 1.0 DispatchBoard.qml
 AgentLogRow 1.0 AgentLogRow.qml
 AgentView 1.0 AgentView.qml
 AgentPoster 1.0 AgentPoster.qml
+ModuleLoader 1.0 ModuleLoader.qml
+HeldBinding 1.0 HeldBinding.qml
+DispatchShell 1.0 DispatchShell.qml
