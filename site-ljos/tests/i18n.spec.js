@@ -132,7 +132,7 @@ async function press(page, key, item) {
 }
 
 async function pick(page, name) {
-  await visible(page.getByRole("button", { name: /^Language: |^[^:]+: (English|Español|简体中文|हिन्दी|العربية|Português \(Brasil\)|Français|Deutsch|日本語|Русский|Íslenska)$/u })).click();
+  await visible(page.getByRole("button", { name: /^[A-Z]+ · [^:]+: (English|Español|简体中文|हिन्दी|العربية|Português \(Brasil\)|Français|Deutsch|日本語|Русский|Íslenska)$/u })).click();
   await page.getByRole("radio", { name, exact: true }).click();
 }
 
