@@ -387,6 +387,8 @@ export const TextInput = defineType("TextInput", Item, {
   },
   setup(self) {
     const field = document.createElement("input");
+    // What is typed runs the way it is written (see Text.js).
+    field.dir = "auto";
     const finished = () => {
       if (self.acceptableInput) self.editingFinished();
     };
@@ -497,6 +499,8 @@ export const TextEdit = defineType("TextEdit", Item, {
   },
   setup(self) {
     const field = document.createElement("textarea");
+    // What is typed runs the way it is written (see Text.js).
+    field.dir = "auto";
     editor(self, field, { home: () => 0, finished: () => self.editingFinished() });
     const state = self.$edit;
     state.layout = lazy(self, () => laid(self));

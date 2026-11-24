@@ -520,6 +520,10 @@ export const Text = defineType("Text", Item, {
   setup(self) {
     const content = document.createElement("div");
     content.className = "qq-text";
+    // A text runs the way what it says is written, as Qt sets a text from
+    // its content, not the way the page around it does: an English name
+    // keeps its full stop on the right on a right-to-left page.
+    content.dir = "auto";
     self.$node.append(content);
     self.$markup = content;
     const state = (self.$text = {
