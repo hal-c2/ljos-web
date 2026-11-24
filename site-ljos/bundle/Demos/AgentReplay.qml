@@ -60,7 +60,7 @@ QtObject {
     // and the narrowest the code stands beside the app in, where the app
     // keeps its filters by its heading and the code its 14 pixels.
     readonly property int sideWidth: 358
-    readonly property int pad: Theme.xxs
+    readonly property int pad: Theme.s
     readonly property int gap: Theme.s
     readonly property int sideBySide: sideWidth + 360 + gap + 2 * pad
 

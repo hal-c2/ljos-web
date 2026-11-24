@@ -32,10 +32,15 @@ Item {
     // The demo, as wide as `stageWidth`.
     property alias stage: stageArea.data
     readonly property int stageWidth: deviceSide.width - 2 * reach
-    // How far the wash reaches round the demo. On a phone it runs into
-    // the page's gutter, so the demo keeps the page's whole width.
-    readonly property int reach: wide ? Theme.xl : Theme.s
+    // How far the wash reaches round the demo. On a phone it runs a small
+    // step into the page's gutter and is a smaller one thick, so the demo
+    // is a little wider than the page's column: the room it keeps inside
+    // its own edge (AgentView's pad) costs its code none of its size.
+    // Wide, it is the step that leaves a 1280 laptop's demo, padded, room
+    // to stand beside the words.
+    readonly property int reach: wide ? Theme.l : Theme.xs
     readonly property bool bleeds: !wide
+    readonly property int bleed: bleeds ? Theme.s : 0
     signal followed(string link)
 
     // Words with room to spare keep a gap of their own from the wash;
@@ -45,7 +50,7 @@ Item {
     readonly property int sideWordsWidth: Math.round(wordsColumns * column + (wordsColumns - 1) * Theme.columnGap)
     // The demo's width beside the words: the rest, less the gap before
     // the wash and the wash's reach round it.
-    readonly property int sideStageWidth: width - sideWordsWidth - Theme.columnGap - 2 * Theme.xl
+    readonly property int sideStageWidth: width - sideWordsWidth - Theme.columnGap - 2 * reach
     readonly property int wordsWidth: beside ? sideWordsWidth : width
     // The wash takes the rest of the columns and the gap before them; the
     // words keep a gap of their own inside theirs.
@@ -121,9 +126,9 @@ Item {
     // The demo, and what can be done with it.
     Item {
         id: deviceSide
-        x: hero.beside ? hero.width - hero.deviceWidth : hero.bleeds ? -hero.reach : 0
+        x: hero.beside ? hero.width - hero.deviceWidth : -hero.bleed
         y: hero.beside ? Theme.xs : words.implicitHeight + Theme.xl
-        width: hero.deviceWidth + (hero.bleeds ? 2 * hero.reach : 0)
+        width: hero.deviceWidth + 2 * hero.bleed
         height: caption.y + caption.height
 
         // The wash the demo stands in: a soft field from the mark's
@@ -151,9 +156,10 @@ Item {
         }
         Text {
             id: caption
-            x: wash.reach
+            // On the page's column, where the wash runs into the gutter.
+            x: hero.bleeds ? hero.bleed : wash.reach
             y: wash.height + (hero.wide ? Theme.m : Theme.s)
-            width: Math.min(parent.width - 2 * wash.reach, Theme.measure)
+            width: Math.min(parent.width - 2 * x, Theme.measure)
             visible: text !== ""
             text: hero.caption
             color: Theme.textMuted

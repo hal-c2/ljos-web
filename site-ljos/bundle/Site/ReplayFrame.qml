@@ -34,6 +34,9 @@ Item {
     property real aspect: 420 / 720
 
     readonly property int actWidth: 104
+    // The room between the frame's edge and its button and note: the
+    // demo's own (AgentView's `pad`), the tokens' small step where it has none.
+    readonly property int inset: pictured.item?.pad ?? Theme.s
     readonly property int pictureHeight: Math.round(width * aspect)
     readonly property int ownHeight: Math.max(pictured.item ? pictured.item.implicitHeight : 0, loader.item ? loader.item.implicitHeight : 0)
     readonly property int surfaceHeight: Math.max(pictureHeight, ownHeight)
@@ -73,15 +76,16 @@ Item {
     // their presses.
     Rectangle {
         z: 1
-        x: frame.width - width - Theme.xxs
-        y: Theme.xxs
+        x: frame.width - width - frame.inset
+        y: frame.inset
         width: frame.actWidth
-        height: 32
+        height: act.implicitHeight
         color: "transparent"
 
         // One button through the run's phases, so the focus a keyboard
         // reader gave it stays as it changes.
         StageButton {
+            id: act
             width: frame.actWidth
             anchors.verticalCenter: parent.verticalCenter
             visible: runner.phase !== ""
@@ -138,8 +142,8 @@ Item {
     Text {
         z: 1
         visible: frame.note !== ""
-        x: frame.width - width - Theme.xxs
-        y: 56 - Math.round(height / 2)
+        x: frame.width - width - frame.inset
+        y: (pictured.item?.noteCentre ?? 56) - Math.round(height / 2)
         text: frame.note
         color: Theme.textMuted
         font.family: Theme.sans

@@ -122,6 +122,47 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
   test.describe(`the front page's first screen at ${viewport.width}×${viewport.height}`, () => {
     test.use({ viewport });
 
+    // The replay once stood 4 px from its frame's edges, and on a phone its
+    // status ran under List and Board: everything keeps the tokens' small
+    // step (12 px) from the frame, and each row of the toolbar its own line.
+    test("keeps its toolbar off the frame's edges, each row clear of the next", async ({ page }) => {
+      test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+      await open(page, "/");
+      const pause = page.getByRole("button", { name: "Pause the agent replay" });
+      await expect(pause).toBeVisible();
+      const request = shown(page.getByText("Agent: make this a board", { exact: true }));
+      const status = shown(page.getByText("Working…", { exact: true }));
+      const list = shown(page.getByRole("button", { name: "List layout" }));
+      const boxes = await Promise.all([pause, request, status, list].map((locator) => locator.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+      })));
+      // The frame: the first painted box round the request that holds the
+      // frame's button too.
+      const frame = await request.evaluate((element, button) => {
+        const held = button.getBoundingClientRect();
+        for (let up = element.parentElement; up; up = up.parentElement) {
+          const box = up.getBoundingClientRect();
+          const painted = !/rgba\(.*, 0\)$|transparent/.test(getComputedStyle(up).backgroundColor);
+          if (painted && box.left <= held.left && box.right >= held.right && box.top <= held.top) return { left: box.left, top: box.top, right: box.right };
+        }
+        return null;
+      }, await pause.elementHandle());
+      expect(frame, "the frame").not.toBeNull();
+      const [paused, asked, said, listed] = boxes;
+      const room = {
+        "the request from the frame's left": asked.left - frame.left,
+        "List from the frame's left": listed.left - frame.left,
+        "Pause from the frame's top": paused.top - frame.top,
+        "Pause from the frame's right": frame.right - paused.right,
+        "List from the frame's top": listed.top - frame.top,
+      };
+      // A phone's is the smaller step (8 px), so its code keeps 14 pixels.
+      for (const [what, gap] of Object.entries(room)) expect(gap, what).toBeGreaterThanOrEqual(phone ? 7.5 : 11.5);
+      expect(said.top, "the status under List and Board").toBeGreaterThanOrEqual(listed.bottom);
+      if (phone) expect(listed.top, "List and Board under Pause").toBeGreaterThanOrEqual(paused.bottom);
+    });
+
     test("shows the app being reshaped, and says it is a replay while it plays", async ({ page }) => {
       test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
       await open(page, "/");

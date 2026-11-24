@@ -105,8 +105,13 @@ Rectangle {
     // stand above the app, in a strip as high as two.
     readonly property int codeStrip: wide ? 0 : 48
     implicitHeight: strip.height + codeStrip + pad + (wide ? Math.max(cardRoom, sideRoom) : cardRoom + gap + sideRoom)
-    // Room for a focus ring at the edges, and no more: the app is the subject.
-    readonly property int pad: AgentReplay.pad
+    // The room inside the stage's frame, a step of the tokens: nothing in
+    // it, the frame's own button included (ReplayFrame), meets its edge. A
+    // phone's is the smaller step, so its code keeps its 14 pixels.
+    readonly property int pad: roomy ? AgentReplay.pad : Theme.xs
+    // Where the frame centres its line of `note`: beside the status on two
+    // rows, beside List and Board on three.
+    readonly property int noteCentre: roomy ? status.y + Math.round(Theme.captionLine / 2) : editButtons.y + Math.round(editButtons.height / 2)
     readonly property int gap: AgentReplay.gap
 
     color: Theme.canvas
@@ -121,12 +126,14 @@ Rectangle {
     Item {
         id: strip
         width: view.width
-        height: view.roomy ? 76 : 112
+        // Each row under the one before it, as tall as its buttons are on
+        // this screen (a phone's are its touch target), so none overlaps.
+        height: status.y + (view.roomy ? 1 : 2) * Theme.captionLine + Theme.xs
 
         Text {
             id: request
             x: view.pad
-            y: Theme.xxs + Math.round((editButtons.height - height) / 2)
+            y: view.pad + Math.round((editButtons.height - height) / 2)
             width: (view.roomy ? editButtons.x : strip.width - view.pad - view.actWidth) - x - Theme.xs
             text: t`Agent: make this a board`
             color: Theme.text
@@ -138,7 +145,7 @@ Rectangle {
         Row {
             id: editButtons
             x: view.roomy ? strip.width - view.pad - view.actWidth - Theme.xs - width : view.pad
-            y: view.roomy ? Theme.xxs : 40
+            y: view.roomy ? view.pad : view.pad + editButtons.height + Theme.xs
             spacing: Theme.xxs
             enabled: view.editable
 
@@ -160,8 +167,9 @@ Rectangle {
         // At the end the next step: the card's own button is the one in the
         // accent, so it and these words are what is seen to press.
         Text {
+            id: status
             x: view.pad
-            y: view.roomy ? 48 : 76
+            y: view.roomy ? view.pad + editButtons.height + Theme.s : editButtons.y + editButtons.height + Theme.xs
             width: strip.width - 2 * view.pad - (view.roomy ? 176 : 0)
             text: view.edited ? t`Your edit` : view.still ? t`End result, not run` : view.finished ? (card !== null && card.unassigned > 0 ? t`Done. Try Assign crew or List / Board.` : t`Done`) : view.working ? t`Working…` : ""
             color: Theme.link

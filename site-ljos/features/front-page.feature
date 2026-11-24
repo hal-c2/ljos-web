@@ -79,6 +79,17 @@ Feature: The front page shows software being reshaped while it runs
     And with no ticket in "Needs a crew", "Crew assigned" takes the app's whole width
     And the list and the board, filtered or not, with every ticket assigned, do not move it
 
+  Scenario Outline: The replay keeps off its frame's edges
+    Given a window <width> wide
+    When the replay plays
+    Then the request, List, Board and Pause stand a spacing step from the frame's edges: 12 px, or 8 on a phone, where the code keeps its 14 pixels
+    And each row of its toolbar stands clear of the next: on a phone, List and Board under Pause and the status under them
+
+    Examples:
+      | width |
+      | 1440  |
+      | 390   |
+
   Scenario: The TypeScript shown is the TypeScript that runs
     When the page opens
     Then the code beside the app is the function that makes its lanes, word for word from the board.ts its module was built from
