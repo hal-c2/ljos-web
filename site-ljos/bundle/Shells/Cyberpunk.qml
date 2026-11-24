@@ -24,14 +24,14 @@ Rectangle {
 
     // Missing until the site puts itself in.
     property P.PunkSite site
-    readonly property P.MaybePunkRouter router: site !== undefined ? site.router : undefined
-    readonly property bool wide: site !== undefined ? site.preferences.wide : width >= 1000
-    readonly property bool calm: site !== undefined ? site.preferences.calm : false
-    readonly property string route: router !== undefined ? router.route : "/"
-    readonly property bool docs: router !== undefined && router.docsRoute
+    readonly property P.MaybePunkRouter router: P.given(site) ? site.router : undefined
+    readonly property bool wide: P.given(site) ? site.preferences.wide : width >= 1000
+    readonly property bool calm: P.given(site) ? site.preferences.calm : false
+    readonly property string route: router !== undefined && P.given(router) ? router.route : "/"
+    readonly property bool docs: router !== undefined && P.given(router) && router.docsRoute
     readonly property bool sidebarShown: wide && docs
-    readonly property bool tocShown: sidebarShown && width >= 1520 && (router?.headings.length ?? 0) > 0 && !(site !== undefined && site.docked > 0)
-    readonly property bool menuOpen: site !== undefined ? site.menuOpen && !wide : false
+    readonly property bool tocShown: sidebarShown && width >= 1520 && (router?.headings.length ?? 0) > 0 && !(P.given(site) && site.docked > 0)
+    readonly property bool menuOpen: P.given(site) ? site.menuOpen && !wide : false
     readonly property int pageWidest: 1280
     readonly property int gutter: wide ? 24 : 16
     readonly property int railWidth: 200
@@ -45,7 +45,7 @@ Rectangle {
     // site has that page (a route it has no name for is not one).
     readonly property list<P.Channel> channels: {
         const router = shell.router;
-        if (router === undefined)
+        if ((router === undefined || !P.given(router)) || !P.given(router))
             return [];
         const first: P.Channel[] = [
             { label: t`Console`, to: "/", current: route === "/" },
@@ -81,7 +81,7 @@ Rectangle {
     }
     Look {
         id: look
-        theme: shell.site !== undefined ? shell.site.theme : undefined
+        theme: P.given(shell.site) ? shell.site.theme : undefined
     }
 
     // The readings. The time, to the minute, woken once a minute at its
@@ -90,9 +90,9 @@ Rectangle {
     // rest asks for no frames.
     property string clock: ""
     property int fps: 0
-    readonly property int alive: site !== undefined ? site.alive : 0
-    readonly property string renderer: site !== undefined ? site.renderer : ""
-    readonly property real offset: site !== undefined ? site.pageOffset : 0
+    readonly property int alive: P.given(site) ? site.alive : 0
+    readonly property string renderer: P.given(site) ? site.renderer : ""
+    readonly property real offset: P.given(site) ? site.pageOffset : 0
 
     function tick(): void {
         const now = Minute.now();
@@ -121,11 +121,11 @@ Rectangle {
         onTriggered: frames.running = false
     }
     onOffsetChanged: sample()
-    onSiteChanged: if (site !== undefined) site.measureRenderer()
+    onSiteChanged: if (P.given(site)) site.measureRenderer()
     Component.onCompleted: {
         tick();
         sample();
-        if (site !== undefined)
+        if (P.given(site))
             site.measureRenderer();
     }
 
@@ -192,7 +192,7 @@ Rectangle {
         property string to: ""
         property bool current: false
         property bool action: false
-        readonly property string href: to !== "" && channel.router !== undefined ? channel.router.address(to) : ""
+        readonly property string href: to !== "" && channel.router !== undefined && P.given(channel.router) ? channel.router.address(to) : ""
         signal pressed
 
         width: parent !== null ? parent.width : 168
@@ -211,7 +211,7 @@ Rectangle {
         function press(): void {
             if (action)
                 channel.pressed();
-            else if (channel.router !== undefined)
+            else if (channel.router !== undefined && P.given(channel.router))
                 channel.router.go(to);
         }
 
@@ -454,7 +454,7 @@ Rectangle {
                 number: shell.channels.length + 1
                 action: true
                 label: t`Source`
-                onPressed: if (shell.site !== undefined) shell.site.showSource("cyberpunk")
+                onPressed: if (P.given(shell.site)) shell.site.showSource("cyberpunk")
             }
         }
     }

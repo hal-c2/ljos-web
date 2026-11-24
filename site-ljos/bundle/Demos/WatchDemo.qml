@@ -174,7 +174,7 @@ Item {
                 hint: t`Shows the watch's other face`
                 onPressed: {
                     const watch = demo.watch;
-                    if (watch !== undefined) {
+                    if (watch !== undefined && Kestrel.given(watch)) {
                         watch.touch();
                         watch.nextFace();
                     }
@@ -188,7 +188,7 @@ Item {
                 on: demo.asleep
                 onPressed: {
                     const watch = demo.watch;
-                    if (watch !== undefined) {
+                    if (watch !== undefined && Kestrel.given(watch)) {
                         if (demo.asleep)
                             watch.touch();
                         else
@@ -204,7 +204,7 @@ Item {
                 on: demo.watch?.alwaysOn ?? false
                 onPressed: {
                     const watch = demo.watch;
-                    if (watch !== undefined)
+                    if (watch !== undefined && Kestrel.given(watch))
                         watch.alwaysOn = !watch.alwaysOn;
                 }
             }
