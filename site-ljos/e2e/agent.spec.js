@@ -315,6 +315,42 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(page.getByText(/^app {2}assigned BG-415 to On-call crew$/)).toHaveCount(1);
     });
 
+    test("the Observer's objects are picked from the keyboard, by Enter or Space", async ({ page }) => {
+      test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+      await open(page, "/");
+      // The replay's own clicks would take the focus the reader gives.
+      await press(page.getByRole("button", { name: "Pause the agent replay" }));
+      await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
+      await press(shown(page.getByRole("tab", { name: "Observer", exact: true })));
+      const rows = page.getByRole("button", { name: /^Inspect / }).filter({ visible: true });
+      await expect(rows.first(), "the app's objects").toBeVisible({ timeout: 30_000 });
+      const none = page.getByText("Pick an object to see its properties.", { exact: true }).filter({ visible: true });
+      await expect(none).toHaveCount(1);
+      // A row's focus is the runtime's, so its ring is what says it: one
+      // more part of it drawn.
+      const parts = () => rows.evaluateAll((all) => all.map((row) => [...row.querySelectorAll("*")].filter((part) => part.checkVisibility({ visibilityProperty: true, opacityProperty: true })).length));
+      const unfocused = await parts();
+      const ringed = async () => (await parts()).findIndex((count, row) => count > unfocused[row]);
+      const fill = (row) => rows.nth(row).evaluate((element) => getComputedStyle(element).backgroundColor);
+      let at = -1;
+      for (let tab = 0; tab < 60 && at < 0; tab += 1) {
+        await page.keyboard.press("Tab");
+        await animationFrames(page, 2);
+        at = await ringed();
+      }
+      expect(at, "Tab reaches a row, and its ring shows").toBeGreaterThanOrEqual(0);
+      const plain = await fill(at);
+      await page.keyboard.press("Enter");
+      await expect(none, "Enter picks it").toHaveCount(0);
+      await expect.poll(() => fill(at), { message: "the row picked" }).not.toBe(plain);
+      const picked = await fill(at);
+      await page.keyboard.press("Tab");
+      await expect.poll(ringed, { message: "Tab goes on to the next row" }).toBe(at + 1);
+      await page.keyboard.press("Space");
+      await expect.poll(() => fill(at + 1), { message: "Space picks it" }).toBe(picked);
+      expect(await fill(at), "and the one before is not").toBe(plain);
+    });
+
     test.describe("with less motion", () => {
       test.use({ reducedMotion: "reduce" });
 

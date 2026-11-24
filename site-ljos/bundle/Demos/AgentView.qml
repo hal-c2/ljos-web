@@ -526,8 +526,15 @@ Rectangle {
                             height: 24
                             radius: 4
                             color: view.pickedRef === modelData.ref ? Theme.surfaceSelected : rowHit.containsMouse ? Theme.surfaceHover : "transparent"
+                            activeFocusOnTab: true
                             Accessible.role: Accessible.Button
                             Accessible.name: t`Inspect ${modelData.label}`
+                            Keys.onPressed: (event) => {
+                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                    view.treePicked(treeRow.modelData.ref);
+                                    event.accepted = true;
+                                }
+                            }
                             Text {
                                 x: 4 + 12 * treeRow.modelData.depth
                                 anchors.verticalCenter: parent.verticalCenter
@@ -537,6 +544,15 @@ Rectangle {
                                 font.family: Theme.mono
                                 font.pixelSize: Theme.captionSize - 1
                                 elide: Text.ElideRight
+                            }
+                            // Inside the row: the list clips what is past it.
+                            Rectangle {
+                                visible: treeRow.activeFocus
+                                anchors.fill: parent
+                                radius: parent.radius
+                                color: "transparent"
+                                border.color: Theme.focusRing
+                                border.width: 2
                             }
                             MouseArea {
                                 id: rowHit
