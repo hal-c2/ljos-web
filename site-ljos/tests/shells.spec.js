@@ -2046,6 +2046,50 @@ test("editing Workbench's Source tab changes the running page in place", async (
   }
 });
 
+// An edit can compile and still not come up: what threw while it was
+// made is a problem like a compiler's, and the last edit that came up
+// stays, not the shell every page falls back to.
+test("an edit that compiles but fails as it is made leaves the last that ran", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const completed = "Component.onCompleted: if (site) site.measureRenderer()";
+  expect(shipped).toContain(completed);
+  const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
+  const failing = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, failing`").replace(completed, 'Component.onCompleted: { throw new Error("made to fail"); }');
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const inspector = inspectorOf(page);
+    await inspector.getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    const status = statusBar(page);
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the first edit runs").toBeVisible({ timeout: 30_000 });
+
+    // The editor draws only the lines in sight, so the whole of it is
+    // chosen and typed over, as a reader would.
+    await source.press("ControlOrMeta+a");
+    await page.keyboard.insertText(failing);
+    const problems = page.getByRole("list", { name: "Problems", exact: true });
+    await expect(problems.getByRole("listitem").first(), "what threw").toContainText("made to fail", { timeout: 30_000 });
+    await expect(status.getByText("Diagnostics: 1", { exact: true })).toBeVisible();
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the last edit that came up").toBeVisible();
+    expect(await showing(page)).toBe("workbench");
+
+    // What failed is not kept as the last that ran: an edit that
+    // comes up after it is shown, and Reset gives the shell as shipped.
+    await source.press("ControlOrMeta+a");
+    await page.keyboard.insertText(edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, mended`"));
+    await expect(status.getByText("Shell: Workbench, mended", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(status.getByText("Diagnostics: 0", { exact: true })).toBeVisible();
+    await press(inspector.getByRole("button", { name: "Reset", exact: true }));
+    await expect(status.getByText("Shell: Workbench", { exact: true })).toBeVisible({ timeout: 30_000 });
+  } finally {
+    await context.close();
+  }
+});
+
 // A live edit lays the page out again as another shell does, so the
 // place is held first (PageView `hold`): here the edit's explorer is
 // wider, and Reset gives the page that width back, pressed before
