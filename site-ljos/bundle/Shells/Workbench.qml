@@ -973,7 +973,13 @@ Rectangle {
                     icon: modelData.icon
                     label: index === 3 && shell.problems.length > 0 ? `${modelData.label} ${shell.problems.length}` : modelData.label
                     current: shell.view === index
-                    onPressed: shell.view = index
+                    // Problems is the bottom panel, shown at its Problems
+                    // whichever of its tabs it was left on, as it says.
+                    onPressed: {
+                        shell.view = index;
+                        if (index === 3)
+                            shell.panelShown = 0;
+                    }
                 }
             }
         }

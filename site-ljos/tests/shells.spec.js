@@ -2438,6 +2438,31 @@ test("the editor says when the shell's QML did not come, and tries again", async
   }
 });
 
+// An answer that came but holds no shells is no catalog: it is not kept,
+// and the editor says so with a Retry, as for one that did not come.
+test("the editor says when the shells' QML came with no shells in it, and tries again", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  let asked = 0;
+  await context.route(/\/shell-sources\.json$/, async (route) => {
+    asked += 1;
+    if (asked === 1) return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    await route.continue();
+  });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const inspector = inspectorOf(page);
+    await expect(inspector.getByRole("alert").filter({ hasText: /^The shell's QML could not be loaded/ }), "why there is nothing to edit").toBeVisible({ timeout: 30_000 });
+    await expect(inspector.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
+    await press(inspector.getByRole("button", { name: "Retry", exact: true }));
+    await expect(inspector.getByRole("textbox", { name: "Edit the running shell's QML" })).toContainText("workbenchShell", { timeout: 30_000 });
+    await expect(inspector.getByRole("alert")).toHaveCount(0);
+    expect(asked, "the answer with no shells was not kept: Retry asked again").toBe(2);
+  } finally {
+    await context.close();
+  }
+});
+
 // On a phone one pane is shown: the one the reader chose stays chosen as
 // their edit makes the shell again, and an explorer row of the page
 // already shown shows it.
@@ -2470,7 +2495,8 @@ test("Workbench on a phone keeps the pane chosen across an edit, and shows the p
   }
 });
 
-// On a phone the Problems tab counts them, as the wide panel's tab does.
+// On a phone the Problems tab counts them, as the wide panel's tab does,
+// and shows them, though the panel was left on another of its tabs.
 test("Workbench's Problems tab on a phone says how many there are", async ({ browser }) => {
   const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
   const context = await reader(browser, { viewport: PHONE, kept: "workbench" });
@@ -2479,6 +2505,8 @@ test("Workbench's Problems tab on a phone says how many there are", async ({ bro
     await open(page, "/start/first-app/");
     const views = page.getByRole("tablist", { name: "Views", exact: true });
     await expect(views.getByRole("tab", { name: "Problems", exact: true }), "none yet").toBeVisible();
+    await press(views.getByRole("tab", { name: "Problems", exact: true }));
+    await press(page.getByRole("tablist", { name: "Panel", exact: true }).getByRole("tab", { name: "MCP log", exact: true }));
     await press(views.getByRole("tab", { name: "Inspector", exact: true }));
     await page.getByRole("textbox", { name: "Edit the running shell's QML" }).filter({ visible: true }).click();
     const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
@@ -2486,7 +2514,7 @@ test("Workbench's Problems tab on a phone says how many there are", async ({ bro
     await source.fill(`${shipped}\n}}`);
     await expect(views.getByRole("tab", { name: "Problems 1", exact: true }), "the broken edit is counted").toBeVisible({ timeout: 30_000 });
     await press(views.getByRole("tab", { name: "Problems 1", exact: true }));
-    await expect(page.getByRole("list", { name: "Problems", exact: true }).getByRole("listitem").filter({ visible: true })).toHaveCount(1);
+    await expect(page.getByRole("list", { name: "Problems", exact: true }).getByRole("listitem").filter({ visible: true }), "the problems, not the MCP log the panel was left on").toHaveCount(1);
     await press(views.getByRole("tab", { name: "Inspector", exact: true }));
     await press(inspectorOf(page).getByRole("button", { name: "Reset", exact: true }));
     await expect(views.getByRole("tab", { name: "Problems", exact: true }), "none once it is put back").toBeVisible({ timeout: 30_000 });
