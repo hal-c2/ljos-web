@@ -69,27 +69,12 @@ Rectangle {
     // or "", or nothing where nothing was reloaded.
     function swap(layout: string): Promise<unknown> | undefined {
         wanted = layout;
-        // On the desktop the module is the wanted file's address and the
-        // native ShellLoader has no reload: a new address is the swap.
-        // The loader makes the new address's shell at once and says in
-        // `error` why it fell back ("" once the shell shows), so that is
-        // the swap's answer, which the stage clears its busy state on. A
-        // poster's first swap is not a reload and answers nothing.
-        if (shell.module === undefined || App.platform.os !== "wasm") {
-            const first = shell.module === undefined;
+        if (shell.module === undefined) {
             shell.module = Boards.sourceFor(() => view.wanted);
-            if (first) {
-                swaps += 1;
-                return undefined;
-            }
-            return Promise.resolve().then((): string => {
-                const why = shell.error;
-                if (Replay.swapped(why))
-                    view.swaps += 1;
-                return why;
-            });
+            swaps += 1;
+            return undefined;
         }
-        return Promise.resolve(shell.reloadModule()).then((why: unknown) => {
+        return Promise.resolve(Boards.reload(shell, () => view.wanted)).then((why: unknown) => {
             if (Replay.swapped(why))
                 view.swaps += 1;
             return why;
@@ -273,8 +258,7 @@ Rectangle {
         y: strip.height + view.codeStrip
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
         // A poster's board is drawn with the page: the board module, still.
-        // Ljós on the desktop takes a shell by its address alone.
-        stand: view.still ? (App.platform.os === "wasm" ? posterBoard : Boards.boardAt()) : undefined
+        stand: view.still ? Boards.still(posterBoard) : undefined
         onItemChanged: {
             if (item !== null)
                 item.still = bind(() => view.still);

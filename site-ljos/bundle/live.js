@@ -1,4 +1,5 @@
 .pragma library
+.import "host.js" as Host
 // What a live code block compiles with: the compiler in the page
 // (`ljos-web/compiler`, A15), given the page's own modules, Qt
 // Quick Controls and Ljós's own controls — this page is built with
@@ -77,8 +78,8 @@ function setFiles(id, display) {
 async function needsWasm() {
     // The check alone, not the compiler: it is asked as the page is
     // made, and the compiler comes only with the first edit.
-    if (Qt.platform.os !== "wasm")
-        return "Live editing runs in the browser; on the desktop this is the example as it was built.";
+    if (Host.desktop)
+        return Host.desktop.noLive;
     const made = await import("ljos-web/wasm-check");
     return made.wasmWorks() ? "" : made.NEEDS_WASM;
 }

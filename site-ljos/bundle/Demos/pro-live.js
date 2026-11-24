@@ -1,6 +1,7 @@
 .pragma library
 .import "../live.js" as Live
 .import "pro-later.js" as Later
+.import "../host.js" as Host
 
 // What a pro demo's page compiles its editor's files with: the page's
 // own compiler (live.js, fetched with the first edit) over the demo's
@@ -63,7 +64,7 @@ async function compile(name, entry, edits, base) {
 // The demo's app, for a Loader's source: imported when it is first run.
 function app(name) {
     // On the desktop, its file's address (pro-later.js).
-    if (Qt.platform.os !== "wasm")
+    if (Host.desktop)
         return Later.app(name);
     return function () {
         return Later.app(name);

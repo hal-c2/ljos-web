@@ -1,19 +1,34 @@
 .pragma library
 // The site on the desktop (`mise run site:native`), where there is no
-// browser: no address bar, no history and no server. A route is shown
-// in place as in a browser running the shell. What a page reads is read
-// from the directory the build wrote it into (scripts/build.mjs with
-// LJOS_SITE_NATIVE), named by the application's argument `--site=<dir>`
-// (nav.js `siteRoot`). Back and forward are a list kept here. An address
-// of another site opens in the desktop's browser.
-//
-// nav.js is handed this (Site/DesktopNav.qml, `Nav.useDesktop`) and never
-// imports it, so no browser's first load holds it (tests/payload.spec.js).
+// browser: no address bar, no history and no server. It stands in the
+// place of host.js in the bundle the desktop runs, so no browser loads
+// it. A route is shown in place as in a browser running the shell. What
+// a page reads is read from the directory the build wrote it into
+// (scripts/build.mjs with LJOS_SITE_NATIVE), named by the application's
+// argument `--site=<dir>`. Back and forward are a list kept here
+// (Native.qml's keys). An address of another site opens in the
+// desktop's browser.
+
+// The directory the site stands in, as an address ending in "/"; "" where
+// none was given.
+function siteDir() {
+    var args = Qt.application.arguments;
+    for (var i = 0; i < args.length; i++) {
+        var said = String(args[i]);
+        if (said.indexOf("--site=") === 0) {
+            var dir = said.slice("--site=".length);
+            if (dir.charAt(dir.length - 1) !== "/")
+                dir += "/";
+            return dir.indexOf("://") < 0 ? "file://" + dir : dir;
+        }
+    }
+    return "";
+}
 
 function navigation() {
     var shell = null;
     var root = "/";
-    var site = "";
+    var site = siteDir();
     var readings = {};
     // The last way the reader asked to go: an answer for an earlier one,
     // come late, shows nothing.
@@ -133,20 +148,40 @@ function navigation() {
     }
 
     return {
-        // The shell (nav.js `follow`), the base the site names its routes
-        // from, and the site's directory.
-        start: function (given, base, dir) {
+        // The shell (nav.js `follow`) and the base the site names its
+        // routes from.
+        start: function (given, base) {
             shell = given;
             root = base;
-            site = dir;
         },
         go: go,
         step: step,
         keep: keep,
         // The JSON of a file at an address.
         read: json,
+        // The JSON of a file the build wrote into the site's directory
+        // ("search.json").
+        site: function (name) {
+            return json(site + name);
+        },
+        // The site's directory, which a file named from the site's root
+        // is under (nav.js `fromPage`).
+        root: site,
+        // The Observer dock's panel: on the desktop, where its Observer is
+        // (Site/ObserverDock.qml).
+        observer: Qt.resolvedUrl("Site/ObserverNote.qml"),
+        // The address of a QML file in the bundle, from its name without
+        // ".qml": the desktop's loaders take a file by its address alone.
+        qml: function (name) {
+            return Qt.resolvedUrl(name + ".qml");
+        },
+        // What a live code block or the Pantry's editor says in place of
+        // compiling (live.js, Demos/pantry-live.js).
+        noLive: "Live editing runs in the browser; on the desktop this is the example as it was built.",
         list: function () {
             return list;
         },
     };
 }
+
+var desktop = navigation();

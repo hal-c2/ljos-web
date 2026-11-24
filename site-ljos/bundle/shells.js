@@ -1,5 +1,5 @@
 .pragma library
-.import "nav.js" as Nav
+.import "host.js" as Host
 // The shell a reader picked for this site, kept as their scheme is
 // (scheme.js), and what a shell needs of the page around it: when the
 // page has been taken over, how long that took, and the source of
@@ -108,7 +108,7 @@ var catalog = null;
 function sources(base) {
     if (catalog === null) {
         // On the desktop the build wrote it into the site's directory.
-        var read = Nav.siteRoot !== "" ? Nav.siteJson("shell-sources.json") : globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
+        var read = Host.desktop ? Host.desktop.site("shell-sources.json") : globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
             if (!response.ok)
                 throw new Error("shell-sources.json: " + response.status);
             return response.json();
