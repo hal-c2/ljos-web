@@ -7,7 +7,7 @@ import "../nav.js" as Nav
 
 // The QML the page shown is made from, highlighted as a code block is:
 // a workbench's Source panel. The text comes the first time the panel is
-// shown (Shells/sources.json), so no page loads it for a reader who
+// shown (shell-sources.json), so no page loads it for a reader who
 // never looks.
 Item {
     id: source
@@ -23,7 +23,7 @@ Item {
     function load() {
         if (source.all !== null)
             return;
-        Shells.sources().then((all) => source.all = all, (why) => console.warn(`PageSource: ${why}`));
+        Shells.sources(Content.base).then((all) => source.all = all, (why) => console.warn(`PageSource: ${why}`));
     }
     onVisibleChanged: if (visible) load()
     Component.onCompleted: if (visible && Nav.inBrowser()) load()

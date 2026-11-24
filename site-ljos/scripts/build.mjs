@@ -477,25 +477,6 @@ for (const demo of Pro.demos)
   writeFileSync(join(bundle, `Demos/${demo.name}-project.json`), `${JSON.stringify(Pro.projectOf(Pro.targetOf(demo), (code, lang) => packRich(highlight(code, lang))))}\n`);
 writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
 
-// The QML of each shell the site ships and of each page it frames, as
-// data for "View this shell's source" and a workbench's Source tab
-// (shells.js imports it when a reader first asks): the very files the
-// bundle ships, highlighted as a code block's are. Generated; do not
-// edit by hand.
-{
-  const sourceOf = (file) => {
-    const text = readFileSync(join(bundle, file), "utf8");
-    return { file, text, rich: packRich(highlight(text, "qml")) };
-  };
-  writeFileSync(
-    join(bundle, "Shells/sources.json"),
-    `${JSON.stringify({
-      shells: Object.fromEntries(["Elegant", "Cyberpunk", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
-      pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
-    })}\n`,
-  );
-}
-
 // The bundle's manifest, of the bundle as it stands now.
 function files(directory, prefix = "") {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
@@ -879,6 +860,24 @@ writeFileSync(
     ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
   ]),
 );
+// The QML of each shell the site ships and of each page it frames, as
+// data for "View this shell's source" and a workbench's Source tab
+// (shells.js fetches it when a reader first asks, so no page's first
+// load holds it): the very files the bundle ships, highlighted as a
+// code block's are.
+{
+  const sourceOf = (file) => {
+    const text = readFileSync(join(bundle, file), "utf8");
+    return { file, text, rich: packRich(highlight(text, "qml")) };
+  };
+  writeFileSync(
+    join(out, "shell-sources.json"),
+    `${JSON.stringify({
+      shells: Object.fromEntries(["Elegant", "Cyberpunk", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
+      pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
+    })}\n`,
+  );
+}
 mkdirSync(join(out, "pictures"), { recursive: true });
 for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
 // The header's icon, in each look's text colour for each scheme (Site/GitHubMark.qml).

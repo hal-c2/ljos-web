@@ -8,7 +8,7 @@ import "../shells.js" as Shells
 // to change: Apply compiles the edit in the page and shows the site in
 // it, the page and the reader's place on it kept; a shell that does not
 // work gives way to the Elegant shell and says here what broke.
-// The text comes with the first look (Shells/sources.json), so no page
+// The text comes with the first look (shell-sources.json), so no page
 // loads it for a reader who never asks.
 C.Popup {
     id: panel
@@ -30,7 +30,7 @@ C.Popup {
             panel.drafts[panel.source.file] = editor.text;
         panel.name = wanted;
         panel.open();
-        Shells.sources().then((all) => {
+        Shells.sources(Content.base).then((all) => {
             // Asked for another meanwhile: that one's comes.
             if (panel.name !== wanted)
                 return;
