@@ -184,6 +184,8 @@ test.describe("a page in the reader's language", () => {
     await open(page, "/");
     await expect.poll(() => asked).toBe(true);
     await pick(page, "English");
+    // Kept at once: a start that never finishes waiting loses no pick.
+    await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), KEY), "kept while the catalogue is held").toBe("en");
     release();
     await page.waitForLoadState("networkidle");
     await expect(headline(page, HEADLINE)).toBeVisible();
