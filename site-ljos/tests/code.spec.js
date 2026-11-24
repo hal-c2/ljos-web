@@ -1525,3 +1525,28 @@ for (const [how, go, ready] of [
     }
   });
 }
+
+// A block whose `rich` is its plain code again is drawn in one colour
+// (the front page's "Make it your own" was): every code block on the
+// front page carries the highlighter's words, that one by name.
+for (const scheme of SCHEMES) {
+  test(`every code block on the front page is coloured, ${scheme}`, async ({ browser }) => {
+    const { context, page } = await opened(browser, { width: 1440, height: 900 }, scheme, "/");
+    try {
+      const blocks = await page.evaluate(() =>
+        [...document.querySelectorAll("#app .qq-rich")]
+          .filter((node) => /\bmonospace\s*$/.test(getComputedStyle(node).fontFamily))
+          .map((node) => ({
+            start: node.textContent.trim().slice(0, 40),
+            tags: [...new Set([...node.querySelectorAll("[class*=tok-]")].map((word) => [...word.classList].find((name) => name.startsWith("tok-"))))].sort(),
+          })),
+      );
+      const own = blocks.find((block) => /^import\s+Ljos\.Blocks/.test(block.start));
+      expect(own, "the Make it your own block").toBeTruthy();
+      expect(own.tags).toEqual(expect.arrayContaining(["tok-keyword", "tok-string", "tok-comment"]));
+      expect(blocks.filter((block) => block.start && block.tags.length === 0)).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
