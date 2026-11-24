@@ -23,6 +23,8 @@ Column {
     required property var product
     property string route: "/showcase/"
     property bool wide: true
+    // What the page scrolls in, for the engine's code (CodeBlock's).
+    property var scroller: null
 
     spacing: Theme.l
 
@@ -300,6 +302,19 @@ Column {
                     width: column.width
                 }
             }
+        }
+    }
+
+    // The engine the app is built on, where its entry names one.
+    Repeater {
+        model: app.product.engine ? [app.product.engine] : []
+        ShowcaseEngine {
+            required property var modelData
+            width: app.width
+            engine: modelData
+            route: app.route
+            wide: app.wide
+            scroller: app.scroller
         }
     }
 }

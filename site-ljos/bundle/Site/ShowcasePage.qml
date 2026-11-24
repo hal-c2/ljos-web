@@ -13,6 +13,8 @@ Column {
     // Wide or not as it is made, from what loads it (PageView's Loader
     // says), so a phone never lays out the wide page first and then again.
     property bool wide: parent && parent.wide !== undefined ? parent.wide : true
+    // What the page scrolls in (PageView sets it once loaded).
+    property var scroller: null
 
     width: parent ? parent.width : 680
     spacing: showcase.wide ? Theme.xxxl + Theme.l : Theme.xxl
@@ -54,6 +56,7 @@ Column {
             product: modelData
             width: showcase.width
             wide: showcase.wide
+            scroller: showcase.scroller
         }
     }
 }

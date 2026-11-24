@@ -50,6 +50,39 @@
     "repo": {
       "label": "HAL-C2 on GitHub",
       "href": "https://github.com/hal-c2/hal-c2"
+    },
+    "engine": {
+      "name": "ljos-play",
+      "heading": "Built on ljos-play",
+      "line": "The Office runs on ljos-play, Ljós's game engine for small pixel-art worlds. A world is nested QML objects with bindings; the engine does the clock, the walking and the drawing.",
+      "label": "ljos-play on GitHub",
+      "href": "https://github.com/hal-c2/ljos-play",
+      "example": {
+        "about": "Snail Post, one of ljos-play's examples: snails fetch letters, carry them to the boxes, nap under toadstools and stop to gossip.",
+        "repository": "hal-c2/ljos-play",
+        "commit": "f3752fb1b54f3fa1ec31984e9d3c4dbc78c5ba9c",
+        "path": "examples/snail-post/Main.qml",
+        "blob": "a35a663615756d62a795b63e6aa5ed5da1fc6bd8",
+        "copy": "Showcase/play/snail-post.qml.txt",
+        "snippets": [
+          {
+            "lines": [60, 78],
+            "says": "A Thing stands on tiles and is drawn in art pixels. Its Spots are where snails go to sort the post."
+          },
+          {
+            "lines": [136, 162],
+            "says": "Each snail does the first Activity whose when is true: nap, deliver or fetch."
+          }
+        ],
+        "capture": {
+          "name": "play-snail-post",
+          "width": 800,
+          "height": 560,
+          "alt": "Snail Post: snails on a lawn under a hedge, some carrying letters from the sorting log to coloured mailboxes, two napping with a z over them.",
+          "shows": "Snail Post, running on Ljós",
+          "about": "Drawn off-screen by ljos-play's own render task, 30 seconds into the world's time."
+        }
+      }
     }
   }
 ]
