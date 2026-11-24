@@ -102,9 +102,10 @@ export async function startLanguages({ catalogs, source = "en", key = "ljos-site
     bestLanguage(globalThis.navigator?.languages ?? [], languages) ||
     source;
   // Every change after this that is not the start's own is the reader's
-  // (a picker sets App.language), and is kept for the next page. One made
-  // while the start still waits (on a slow link the page is the reader's
-  // before the catalogue is in) is what the page stays in.
+  // (a picker sets App.language), and is kept for the next page at once,
+  // so a start that never finishes waiting loses none. One made while the
+  // start still waits (on a slow link the page is the reader's before the
+  // catalogue is in) is what the page stays in.
   let starting = true;
   let ours = false;
   let readers = "";
@@ -112,15 +113,12 @@ export async function startLanguages({ catalogs, source = "en", key = "ljos-site
     mark(tag);
     if (ours) return;
     if (starting) readers = tag;
-    else keep(key, tag);
+    keep(key, tag);
   });
   mark(source);
   await Promise.all([picked === source ? undefined : loadCatalogs(picked), Promise.resolve(after).catch(() => undefined)]);
   starting = false;
-  if (readers) {
-    keep(key, readers);
-    return readers;
-  }
+  if (readers) return readers;
   ours = true;
   try {
     App.language = picked;
