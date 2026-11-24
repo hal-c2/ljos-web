@@ -64,6 +64,11 @@ Rectangle {
     function measureRenderer() {
         if (main.renderer !== "")
             return;
+        // On the desktop (`mise run site:native`) Ljós draws it all.
+        if (Qt.platform.os !== "wasm") {
+            main.renderer = "Ljós";
+            return;
+        }
         main.renderer = Nav.canRun(["webgl2"]) ? "WebGL2" : "Solid DOM";
         Nav.gpuAdapted().then((ok) => {
             if (ok)
@@ -385,6 +390,14 @@ Rectangle {
 
     Keys.onEscapePressed: main.menuOpen = false
     Keys.onPressed: (event) => {
+        // Back and forward on the desktop, which has no browser to do it
+        // (nav.js `step`); in a browser the browser's own keys do.
+        var by = event.key === Qt.Key_Back || (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier)) ? -1
+            : event.key === Qt.Key_Forward || (event.key === Qt.Key_Right && (event.modifiers & Qt.AltModifier)) ? 1 : 0;
+        if (by !== 0 && Nav.step(by)) {
+            event.accepted = true;
+            return;
+        }
         if (event.text === "/" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
             main.find();
             event.accepted = true;
@@ -723,6 +736,8 @@ Rectangle {
     // written in, is given the site here; the others come when first
     // picked (Shells/later.js) and, as a shell the reader wrote, are
     // given it once they are in.
+    // Ljós on the desktop takes a shell by its address alone.
+    readonly property var elegant: Qt.platform.os === "wasm" ? elegantShell : Qt.resolvedUrl("Shells/Elegant.qml")
     Component {
         id: elegantShell
         Elegant {
@@ -756,10 +771,10 @@ Rectangle {
         id: loader
         width: main.width
         height: main.height
-        source: main.userShell ?? (main.framed === "cyberpunk" ? Later.cyberpunk : main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : elegantShell)
+        source: main.userShell ?? (main.framed === "cyberpunk" ? Later.cyberpunk : main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : main.elegant)
         // A shell that does not work gives way to the one every page is
         // written in, and says why (Site/ShellSource.qml shows it).
-        fallback: elegantShell
+        fallback: main.elegant
 
         onItemChanged: {
             if (!loader.item)

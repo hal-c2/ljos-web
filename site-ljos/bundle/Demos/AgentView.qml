@@ -258,7 +258,8 @@ Rectangle {
         y: strip.height + view.codeStrip
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
         // A poster's board is drawn with the page: the board module, still.
-        stand: view.still ? posterBoard : undefined
+        // Ljós on the desktop takes a shell by its address alone.
+        stand: view.still ? (Qt.platform.os === "wasm" ? posterBoard : Qt.resolvedUrl("DispatchBoard.qml")) : undefined
         onItemChanged: {
             if (item !== null)
                 item.still = bind(() => view.still);

@@ -47,7 +47,7 @@ Rectangle {
         x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         anchors.verticalCenter: parent.verticalCenter
         textFormat: Text.RichText
-        text: Nav.anchor(Nav.at(Content.base, button.href), button.label, false)
+        text: Nav.anchor(Nav.at(Content.base, button.href), button.label, false, color)
         color: button.primary ? Theme.textOnAccent : button.quiet ? Theme.link : Theme.text
         linkColor: color
         font.family: Theme.sans

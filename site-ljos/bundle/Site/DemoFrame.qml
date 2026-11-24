@@ -90,8 +90,11 @@ Item {
             Nav.wasmRuns().then((runs) => frame.wasmFound = runs ? 1 : -1);
     }
     onNeedsChanged: frame.askWasm()
-    readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1 && wasm === 1
-    readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1 || wasm === -1)
+    // On the desktop (`mise run site:native`) a frame keeps its picture
+    // and says the demo runs in the browser.
+    readonly property bool desktop: Qt.platform.os !== "wasm"
+    readonly property bool runnable: awake && !desktop && Nav.canRun(needs) && adapter === 1 && wasm === 1
+    readonly property bool cannot: awake && (desktop || !Nav.canRun(needs) || adapter === -1 || wasm === -1)
 
     function offset() {
         var y = 0;
@@ -121,7 +124,7 @@ Item {
 
     Timer {
         interval: 0
-        running: Nav.inBrowser()
+        running: Nav.inBrowser() || frame.desktop
         onTriggered: {
             frame.awake = true;
             if (frame.adapter === 0 && Nav.canRun(frame.needs))
@@ -182,7 +185,7 @@ Item {
                 // The need this browser lacks; where it lacks none (WebGPU with no
                 // adapter for the page, or the build writing the page), the
                 // demo's main one.
-                text: "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.wasm === -1 ? "WebAssembly" : frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
+                text: frame.desktop ? t`A picture of the demo: it runs in the browser, on ljos.dev.` : "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.wasm === -1 ? "WebAssembly" : frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize
@@ -206,7 +209,7 @@ Item {
         // no GPU device, and one the budget stops gives its device back.
         active: frame.runnable && runner.started
         sourceComponent: frame.demo
-        source: frame.demo ? undefined : frame.source
+        source: frame.demo ? "" : frame.source
         opacity: frame.drawn ? 1 : 0
         Behavior on opacity {
             NumberAnimation {

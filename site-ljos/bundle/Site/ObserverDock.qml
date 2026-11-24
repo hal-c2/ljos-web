@@ -28,6 +28,7 @@ Item {
     // What else stands beside the page in that room (a docs page's
     // sidebar), which the dock would leave where it is.
     property real beside: 0
+    readonly property bool browser: Qt.platform.os === "wasm"
 
     // What is shown: { key, target, logs, title }, or null.
     property var shown: null
@@ -193,13 +194,26 @@ Item {
             }
         }
 
+        Text {
+            visible: !dock.browser
+            y: head.height + Theme.m
+            x: Theme.m
+            width: parent.width - 2 * Theme.m
+            wrapMode: Text.Wrap
+            text: t`This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app.`
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.pixelSize: Theme.bodySize
+        }
+
         Loader {
             id: loader
             y: head.height
             width: parent.width
             height: parent.height - head.height
-            active: dock.held && !dock.renewing
-            source: Observing.panel
+            // The Observer panel is the browser's own (ljos-web/observer).
+            active: dock.held && !dock.renewing && dock.browser
+            source: dock.browser ? Observing.panel : ""
             onLoaded: {
                 dock.madeFor = dock.key;
                 item.minimumWidth = Theme.observerWidth;

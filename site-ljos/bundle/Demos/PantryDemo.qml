@@ -173,7 +173,8 @@ Column {
                     readonly property real startX: Math.max(0, (parent.width - width * stageBox.fit) / 2)
                     // Scaled from its top left, it takes width × fit.
                     x: LayoutMirroring.enabled ? parent.width - width * stageBox.fit - startX : startX
-                    fallback: appShell
+                    // Ljós on the desktop takes a shell by its address alone.
+                    fallback: Qt.platform.os === "wasm" ? appShell : Qt.resolvedUrl("PantryShell.qml")
                 }
                 Component {
                     id: appShell
@@ -266,6 +267,7 @@ Column {
                     border.width: 2
 
                     Flickable {
+                        id: editorScroll
                         anchors.fill: parent
                         anchors.margins: Theme.s
                         contentWidth: editor.width
@@ -276,7 +278,9 @@ Column {
                         // in it (Site/CodeEditor).
                         CodeEditor {
                             id: editor
-                            width: Math.max(parent.width, implicitWidth)
+                            // The Flickable's own width: its content item is as wide as
+                            // the editor, so `parent.width` would go round.
+                            width: Math.max(editorScroll.width, implicitWidth)
                             code: PantryProject.shellText
                             rich: PantryProject.shellRich
                             label: t`Edit the Pantry's Shell.qml`

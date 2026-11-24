@@ -1,4 +1,5 @@
 .pragma library
+.import "nav.js" as Nav
 // The shell a reader picked for this site, kept as their scheme is
 // (scheme.js), and what a shell needs of the page around it: when the
 // page has been taken over, how long that took, and the source of
@@ -106,11 +107,13 @@ function alive(root) {
 var catalog = null;
 function sources(base) {
     if (catalog === null) {
-        catalog = globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
+        // On the desktop the build wrote it into the site's directory.
+        var read = Nav.siteRoot !== "" ? Nav.fileJson(Nav.siteRoot + "shell-sources.json") : globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
             if (!response.ok)
                 throw new Error("shell-sources.json: " + response.status);
             return response.json();
-        }).then(function (all) {
+        });
+        catalog = read.then(function (all) {
             if (!all || typeof all.shells !== "object" || all.shells === null || typeof all.pages !== "object" || all.pages === null)
                 throw new Error("shell-sources.json holds no shells");
             return all;

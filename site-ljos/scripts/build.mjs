@@ -84,7 +84,14 @@ const qmlc = process.env.QMLC ?? join(repo, "target/debug/qmlc");
 const harnesses = loadHarnesses(join(docs, "harness"));
 const siteHeld = siteFiles(join(docs, "files"));
 const liveAt = new Map(); // a page's code block -> its live payload
-{
+// For the desktop (`mise run site:native`): LJOS_SITE_NATIVE names a
+// directory, and the build writes only what the bundle reads as it runs
+// (the generated QML beside the shell) and each docs page's reading
+// under it, then stops. Nothing is pictured or prerendered, so it needs
+// neither qmlc nor a browser; the docs' examples are shown as code, as
+// the desktop has no in-page compiler to make them live yet.
+const native = process.env.LJOS_SITE_NATIVE ? resolve(process.env.LJOS_SITE_NATIVE) : null;
+if (!native) {
   const gathered = [];
   const onPages = [];
   const given = readGiven();
@@ -520,6 +527,94 @@ for (const demo of Pro.demos)
   writeFileSync(join(bundle, `Demos/${demo.name}-project.json`), `${JSON.stringify(Pro.projectOf(Pro.targetOf(demo), (code, lang) => packRich(highlight(code, lang))))}\n`);
 writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
 
+// What the site's pages name from its root, beside them under `root`:
+// the web build's output, or the desktop's directory (LJOS_SITE_NATIVE),
+// whose shell reads them from there as a browser fetches them.
+function writeShared(root) {
+  // The brand files a browser asks for by name: the mark, and the
+  // pictures of it made once from it (bundle/assets).
+  cpSync(join(bundle, "assets/ljos-mark.svg"), join(root, "favicon.svg"));
+  // The logo as the README shows it (the panels and the script word), the
+  // header's and the footer's.
+  cpSync(join(bundle, "assets/ljos.svg"), join(root, "ljos.svg"));
+  // The site's own faces, with their licence (the head's @font-face).
+  cpSync(join(bundle, "assets/fonts"), join(root, "fonts"), { recursive: true });
+  for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(root, name));
+  // The pictures a demo's frame shows until the demo runs, or instead of
+  // it where it cannot: named by the pages as strings, like a live block's.
+  // What the search looks through (Site/Search.qml): every docs page's
+  // title and headings, then the demos' pages and the showcase by their
+  // titles (the field says it searches docs and demos), fetched as a reader
+  // first searches, so no page's first load holds the others' (each page's
+  // own reading is in its props).
+  writeFileSync(
+    join(root, "search.json"),
+    JSON.stringify([
+      ...site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) })),
+      { route: "/demos/", title: demosTitle, headings: [] },
+      { route: "/showcase/", title: own["/showcase/"], headings: [] },
+      ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
+    ]),
+  );
+  // The QML of each shell the site ships and of each page it frames, as
+  // data for "View this shell's source" and a workbench's Source tab
+  // (shells.js fetches it when a reader first asks, so no page's first
+  // load holds it): the very files the bundle ships, highlighted as a
+  // code block's are.
+  {
+    const sourceOf = (file) => {
+      const text = readFileSync(join(bundle, file), "utf8");
+      return { file, text, rich: packRich(highlight(text, "qml")) };
+    };
+    writeFileSync(
+      join(root, "shell-sources.json"),
+      `${JSON.stringify({
+        shells: Object.fromEntries(["Elegant", "Cyberpunk", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
+        pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
+        // The typed scripts the shells import (Shells/logic), by their file:
+        // a reader's edit of a shell is compiled with them beside it.
+        scripts: Object.fromEntries(
+          readdirSync(join(bundle, "Shells/logic"))
+            .filter((name) => /\.(ts|js)$/.test(name))
+            .map((name) => [`Shells/logic/${name}`, readFileSync(join(bundle, "Shells/logic", name), "utf8")]),
+        ),
+      })}\n`,
+    );
+  }
+  mkdirSync(join(root, "pictures"), { recursive: true });
+  // The demos' pictures (above), and the captures of what is built with
+  // Ljós (Site/BuiltWith.qml), each as WebP with a PNG beside it.
+  for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$|^built-.*\.(webp|png)$/.test(name))) cpSync(join(bundle, "assets", name), join(root, "pictures", name));
+  // The header's icon, in each look's text colour for each scheme (Site/GitHubMark.qml).
+  const githubMark = readFileSync(join(bundle, "assets/github-mark.svg"), "utf8");
+  for (const [look, toned] of Object.entries(tones().looks)) {
+    const name = look === "elegant" ? "github-mark" : `github-mark-${look}`;
+    writeFileSync(join(root, "pictures", `${name}.svg`), githubMark.replace("%TEXT%", () => toned.light.text));
+    writeFileSync(join(root, "pictures", `${name}-dark.svg`), githubMark.replace("%TEXT%", () => toned.dark.text));
+  }
+  // The showcase's recordings and captures, named by its data.
+  cpSync(join(bundle, "Showcase/media"), join(root, "showcase/media"), { recursive: true });
+  // A live block's picture is named from its payload, not written in
+  // any QML the compiler sees, so no build step carries it: the
+  // pictures the bundle was built with stand beside the pages.
+  if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(root, "Examples"), { recursive: true });
+}
+
+// The desktop's build ends here: each docs page's reading, as the web
+// build puts it beside the page's HTML (page.json), and the files the
+// pages name from the site's root, under the native directory, for the
+// shell to read as it goes (nav.js `desk`).
+if (native) {
+  site.pages.forEach((page, i) => {
+    const dir = join(native, page.route.slice(1));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "page.json"), JSON.stringify(slim[i]));
+  });
+  writeShared(native);
+  console.log(`site-ljos: ${site.pages.length} docs pages read for the desktop into ${native}`);
+  process.exit(0);
+}
+
 // The bundle's manifest, of the bundle as it stands now.
 function files(directory, prefix = "") {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
@@ -747,7 +842,8 @@ function siteHead() {
   const scheme = readFileSync(join(bundle, "scheme.js"), "utf8").replace(/^\.pragma library$/m, "");
   const { key } = new Function(`${scheme}\nreturn { key };`)();
   // The same for the shell kept (shells.js).
-  const shells = readFileSync(join(bundle, "shells.js"), "utf8").replace(/^\.pragma library$/m, "");
+  // Its imports go too: `key` needs none of them.
+  const shells = readFileSync(join(bundle, "shells.js"), "utf8").replace(/^\.(pragma library|import .*)$/gm, "");
   const shellKey = new Function(`${shells}\nreturn key;`)();
   // How long the head waits for a kept shell before it shows the page
   // anyway: its fade's delay and its script's timer, one number.
@@ -935,73 +1031,7 @@ writeFileSync(join(out, "404.html"), notFound);
 // data the page's own HTML was made with.
 site.pages.forEach((page, i) => writeFileSync(join(out, page.route.slice(1), "page.json"), JSON.stringify(slim[i])));
 
-// The brand files a browser asks for by name: the mark, and the
-// pictures of it made once from it (bundle/assets).
-cpSync(join(bundle, "assets/ljos-mark.svg"), join(out, "favicon.svg"));
-// The logo as the README shows it (the panels and the script word), the
-// header's and the footer's.
-cpSync(join(bundle, "assets/ljos.svg"), join(out, "ljos.svg"));
-// The site's own faces, with their licence (the head's @font-face).
-cpSync(join(bundle, "assets/fonts"), join(out, "fonts"), { recursive: true });
-for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(out, name));
-// The pictures a demo's frame shows until the demo runs, or instead of
-// it where it cannot: named by the pages as strings, like a live block's.
-// What the search looks through (Site/Search.qml): every docs page's
-// title and headings, then the demos' pages and the showcase by their
-// titles (the field says it searches docs and demos), fetched as a reader
-// first searches, so no page's first load holds the others' (each page's
-// own reading is in its props).
-writeFileSync(
-  join(out, "search.json"),
-  JSON.stringify([
-    ...site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) })),
-    { route: "/demos/", title: demosTitle, headings: [] },
-    { route: "/showcase/", title: own["/showcase/"], headings: [] },
-    ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
-  ]),
-);
-// The QML of each shell the site ships and of each page it frames, as
-// data for "View this shell's source" and a workbench's Source tab
-// (shells.js fetches it when a reader first asks, so no page's first
-// load holds it): the very files the bundle ships, highlighted as a
-// code block's are.
-{
-  const sourceOf = (file) => {
-    const text = readFileSync(join(bundle, file), "utf8");
-    return { file, text, rich: packRich(highlight(text, "qml")) };
-  };
-  writeFileSync(
-    join(out, "shell-sources.json"),
-    `${JSON.stringify({
-      shells: Object.fromEntries(["Elegant", "Cyberpunk", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
-      pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
-      // The typed scripts the shells import (Shells/logic), by their file:
-      // a reader's edit of a shell is compiled with them beside it.
-      scripts: Object.fromEntries(
-        readdirSync(join(bundle, "Shells/logic"))
-          .filter((name) => /\.(ts|js)$/.test(name))
-          .map((name) => [`Shells/logic/${name}`, readFileSync(join(bundle, "Shells/logic", name), "utf8")]),
-      ),
-    })}\n`,
-  );
-}
-mkdirSync(join(out, "pictures"), { recursive: true });
-// The demos' pictures (above), and the captures of what is built with
-// Ljós (Site/BuiltWith.qml), each as WebP with a PNG beside it.
-for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$|^built-.*\.(webp|png)$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
-// The header's icon, in each look's text colour for each scheme (Site/GitHubMark.qml).
-const githubMark = readFileSync(join(bundle, "assets/github-mark.svg"), "utf8");
-for (const [look, toned] of Object.entries(tones().looks)) {
-  const name = look === "elegant" ? "github-mark" : `github-mark-${look}`;
-  writeFileSync(join(out, "pictures", `${name}.svg`), githubMark.replace("%TEXT%", () => toned.light.text));
-  writeFileSync(join(out, "pictures", `${name}-dark.svg`), githubMark.replace("%TEXT%", () => toned.dark.text));
-}
-// The showcase's recordings and captures, named by its data.
-cpSync(join(bundle, "Showcase/media"), join(out, "showcase/media"), { recursive: true });
-// A live block's picture is named from its payload, not written in
-// any QML the compiler sees, so no build step carries it: the
-// pictures the bundle was built with stand beside the pages.
-if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(out, "Examples"), { recursive: true });
+writeShared(out);
 // Each pro demo's files as they are, where its page compiles an edit
 // against them: what an edit does not change (a model, the other
 // files) is read from here, by the address the compiler gives it.

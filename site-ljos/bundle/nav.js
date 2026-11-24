@@ -102,8 +102,10 @@ function named() {
 
 function follow(base, given) {
     root = base;
-    if (!globalThis.history || typeof globalThis.addEventListener !== "function")
+    if (!globalThis.history || typeof globalThis.addEventListener !== "function") {
+        desk(given);
         return;
+    }
     shell = given;
     var history = globalThis.history;
     history.scrollRestoration = "manual";
@@ -160,6 +162,11 @@ function follow(base, given) {
 // stops, not as the page is left: what a page writes into its history
 // as it is unloaded is not kept by every browser.
 function keep() {
+    if (desktop) {
+        if (shell && desktop.at >= 0)
+            desktop.stack[desktop.at].offset = shell.offset();
+        return;
+    }
     if (shell && current === entry)
         globalThis.history.replaceState({ entry: entry, offset: shell.offset() }, "");
 }
@@ -184,6 +191,10 @@ function titled(own, sidebar, after, route) {
 // its page's reading is had, its entry is pushed first and the page
 // shown after, as on going back.
 function go(address) {
+    if (desktop) {
+        deskGo(address);
+        return;
+    }
     var location = globalThis.location;
     var url = new URL(address, location.href);
     var route = shell ? routeOf(url) : null;
@@ -219,12 +230,128 @@ function go(address) {
     );
 }
 
+// The site on the desktop (`mise run site:native`), where there is no
+// browser: no address bar, no history and no server. A route is shown
+// in place as in a browser running the shell. What a page names from the
+// site's root (its reading, a picture) is read from the directory the
+// build wrote them into (scripts/build.mjs with LJOS_SITE_NATIVE), named
+// by the application's argument `--site=<dir>`. Back and forward
+// are a list kept here. An address of another site opens in the
+// desktop's browser.
+var desktop = null;
+
+// The directory the desktop's site stands in, as an address ending in
+// "/"; "" where none was given, or in a browser.
+var siteRoot = (function () {
+    if (globalThis.location || typeof Qt === "undefined" || !Qt.application)
+        return "";
+    var args = Qt.application.arguments;
+    for (var i = 0; i < args.length; i++) {
+        var said = String(args[i]);
+        if (said.indexOf("--site=") === 0) {
+            var dir = said.slice("--site=".length);
+            if (dir.charAt(dir.length - 1) !== "/")
+                dir += "/";
+            return dir.indexOf("://") < 0 ? "file://" + dir : dir;
+        }
+    }
+    return "";
+})();
+
+// The JSON a file of the desktop's site holds (an address under
+// siteRoot), read as the page's own files are; it rejects with the
+// file's name when the file is missing or not JSON.
+function fileJson(file) {
+    return new Promise(function (resolve, reject) {
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function () {
+            if (request.readyState !== XMLHttpRequest.DONE)
+                return;
+            try {
+                resolve(JSON.parse(request.responseText));
+            } catch (error) {
+                reject(new Error(file + ": " + error.message));
+            }
+        };
+        request.open("GET", file);
+        request.send();
+    });
+}
+
+function desk(given) {
+    shell = given;
+    desktop = { stack: [{ route: "/", offset: 0 }], at: 0 };
+}
+
+// What the route's page reads, from the file the build wrote; null for
+// a page that reads nothing.
+function deskReading(route) {
+    if (shell.reading(route) === null)
+        return Promise.resolve(null);
+    var file = siteRoot + route.slice(1) + "page.json";
+    if (!(file in readings)) {
+        readings[file] = fileJson(file);
+        readings[file].catch(function (error) {
+            console.warn("site: " + error.message);
+            delete readings[file];
+        });
+    }
+    return readings[file];
+}
+
+function deskShow(at, fragment, offset) {
+    var route = desktop.stack[at].route;
+    var mine = ++asked;
+    return deskReading(route).then(function (reading) {
+        if (mine !== asked)
+            return;
+        desktop.at = at;
+        shell.show(route, fragment, offset, reading);
+    });
+}
+
+function deskGo(address) {
+    var said = String(address);
+    if (/^[a-z][a-z0-9+.-]*:/i.test(said) || said.indexOf("//") === 0) {
+        Qt.openUrlExternally(said.indexOf("//") === 0 ? "https:" + said : said);
+        return;
+    }
+    var hash = said.indexOf("#");
+    var fragment = hash >= 0 ? said.slice(hash) : "";
+    var path = hash >= 0 ? said.slice(0, hash) : said;
+    if (path.indexOf(root) !== 0)
+        return;
+    var route = "/" + path.slice(root.length);
+    if (titleOf(route) === null) {
+        console.warn("site: no page at " + route);
+        return;
+    }
+    keep();
+    desktop.stack = desktop.stack.slice(0, desktop.at + 1).concat([{ route: route, offset: 0 }]);
+    deskShow(desktop.stack.length - 1, fragment, null);
+}
+
+// Back or forward one page on the desktop, to where it was left; false
+// where there is none that way (or in a browser, whose own buttons do it).
+function step(by) {
+    if (!desktop)
+        return false;
+    var to = desktop.at + by;
+    if (to < 0 || to >= desktop.stack.length)
+        return false;
+    keep();
+    deskShow(to, "", desktop.stack[to].offset);
+    return true;
+}
+
 // A file named from the site's root ("/favicon.svg"), as the page at
 // `route` reaches it: back up the route's depth, then down. Written so
 // in the HTML the build makes, it stands below any base the site is
 // put at, though the build names the base only once it has written the
 // page.
 function fromPage(route, href) {
+    if (siteRoot !== "")
+        return siteRoot + href.slice(1);
     var depth = String(route).split("/").filter(function (part) { return part !== ""; }).length;
     var up = "";
     for (var i = 0; i < depth; ++i)
@@ -266,9 +393,12 @@ function escape(text) {
 
 // A link as rich text: a real `<a href>`, so a crawler, "open in a
 // new tab" and a screen reader's list of links all find it. Its address
-// is as `at` writes it, the base already in it.
-function anchor(address, label, underline) {
-    return "<a href=\"" + escape(address) + "\" style=\"text-decoration:" + (underline ? "underline" : "none") + "\">" + escape(label) + "</a>";
+// is as `at` writes it, the base already in it. Its colour is in its
+// style, as rich text takes it: a Text's `linkColor` is for StyledText
+// only, so without it Ljós on the desktop (and Qt) draws the link blue.
+function anchor(address, label, underline, colour) {
+    var tint = colour === undefined ? "" : ";color:" + String(colour);
+    return "<a href=\"" + escape(address) + "\" style=\"text-decoration:" + (underline ? "underline" : "none") + tint + "\">" + escape(label) + "</a>";
 }
 
 // Whether this is a reader's browser, not the build writing the page:
@@ -305,6 +435,8 @@ function canRun(needs) {
 // which keeps the answer). A check that did not arrive refuses nothing.
 var wasm = null;
 function wasmRuns() {
+    if (wasm === null && Qt.platform.os !== "wasm")
+        wasm = Promise.resolve(false);
     if (wasm === null)
         wasm = import("ljos-web/wasm-check").then(function (check) { return check.wasmWorks(); }, function () { return true; });
     return wasm;

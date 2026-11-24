@@ -117,6 +117,8 @@ C.Popup {
             border.width: editor.activeFocus ? 2 : 1
 
             Flickable {
+
+                id: editorScroll
                 anchors.fill: parent
                 anchors.margins: 10
                 contentWidth: editor.width
@@ -125,7 +127,9 @@ C.Popup {
 
                 CodeEditor {
                     id: editor
-                    width: Math.max(parent.width, implicitWidth)
+                    // The Flickable's own width: its content item's follows
+                    // the editor's, so the parent's would go round.
+                    width: Math.max(editorScroll.width, implicitWidth)
                     code: panel.source.text
                     rich: panel.source.rich
                     label: t`Edit this shell's QML`
