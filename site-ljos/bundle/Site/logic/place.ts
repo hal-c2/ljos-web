@@ -15,3 +15,8 @@ export function demoIn(loader: unknown): unknown {
 export function wideIn(loader: unknown): boolean {
   return typeof loader === "object" && loader !== null && "wide" in loader && typeof loader.wide === "boolean" ? loader.wide : true;
 }
+
+// The search what loads its results says they are for, or null.
+export function searchIn(loader: unknown): unknown {
+  return typeof loader === "object" && loader !== null && "owner" in loader ? loader.owner : null;
+}
