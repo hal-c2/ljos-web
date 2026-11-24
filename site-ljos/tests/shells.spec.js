@@ -4,7 +4,7 @@
 // with no script, or on a phone, gets the one every page is written in.
 // Which shell frames the page is on its root, `data-ljos-shell-showing`
 // (bundle/shells.js `showing`).
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
@@ -1084,6 +1084,23 @@ test("Elegant sets its words in the site's own fonts", async ({ browser }) => {
   } finally {
     await context.close();
   }
+});
+
+// The site ships the fonts its faces name and no others: a file in
+// bundle/assets/fonts that no @font-face names is copied to every
+// deploy for nothing, and its README row says it is used.
+test("the site ships only the fonts its faces name", async ({ page }) => {
+  const folder = join(dirname(fileURLToPath(import.meta.url)), "../bundle/assets/fonts");
+  const shipped = readdirSync(folder).filter((file) => file.endsWith(".woff2")).sort();
+  // The page's head, and the other shells' stylesheet it names.
+  let head = await (await page.request.get(at("/"))).text();
+  const sheet = /<meta name="ljos-looks" content="([^"]+)"/.exec(head)?.[1];
+  if (sheet) head += await (await page.request.get(sheet)).text();
+  const named = [...new Set([...head.matchAll(/@font-face\s*\{[^}]*url\("[^"]*fonts\/([^"]+\.woff2)"\)/g)].map((m) => m[1]))].sort();
+  expect(named.length, "the head names faces").toBeGreaterThan(0);
+  expect(shipped).toEqual(named);
+  const listed = [...new Set([...readFileSync(join(folder, "README.md"), "utf8").matchAll(/`([^`]+\.woff2)`/g)].map((m) => m[1]))].sort();
+  expect(listed, "the README lists what ships").toEqual(named);
 });
 
 for (const [viewport, least, most] of [

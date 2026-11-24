@@ -238,6 +238,10 @@ Feature: The site is shown in a shell the reader picks
     Then its headline is set in Inter, its body in Inter and its code in JetBrains Mono
     And each of those fonts is served by the site itself
 
+  Scenario: The site ships only the fonts its faces name
+    Then every font file in the site's fonts folder is named by an @font-face of the page or the other shells' stylesheet
+    And the fonts README lists exactly those files
+
   Scenario: The site's buttons are set in its own type
     Given a reader in the Elegant shell
     When they open the shell switcher
