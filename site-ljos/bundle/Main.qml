@@ -86,7 +86,8 @@ Rectangle {
     // How much of the right the Observer a stage opened is docked over
     // (Site/ObserverDock.qml): the page gives it the room, and a shell
     // lets what else is beside the page go (Elegant's contents).
-    readonly property int docked: observerDock.open && !observerDock.sheet ? observerDock.panelWidth : 0
+    readonly property var dock: observerDock.item
+    readonly property int docked: dock && dock.open && !dock.sheet ? dock.panelWidth : 0
     // The shell framing the page, by name, and one the reader wrote and
     // applied (Site/ShellSource.qml), which is shown over it.
     property string framed: "elegant"
@@ -300,7 +301,11 @@ Rectangle {
     Component.onCompleted: {
         Theme.narrow = !sitePreferences.wide;
         main.keepOpen();
-        Observing.watch(() => main.observing = Observing.isShown("site"));
+        Observing.watch(() => {
+            main.observing = Observing.isShown("site");
+            if (Observing.shown)
+                observerDock.active = true;
+        });
         siteRouter.start();
         Frames.whenHydrated((ms) => {
             main.hydratedIn = ms;
@@ -793,15 +798,27 @@ Rectangle {
     // The Observer a stage's toolbar opens, over whichever shell is
     // shown: from the page's top to its foot, docked along the right of
     // the window or a sheet across it, and leaving what the shell puts
-    // left of the page (a sidebar, a tree) where it is.
-    ObserverDock {
+    // left of the page (a sidebar, a tree) where it is. It is made the
+    // first time an Observer is opened, from a chunk of its own fetched
+    // with the Observer's (observing.js), and shows what was opened as it
+    // comes; reading a page does not need it.
+    Loader {
         id: observerDock
         z: 4
         y: main.pageTop
-        room: main.width
-        roomHeight: main.pageHeight
-        beside: main.pageLeft
-        onOpenChanged: if (open) main.placePage()
+        active: false
+        source: Observing.dockSource
+        onLoaded: {
+            item.room = Qt.binding(() => main.width);
+            item.roomHeight = Qt.binding(() => main.pageHeight);
+            item.beside = Qt.binding(() => main.pageLeft);
+            item.openChanged.connect(() => {
+                if (item.open)
+                    main.placePage();
+            });
+            if (item.open)
+                main.placePage();
+        }
     }
 
     // A browser without view transitions: the new shell fades in, as

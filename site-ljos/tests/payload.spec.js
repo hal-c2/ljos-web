@@ -90,6 +90,14 @@ test("no page's first load holds a shell it is not written in, nor what picks on
   for (const panel of ["ShellChoices-", "ShellSource-", "LiveSource-"]) expect([...later].some((file) => named(file, panel)), `a ${panel}* chunk opening it fetches`).toBe(true);
 });
 
+// The dock the Observer stands in comes with the first Observer a
+// reader opens, and is fetched with the Observer's own chunk ahead of the
+// press (bundle/observing.js): reading a page does not need it.
+test("no page's first load holds the Observer's dock", () => {
+  expect(reaching(["ObserverDock-"])).toEqual({});
+  expect([...later].some((file) => named(file, "ObserverDock-")), "an ObserverDock-* chunk the first Observer fetches").toBe(true);
+});
+
 // The showcase is a module of its own (bundle/Site/later.js), with its
 // apps' data: no other page's first load holds it. The showcase is
 // written with it and asks for it as it is taken over, so it is counted
