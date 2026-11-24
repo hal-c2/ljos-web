@@ -2,6 +2,7 @@ import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
 import Site
+import "logic/tasks.ts" as Tasks
 
 // The front page's live app: a list of tasks and how far through it you
 // are (its source is hero.js's). The reader ticks tasks; the hero's
@@ -11,29 +12,29 @@ Item {
     id: app
 
     property string heading: t`Launch week`
-    property unknown tasks: [
+    property list<Tasks.Task> tasks: [
         { title: t`Sketch the shell`, done: true },
         { title: t`Wire up the Observer`, done: true },
         { title: t`Write the release notes`, done: false },
         { title: t`Ship the beta`, done: false }
     ]
-    readonly property int done: tasks.filter((task) => task.done).length
+    readonly property int done: tasks.filter((task: Tasks.Task) => task.done).length
     readonly property real progress: tasks.length > 0 ? done / tasks.length : 0
     // What the agent acts on: "title", "progress", a task's index, or "".
-    property unknown pointing: ""
+    property Tasks.Pointing pointing: ""
 
-    function toggle(at) {
-        var next = tasks.slice();
-        next[at] = { title: next[at].title, done: !next[at].done };
-        tasks = next;
+    function toggle(at: number): void {
+        if (tasks[at] === undefined)
+            return;
+        tasks = tasks.map((task: Tasks.Task, i: number): Tasks.Task => i === at ? { title: task.title, done: !task.done } : task);
     }
-    function rename(words) {
+    function rename(words: string): void {
         heading = words;
     }
-    function find(title) {
-        return tasks.findIndex((task) => task.title === title);
+    function find(title: string): number {
+        return Tasks.indexOf(tasks, title);
     }
-    function reset() {
+    function reset(): void {
         heading = t`Launch week`;
         tasks = [
             { title: t`Sketch the shell`, done: true },
@@ -115,7 +116,7 @@ Item {
 
             Item {
                 id: row
-                required property unknown modelData
+                required property Tasks.Task modelData
                 required property int index
 
                 width: parent.width
@@ -126,7 +127,7 @@ Item {
                 Accessible.checkable: true
                 Accessible.checked: modelData.done
                 Accessible.onPressAction: () => app.toggle(index)
-                Keys.onPressed: (event) => {
+                Keys.onPressed: (event: KeyEvent) => {
                     if (event.key === Key.Space || event.key === Key.Return || event.key === Key.Enter) {
                         app.toggle(row.index);
                         event.accepted = true;

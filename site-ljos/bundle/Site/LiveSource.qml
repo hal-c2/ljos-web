@@ -4,6 +4,7 @@ import Ljos.Core
 import Ljos.Layout
 import Ljos.Controls as C
 import "../shells.js" as Shells
+import "logic/shells.ts" as Sources
 
 // The running shell's own QML, edited in place: each edit is compiled
 // as the reader pauses, and one that compiles is the shell from then on,
@@ -17,13 +18,15 @@ Item {
 
     // The shell whose QML this is, by its file under Shells/.
     property string name: "workbench"
-    property unknown source: null
+    // Its source; `Sources.none` (no file) until it comes.
+    property Sources.Source source: Sources.none
+    readonly property bool has: source.file !== ""
     // The text as the site ships it, and as the reader has it now.
-    readonly property string shipped: source ? source.text : ""
+    readonly property string shipped: source.text
     // An edit of the reader's runs, or broke: what Reset puts back.
     property bool edited: false
     // What is wrong with the text as it stands, as the compiler says it.
-    property unknown diagnostics: []
+    property list<Sources.Diagnostic> diagnostics
     // The edit asked of the compiler last: an answer to an earlier one
     // is not shown over it.
     property int asked: 0
@@ -35,12 +38,12 @@ Item {
 
     // A shell the edit made, to be shown; what broke in one that did
     // not; the text back as shipped.
-    signal ran(var shell)
-    signal broke(var diagnostics)
+    signal ran(unknown shell)
+    signal broke(list<Sources.Diagnostic> diagnostics)
     signal reset
 
-    width: parent ? parent.width : 0
-    height: parent ? parent.height : 0
+    width: parent !== null ? parent.width : 0
+    height: parent !== null ? parent.height : 0
 
     // Why the shell's QML did not come, until it does: said in place of
     // the editor, with a Retry.
@@ -48,18 +51,18 @@ Item {
 
     Component.onCompleted: live.fetch()
 
-    function fetch() {
+    function fetch(): void {
         live.failed = "";
-        Shells.sources(Content.base).then((all) => {
-            live.source = all.shells[live.name] ?? null;
-            if (live.source) {
+        Shells.sources(Content.base).then((all: unknown) => {
+            live.source = Sources.sourceOf(all, live.name);
+            if (live.has) {
                 editor.text = live.source.text;
                 Shells.editorHeld(live.name);
             } else
                 live.failed = t`There is no ${live.name}.qml to edit.`;
-        }, (why) => {
-            console.warn(`LiveSource: ${why}`);
-            live.failed = String(why?.message ?? why);
+        }, (why: unknown) => {
+            console.warn(`LiveSource: ${Sources.whyOf(why)}`);
+            live.failed = Sources.whyOf(why);
         });
     }
 
@@ -76,28 +79,29 @@ Item {
             });
     }
 
-    function check() {
-        if (!live.source)
+    function check(): void {
+        if (!live.has)
             return;
-        var mine = ++live.asked;
-        var text = editor.text;
-        Shells.checked(live.source.file, text).then((made) => {
+        const mine = ++live.asked;
+        const text = editor.text;
+        Shells.checked(live.source.file, text).then((made: unknown) => {
             if (mine !== live.asked)
                 return;
             live.edited = true;
-            if (made.diagnostics) {
-                live.diagnostics = made.diagnostics;
-                live.broke(made.diagnostics);
+            const diagnostics = Sources.diagnosticsOf(made);
+            if (diagnostics !== undefined) {
+                live.diagnostics = diagnostics;
+                live.broke(diagnostics);
                 return;
             }
             live.diagnostics = [];
             live.refocus = editor.activeFocus;
-            live.ran(made.shell);
+            live.ran(Sources.shellOf(made));
         });
     }
 
-    function putBack() {
-        if (!live.source)
+    function putBack(): void {
+        if (!live.has)
             return;
         ++live.asked;
         pause.stop();
@@ -124,7 +128,7 @@ Item {
             x: 12
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - x - reset.width - 20
-            text: live.source ? live.source.file : ""
+            text: live.source.file
             color: Theme.textMuted
             font.family: Theme.mono
             font.size: 12
@@ -138,7 +142,7 @@ Item {
             subtle: true
             iconName: "refresh-cw"
             text: t`Reset`
-            enabled: live.source !== null
+            enabled: live.has
             onClicked: live.putBack()
         }
     }
@@ -188,13 +192,13 @@ Item {
             CodeEditor {
                 id: editor
                 width: Math.max(parent.width, implicitWidth)
-                code: live.source ? live.source.text : ""
-                rich: live.source ? live.source.rich : ""
+                code: live.source.text
+                rich: live.source.rich
                 label: t`Edit the running shell's QML`
                 color: Theme.codeFg
-                diagnostics: live.diagnostics.filter((one) => one.line > 0).map((one) => ({ message: one.message, line: one.line, column: one.column || 1, endLine: one.endLine, endColumn: one.endColumn }))
+                diagnostics: live.diagnostics.filter((one: Sources.Diagnostic) => one.line > 0).map((one: Sources.Diagnostic) => ({ message: one.message, line: one.line, column: one.column !== 0 ? one.column : 1, endLine: one.endLine, endColumn: one.endColumn }))
                 onTextChanged: {
-                    if (!live.source)
+                    if (!live.has)
                         return;
                     if (editor.text === live.source.text) {
                         // Typed back to the file as shipped (or given

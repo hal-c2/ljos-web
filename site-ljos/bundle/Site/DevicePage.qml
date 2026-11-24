@@ -9,7 +9,7 @@ import Site
 Item {
     id: page
 
-    required property unknown frame
+    required property DeviceFrame frame
     required property int index
     // Where it stands in a console: 0 on the left, 1 on the right, -1 not.
     readonly property int column: frame.consoleLayout ? frame.columns.indexOf(index) : -1
@@ -17,12 +17,12 @@ Item {
     default property alias content: holder.data
 
     x: column === 1 ? frame.width - frame.side : 0
-    width: column >= 0 ? frame.side : parent ? parent.width : 0
-    height: parent ? parent.height : 0
+    width: column >= 0 ? frame.side : parent !== null ? parent.width : 0
+    height: parent !== null ? parent.height : 0
     opacity: chosen ? 1 : 0
     visible: opacity > 0
     Accessible.role: column >= 0 ? Accessible.Section : Accessible.PropertyPage
-    Accessible.name: column >= 0 ? frame.columnNames[column === 0 ? 0 : 2] : frame.tabs[index] || ""
+    Accessible.name: column >= 0 ? frame.columnNames[column === 0 ? 0 : 2] ?? "" : frame.tabs[index] ?? ""
 
     Behavior on opacity {
         NumberAnimation {

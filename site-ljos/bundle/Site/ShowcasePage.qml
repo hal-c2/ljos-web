@@ -1,6 +1,7 @@
 import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
+import "logic/place.ts" as Place
 import Site
 
 // The showcase: apps built with Ljós, each recorded as it runs. The
@@ -11,11 +12,11 @@ Column {
 
     // Wide or not as it is made, from what loads it (PageView's Loader
     // says), so a phone never lays out the wide page first and then again.
-    property bool wide: parent && parent.wide !== undefined ? parent.wide : true
+    property bool wide: Place.wideIn(parent)
     // What the page scrolls in (PageView sets it once loaded).
     property var scroller: null
 
-    width: parent ? parent.width : 680
+    width: parent !== null ? parent.width : 680
     spacing: showcase.wide ? Theme.xxxl + Theme.l : Theme.xxl
     topPadding: showcase.wide ? Theme.xl : Theme.m
 

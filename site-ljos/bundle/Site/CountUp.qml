@@ -2,6 +2,7 @@ import Ljos.Ui
 import Ljos.Core
 import Site
 import "../nav.js" as Nav
+import "logic/place.ts" as Place
 
 // A measured number that counts up to itself once, the first time the
 // reader scrolls to it. It is said, and stands in the build, with reduced
@@ -39,19 +40,19 @@ Text {
         }
     }
 
-    function look() {
+    function look(): void {
         if (!armed || seen)
             return;
-        var at = number.mapToItem(null, 0, 0);
-        if (at.y + number.height < Running.viewBottom && at.y > Running.viewTop)
+        const top = Place.topOf(number.mapToItem(undefined, 0, 0));
+        if (top + number.height < Running.viewBottom && top > Running.viewTop)
             seen = true;
     }
     Component.onCompleted: {
         if (!Nav.inBrowser() || Theme.calm)
             return;
         later(() => {
-            var at = number.mapToItem(null, 0, 0);
-            armed = Running.viewBottom > 0 && at.y >= Running.viewBottom;
+            const top = Place.topOf(number.mapToItem(undefined, 0, 0));
+            armed = Running.viewBottom > 0 && top >= Running.viewBottom;
         });
     }
     Connections {
