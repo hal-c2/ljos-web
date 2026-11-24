@@ -438,10 +438,17 @@ test("the pick is kept, and a reload puts it in before the page is seen", async 
 // page asks for after it is taken over. Asked for while the kept shell is
 // still coming, it takes the time the head holds the page back for, and
 // on a slow machine the head's watchdog gives up on the shell.
+//
+// What is held to here is the order, so the head's watchdog is held
+// (`watchdog`): on the wall clock, a runner slow enough to take the page
+// over only after 2500 ms has the watchdog show it before any kept shell
+// can come, whatever the replay does, and the order is then never seen.
+// When the watchdog gives up is the tests' about it above and below.
 test("the front page's replay is asked for only once the kept shell is in", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop" });
   try {
     const page = await context.newPage();
+    await page.addInitScript(watchdog);
     // When the kept shell was said to be in, on the page's own clock.
     await page.addInitScript(() => {
       new MutationObserver((_, watching) => {
@@ -450,16 +457,14 @@ test("the front page's replay is asked for only once the kept shell is in", asyn
         watching.disconnect();
       }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-ljos-shell-shown"] });
     });
-    await open(page, "/");
-    // Shown, or given up on by the head's watchdog: the wait says which.
-    const outcome = await page
-      .waitForFunction(() => {
-        const set = document.documentElement.dataset;
-        return "ljosShellShown" in set ? "shown" : "ljosShellLate" in set ? "late" : false;
-      })
-      .then((handle) => handle.jsonValue());
-    expect(outcome, "the kept shell came before the head's watchdog (2500 ms) showed the page without it").toBe("shown");
-    expect(await showing(page)).toBe("desktop");
+    await page.goto(at("/"));
+    await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+    const taken = await page.evaluate(() => Math.round(performance.now()));
+    // With the watchdog held, nothing but the shell coming ends the wait.
+    await page.waitForFunction(() => "ljosShellShown" in document.documentElement.dataset, null, { timeout: 30_000 });
+    expect(await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset), "nothing said the page is late").toBe(false);
+    const shownAt = await page.evaluate(() => Math.round(window.__shownAt));
+    expect(await showing(page), `taken over by ${taken} ms, the kept shell in at ${shownAt} ms`).toBe("desktop");
     await expect(page.getByRole("button", { name: "Pause the agent replay" }), "the replay started itself").toBeVisible({ timeout: 30_000 });
     const asked = await page.evaluate(() =>
       performance
@@ -467,9 +472,8 @@ test("the front page's replay is asked for only once the kept shell is in", asyn
         .filter((entry) => /\/AgentStage-[^/]*\.js$/.test(entry.name))
         .map((entry) => Math.round(entry.startTime)),
     );
-    const shownAt = await page.evaluate(() => Math.round(window.__shownAt));
     expect(asked, "the replay's module, asked for once").toHaveLength(1);
-    expect(asked[0], `asked for at ${asked[0]} ms, the kept shell in at ${shownAt} ms`).toBeGreaterThanOrEqual(shownAt);
+    expect(asked[0], `asked for at ${asked[0]} ms, the kept shell in at ${shownAt} ms (taken over by ${taken} ms)`).toBeGreaterThanOrEqual(shownAt);
   } finally {
     await context.close();
   }
