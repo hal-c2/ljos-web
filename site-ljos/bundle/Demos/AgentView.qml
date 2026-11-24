@@ -71,10 +71,14 @@ Rectangle {
         wanted = layout;
         // On the desktop the module is the wanted file's address and the
         // native ShellLoader has no reload: a new address is the swap.
+        // That swap is made once the address is set, so it answers "" (a
+        // swap that worked), as the stage clears its busy state on the
+        // answer. A poster's first swap is not a reload and answers nothing.
         if (shell.module === undefined || App.platform.os !== "wasm") {
+            const first = shell.module === undefined;
             shell.module = Boards.sourceFor(() => view.wanted);
             swaps += 1;
-            return undefined;
+            return first ? undefined : Promise.resolve("");
         }
         return Promise.resolve(shell.reloadModule()).then((why: unknown) => {
             if (Replay.swapped(why))
