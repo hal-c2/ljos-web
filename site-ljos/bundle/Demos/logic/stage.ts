@@ -60,7 +60,14 @@ export function resumeAt(steps: readonly { tool: string; args: Record<string, un
 // it was found in is gone. Any other answer leaves it as it was.
 export function foundAfter(found: string, tool: string, ok: boolean, answer: Answer, sentAt: number, swaps: number): string {
     if (tool !== "app_find" || !ok) return found
-    return sentAt === swaps ? refOf(answer) : ""
+    return findsAgain(tool, ok, sentAt, swaps) ? "" : refOf(answer)
+}
+
+// Whether the replay asks a find again instead of going on: it found its
+// ref in an app a swap took away while it was on its way, and the step
+// after it names what it finds. A refused find goes on, having said why.
+export function findsAgain(tool: string, ok: boolean, sentAt: number, swaps: number): boolean {
+    return tool === "app_find" && ok && sentAt !== swaps
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

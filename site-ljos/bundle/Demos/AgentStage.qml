@@ -280,6 +280,10 @@ AgentView {
         if (answer.image !== "")
             log.setProperty(stepRow, "image", answer.image);
         found = Stage.foundAfter(found, tool, ok, answer, stepSwaps, swapsStarted);
+        // Played on, the find is the next step again, asked of the app
+        // that runs now: the step after it names what it finds.
+        if (Stage.findsAgain(tool, ok, stepSwaps, swapsStarted))
+            return;
         advance();
     }
 

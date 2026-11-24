@@ -76,6 +76,17 @@ test("a find answered after a swap started finds nothing: the app it was found i
   expect(stage.foundAfter("@1", "app_click", true, answer, 2, 2), "another tool keeps it").toBe("@1");
 });
 
+// The replay goes on from a find only with what it found: one a swap
+// took away on its way is asked again, of the app that runs now, before
+// the step that names what it finds. Any other answer goes on.
+test("a find a swap took away on its way is asked again before the step that names it", async () => {
+  const stage = await import("../bundle/Demos/logic/stage.ts");
+  expect(stage.findsAgain("app_find", true, 2, 3), "a swap started on its way").toBe(true);
+  expect(stage.findsAgain("app_find", true, 2, 2), "no swap since it was sent").toBe(false);
+  expect(stage.findsAgain("app_find", false, 2, 3), "a find refused goes on, as it said why").toBe(false);
+  expect(stage.findsAgain("app_click", true, 2, 3), "another tool goes on").toBe(false);
+});
+
 test("a replay given a step past its steps stays where it is", async () => {
   const stage = await import("../bundle/Demos/logic/stage.ts");
   const steps = [{ tool: "app_click", args: { target: "$found" } }];
