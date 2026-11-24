@@ -362,6 +362,9 @@ function step(by) {
     if (to < 0 || to >= desktop.stack.length)
         return false;
     desktop.aim = to;
+    // The page shown keeps where it is now: a press that comes before
+    // the last one's read goes to an entry that may be this page.
+    keep();
     var entry = desktop.stack[to];
     deskShow(entry.route, "", entry.offset, function () {
         desktop.at = to;

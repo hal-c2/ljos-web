@@ -9,8 +9,9 @@ Feature: ljos.dev runs on Ljós on the desktop
   Covered by `mise run site:native --check`, which runs the site
   off-screen and follows it as a reader would (site-ljos/scripts/
   native-check.mjs), and by the site-native job in
-  .github/workflows/site.yml. The check never takes a page's reading
-  away, so the scenario of a page that cannot be read is not run by it.
+  .github/workflows/site.yml. The desktop's back and forward, a page
+  that cannot be read among them, are also run in node by
+  site-ljos/tests/nav-desktop.spec.js.
 
   Scenario: The front page, a docs page and the showcase open
     Given the site runs on Ljós off-screen at 1280 by 800

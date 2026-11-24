@@ -127,8 +127,14 @@ try {
   await until("the front page on going back twice", () => find("text=Software you can reshape"));
   console.log("site:native: back goes where it was");
   // The search reads the index the build wrote beside the pages.
-  await call("app_type", { target: await find(`role=textbox[name="Search"] >> nth=0`), text: "Item" });
-  await until("a search result", () => find(`role=listitem >> nth=0`));
+  // A result stands in the search's own list (other lists on the page
+  // have items too), named for the page or heading it goes to.
+  const results = `role=list[name="Search results"] >> role=listitem`;
+  if (await find(`${results} >> nth=0`)) throw new Error("search results before anything was typed");
+  await call("app_type", { target: await find(`role=textinput[name="Search"] >> nth=0`), text: "Item" });
+  await until("a search result", () => find(`${results} >> nth=0`));
+  const first = (await call("app_find", { locator: `${results} >> nth=0` })).split("\n")[0];
+  if (!/"[^"]*item[^"]*"/i.test(first)) throw new Error(`the first search result for "Item" is ${first}`);
   console.log("site:native: the search finds pages");
 } catch (error) {
   console.error(`site:native: ${error.message}`);
