@@ -116,7 +116,7 @@ Rectangle {
                         Text {
                             color: "#eef0f6"
                             font.size: 15
-                            text: (root.seen[latin] === true ? "✓ " : "") + name
+                            text: (Guide.isSeen(root.seen, latin) ? "✓ " : "") + name
                         }
                         Text {
                             color: "#93a0ba"
