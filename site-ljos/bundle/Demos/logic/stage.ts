@@ -30,17 +30,6 @@ export interface Answer {
 
 // The ref a found control was given, put where a step names `$found`: a
 // replay cannot know a handle ahead of the page that mints it.
-// Where a replay goes on from: back to the find before it when the next
-// step clicks what was found and the app it was found in is gone (`found`
-// cleared), as an agent finds it again in the app that stands now.
-export function resumeAt(steps: readonly { tool: string; args: Record<string, unknown> }[], at: number, found: string): number {
-    if (found !== "" || at >= steps.length) return at
-    const args = steps[at].args
-    if (!keys(args).some((name) => args[name] === "$found")) return at
-    for (let back = at - 1; back >= 0; back--) if (steps[back].tool === "app_find") return back
-    return at
-}
-
 export function withFound(args: Record<string, unknown>, found: string): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const name of keys(args)) {
@@ -48,6 +37,30 @@ export function withFound(args: Record<string, unknown>, found: string): Record<
         out[name] = value === "$found" ? found : value
     }
     return out
+}
+
+// Where a replay goes on from: back to the find before it when the next
+// step clicks what was found and the app it was found in is gone (`found`
+// cleared), as an agent finds it again in the app that stands now.
+export function resumeAt(steps: readonly { tool: string; args: Record<string, unknown> }[], at: number, found: string): number {
+    const step = steps[at]
+    if (found !== "" || step === undefined) return at
+    const args = step.args
+    if (!keys(args).some((name) => args[name] === "$found")) return at
+    for (let back = at - 1; back >= 0; back--) {
+        const before = steps[back]
+        if (before !== undefined && before.tool === "app_find") return back
+    }
+    return at
+}
+
+// What `found` is once a step's call has answered: the ref an app_find
+// answered with, or none when a swap started while it was on its way (the
+// swap counted when it starts, `sentAt` as the call was sent), as the app
+// it was found in is gone. Any other answer leaves it as it was.
+export function foundAfter(found: string, tool: string, ok: boolean, answer: Answer, sentAt: number, swaps: number): string {
+    if (tool !== "app_find" || !ok) return found
+    return sentAt === swaps ? refOf(answer) : ""
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

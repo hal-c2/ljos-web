@@ -67,6 +67,22 @@ test("a replay whose found ref is gone goes on from the find before the click th
   expect(stage.resumeAt(steps, 4, ""), "at the end").toBe(4);
 });
 
+test("a find answered after a swap started finds nothing: the app it was found in is going", async () => {
+  const stage = await import("../bundle/Demos/logic/stage.ts");
+  const answer = stage.parsed(true, JSON.stringify({ structuredContent: { matches: [{ ref: "@4", role: "button", name: "Assign crew" }], count: 1 } }));
+  expect(stage.foundAfter("", "app_find", true, answer, 2, 2), "no swap since it was sent").toBe("@4");
+  expect(stage.foundAfter("", "app_find", true, answer, 2, 3), "a swap started on its way").toBe("");
+  expect(stage.foundAfter("@1", "app_find", false, answer, 2, 2), "a find refused keeps what was found").toBe("@1");
+  expect(stage.foundAfter("@1", "app_click", true, answer, 2, 2), "another tool keeps it").toBe("@1");
+});
+
+test("a replay given a step past its steps stays where it is", async () => {
+  const stage = await import("../bundle/Demos/logic/stage.ts");
+  const steps = [{ tool: "app_click", args: { target: "$found" } }];
+  expect(stage.resumeAt(steps, -1, ""), "before the first").toBe(-1);
+  expect(stage.resumeAt(steps, 0, ""), "no find before it").toBe(0);
+});
+
 test("the agent log says what each tool answered, and what a refusal said", async () => {
   const stage = await import("../bundle/Demos/logic/stage.ts");
   const answer = (structured, text = "") => stage.parsed(true, JSON.stringify({ structuredContent: structured, content: [{ type: "text", text }] }));
