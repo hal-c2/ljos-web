@@ -40,6 +40,10 @@ Rectangle {
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
     color: Theme.canvas
+    // A language written from the right lays the site out from the right:
+    // every anchor, row and list of it, the shell's and the page's.
+    LayoutMirroring.enabled: App.layoutDirection === Qt.RightToLeft
+    LayoutMirroring.childrenInherit: true
 
     // What a shell is given as `site`: the state, and what it may ask.
     readonly property var router: siteRouter
@@ -390,7 +394,10 @@ Rectangle {
 
         Rectangle {
             id: skip
-            x: Theme.s
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.s
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: skip.activeFocus ? Theme.s : -height - Theme.s
             width: skipWords.implicitWidth + 2 * Theme.s
             height: 40
@@ -592,6 +599,10 @@ Rectangle {
             Row {
                 spacing: Theme.xxs
 
+                LanguageSwitcher {
+                    preferences: sitePreferences
+                    onChoosing: main.controlsShown = true
+                }
                 MotionToggle {}
                 ThemeToggle {}
             }
@@ -621,7 +632,10 @@ Rectangle {
 
                 DocsMap {
                     id: sidebarMap
-                    x: Theme.gutterWide
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: Theme.gutterWide
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: Theme.l
                     width: parent.width - Theme.gutterWide - Theme.m
                     route: siteRouter.route
@@ -644,7 +658,10 @@ Rectangle {
 
                 Toc {
                     id: tocList
-                    x: Theme.l
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: Theme.l
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: Theme.xxl
                     width: parent.width - Theme.l - Theme.gutterWide
                     router: siteRouter

@@ -4,9 +4,9 @@ import Ljos.Core
 import "../shells.js" as Shells
 
 // What the reader has chosen for this site: its colour scheme, whether
-// it moves less, and which shell it is shown in. Each is kept for the
-// next visit (scheme.js, motion.js, shells.js); a shell only shows the
-// choices and asks for another.
+// it moves less, which shell it is shown in and the language it is read
+// in. Each is kept for the next visit (scheme.js, motion.js, shells.js,
+// site-languages.js); a shell only shows the choices and asks for another.
 QtObject {
     id: preferences
 
@@ -35,6 +35,39 @@ QtObject {
         { name: "light", label: t`Light` },
         { name: "dark", label: t`Dark` }
     ]
+
+    // The languages the site is read in, each named as it names itself
+    // (a reader looking for their own finds it written as they write it),
+    // and the one it is read in: `App.language`, which the page's start
+    // sets from the address, the reader's last pick or the browser's own
+    // (ljos-web's site-languages.js). Each but English has its catalogue,
+    // i18n/<tag>.po; site-tests/i18n.spec.js holds the two to each other.
+    readonly property var languages: [
+        { tag: "en", name: "English", english: "English" },
+        { tag: "es", name: "Español", english: "Spanish" },
+        { tag: "zh-Hans", name: "简体中文", english: "Chinese (Simplified)" },
+        { tag: "hi", name: "हिन्दी", english: "Hindi" },
+        { tag: "ar", name: "العربية", english: "Arabic" },
+        { tag: "pt-BR", name: "Português (Brasil)", english: "Portuguese (Brazil)" },
+        { tag: "fr", name: "Français", english: "French" },
+        { tag: "de", name: "Deutsch", english: "German" },
+        { tag: "ja", name: "日本語", english: "Japanese" },
+        { tag: "ru", name: "Русский", english: "Russian" },
+        { tag: "is", name: "Íslenska", english: "Icelandic" }
+    ]
+    readonly property string language: {
+        var asked = String(App.language).toLowerCase();
+        var found = languages.find((one) => one.tag.toLowerCase() === asked);
+        return found ? found.tag : "en";
+    }
+    readonly property string languageName: {
+        var found = languages.find((one) => one.tag === preferences.language);
+        return found ? found.name : "English";
+    }
+    function setLanguage(tag) {
+        if (languages.some((one) => one.tag === tag))
+            App.language = tag;
+    }
 
     function labelOf(name) {
         var found = shells.find((one) => one.name === name);
