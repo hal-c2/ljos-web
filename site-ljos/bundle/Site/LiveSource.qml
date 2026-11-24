@@ -1,6 +1,7 @@
-import QtQuick
+import Ljos.Ui
 import Site
 import Ljos.Core
+import Ljos.Layout
 import Ljos.Controls as C
 import "../shells.js" as Shells
 
@@ -16,13 +17,13 @@ Item {
 
     // The shell whose QML this is, by its file under Shells/.
     property string name: "workbench"
-    property var source: null
+    property unknown source: null
     // The text as the site ships it, and as the reader has it now.
     readonly property string shipped: source ? source.text : ""
     // An edit of the reader's runs, or broke: what Reset puts back.
     property bool edited: false
     // What is wrong with the text as it stands, as the compiler says it.
-    property var diagnostics: []
+    property unknown diagnostics: []
     // The edit asked of the compiler last: an answer to an earlier one
     // is not shown over it.
     property int asked: 0
@@ -67,7 +68,7 @@ Item {
     // waiting out of sight is not where they typed.
     onParentChanged: {
         if (live.refocus)
-            Qt.callLater(() => {
+            later(() => {
                 if (!live.refocus || !live.visible)
                     return;
                 live.refocus = false;
@@ -117,7 +118,7 @@ Item {
         id: head
         width: parent.width
         height: live.touch ? 52 : 36
-        color: "transparent"
+        fill: "transparent"
 
         Text {
             x: 12
@@ -126,7 +127,7 @@ Item {
             text: live.source ? live.source.file : ""
             color: Theme.textMuted
             font.family: Theme.mono
-            font.pixelSize: 12
+            font.size: 12
             elide: Text.ElideMiddle
         }
         C.Button {
@@ -155,8 +156,8 @@ Item {
             text: t`The shell's QML could not be loaded: ${live.failed}`
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: 13
-            wrapMode: Text.Wrap
+            font.size: 13
+            wrap: Text.Wrap
             Accessible.role: Accessible.AlertMessage
             Accessible.name: text
         }
@@ -173,7 +174,7 @@ Item {
         y: head.height
         width: parent.width
         height: parent.height - y
-        color: Theme.codeBg
+        fill: Theme.codeBg
         border.color: editor.activeFocus ? Theme.focusRing : "transparent"
         border.width: editor.activeFocus ? 2 : 0
 
