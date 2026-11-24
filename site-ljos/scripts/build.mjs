@@ -329,7 +329,7 @@ const own = {
 };
 // The apps built with Ljós the showcase shows, as data, and the
 // recordings and captures of each (bundle/Showcase).
-const showcase = JSON.parse(readFileSync(join(bundle, "Showcase/products.json"), "utf8"));
+const showcase = JSON.parse(readFileSync(join(bundle, "Showcase/products.json"), "utf8")).map(withEngine);
 // The pro demos' pages are the site's own too (scripts/pro.mjs).
 Object.assign(own, Pro.titles(Pro.demos, after));
 const titles = {
@@ -557,6 +557,40 @@ const pages = [
 function tones() {
   const source = readFileSync(join(bundle, "tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
   return new Function(`${source}\nreturn { light, dark, looks };`)();
+}
+
+// An app's engine as the showcase shows it: each snippet of its
+// example cut from the copy of the example's file kept beside the
+// entry (the file as it is at the entry's commit), coloured as code,
+// and linked to those lines at that commit. A snippet the file does not
+// have stops the build, so the page never quotes lines that are not there.
+function withEngine(product) {
+  const example = product.engine?.example;
+  if (!example) return product;
+  const source = readFileSync(join(bundle, example.copy), "utf8");
+  const lines = source.split("\n");
+  // The whole file is highlighted and its lines cut after: lines cut
+  // first would be read as a file of their own, and a property's lines
+  // out of their object read as QML that isn't.
+  const coloured = highlight(source, "qml").split("\n");
+  const where = `bundle/Showcase/products.json: ${product.id}'s engine example`;
+  const snippets = example.snippets.map(({ lines: [from, to], says }) => {
+    if (!(from >= 1 && to >= from && to <= lines.length)) throw new Error(`${where} has no lines ${from}–${to} in ${example.copy}`);
+    const code = lines.slice(from - 1, to).join("\n");
+    const html = coloured.slice(from - 1, to).join("\n");
+    // A token over a cut (a comment or a string across lines) would
+    // leave its colour open; such a cut is moved, not mended.
+    if ((html.match(/<span\b/g) ?? []).length !== (html.match(/<\/span>/g) ?? []).length || coloured.length !== lines.length)
+      throw new Error(`${where} cuts a token at lines ${from}–${to} of ${example.copy}`);
+    return {
+      says,
+      code,
+      rich: packRich(html),
+      link: `Lines ${from}–${to} at ${example.commit.slice(0, 7)}`,
+      href: `https://github.com/${example.repository}/blob/${example.commit}/${example.path}#L${from}-L${to}`,
+    };
+  });
+  return { ...product, engine: { ...product.engine, example: { ...example, snippets, copy: undefined } } };
 }
 
 // A live block's pictures, addressed from its page: from its route's
