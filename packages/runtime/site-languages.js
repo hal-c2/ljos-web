@@ -11,7 +11,7 @@
 // screen reader reads it in that language and the browser sets text the
 // way it is written.
 import { App, catalogSources, loadCatalogs } from "./Ljos/Core/index.js";
-import { onUiLanguage, rightToLeft } from "./QtQml/uiLanguage.ts";
+import { onUiLanguage, rightToLeft, setUiLanguage, uiLanguage } from "./QtQml/uiLanguage.ts";
 
 function locale(tag) {
   try {
@@ -64,6 +64,17 @@ function mark(tag) {
   if (!root) return;
   root.lang = tag;
   root.dir = rightToLeft(tag) ? "rtl" : "ltr";
+}
+
+/**
+ * Puts the page in `source`, the language it is prerendered in, before it
+ * is taken over: the UI's language starts as the browser's (`en-US`), and
+ * a change to it once the page is taken over would make every translated
+ * text, and what is made from one, again.
+ */
+export function startInSource(source = "en") {
+  if (uiLanguage() !== source) setUiLanguage(source);
+  mark(source);
 }
 
 /**

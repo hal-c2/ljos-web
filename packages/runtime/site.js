@@ -795,7 +795,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       const loaders = catalogs.map((tag) => `    ${JSON.stringify(tag)}: () => import(${JSON.stringify(`${join(dir, "i18n", `${tag}.po`)}?raw`)}).then((it) => it.default),`).join("\n");
       writeFileSync(
         join(stage, "languages.js"),
-        `import { startLanguages } from "ljos-site:languages";\n\nexport const startPageLanguages = (after) =>\n  startLanguages({\n    source: ${JSON.stringify(source)},\n    key: ${JSON.stringify(languages.key ?? "ljos-site:language")},\n    after,\n    catalogs: {\n${loaders}\n    },\n  });\n`,
+        `import { startInSource, startLanguages } from "ljos-site:languages";\n\nstartInSource(${JSON.stringify(source)});\n\nexport const startPageLanguages = (after) =>\n  startLanguages({\n    source: ${JSON.stringify(source)},\n    key: ${JSON.stringify(languages.key ?? "ljos-site:language")},\n    after,\n    catalogs: {\n${loaders}\n    },\n  });\n`,
       );
       main = `${main.replace('import "ljos-site:css";\n', (own) => `${own}import { startPageLanguages } from "./languages.js";\n`)}${STARTS_LANGUAGES[liveShell ? "live" : prerender ? "prerendered" : "main"]}`;
     }
