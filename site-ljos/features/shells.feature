@@ -279,6 +279,12 @@ Feature: The site is shown in a shell the reader picks
       | 390   | light  | 36    | 40   |
       | 390   | dark   | 36    | 40   |
 
+  Scenario: The arrow keys walk the live app's tabs
+    Given a reader on the front page who pressed the live app's "Source" tab
+    When they press the right arrow twice
+    Then "Agent" is chosen and has the focus
+    And the right arrow stays on "Agent", and the left arrow walks back to "Source"
+
   Scenario: Elegant lays a wide page out on a wide grid
     When a reader opens the front page at 1440 wide in the Elegant shell
     Then its content is at most 1280 pixels wide, centred

@@ -1193,6 +1193,28 @@ for (const [viewport, least, most] of [
   }
 }
 
+// The live app's tabs are one set: an arrow moves the choice and the
+// focus with it, so each press goes one tab further. The keys go to the
+// item with QML's focus, not the page's, so a press that went on from
+// where the last arrow chose is what shows the focus moved: had it
+// stayed on Source, the second ArrowRight would choose Observer again.
+test("the arrow keys walk the live app's tabs one after another", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    const device = page.getByRole("tablist", { name: "Live app" }).filter({ visible: true });
+    const tab = (name) => device.getByRole("tab", { name, exact: true });
+    await press(tab("Source"));
+    for (const [key, name] of [["ArrowRight", "Observer"], ["ArrowRight", "Agent"], ["ArrowRight", "Agent"], ["ArrowLeft", "Observer"], ["ArrowLeft", "Source"]]) {
+      await page.keyboard.press(key);
+      await expect(tab(name), `${key} to ${name}`).toHaveAttribute("aria-selected", "true");
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 // A capability section is a region named for its headline that holds a
 // group named "Example": its words are on one side, the example on the
 // other, and the sides swap from one section to the next.
