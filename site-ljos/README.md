@@ -125,7 +125,8 @@ DECISION: the rule of thumb for what a page runs.
 
 - Nothing runs until the reader asks: not an example, not a demo, with
   one exception. The front page's agent replay starts itself once it is
-  on screen (`Site/ReplayFrame.qml`, which only the front page loads),
+  on screen and the page's kept shell is in (`Site/ReplayFrame.qml`,
+  which only the front page loads; `Running.settled`),
   as it is the page's claim being shown and takes neither WebAssembly
   nor a GPU device. It plays for about 14 seconds and ends with nothing
   scheduled; its one quiet button stands in its own toolbar: Pause,

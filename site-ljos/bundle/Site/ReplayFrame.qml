@@ -9,9 +9,10 @@ import "../nav.js" as Nav
 // (README, "What runs, and when"), with what only this one does. Its
 // poster is drawn by the page with its own parts, in both schemes at
 // once, so no picture is fetched and its words stay text. It starts
-// itself once on screen, unless the reader asked for less motion, and
-// once only: what a reader pauses, or the budget stops, stays so. Its
-// one quiet button, and a line of `note`, stand at the top, in the room
+// itself once on screen and the page settled (Running.settled), unless
+// the reader asked for less motion, and once only: what a reader
+// pauses, or the budget stops, stays so. Its one quiet button, and a
+// line of `note`, stand at the top, in the room
 // the demo's own toolbar leaves at its end (AgentView): they are the
 // first thing read, tabbed to and seen. It is as tall as demo and poster
 // say. Only the front page has it, so no other page's first load
@@ -47,7 +48,7 @@ Item {
     // Whether it has run: it starts itself only if nothing has started it,
     // the reader's Run included, so a pause of theirs stays one.
     property bool startedItself: false
-    readonly property bool startable: runnable && !Theme.calm && runner.onScreen && Running.shown
+    readonly property bool startable: runnable && !Theme.calm && runner.onScreen && Running.shown && Running.settled
     onStartableChanged: {
         if (!startable || startedItself)
             return;

@@ -208,12 +208,12 @@ Rectangle {
                 // it (loader.onItemChanged shows it).
                 if (sitePreferences.narrowed) {
                     main.revealing = false;
-                    Frames.shown();
+                    main.settle();
                 } else {
                     Frames.whenLate(() => main.late());
                 }
             } else {
-                Frames.shown();
+                main.settle();
             }
             Qt.callLater(main.count);
         });
@@ -230,6 +230,13 @@ Rectangle {
             release();
     }
 
+    // The page is the reader's: shown, its kept shell in, and what waits
+    // for that (Running.settled) may start.
+    function settle() {
+        Frames.shown();
+        Running.settled = true;
+    }
+
     // The head's watchdog showed the page while the kept shell was still
     // on its way: what the reader now sees is Elegant, so the kept
     // shell is not put over it, which would be the very jump the page
@@ -242,6 +249,7 @@ Rectangle {
         main.framed = "elegant";
         sitePreferences.shell = "elegant";
         main.revealing = false;
+        Running.settled = true;
     }
 
     // Ljós's own controls draw in the site's colours (Site/ControlsLook.qml)
@@ -589,7 +597,7 @@ Rectangle {
             }
             if (main.revealing) {
                 main.revealing = false;
-                Qt.callLater(Frames.shown);
+                Qt.callLater(main.settle);
             }
             Qt.callLater(main.count);
         }
