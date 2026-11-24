@@ -499,10 +499,16 @@ test("the front page's replay is asked for only once the kept shell is in", asyn
   }
 });
 
+// What is held to here is how the swap is made without view
+// transitions, so the head's watchdog is held (`watchdog`), as for the
+// replay's order above: on the wall clock, a runner slow enough to take
+// the page over only after 2500 ms has the watchdog show it before the
+// kept shell can come, however the swap is made.
 test("with no view transitions, a reload still puts the kept shell in before the page is seen", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop" });
   try {
     const page = await context.newPage();
+    await page.addInitScript(watchdog);
     // A browser without them: the swap is made at once (shells.js `swap`).
     await page.addInitScript(() => delete Document.prototype.startViewTransition);
     await page.addInitScript(frames);
