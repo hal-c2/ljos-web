@@ -2,6 +2,7 @@ import Ljos.Ui
 import Ljos.Core
 import Site
 import "logic/stage.ts" as Stage
+import "logic/replay.ts" as Replay
 import "../observed.js" as Observed
 import "later.js" as Later
 
@@ -48,7 +49,7 @@ AgentView {
             seeded = true;
         }
     }
-    function seed() {
+    function seed(): void {
         card.heading = AgentReplay.heading;
         card.tickets = AgentReplay.tickets;
         card.filters = AgentReplay.filters;
@@ -81,7 +82,10 @@ AgentView {
     readonly property bool busy: stepSerial >= 0 || swapping
     readonly property string inspectedAs: t`Dispatch`
     // The card's inspector's, empty until it is fetched and serves.
-    readonly property string tokenFile: held.item ? held.item.tokenFile : ""
+    readonly property string tokenFile: {
+        const session = held.item;
+        return Replay.isSession(session) ? session.tokenFile : "";
+    }
     onTokenFileChanged: {
         listen();
         // Its tab can be picked before the inspector has come.
@@ -89,23 +93,27 @@ AgentView {
             readTree();
     }
 
-    function ask(tool, args) {
-        return held.item ? held.item.call(tool, args) : -1;
+    function ask(tool: string, args: string): number {
+        const session = held.item;
+        return Replay.isSession(session) ? session.call(tool, args) : -1;
     }
 
-    function row(fields) {
+    function row(fields: Replay.LogFields): number {
         log.append(Object.assign({ kind: "say", text: "", tool: "", args: "", summary: "", answer: "", image: "" }, fields));
         return log.count - 1;
     }
 
-    function step() {
+    function step(): void {
         if (busy || at >= total || tokenFile === "")
             return;
         const next = AgentReplay.steps[at];
+        if (next === undefined)
+            return;
         if (next.say !== "")
             row({ kind: "say", text: next.say });
-        if (next.edit) {
-            edit(next.edit);
+        const editTo = next.edit ?? "";
+        if (editTo !== "") {
+            edit(editTo);
             return;
         }
         const args = Stage.withFound(next.args, found);
@@ -116,21 +124,21 @@ AgentView {
 
     // The agent's edit of board.ts: the running app reloaded from the
     // module built from the edited file, as a save does under `--watch`.
-    function edit(layout) {
+    function edit(layout: string): void {
         stepRow = row({ kind: "edit", tool: "board.ts", args: AgentReplay.editText(running, layout), answer: "pending" });
         swapping = true;
         swapsStarted += 1;
-        swap(layout).then((why) => {
+        swap(layout)?.then((why: unknown) => {
             stage.swapping = false;
-            log.setProperty(stage.stepRow, "answer", why ? "error" : "ok");
-            log.setProperty(stage.stepRow, "summary", why ? why : t`the app runs the module built from it now`);
+            log.setProperty(stage.stepRow, "answer", Replay.swapped(why) ? "ok" : "error");
+            log.setProperty(stage.stepRow, "summary", Replay.swapped(why) ? t`the app runs the module built from it now` : Replay.reason(why));
             stage.advance();
             stage.pickLater();
         });
     }
 
     // Back to the app the replay starts from: its tickets, in a list.
-    function reset() {
+    function reset(): void {
         stepSerial = -1;
         stepRow = -1;
         found = "";
@@ -144,7 +152,7 @@ AgentView {
         if (running !== "list") {
             swapping = true;
         swapsStarted += 1;
-            swap("list").then(() => {
+            swap("list")?.then(() => {
                 stage.swapping = false;
                 stage.pickLater();
             });
@@ -153,7 +161,7 @@ AgentView {
 
     // The frame's Play: from the start once it has ended, else on from
     // where the reader took over.
-    function play() {
+    function play(): void {
         if (at >= total)
             reset();
         at = Stage.resumeAt(AgentReplay.steps, at, found);
@@ -166,7 +174,7 @@ AgentView {
     // A pick made while a swap is on its way is made once it is done: the
     // last one, if it is not what that swap left running.
     property string nextPick: ""
-    onLayoutPicked: (picked) => {
+    onLayoutPicked: (picked: string) => {
         if (swapping) {
             nextPick = picked;
             return;
@@ -179,35 +187,35 @@ AgentView {
         swapsStarted += 1;
         // The app the ref was found in is gone once the other one runs.
         found = "";
-        swap(picked).then((why) => {
+        swap(picked)?.then((why: unknown) => {
             stage.swapping = false;
-            if (!why)
+            if (Replay.swapped(why))
                 stage.tell(`layout changed to ${picked}`);
             stage.pickLater();
         });
     }
-    function pickLater() {
+    function pickLater(): void {
         const later = nextPick;
         nextPick = "";
         if (later !== "")
             layoutPicked(later);
     }
-    onTabPicked: (picked) => {
+    onTabPicked: (picked: string) => {
         tab = picked;
         if (picked === "observer")
             readTree();
     }
-    onTreePicked: (ref) => {
+    onTreePicked: (ref: string) => {
         pickedRef = ref;
         inspectSerial = ask("app_inspect", JSON.stringify({ target: ref }));
     }
 
-    function readTree() {
+    function readTree(): void {
         if (tokenFile !== "" && treeSerial < 0)
             treeSerial = ask("app_objects", JSON.stringify({ depth: 6 }));
     }
 
-    function tell(line) {
+    function tell(line: string): void {
         Observed.say(key, "info", line);
         listen();
     }
@@ -215,7 +223,7 @@ AgentView {
     // The app's log, as an agent reads it: how much it has said, then
     // those lines. app_watch without `since` answers at once and sets no
     // timer, so it is asked when there is something to hear, one at a time.
-    function listen() {
+    function listen(): void {
         if (!active || tokenFile === "")
             return;
         if (watchSerial >= 0 || logsSerial >= 0) {
@@ -227,7 +235,7 @@ AgentView {
     }
     onActiveChanged: listen()
 
-    function answered(serial, tool, ok, result) {
+    function answered(serial: number, tool: string, ok: boolean, result: string): void {
         const answer = Stage.parsed(ok, result);
         if (serial === watchSerial) {
             watchSerial = -1;
@@ -246,7 +254,8 @@ AgentView {
         }
         if (serial === logsSerial) {
             logsSerial = -1;
-            Stage.logEntries(answer).forEach((entry) => row({ kind: "event", text: entry.message }));
+            for (const entry of Stage.logEntries(answer))
+                row({ kind: "event", text: entry.message });
             logSince = Stage.nextSince(answer, logSince);
             // A page holds 20 lines: the rest of what was counted is the
             // next page's.
@@ -286,7 +295,7 @@ AgentView {
     }
 
     // The step done: on to the next, or the reader's turn.
-    function advance() {
+    function advance(): void {
         at = at + 1;
         if (at >= total) {
             playing = false;
@@ -300,10 +309,10 @@ AgentView {
     }
 
     // Fetched by its path: Ljós's checker knows no type only the web has.
-    Loader {
+    ModuleLoader {
         id: held
         visible: false
-        source: Later.inspectorSession
+        module: Later.inspectorSession
         onLoaded: {
             item.clientName = "replay";
             // The log and title before the target: the target is served
@@ -315,14 +324,14 @@ AgentView {
     }
     Connections {
         target: held.item
-        function onAnswered(serial, tool, ok, result) {
+        function onAnswered(serial: number, tool: string, ok: boolean, result: string): void {
             stage.answered(serial, tool, ok, result);
         }
     }
 
     Connections {
         target: stage.card
-        function onTold(line) {
+        function onTold(line: string): void {
             stage.tell(line);
         }
     }
@@ -332,7 +341,7 @@ AgentView {
     // shown each step.
     Timer {
         id: beat
-        interval: stage.at > 0 ? AgentReplay.steps[stage.at - 1].wait : 700
+        interval: stage.at > 0 ? AgentReplay.steps[stage.at - 1]?.wait ?? 700 : 700
         running: stage.active && !stage.busy && stage.at < stage.total && stage.playing && stage.tokenFile !== ""
         onTriggered: stage.step()
     }

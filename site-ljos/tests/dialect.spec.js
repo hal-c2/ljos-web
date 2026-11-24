@@ -54,6 +54,12 @@ const qtQuick = {
   // an import) and sets what it shows on the item loaded; Ljos.Ui's Loader
   // takes a url only and its item is a QtObject with none of those.
   ...site(["Site/ShowcaseApp"], "Ljos.Ui's Loader takes a url, not a lazy import, and its item is untyped"),
+  // The rest of the site's loading is typed; these three hold what is not,
+  // each one Qt type given an untyped value, so the files that use them
+  // are typed throughout.
+  ...site(["Demos/ModuleLoader"], "Ljos.Ui's Loader takes a url, not a lazy import or a live module, and a component that is never missing"),
+  ...site(["Demos/HeldBinding"], "Ljos.Core's Binding takes a QtObject target, not an object a loaded app names"),
+  ...site(["Demos/DispatchShell"], "Ljos.Blocks' ShellLoader takes a url source and fallback, not a lazy import or a component, and its item is untyped"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   // A visitor's edit to it is compiled in the page and run by
   // Ljos/Blocks/shell.js, which makes QtQuick's types only.

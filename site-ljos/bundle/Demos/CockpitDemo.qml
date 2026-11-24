@@ -2,6 +2,7 @@ import Ljos.Ui
 import Ljos.Core
 import Site
 import "Cockpit" as Svala
+import "logic/live.ts" as Live
 
 // Svala GT's cockpit (Demos/Cockpit/, the ljos-ui example as it is),
 // in a page's frame. It is dark unless the reader picked light for the
@@ -20,14 +21,14 @@ Item {
     property bool active: true
     property bool calm: false
     // The cockpit as the reader's edits make it (Demos/pro-live.js),
-    // or null for the one the page was built with.
-    property unknown live: null
+    // or nothing (or null) for the one the page was built with.
+    property unknown live: undefined
 
-    Loader {
+    ModuleLoader {
         id: app
         anchors.fill: parent
-        component: demo.live ? null : own
-        source: demo.live ?? undefined
+        made: Live.isLive(demo.live) ? undefined : own
+        module: demo.live ?? undefined
     }
     Component {
         id: own
@@ -35,22 +36,24 @@ Item {
     }
 
     // What the app holds that is not drawn, by the names it gives them.
-    function named(name) {
-        return app.item ? Array.from(app.item.resources).find((object) => object.objectName === name) ?? null : null;
-    }
-    readonly property unknown theme: named("theme")
-    readonly property unknown car: named("car")
-    readonly property unknown player: named("player")
+    readonly property unknown theme: Live.resource(app.item, "theme")
+    readonly property unknown car: Live.resource(app.item, "car")
+    readonly property unknown player: Live.resource(app.item, "player")
 
     // Given when the site's scheme changes, not bound: the cockpit's own
     // settings change its look too, and the last one asked is the one
     // that shows.
     readonly property string look: Theme.picked === "light" ? "light" : "dark"
-    onLookChanged: if (demo.theme) demo.theme.look = demo.look
-    onThemeChanged: if (demo.theme) demo.theme.look = demo.look
+    onLookChanged: demo.giveLook()
+    onThemeChanged: demo.giveLook()
+    function giveLook(): void {
+        const theme = demo.theme;
+        if (typeof theme === "object" && theme !== null)
+            theme.look = demo.look;
+    }
 
-    Binding {
-        target: demo.car
+    HeldBinding {
+        object: demo.car
         property: "simulate"
         value: false
         when: !demo.active
@@ -58,8 +61,8 @@ Item {
     }
     // The song holds its place and stays the one playing: it goes on from
     // there when the reader runs the cockpit again.
-    Binding {
-        target: demo.player
+    HeldBinding {
+        object: demo.player
         property: "running"
         value: false
         when: !demo.active

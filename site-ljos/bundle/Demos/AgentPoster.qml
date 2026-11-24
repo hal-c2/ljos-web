@@ -3,6 +3,7 @@ import Ljos.Core
 import Site
 import "../nav.js" as Nav
 import "logic/stage.ts" as Stage
+import "logic/replay.ts" as Replay
 
 // The agent replay's poster: where it ends, drawn by its own parts and
 // still, so the page as written, and a reader who asked for less motion,
@@ -57,11 +58,13 @@ AgentView {
     Component.onCompleted: {
         // From the edit that reshaped it on, as the end of the log shows them.
         const steps = AgentReplay.steps;
-        for (let i = steps.findIndex((step) => !!step.edit); i < steps.length; i++) {
+        for (let i = Replay.firstEdit(steps); i < steps.length; i++) {
             const step = steps[i];
             if (step.say !== "")
                 log.append({ kind: "say", text: step.say, tool: "", args: "", summary: "", answer: "", image: "" });
-            if (step.edit)
+            if (step === undefined)
+                continue;
+            if (Replay.isEdit(step))
                 log.append({ kind: "edit", text: "", tool: "board.ts", args: AgentReplay.editText("list", step.edit), summary: "", answer: "", image: "" });
             else
                 log.append({ kind: "call", text: "", tool: step.tool, args: Stage.argsText(step.args), summary: "", answer: "", image: "" });

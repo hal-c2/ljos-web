@@ -5,6 +5,8 @@ import Ljos.Core
 // site's is reached by the module's name.
 import Site as Page
 import "Watch"
+import "logic/live.ts" as Live
+import "logic/kestrel.ts" as Kestrel
 
 // Kestrel, a made-up smartwatch (Demos/Watch/, the ljos-ui example as it
 // is), in a page's frame: the watch's own software on the left, worn
@@ -30,8 +32,8 @@ Item {
     property bool active: true
     property bool calm: false
     // The watch as the reader's edits make it (Demos/pro-live.js), or
-    // null for the one the page was built with.
-    property unknown live: null
+    // nothing (or null) for the one the page was built with.
+    property unknown live: undefined
 
     // The round screen, or the rounded square.
     property bool round: true
@@ -44,9 +46,9 @@ Item {
 
     // The watch's state, which every screen reads and the keys below
     // drive: its Pages hold it, by the name the app gives them.
-    readonly property unknown pages: app.item ? Array.from(app.item.children).find((child) => child.objectName === "pages") ?? null : null
-    readonly property unknown watch: pages ? pages.watch : null
-    readonly property bool asleep: watch ? watch.ambient : false
+    readonly property unknown pages: Live.child(app.item, "pages")
+    readonly property Kestrel.MaybeWatch watch: Kestrel.watchOf(pages)
+    readonly property bool asleep: watch?.ambient ?? false
 
     Rectangle {
         anchors.fill: parent
@@ -82,17 +84,17 @@ Item {
                 // does not show inside the case.
                 fill: "#000000"
             }
-            Loader {
+            ModuleLoader {
                 id: app
                 anchors.fill: parent
-                component: demo.live ? null : own
-                source: demo.live ?? undefined
+                made: Live.isLive(demo.live) ? undefined : own
+                module: demo.live ?? undefined
                 // The watch takes the keys once, as it comes; a watch made
                 // again from an edit leaves them where the reader types.
                 property bool first: true
                 onLoaded: {
                     if (first)
-                        item.forceActiveFocus();
+                        Live.focus(item);
                     first = false;
                 }
             }
@@ -125,28 +127,7 @@ Item {
             readonly property real gap: Page.Theme.xs
             readonly property real room: flat.width - 2 * Page.Theme.m
             // Where each key stands, and how tall the lines are.
-            readonly property unknown spots: {
-                const sizes = Array.from(children).map((key) => key.implicitWidth);
-                const lines = [[]];
-                let used = -gap;
-                sizes.forEach((size, i) => {
-                    if (lines[lines.length - 1].length > 0 && used + gap + size > room) {
-                        lines.push([]);
-                        used = -gap;
-                    }
-                    lines[lines.length - 1].push(i);
-                    used += gap + size;
-                });
-                const at = [];
-                lines.forEach((line, row) => {
-                    let x = (room - line.reduce((sum, i) => sum + sizes[i] + gap, -gap)) / 2;
-                    for (const i of line) {
-                        at[i] = point(Math.round(x), row * (36 + gap));
-                        x += sizes[i] + gap;
-                    }
-                });
-                return { at, height: lines.length * (36 + gap) - gap };
-            }
+            readonly property Kestrel.Spots spots: Kestrel.spots(children.map((key: Item) => key.implicitWidth), gap, room)
             width: room
             height: spots.height
             anchors.horizontalCenter: parent.horizontalCenter
@@ -156,61 +137,76 @@ Item {
             Accessible.name: t`The watch's buttons`
 
             WatchKey {
+                spots: keys.spots
                 place: 0
                 label: demo.round ? t`Round, 454` : t`Square, 410 × 502`
                 hint: t`Give the watch its other screen`
                 onPressed: demo.round = !demo.round
             }
             WatchKey {
+                spots: keys.spots
                 place: 1
                 label: t`Side button`
                 hint: t`Wakes the watch, or goes back to its face`
                 onPressed: {
-                    if (demo.watch)
-                        demo.watch.pressSide();
+                    demo.watch?.pressSide();
                     scene.pressButton();
                 }
             }
             WatchKey {
+                spots: keys.spots
                 place: 2
                 label: t`Crown ▲`
                 hint: t`Turns the crown up a notch`
                 onPressed: demo.crown(-1)
             }
             WatchKey {
+                spots: keys.spots
                 place: 3
                 label: t`Crown ▼`
                 hint: t`Turns the crown down a notch`
                 onPressed: demo.crown(1)
             }
             WatchKey {
+                spots: keys.spots
                 place: 4
                 label: t`Other face`
                 hint: t`Shows the watch's other face`
-                onPressed: if (demo.watch) {
-                    demo.watch.touch();
-                    demo.watch.nextFace();
+                onPressed: {
+                    const watch = demo.watch;
+                    if (watch !== undefined) {
+                        watch.touch();
+                        watch.nextFace();
+                    }
                 }
             }
             WatchKey {
+                spots: keys.spots
                 place: 5
                 label: demo.asleep ? t`Wake` : t`Sleep`
                 hint: t`Lets the watch rest on its always-on face, as it does by itself after fifteen seconds`
                 on: demo.asleep
-                onPressed: if (demo.watch) {
-                    if (demo.asleep)
-                        demo.watch.touch();
-                    else
-                        demo.watch.sleep();
+                onPressed: {
+                    const watch = demo.watch;
+                    if (watch !== undefined) {
+                        if (demo.asleep)
+                            watch.touch();
+                        else
+                            watch.sleep();
+                    }
                 }
             }
             WatchKey {
+                spots: keys.spots
                 place: 6
                 label: t`Always on`
                 hint: t`Whether the face stays on, dim, while the watch rests`
-                on: demo.watch ? demo.watch.alwaysOn : false
-                onPressed: if (demo.watch)
-                    demo.watch.alwaysOn = !demo.watch.alwaysOn
+                on: demo.watch?.alwaysOn ?? false
+                onPressed: {
+                    const watch = demo.watch;
+                    if (watch !== undefined)
+                        watch.alwaysOn = !watch.alwaysOn;
+                }
             }
         }
     }
@@ -221,7 +217,7 @@ Item {
     }
 
     // The box of `w` by `h` less the rounded box inside it, as SVG.
-    function outside(w, h, r) {
+    function outside(w: number, h: number, r: number): string {
         const e = 4;
         return `M ${-e} ${-e} H ${w + e} V ${h + e} H ${-e} Z `
             + `M ${r} 0 H ${w - r} A ${r} ${r} 0 0 1 ${w} ${r} V ${h - r} A ${r} ${r} 0 0 1 ${w - r} ${h} `
@@ -231,9 +227,8 @@ Item {
     // Where the 3D crown is going: notches add to it, not to the angle
     // it is passing through.
     property real crownTo: 0
-    function crown(steps) {
-        if (demo.watch)
-            demo.watch.turnCrown(steps);
+    function crown(steps: number): void {
+        demo.watch?.turnCrown(steps);
         crownTo += 15 * steps;
         crownTurn.restart();
     }
@@ -287,7 +282,7 @@ Item {
             anchors.fill: parent
             yaw: -24 + solid.spin
             pitch: 12
-            bloom: demo.watch ? demo.watch.bloom : true
+            bloom: demo.watch?.bloom ?? true
             dark: Page.Theme.dark
             face: dial
             glowLevel: demo.asleep ? 0.35 : 1
@@ -340,12 +335,12 @@ Item {
         height: 454
         visible: false
 
-        readonly property int hours: demo.watch ? demo.watch.hours : 10
-        readonly property int minutes: demo.watch ? demo.watch.minutes : 9
-        readonly property int seconds: demo.watch ? demo.watch.seconds : 30
+        readonly property int hours: demo.watch?.hours ?? 10
+        readonly property int minutes: demo.watch?.minutes ?? 9
+        readonly property int seconds: demo.watch?.seconds ?? 30
         readonly property bool dim: demo.asleep
         // Asleep with Always on off, the screen is dark, as the flat one is.
-        readonly property bool off: demo.asleep && !(demo.watch ? demo.watch.alwaysOn : true)
+        readonly property bool off: demo.asleep && !(demo.watch?.alwaysOn ?? true)
         onOffChanged: requestPaint()
         onHoursChanged: requestPaint()
         onMinutesChanged: requestPaint()
@@ -354,6 +349,8 @@ Item {
 
         onPaint: {
             const ctx = getContext("2d");
+            if (!Kestrel.isPen(ctx))
+                return;
             const c = width / 2;
             ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, width, height);
@@ -370,7 +367,7 @@ Item {
                 ctx.lineTo(c + Math.sin(a) * (c - (long ? 50 : 32)), c - Math.cos(a) * (c - (long ? 50 : 32)));
                 ctx.stroke();
             }
-            const hand = (turn, length, width, colour) => {
+            const hand = (turn: number, length: number, width: number, colour: string): void => {
                 const a = turn * 2 * Math.PI;
                 ctx.strokeStyle = colour;
                 ctx.lineWidth = width;
@@ -399,7 +396,9 @@ Item {
         property bool on: false
         // Its index among the keys, where its row's spots say it stands.
         property int place: 0
-        readonly property point spot: parent && parent.spots && parent.spots.at[place] ? parent.spots.at[place] : point(0, 0)
+        // The row's spots, which the row gives each of its keys.
+        property Kestrel.Spots spots: Kestrel.noSpots
+        readonly property Kestrel.Spot spot: spots.at[place] ?? Kestrel.origin
         signal pressed()
 
         x: spot.x
@@ -416,7 +415,7 @@ Item {
         Accessible.name: label
         Accessible.description: hint
         Accessible.onPressAction: () => key.pressed()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 key.pressed();
                 event.accepted = true;
