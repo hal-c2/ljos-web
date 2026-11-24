@@ -124,6 +124,14 @@ Feature: The site is shown in a shell the reader picks
     Then the page is shown in the Elegant shell
     And it stays in the Elegant shell once the Desktop shell has come
 
+  Scenario: A page taken over only after it was shown anyway stays in Elegant, and the kept shell is still the reader's to pick
+    Given a reader who picked the Desktop shell
+    And the page is taken over only after it has been shown anyway, as on a busy machine
+    When they reload the page
+    Then the page is shown in the Elegant shell
+    And no frame of the Desktop shell is seen once it is taken over
+    And picking the Desktop shell puts it in
+
   Scenario: A page shown anyway while the kept shell is being put in is seen at once
     Given a reader who picked the Desktop shell
     And the Desktop shell is slow to come
