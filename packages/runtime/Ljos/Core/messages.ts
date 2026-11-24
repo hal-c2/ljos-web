@@ -391,11 +391,14 @@ function fallbacks(language: string): string[] {
 // `.po` catalogues, as Lingui writes them: `msgid` is the source message
 // in ICU MessageFormat or its explicit id, `msgstr` its translation and
 // `msgctxt` its context. An obsolete (`#~`), fuzzy or untranslated entry
-// is no translation.
+// is no translation. An entry whose `msgid` is an explicit id says so as
+// Lingui writes it, with the comment `#. js-lingui-explicit-id`.
 
 interface Entry {
   translation: string;
   line: number;
+  /** Its `msgid` is an id, not the source message. */
+  explicitId?: boolean;
 }
 
 /** A catalogue of one language. */
@@ -442,10 +445,11 @@ export function readPo(text: string, file?: string): Catalog {
     id: string;
     translation: string;
     flags: string[];
+    explicitId: boolean;
     obsolete: boolean;
     line: number;
   }
-  const fresh = (): Reading => ({ context: undefined, id: "", translation: "", flags: [], obsolete: false, line: 0 });
+  const fresh = (): Reading => ({ context: undefined, id: "", translation: "", flags: [], explicitId: false, obsolete: false, line: 0 });
   const messages = new Map<string, Entry>();
   let language: string | undefined;
   let entry = fresh();
@@ -459,7 +463,7 @@ export function readPo(text: string, file?: string): Catalog {
       } else if (!done.obsolete && !done.flags.includes("fuzzy") && done.translation !== "") {
         const key = entryKey(done.context ?? "", done.id);
         // The first of two of one key is the one kept, as natively.
-        if (!messages.has(key)) messages.set(key, { translation: done.translation, line: done.line });
+        if (!messages.has(key)) messages.set(key, { translation: done.translation, line: done.line, ...(done.explicitId ? { explicitId: true } : {}) });
       }
     }
     entry = fresh();
@@ -485,6 +489,7 @@ export function readPo(text: string, file?: string): Catalog {
         field = undefined;
       }
       started = true;
+      if (body[1] === "." && body.slice(2).trim() === "js-lingui-explicit-id") entry.explicitId = true;
       if (body[1] === ",")
         entry.flags.push(
           ...body
@@ -727,9 +732,10 @@ export function checkCatalog(catalog: Catalog | string, file?: string): string[]
       problems.push(`${where}: the translation does not parse: ${reason(error)}`);
       continue;
     }
+    // An id is not its message: what the message names is not known here.
     let message: Message | undefined;
     try {
-      message = Message.parse(key);
+      message = entry.explicitId ? undefined : Message.parse(key);
     } catch {
       message = undefined;
     }
@@ -830,6 +836,8 @@ function load(name: string): Promise<void> {
         try {
           installCatalog(text, given.file);
         } catch (error) {
+          // Asked for again next time the language is: the file may be mended.
+          loading.delete(name);
           warn(`${given.file}: the catalogue does not read, so it is left out: ${reason(error)}`);
         }
       },
