@@ -378,6 +378,11 @@ Rectangle {
                                 onTriggered: shell.go("/demos/")
                             }
                             C.MenuItem {
+                                text: t`Open showcase`
+                                iconName: "image"
+                                onTriggered: shell.go("/showcase/")
+                            }
+                            C.MenuItem {
                                 visible: shell.hasMetrics
                                 height: visible ? implicitHeight : 0
                                 text: t`Open benchmarks`
@@ -833,7 +838,7 @@ Rectangle {
                                 width: shell.wide ? 200 : documents.width
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
-                                icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : "file-text"
+                                icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : "file-text"
                                 label: shell.router ? shell.router.nameOf(modelData) : modelData
                                 current: modelData === shell.route
                                 onPressed: modelData !== shell.route ? shell.go(modelData) : (shell.view = 0)

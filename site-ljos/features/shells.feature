@@ -222,7 +222,7 @@ Feature: The site is shown in a shell the reader picks
     Given a reader whose kept shell is Workbench
     When they open "/start/first-app/"
     Then the explorer lists "Elegant.qml", "Cyberpunk.qml", "Workbench.qml" and "Desktop.qml" under "Shells/"
-    And it lists "Landing.qml" and "DemosPage.qml" under "Site/"
+    And it lists "Landing.qml", "DemosPage.qml" and "ShowcasePage.qml" under "Site/"
     And neither Cyberpunk's nor Desktop's code has been fetched
 
   Scenario: Workbench's explorer opens each kind of file
@@ -241,6 +241,8 @@ Feature: The site is shown in a shell the reader picks
     Then the window's title says "Ljós — Your First App"
     When they pick "Open demos" from the "File" menu
     Then the demos page is shown
+    When they pick "Open showcase" from the "File" menu
+    Then the showcase is shown, and the window's title says "Ljós — Showcase"
     When they pick "Dark colour scheme" from the "View" menu
     Then the site is dark
     When they pick "Toggle sidebar" from the "View" menu

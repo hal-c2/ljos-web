@@ -63,6 +63,8 @@ QtObject {
             return ["Landing", "qml"].join(".");
         if (to === "/demos/")
             return ["DemosPage", "qml"].join(".");
+        if (to === "/showcase/")
+            return ["ShowcasePage", "qml"].join(".");
         var demo = Content.pro.find((one) => one.route === to);
         if (demo)
             return demo.app;
