@@ -251,6 +251,14 @@ function picture(route, href, width, height, alt) {
     return "<img src=\"" + escape(fromPage(route, href)) + "\" width=\"" + Math.round(width) + "\" height=\"" + Math.round(height) + "\" alt=\"" + escape(alt) + "\">";
 }
 
+// A capture of an app in rich text, as WebP with a PNG for whatever
+// takes no WebP, fetched only as it nears the view. `href` names it from
+// the site's root without its extension.
+function capture(route, href, width, height, alt) {
+    var at = escape(fromPage(route, href));
+    return "<picture><source type=\"image/webp\" srcset=\"" + at + ".webp\"><img src=\"" + at + ".png\" width=\"" + Math.round(width) + "\" height=\"" + Math.round(height) + "\" alt=\"" + escape(alt) + "\" loading=\"lazy\" decoding=\"async\"></picture>";
+}
+
 // Words put into rich text as words, never as markup.
 function escape(text) {
     return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

@@ -18,6 +18,15 @@ Item {
     property string href: ""
     // A small index over the title ("01"), in the mono face; none if empty.
     property string mark: ""
+    // A capture over the title, if any: its address from the site's root
+    // without an extension (Nav.capture), the dark scheme's if it has
+    // one, what it shows, and its shape. `route` is the page's, which
+    // the address is written from.
+    property string picture: ""
+    property string pictureDark: ""
+    property string pictureAlt: ""
+    property real pictureAspect: 10 / 16
+    property string route: "/"
     readonly property int padding: Theme.l + Theme.xxs
     // What the card's words hold, for a row of cards to share the
     // tallest one's height.
@@ -96,6 +105,34 @@ Item {
         y: card.padding
         width: parent.width - 2 * card.padding
         spacing: Theme.s
+
+        // Both pictures are in the page as written, each shown in its
+        // scheme, as a demo frame's are (DemoFrame.qml).
+        Rectangle {
+            visible: card.picture !== ""
+            width: parent.width
+            height: visible ? Math.round(width * card.pictureAspect) + 2 : 0
+            radius: Theme.brackets ? 0 : Theme.radius
+            color: Theme.canvas
+            border.color: Theme.divider
+            border.width: 1
+            clip: true
+
+            Repeater {
+                model: card.picture === "" ? [] : card.pictureDark === "" ? [card.picture] : [card.picture, card.pictureDark]
+                Text {
+                    required property string modelData
+                    required property int index
+                    x: 1
+                    y: 1
+                    width: parent.width - 2
+                    height: parent.height - 2
+                    visible: card.pictureDark === "" || (index === 1) === Theme.dark
+                    textFormat: Text.RichText
+                    text: Nav.capture(card.route, modelData, width, height, card.pictureAlt)
+                }
+            }
+        }
 
         // The mark, set large, and a hairline running from it to the
         // card's edge: an index the eye finds before the words.

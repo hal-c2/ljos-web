@@ -965,7 +965,9 @@ writeFileSync(
   );
 }
 mkdirSync(join(out, "pictures"), { recursive: true });
-for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
+// The demos' pictures (above), and the captures of what is built with
+// Ljós (Site/BuiltWith.qml), each as WebP with a PNG beside it.
+for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$|^built-.*\.(webp|png)$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
 // The header's icon, in each look's text colour for each scheme (Site/GitHubMark.qml).
 const githubMark = readFileSync(join(bundle, "assets/github-mark.svg"), "utf8");
 for (const [look, toned] of Object.entries(tones().looks)) {
