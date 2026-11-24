@@ -853,7 +853,7 @@ const AT_START = {
     empty: ['objectName: "d" + index'],
   },
   "/quality/motion/": {
-    draws: ['qsTr("Menu transition")', 'qsTr("Drawer reveal")'],
+    draws: ["t`Menu transition`", "t`Drawer reveal`"],
     // Its popup starts at opacity 0, and fades in once it runs.
     empty: ['qsTr("Reduced motion")'],
   },
