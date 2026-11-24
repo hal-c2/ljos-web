@@ -1039,14 +1039,16 @@ test("the site's buttons are set in its own type", async ({ browser }) => {
 
 // The other shells' colours are not in the page's head but a stylesheet
 // it names (the build's `looks`): a shell picked, or kept, still brings
-// its own ground and text to the HTML around the app.
+// its own ground and text to the HTML around the app. The colours are
+// tested, not how a kept shell arrives: a page taken over after the
+// watchdog stays Elegant, and the kept shell is then picked (`open`).
 for (const how of ["picked", "kept"]) {
   test(`a shell ${how} brings its own colours to the HTML around the app`, async ({ browser }) => {
     const context = await reader(browser, { kept: how === "kept" ? "workbench" : "" });
     try {
       const page = await context.newPage();
       const said = listen(page);
-      await open(page, "/start/cli/", { arrival: true });
+      await open(page, "/start/cli/");
       if (how === "picked") await pick(page, "workbench");
       expect(await showing(page)).toBe("workbench");
       const tone = (name) => page.evaluate((name) => getComputedStyle(document.documentElement).getPropertyValue(`--ljos-${name}`).trim().toLowerCase(), name);
@@ -1064,7 +1066,10 @@ for (const how of ["picked", "kept"]) {
 // page's from then on, before the page says which shell it shows: no
 // frame is drawn in the default shell's ground and then changes under
 // the reader. Each frame's ground is read where it is drawn: in a
-// requestAnimationFrame, which no render-blocked page runs.
+// requestAnimationFrame, which no render-blocked page runs. The frames
+// are those drawn while the shell may still come: until it is shown, or
+// until the head's watchdog gives up on it (a page taken over late, on a
+// busy machine), when the page is Elegant's and takes Elegant's colours.
 test("a kept shell's page is never drawn in Elegant's colours while its own come", async ({ browser }) => {
   const context = await reader(browser, { kept: "workbench" });
   try {
@@ -1076,14 +1081,15 @@ test("a kept shell's page is never drawn in Elegant's colours while its own come
     await page.addInitScript(() => {
       window.__grounds = [];
       const look = () => {
+        const said = document.documentElement.dataset;
+        if ("ljosShellLate" in said) return;
         const ground = getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase();
         if (ground) window.__grounds.push(ground);
-        if (!("ljosShellShown" in document.documentElement.dataset)) requestAnimationFrame(look);
+        if (!("ljosShellShown" in said)) requestAnimationFrame(look);
       };
       requestAnimationFrame(look);
     });
-    // How a kept shell's colours arrive is what is tested: a late page fails.
-    await open(page, "/start/cli/", { arrival: true });
+    await open(page, "/start/cli/");
     const grounds = await page.evaluate(() => window.__grounds);
     expect(grounds.length, "frames were drawn").toBeGreaterThan(0);
     expect([...new Set(grounds)], "every frame's ground").toEqual([looks.workbench.light.canvas.toLowerCase()]);
@@ -1164,7 +1170,9 @@ test("colours still on their way once the kept shell is shown hold the page back
 
 // A stylesheet of colours that failed to come is not kept: it is asked
 // for once more, whether the page (picked) or the head (kept) asked
-// first, and the page takes the shell's colours from the second.
+// first, and the page takes the shell's colours from the second. A page
+// taken over late is Elegant's, and the kept shell is picked (`open`):
+// the head's failed request is still the one asked again.
 for (const how of ["picked", "kept"]) {
   test(`colours that failed to come for a shell ${how} are asked for once more`, async ({ browser }) => {
     const context = await reader(browser, { kept: how === "kept" ? "workbench" : "" });
@@ -1172,7 +1180,7 @@ for (const how of ["picked", "kept"]) {
       const page = await context.newPage();
       let asked = 0;
       await page.route(/\/looks-[0-9a-f]{10}\.css$/, (route) => (++asked === 1 ? route.abort() : route.continue()));
-      await open(page, "/start/cli/", { arrival: true });
+      await open(page, "/start/cli/");
       if (how === "picked") await pick(page, "workbench");
       expect(await showing(page)).toBe("workbench");
       const ground = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase());
