@@ -32,6 +32,12 @@ Panel {
     function pick(at) {
         frame.current = Math.max(0, Math.min(frame.tabs.length - 1, at));
     }
+    // An arrow takes the focus along to the tab it chose, so the next
+    // press goes on from there.
+    function walk(at) {
+        frame.pick(at);
+        tabs.itemAt(frame.current)?.forceActiveFocus(Qt.TabFocusReason);
+    }
 
     // The bar: what the app is, and that it runs.
     Item {
@@ -107,6 +113,7 @@ Panel {
             Accessible.name: frame.name
 
             Repeater {
+                id: tabs
                 model: frame.tabs
 
                 Item {
@@ -124,7 +131,7 @@ Panel {
                     Accessible.onPressAction: () => frame.pick(index)
                     Keys.onPressed: (event) => {
                         if (event.key === Qt.Key_Right || event.key === Qt.Key_Left) {
-                            frame.pick(index + (event.key === Qt.Key_Right ? 1 : -1));
+                            frame.walk(index + (event.key === Qt.Key_Right ? 1 : -1));
                             event.accepted = true;
                         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
                             frame.pick(index);
@@ -161,7 +168,12 @@ Panel {
                         anchors.fill: parent
                         Accessible.ignored: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: frame.pick(tab.index)
+                        // A press gives the tab the focus too, as a button's
+                        // does, so the arrows go on from the tab pressed.
+                        onClicked: {
+                            frame.pick(tab.index);
+                            tab.forceActiveFocus(Qt.MouseFocusReason);
+                        }
                     }
                 }
             }
