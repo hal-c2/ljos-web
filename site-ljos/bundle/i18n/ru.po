@@ -1,0 +1,2340 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru\n"
+"X-Generator: ljos i18n extract\n"
+
+#: ../Demos/Watch/Watch.qml:160
+msgid "1 h ago"
+msgstr "1 ч назад"
+
+#: ../Site/HeroStage.qml:33
+msgid "1 match"
+msgstr "1 совпадение"
+
+#: ../Demos/Watch/FaceGrid.qml:120
+msgid "10:00 Design review"
+msgstr "10:00 Ревью дизайна"
+
+#: ../Site/DemosPage.qml:120
+msgid "3D you can orbit"
+msgstr "3D, которое можно вращать"
+
+#: ../Site/Landing.qml:138
+msgid "<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it."
+msgstr "<b>Попробуйте на этом магазине.</b> Добавьте товар в корзину, а затем переместите <code>StatusSlot</code> в коде ниже. Макет изменится, а корзина сохранит товары. Сделайте опечатку — магазин продолжит работать, пока вы её исправляете."
+
+#: ../Site/DemosPage.qml:169
+msgid "A bird field guide. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection."
+msgstr "Полевой определитель птиц. После запуска фильтруйте список через поиск, выберите вид, чтобы прочитать заметки, отмечайте встреченных птиц для обновления счётчика и переключайте светлую и тёмную темы, сохраняя выбор."
+
+#: ../Demos/Shader.qml:105
+msgid "A custom fragment shader"
+msgstr "Свой фрагментный шейдер"
+
+#: ../Demos/Cockpit/Cluster.qml:94
+msgid "A door is open"
+msgstr "Дверь открыта"
+
+#: ../Site/DemosPage.qml:185
+msgid "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
+msgstr "Полевой определитель птиц: список видов рядом с выбранным, с заметками и счётчиком встреч."
+
+#: ../Site/DemosPage.qml:134 ../Site/Landing.qml:228
+msgid "A lit 3D scene of shapes on a floor. Drag to turn it."
+msgstr "Освещённая 3D-сцена с фигурами на полу. Потяните, чтобы повернуть."
+
+#: ../Site/DemosPage.qml:121
+msgid "A lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Once it runs, drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt."
+msgstr "Освещённая 3D-сцена, отрисованная тем же движком, который нативно работает на десктопе и мобильных устройствах. После запуска тяните для вращения, прокручивайте или сводите пальцы для масштаба и переключайте светлую и тёмную темы, чтобы увидеть, как сцена подстраивается."
+
+#: ../Site/DemosPage.qml:144
+msgid "A shader effect"
+msgstr "Эффект шейдера"
+
+#: ../Site/DemosPage.qml:64
+msgid "A shell you rewrite"
+msgstr "Оболочка, которую вы переписываете"
+
+#: ../Demos/Watch/Watch.qml:155
+msgid "A ten-minute walk after lunch would close your move ring."
+msgstr "Десятиминутная прогулка после обеда закроет ваше кольцо движения."
+
+#: ../Site/DemosPage.qml:168
+msgid "A whole app"
+msgstr "Целое приложение"
+
+#: ../Demos/Watch/Watch.qml:428
+msgid "APR"
+msgstr "АПР"
+
+#: ../Demos/Watch/Watch.qml:429
+msgid "AUG"
+msgstr "АВГ"
+
+#: ../Shells/Desktop.qml:585 ../Shells/Desktop.qml:1089
+msgid "About ljos.dev"
+msgstr "О сайте ljos.dev"
+
+#: ../Demos/Motion.qml:316
+msgid "About this motion ▸"
+msgstr "Об этой анимации ▸"
+
+#: ../Demos/Motion.qml:316
+msgid "About this motion ▾"
+msgstr "Об этой анимации ▾"
+
+#: ../Demos/Motion.qml:295
+msgid "About this motion. Tap to open or close."
+msgstr "Об этой анимации. Нажмите, чтобы открыть или закрыть."
+
+#: ../Shells/Workbench.qml:396
+msgid "Activity"
+msgstr "Активность"
+
+#: ../Shells/Workbench.qml:401
+msgid "Activity bar"
+msgstr "Панель активности"
+
+#: ../Site/DemosPage.qml:65
+msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
+msgstr "Добавьте товары в корзину, затем отредактируйте Shell.qml прямо на странице. Переместите Slot, чтобы перестроить интерфейс, не теряя содержимое корзины, или внесите синтаксическую ошибку: последняя скомпилированная оболочка продолжит работать, а сообщение компилятора появится рядом с редактором. Переключайте светлую и тёмную темы — обе оболочки последуют за ними."
+
+#: ../Demos/AgentView.qml:317 ../Site/HeroStage.qml:16
+msgid "Agent"
+msgstr "Агент"
+
+#: ../Site/DeviceFrame.qml:38
+msgid "Agent MCP stream"
+msgstr "Поток MCP агента"
+
+#: ../Demos/AgentView.qml:377
+msgid "Agent log"
+msgstr "Журнал агента"
+
+#: ../Demos/AgentView.qml:134
+msgid "Agent: make this a board"
+msgstr "Агент: сделай из этого доску"
+
+#: ../Demos/Watch/NoteList.qml:124
+msgid "All caught up"
+msgstr "Новых нет"
+
+#: ../Shells/Desktop.qml:799
+msgid "All demos"
+msgstr "Все демо"
+
+#: ../Demos/Cockpit/Cluster.qml:94
+msgid "All doors closed"
+msgstr "Все двери закрыты"
+
+#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:213
+msgid "Always on"
+msgstr "Всегда включён"
+
+#: ../Demos/Watch/Watch.qml:156
+msgid "Always on stays on. Glow turns off below 10 % to save power."
+msgstr "Экран «всегда включён» остаётся активным. Ниже 10 % свечение отключается для экономии заряда."
+
+#: ../Demos/Watch/AmbientFace.qml:19
+msgid "Always-on face"
+msgstr "Экран «всегда включён»"
+
+#: ../Site/LandingCopy.qml:16
+msgid "An agent turns a list into a board while the app runs; then it’s your turn."
+msgstr "Агент превращает список в доску прямо во время работы приложения; затем ваша очередь."
+
+#: ../Site/Landing.qml:116
+msgid "An app’s layout doesn’t have to be fixed. Let people, or their agents, replace it live, without losing their work. If an edit won’t compile, the last working layout stays."
+msgstr "Макет приложения не обязан быть жёстким. Позвольте людям — или их агентам — менять его на лету, не теряя работу. Если правка не компилируется, остаётся последний рабочий макет."
+
+#: ../Shells/Workbench.qml:458
+msgid "Appearance settings"
+msgstr "Настройки вида"
+
+#: ../Site/ShellSource.qml:157
+msgid "Apply"
+msgstr "Применить"
+
+#: ../Demos/Watch/Watch.qml:418
+msgid "Apps"
+msgstr "Приложения"
+
+#: ../Site/ShowcasePage.qml:42
+msgid "Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source."
+msgstr "Приложения, работающие на Ljós сегодня, записанные в действии. Каждая запись объясняет, что именно она показывает о Ljós, и ведёт на исходный код приложения."
+
+#: ../Demos/Watch/Watch.qml:146
+msgid "Are we still on for tonight?"
+msgstr "Сегодня вечером всё в силе?"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:59
+msgid "As the system"
+msgstr "Как в системе"
+
+#: ../Demos/DispatchCard.qml:360
+msgid "Assign crew"
+msgstr "Назначить команду"
+
+#: ../Demos/DispatchCard.qml:361
+msgid "Assign crew to {0}"
+msgstr "Назначить команду для {0}"
+
+#: ../Demos/Watch/QuickSettings.qml:13
+msgid "BATTERY {0} %"
+msgstr "ЗАРЯД {0} %"
+
+#: ../Demos/Watch/Pulse.qml:90 ../Demos/Watch/WorkoutPage.qml:88
+msgid "BPM"
+msgstr "BPM"
+
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:525 ../Shells/Desktop.qml:645
+msgid "Back"
+msgstr "Назад"
+
+#: ../Pantry/Basket.qml:85
+msgid "Basket"
+msgstr "Корзина"
+
+#: ../Demos/Watch/Watch.qml:149
+msgid "Battery at 20 %"
+msgstr "Заряд 20 %"
+
+#: ../Site/CodeBlock.qml:101
+msgid "Before"
+msgstr "До"
+
+#: ../Shells/Desktop.qml:676 ../Shells/Desktop.qml:792
+msgid "Benchmarks"
+msgstr "Бенчмарки"
+
+#: ../Site/HeroStage.qml:25
+msgid "Beta week"
+msgstr "Неделя беты"
+
+#: ../Demos/AgentView.qml:159
+msgid "Board"
+msgstr "Доска"
+
+#: ../Demos/AgentView.qml:160
+msgid "Board layout"
+msgstr "Вид доски"
+
+#: ../Shells/Workbench.qml:846
+msgid "Bottom panel"
+msgstr "Нижняя панель"
+
+#: ../Shells/Desktop.qml:670
+msgid "Browse all interactive demos"
+msgstr "Смотреть все интерактивные демо"
+
+#: ../Site/LandingCopy.qml:19
+msgid "Built for agents"
+msgstr "Создано для агентов"
+
+#: ../Site/Landing.qml:278
+msgid "Built together"
+msgstr "Создаём вместе"
+
+#: ../Site/ShowcasePage.qml:27
+msgid "Built with Ljós"
+msgstr "Сделано на Ljós"
+
+#: ../Demos/Watch/TimerPage.qml:91
+msgid "Cancel timer"
+msgstr "Отменить таймер"
+
+#: ../Shells/Desktop.qml:544
+msgid "Capability: agentic first"
+msgstr "Возможность: агенты на первом месте"
+
+#: ../Shells/Desktop.qml:543
+msgid "Capability: descriptive language"
+msgstr "Возможность: декларативный язык"
+
+#: ../Shells/Desktop.qml:546
+msgid "Capability: live updates"
+msgstr "Возможность: живые обновления"
+
+#: ../Shells/Desktop.qml:548
+msgid "Capability: malleable"
+msgstr "Возможность: гибкая перестройка"
+
+#: ../Shells/Desktop.qml:545
+msgid "Capability: several renderers"
+msgstr "Возможность: несколько рендереров"
+
+#: ../Shells/Desktop.qml:547
+msgid "Capability: tools"
+msgstr "Возможность: инструменты"
+
+#: ../Demos/Cockpit/Cockpit.qml:197
+msgid "Car"
+msgstr "Авто"
+
+#: ../Demos/Cockpit/CarPanel.qml:136
+msgid "Car model: {0}"
+msgstr "Модель авто: {0}"
+
+#: ../Demos/Cockpit/Cluster.qml:112
+msgid "Charge fine"
+msgstr "Заряд в норме"
+
+#: ../Demos/Cockpit/Cluster.qml:112
+msgid "Charge low"
+msgstr "Низкий заряд"
+
+#: ../Demos/Cockpit/CarPanel.qml:41 ../Demos/Cockpit/CarPanel.qml:242
+msgid "Charge port"
+msgstr "Порт зарядки"
+
+#: ../Demos/Cockpit/Cluster.qml:170 ../Demos/Cockpit/StatusBar.qml:79
+msgid "Charge {0} %"
+msgstr "Заряд {0} %"
+
+#: ../Demos/AgentReplay.qml:52
+msgid "Check that Feeder 12 kept its crew."
+msgstr "Проверьте, что у Feeder 12 осталась команда."
+
+#: ../Demos/AgentReplay.qml:47
+msgid "Check that the app is running."
+msgstr "Проверьте, что приложение работает."
+
+#: ../Demos/AgentReplay.qml:53
+msgid "Check what still needs a crew."
+msgstr "Проверьте, чему ещё нужна команда."
+
+#: ../Site/Preferences.qml:31
+msgid "Classic desktop application window with menu bar, toolbar, sidebar, and status bar."
+msgstr "Классическое окно десктоп-приложения со строкой меню, панелью инструментов, боковой панелью и строкой состояния."
+
+#: ../Demos/Watch/NoteList.qml:137
+msgid "Clear all"
+msgstr "Очистить всё"
+
+#: ../Shells/Workbench.qml:1000
+msgid "Clear log"
+msgstr "Очистить журнал"
+
+#: ../Demos/Cockpit/Cockpit.qml:196
+msgid "Climate"
+msgstr "Климат"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:139
+msgid "Climate off"
+msgstr "Климат выкл."
+
+#: ../Shells/Cyberpunk.qml:326 ../Shells/Cyberpunk.qml:575
+msgid "Clock"
+msgstr "Часы"
+
+#: ../Shells/Cyberpunk.qml:328 ../Shells/Cyberpunk.qml:577
+msgid "Clock {0}"
+msgstr "Часы {0}"
+
+#: ../Shells/Desktop.qml:1115
+msgid "Close"
+msgstr "Закрыть"
+
+#: ../Site/ObserverDock.qml:183
+msgctxt "observer"
+msgid "Close"
+msgstr "Закрыть"
+
+#: ../Site/MenuButton.qml:14
+msgid "Close menu"
+msgstr "Закрыть меню"
+
+#: ../Site/ShellSource.qml:100
+msgid "Close shell source"
+msgstr "Закрыть код оболочки"
+
+#: ../Site/ObserverDock.qml:184
+msgid "Close the Observer"
+msgstr "Закрыть Наблюдатель"
+
+#: ../Shells/Desktop.qml:931 ../Shells/Workbench.qml:708
+msgid "Close {0}"
+msgstr "Закрыть {0}"
+
+#: ../Demos/DispatchCard.qml:331
+msgid "Closed"
+msgstr "Закрыт"
+
+#: ../Site/CodeEditor.qml:25
+msgid "Code"
+msgstr "Код"
+
+#: ../Site/CodeBlock.qml:425
+msgid "Code: {0}"
+msgstr "Код: {0}"
+
+#: ../Shells/Workbench.qml:812
+msgid "Collapse inspector"
+msgstr "Свернуть инспектор"
+
+#: ../Site/Footer.qml:119
+msgid "Community principles"
+msgstr "Принципы сообщества"
+
+#: ../Shells/Cyberpunk.qml:41
+msgid "Console"
+msgstr "Консоль"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:226
+msgid "Cooling"
+msgstr "Охлаждение"
+
+#: ../Site/CodeBlock.qml:589 ../Site/CodeBlock.qml:590
+msgid "Copied"
+msgstr "Скопировано"
+
+#: ../Site/CodeBlock.qml:589
+msgctxt "code"
+msgid "Copy"
+msgstr "Копировать"
+
+#: ../Site/CodeBlock.qml:590
+msgid "Copy {0}"
+msgstr "Копировать {0}"
+
+#: ../Demos/WatchDemo.qml:180
+msgid "Crown ▲"
+msgstr "Колёсико ▲"
+
+#: ../Demos/WatchDemo.qml:186
+msgid "Crown ▼"
+msgstr "Колёсико ▼"
+
+#: ../Site/ShellSwitcher.qml:54
+msgid "Current shell: {label}"
+msgstr "Текущая оболочка: {label}"
+
+#: ../Site/Preferences.qml:29
+msgid "Cyberpunk"
+msgstr "Киберпанк"
+
+#: ../Demos/Watch/Watch.qml:430
+msgid "DEC"
+msgstr "ДЕК"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:36
+msgid "Dark"
+msgstr "Тёмная"
+
+#: ../Shells/Desktop.qml:467
+msgid "Dark colour scheme"
+msgstr "Тёмная тема"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:235
+msgid "Defrost"
+msgstr "Обдув"
+
+#: ../Shells/Cyberpunk.qml:42 ../Shells/Desktop.qml:669 ../Shells/Desktop.qml:796 ../Site/Footer.qml:101 ../Site/Router.qml:39 ../Site/Router.qml:47 ../Site/Router.qml:83
+msgid "Demos"
+msgstr "Демо"
+
+#: ../Shells/Workbench.qml:576
+msgid "Demos/"
+msgstr "Демо/"
+
+#: ../Demos/Watch/Watch.qml:147
+msgid "Design review at 10:00"
+msgstr "Ревью дизайна в 10:00"
+
+#: ../Site/Preferences.qml:31
+msgid "Desktop"
+msgstr "Десктоп"
+
+#: ../Shells/Workbench.qml:1124
+msgid "Diagnostics: {0}"
+msgstr "Диагностика: {0}"
+
+#: ../Demos/Watch/NoteDetail.qml:69
+msgid "Dismiss"
+msgstr "Скрыть"
+
+#: ../Demos/AgentStage.qml:84
+msgid "Dispatch"
+msgstr "Диспетчер"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:83
+msgid "Distance"
+msgstr "Дистанция"
+
+#: ../Demos/Watch/QuickSettings.qml:38
+msgid "Do not disturb"
+msgstr "Не беспокоить"
+
+#: ../Shells/Cyberpunk.qml:45 ../Site/Footer.qml:100 ../Site/Router.qml:38
+msgid "Docs"
+msgstr "Доки"
+
+#: ../Shells/Desktop.qml:882
+msgid "Documents"
+msgstr "Документация"
+
+#: ../Demos/AgentView.qml:175 ../Demos/Watch/WorkoutPage.qml:169
+msgid "Done"
+msgstr "Готово"
+
+#: ../Demos/AgentView.qml:175
+msgid "Done. Try Assign crew or List / Board."
+msgstr "Готово. Попробуйте «Назначить команду» или Список / Доска."
+
+#: ../Demos/Orbit.qml:271
+msgid "Drag to orbit · scroll or pinch to zoom"
+msgstr "Тяните для вращения · прокрутка или щипок для масштаба"
+
+#: ../Demos/WatchDemo.qml:323
+msgid "Drag to turn it"
+msgstr "Тяните, чтобы повернуть"
+
+#: ../Demos/Orbit.qml:288
+msgid "Drawn by Ljós's 3D renderer"
+msgstr "Отрисовано 3D-рендерером Ljós"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:28
+msgid "Driver"
+msgstr "Водитель"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:38 ../Demos/Cockpit/Dock.qml:58
+msgid "Driver cooler"
+msgstr "Водитель холоднее"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:50
+msgid "Driver set to {0}"
+msgstr "Водитель: {0}"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:58 ../Demos/Cockpit/Dock.qml:74
+msgid "Driver warmer"
+msgstr "Водитель теплее"
+
+#: ../Site/DemosPage.qml:51
+msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "Каждое демо — это полноценное приложение Ljós, проходящее ljos check, заранее скомпилированное и встроенное на эту страницу. Запустив демо в рамке, переключите светлую и тёмную темы в шапке, чтобы увидеть его реакцию, и редактируйте код на лету в Pantry, а также на страницах панели авто и умных часов. Если браузер не поддерживает нужные WebAssembly или WebGL 2, демо сохраняет изображение и описание."
+
+#: ../Demos/Cockpit/ClimatePanel.qml:244
+msgid "Each side"
+msgstr "Раздельно"
+
+#: ../Site/CodeBlock.qml:812
+msgctxt "stage"
+msgid "Edit"
+msgstr "Править"
+
+#: ../Demos/PantryDemo.qml:279
+msgid "Edit the Pantry's Shell.qml"
+msgstr "Править Shell.qml в Pantry"
+
+#: ../Site/LiveSource.qml:201
+msgid "Edit the running shell's QML"
+msgstr "Править QML текущей оболочки"
+
+#: ../Site/ShellSource.qml:127
+msgid "Edit this shell's QML"
+msgstr "Править QML этой оболочки"
+
+#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813
+msgid "Edit {0}"
+msgstr "Править {0}"
+
+#: ../Site/ProDemoPage.qml:373
+msgid "Edit {0} of {1}"
+msgstr "Править {0} ({1})"
+
+#: ../Site/CodeBlock.qml:867
+msgid "Edited"
+msgstr "Изменено"
+
+#: ../Shells/Workbench.qml:659
+msgid "Editor"
+msgstr "Редактор"
+
+#: ../Site/Preferences.qml:28
+msgid "Editorial layout for reading, trying demos, and comparing specs."
+msgstr "Журнальный макет для чтения, запуска демо и сравнения характеристик."
+
+#: ../Site/Preferences.qml:28
+msgid "Elegant"
+msgstr "Элегантная"
+
+#: ../Demos/Watch/WorkoutPage.qml:142
+msgid "End"
+msgstr "Завершить"
+
+#: ../Demos/AgentView.qml:175
+msgid "End result, not run"
+msgstr "Итоговый вид, не запущено"
+
+#: ../Site/Capability.qml:99
+msgid "Example"
+msgstr "Пример"
+
+#: ../Demos/Watch/HeartPage.qml:53
+msgid "Exercise"
+msgstr "Упражнения"
+
+#: ../Shells/Workbench.qml:724
+msgid "Expand inspector"
+msgstr "Развернуть инспектор"
+
+#: ../Shells/Workbench.qml:414 ../Shells/Workbench.qml:500 ../Shells/Workbench.qml:1058
+msgid "Explorer"
+msgstr "Проводник"
+
+#: ../Demos/Watch/Watch.qml:428
+msgid "FEB"
+msgstr "ФЕВ"
+
+#: ../Demos/Watch/Watch.qml:424
+msgid "FRI"
+msgstr "ПТ"
+
+#: ../Demos/Watch/Watch.qml:419
+msgid "Face"
+msgstr "Циферблат"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:203
+msgid "Fan faster"
+msgstr "Обдув сильнее"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:152
+msgid "Fan slower"
+msgstr "Обдув слабее"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:159
+msgid "Fan speed {0} of {1}"
+msgstr "Скорость обдува {0} из {1}"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:139
+msgid "Fan {0}"
+msgstr "Обдув {0}"
+
+#: ../Site/Landing.qml:198
+msgid "Fast, and quiet when idle"
+msgstr "Быстрый и тихий в простое"
+
+#: ../Demos/AgentReplay.qml:49
+msgid "Feeder 12 needs a crew. Find its button."
+msgstr "Feeder 12 нужна команда. Найдите его кнопку."
+
+#: ../Demos/FieldGuide.qml:87
+msgid "Field guide"
+msgstr "Определитель"
+
+#: ../Shells/Desktop.qml:405
+msgctxt "menu bar"
+msgid "File"
+msgstr "Файл"
+
+#: ../Shells/Desktop.qml:473
+msgid "Follow system colour scheme"
+msgstr "Следовать системной теме"
+
+#: ../Shells/Desktop.qml:530 ../Shells/Desktop.qml:651
+msgid "Forward"
+msgstr "Вперёд"
+
+#: ../Shells/Cyberpunk.qml:336 ../Shells/Cyberpunk.qml:567
+msgid "Frame rate"
+msgstr "Кадр/с"
+
+#: ../Shells/Cyberpunk.qml:338 ../Shells/Cyberpunk.qml:569
+msgid "Frame rate not measured yet"
+msgstr "Частота кадров ещё не измерена"
+
+#: ../Shells/Cyberpunk.qml:338 ../Shells/Cyberpunk.qml:569
+msgid "Frame rate {0} fps"
+msgstr "Частота кадров {0} fps"
+
+#: ../Demos/Cockpit/CarPanel.qml:39 ../Demos/Cockpit/CarPanel.qml:226
+msgid "Frunk"
+msgstr "Передний багажник"
+
+#: ../Site/Preferences.qml:29
+msgid "Full-bleed HUD console with live telemetry rails and mission-style panels."
+msgstr "Полноэкранная HUD-консоль с живыми лентами телеметрии и панелями миссий."
+
+#: ../Demos/Cockpit/Cluster.qml:203 ../Demos/Cockpit/StatusBar.qml:27
+msgid "Gear {0}"
+msgstr "Передача {0}"
+
+#: ../Site/LandingCopy.qml:12
+msgid "Get started"
+msgstr "Начать"
+
+#: ../Shells/Desktop.qml:567
+msgid "Getting started guide"
+msgstr "Быстрый старт"
+
+#: ../Site/Footer.qml:117
+msgid "GitHub"
+msgstr "GitHub"
+
+#: ../Demos/WatchDemo.qml:165
+msgid "Give the watch its other screen"
+msgstr "Переключает часы на другой экран"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:66 ../Demos/Watch/QuickSettings.qml:53
+msgid "Glow"
+msgstr "Свечение"
+
+#: ../Shells/Desktop.qml:517
+msgctxt "menu bar"
+msgid "Go"
+msgstr "Переход"
+
+#: ../Shells/Desktop.qml:652
+msgid "Go to next route"
+msgstr "К следующему маршруту"
+
+#: ../Shells/Desktop.qml:646
+msgid "Go to previous route"
+msgstr "К предыдущему маршруту"
+
+#: ../Site/Landing.qml:358
+msgid "Goals and principles"
+msgstr "Цели и принципы"
+
+#: ../Demos/Watch/FaceGrid.qml:15
+msgid "Grid face"
+msgstr "Циферблат-сетка"
+
+#: ../Demos/Watch/HeartPage.qml:13
+msgid "HEART"
+msgstr "ПУЛЬС"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:126
+msgid "Hazard lights"
+msgstr "Аварийка"
+
+#: ../Demos/Watch/Watch.qml:410
+msgid "Heart"
+msgstr "Пульс"
+
+#: ../Demos/Watch/Pulse.qml:104
+msgid "Heart rate, the last {0} seconds"
+msgstr "Пульс за последние {0} секунд"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:226
+msgid "Heating"
+msgstr "Нагрев"
+
+#: ../Shells/Desktop.qml:559
+msgctxt "menu bar"
+msgid "Help"
+msgstr "Справка"
+
+#: ../Shells/Desktop.qml:657 ../Shells/Desktop.qml:778 ../Site/Router.qml:47 ../Site/Router.qml:81
+msgid "Home"
+msgstr "Главная"
+
+#: ../Shells/Desktop.qml:1033 ../Shells/Workbench.qml:1012
+msgid "Hydrated in {0} ms"
+msgstr "Гидрация за {0} ms"
+
+#: ../Demos/FieldGuide.qml:257
+msgid "I have seen this one"
+msgstr "Видел этот вид"
+
+#: ../Site/Preferences.qml:30
+msgid "IDE-style workspace with file tree, tabbed centre pane, and inspector docks."
+msgstr "Рабочее пространство в стиле IDE с деревом файлов, вкладками в центре и пристыкованными инспекторами."
+
+#: ../Demos/Cockpit/NavPanel.qml:184
+msgid "In {0, plural, one {# foot} other {# feet}}, {1} onto {2}"
+msgstr "Через {0, plural, one {# фут} few {# фута} many {# футов} other {# фута}}, {1} на {2}"
+
+#: ../Demos/Cockpit/NavPanel.qml:182
+msgid "In {0, plural, one {# metre} other {# metres}}, {1} onto {2}"
+msgstr "Через {0, plural, one {# метр} few {# метра} many {# метров} other {# метра}}, {1} на {2}"
+
+#: ../Demos/Cockpit/NavPanel.qml:185
+msgid "In {0, plural, one {# mile} other {# miles}}, {1} onto {2}"
+msgstr "Через {0, plural, one {# милю} few {# мили} many {# миль} other {# мили}}, {1} на {2}"
+
+#: ../Site/Landing.qml:54
+msgid "Inspect every node, patch state in flight, drop a new shell on the wire."
+msgstr "Инспектируйте каждый узел, правьте состояние на лету, подставляйте новую оболочку мгновенно."
+
+#: ../Demos/AgentView.qml:561
+msgid "Inspect {0}"
+msgstr "Инспектировать: {0}"
+
+#: ../Shells/Workbench.qml:760 ../Shells/Workbench.qml:1060
+msgid "Inspector"
+msgstr "Инспектор"
+
+#: ../Site/LandingCopy.qml:21
+msgid "It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href=\"/start/mcp/\">Connect an agent</a>."
+msgstr "Он может читать экран, нажимать кнопки, вводить текст и проверять, сработали ли правки. Вы сами решаете, что ему разрешено. <a href=\"/start/mcp/\">Подключить агента</a>."
+
+#: ../Site/ProDemoPage.qml:223
+msgid "Its files"
+msgstr "Файлы демо"
+
+#: ../Demos/Watch/Watch.qml:428
+msgid "JAN"
+msgstr "ЯНВ"
+
+#: ../Demos/Watch/Watch.qml:429
+msgid "JUL"
+msgstr "ИЮЛ"
+
+#: ../Demos/Watch/Watch.qml:429
+msgid "JUN"
+msgstr "ИЮН"
+
+#: ../Demos/Watch/WorkoutPage.qml:122
+msgid "KCAL"
+msgstr "KCAL"
+
+#: ../Demos/Watch/WorkoutPage.qml:105
+msgid "KM"
+msgstr "KM"
+
+#: ../Demos/Cockpit/Cluster.qml:169
+msgid "KM LEFT"
+msgstr "ОСТ. KM"
+
+#: ../Demos/Cockpit/Cluster.qml:140
+msgid "KM/H"
+msgstr "KM/H"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:86
+msgid "Kilometres"
+msgstr "Километры"
+
+#: ../Demos/Cockpit/Cluster.qml:121
+msgid "Lane assist on"
+msgstr "Удержание полосы вкл."
+
+#: ../Demos/Cockpit/Cluster.qml:121
+msgid "Lane assist standing by"
+msgstr "Удержание полосы в ожидании"
+
+#: ../Site/LanguageChoices.qml:60
+msgid "Language"
+msgstr "Язык"
+
+#: ../Site/LanguageSwitcher.qml:55
+msgid "Language: {0}"
+msgstr "Язык: {0}"
+
+#: ../Demos/Watch/StopwatchPage.qml:56
+msgid "Lap"
+msgstr "Круг"
+
+#: ../Demos/Watch/StopwatchPage.qml:40
+msgid "Lap {0}   {1}"
+msgstr "Круг {0}   {1}"
+
+#: ../Site/HeroApp.qml:13 ../Site/HeroApp.qml:37
+msgid "Launch week"
+msgstr "Неделя запуска"
+
+#: ../Site/Footer.qml:91
+msgid "Learn"
+msgstr "Изучить"
+
+#: ../Demos/Cockpit/CarPanel.qml:37 ../Demos/Cockpit/CarPanel.qml:210
+msgid "Left door"
+msgstr "Левая дверь"
+
+#: ../Demos/FieldGuide.qml:197
+msgid "Length"
+msgstr "Длина"
+
+#: ../Demos/WatchDemo.qml:202
+msgid "Lets the watch rest on its always-on face, as it does by itself after fifteen seconds"
+msgstr "Переводит часы на экран «всегда включён», как они делают сами через пятнадцать секунд"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:35
+msgid "Light"
+msgstr "Светлая"
+
+#: ../Shells/Desktop.qml:461
+msgid "Light colour scheme"
+msgstr "Светлая тема"
+
+#: ../Site/DemosPage.qml:158
+msgid "Light pooling over a card of text, following the pointer."
+msgstr "Свет переливается по карточке с текстом, следуя за курсором."
+
+#: ../Demos/Cockpit/ClimatePanel.qml:244
+msgid "Linked"
+msgstr "Синхр."
+
+#: ../Demos/AgentView.qml:152
+msgid "List"
+msgstr "Список"
+
+#: ../Demos/AgentView.qml:153
+msgid "List layout"
+msgstr "Вид списка"
+
+#: ../Site/DeviceFrame.qml:22
+msgid "Live app"
+msgstr "Живое приложение"
+
+#: ../Site/DemosPage.qml:45 ../Site/Landing.qml:349
+msgid "Live demos"
+msgstr "Живые демо"
+
+#: ../Site/Landing.qml:210
+msgid "Live in the page"
+msgstr "Живьём на странице"
+
+#: ../Site/Landing.qml:52
+msgid "Live runtime on an open tree"
+msgstr "Живая среда поверх открытого дерева"
+
+#: ../Site/DeviceFrame.qml:38
+msgid "Live stage"
+msgstr "Живая сцена"
+
+#: ../Site/Router.qml:47
+msgid "Ljós"
+msgstr "Ljós"
+
+#: ../Site/LandingCopy.qml:11
+msgid "Ljós is a Rust UI toolkit for apps that people and their agents can change live, with declarative interfaces and typed TypeScript."
+msgstr "Ljós — это UI-инструментарий на Rust для приложений, которые люди и их агенты могут менять на лету, с декларативными интерфейсами и типизированным TypeScript."
+
+#: ../Site/GitHubMark.qml:27
+msgid "Ljós on GitHub"
+msgstr "Ljós на GitHub"
+
+#: ../Site/Landing.qml:296
+msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
+msgstr "Ljós стремится следовать принципам <a href=\"https://community-software.org/\">Community Software</a>: мы создаём его вместе, на равных, открыто.<br><br>Здесь рады каждому.<br>Мы на равных.<br>Важен любой вклад.<br>Влияние растёт через участие.<br>Будьте бережны к людям и точны к идеям.<br>«Нет» и «ещё нет» — нормальные ответы.<br>Берегите себя и друг друга.<br><br>Код — лишь один из способов помочь. Тестирование, документация, дизайн, переводы и проверки доступности не менее важны, а вопросы новичков всегда приветствуются."
+
+#: ../Shells/Desktop.qml:598
+msgid "Ljós — {0}"
+msgstr "Ljós — {0}"
+
+#: ../Site/Brand.qml:20
+msgid "Ljós, home"
+msgstr "Ljós, главная"
+
+#: ../Demos/Cockpit/CarPanel.qml:251 ../Demos/Cockpit/StatusBar.qml:39
+msgid "Locked"
+msgstr "Заперто"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:44
+msgid "Look"
+msgstr "Оформление"
+
+#: ../Demos/AgentReplay.qml:48
+msgid "Look at the app before changing it."
+msgstr "Посмотрите на приложение до изменений."
+
+#: ../Demos/Cockpit/Dock.qml:134
+msgid "Louder"
+msgstr "Громче"
+
+#: ../Demos/Cockpit/Cluster.qml:85
+msgid "Low beams on"
+msgstr "Ближний свет вкл."
+
+#: ../Demos/Watch/Watch.qml:428
+msgid "MAR"
+msgstr "МАР"
+
+#: ../Demos/Watch/Watch.qml:429
+msgid "MAY"
+msgstr "МАЙ"
+
+#: ../Shells/Workbench.qml:861 ../Shells/Workbench.qml:973
+msgid "MCP log"
+msgstr "Журнал MCP"
+
+#: ../Shells/Desktop.qml:571
+msgid "MCP servers for agents"
+msgstr "MCP-серверы для агентов"
+
+#: ../Demos/Cockpit/Cluster.qml:169
+msgid "MI LEFT"
+msgstr "ОСТ. MI"
+
+#: ../Site/Footer.qml:120
+msgid "MIT licence"
+msgstr "Лицензия MIT"
+
+#: ../Demos/Watch/Watch.qml:423
+msgid "MON"
+msgstr "ПН"
+
+#: ../Demos/Cockpit/Cluster.qml:140
+msgid "MPH"
+msgstr "MPH"
+
+#: ../Site/Landing.qml:115
+msgid "Make it your own"
+msgstr "Сделайте под себя"
+
+#: ../Demos/AgentReplay.qml:51
+msgid "Make the list a board: edit board.ts."
+msgstr "Превратите список в доску: отредактируйте board.ts."
+
+#: ../Site/Landing.qml:114
+msgid "Malleable"
+msgstr "Гибкий"
+
+#: ../Demos/Cockpit/NavPanel.qml:48
+msgid "Map: the route to {0}"
+msgstr "Карта: маршрут к {0}"
+
+#: ../Demos/Cockpit/Cockpit.qml:195
+msgid "Media"
+msgstr "Медиа"
+
+#: ../Shells/Cyberpunk.qml:589 ../Shells/Desktop.qml:1128 ../Shells/Elegant.qml:203 ../Shells/Workbench.qml:1160 ../Site/MenuButton.qml:14
+msgid "Menu"
+msgstr "Меню"
+
+#: ../Shells/Desktop.qml:402
+msgid "Menu bar"
+msgstr "Строка меню"
+
+#: ../Demos/Watch/Watch.qml:417
+msgid "Message"
+msgstr "Сообщение"
+
+#: ../Shells/Cyberpunk.qml:44
+msgid "Metrics"
+msgstr "Метрики"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:92
+msgid "Miles"
+msgstr "Мили"
+
+#: ../Site/DemosPage.qml:195
+msgid "Motion"
+msgstr "Движение"
+
+#: ../Demos/Watch/HeartPage.qml:53
+msgid "Move"
+msgstr "Движение"
+
+#: ../Demos/Watch/FacePulse.qml:103
+msgid "Move ring"
+msgstr "Кольцо движения"
+
+#: ../Demos/Shader.qml:96
+msgid "Move to stir the light · tap for other colours"
+msgstr "Двигайте курсор для света · нажмите для других цветов"
+
+#: ../Demos/Watch/Watch.qml:414
+msgid "Music"
+msgstr "Музыка"
+
+#: ../Demos/Watch/NoteList.qml:27
+msgid "NOTIFICATIONS"
+msgstr "УВЕДОМЛЕНИЯ"
+
+#: ../Demos/Watch/Watch.qml:430
+msgid "NOV"
+msgstr "НОЯ"
+
+#: ../Demos/Watch/MusicPage.qml:76
+msgid "NOW PLAYING"
+msgstr "СЕЙЧАС ИГРАЕТ"
+
+#: ../Demos/Cockpit/Cockpit.qml:194
+msgid "Navigation"
+msgstr "Навигация"
+
+#: ../Site/HeroStage.qml:245
+msgid "Next step"
+msgstr "Следующий шаг"
+
+#: ../Demos/Cockpit/MediaPanel.qml:136 ../Demos/Watch/MusicPage.qml:136
+msgid "Next track"
+msgstr "Следующий трек"
+
+#: ../Site/DocPage.qml:466
+msgid "Next: {0}"
+msgstr "Далее: {0}"
+
+#: ../Shells/Workbench.qml:891
+msgid "No compiler or lint diagnostics in the open file."
+msgstr "В открытом файле нет диагностик компилятора или линтера."
+
+#: ../Demos/DispatchCard.qml:351
+msgid "No crew"
+msgstr "Без команды"
+
+#: ../Pantry/Note.qml:17
+msgid "Note for the baker"
+msgstr "Заметка пекарю"
+
+#: ../Pantry/Note.qml:18
+msgid "Note for the baker…"
+msgstr "Заметка пекарю…"
+
+#: ../Site/CodeBlock.qml:1025
+msgid "Nothing drawn yet."
+msgstr "Пока ничего не отрисовано."
+
+#: ../Site/CodeBlock.qml:1025
+msgid "Nothing drawn yet. Run it to see what it does."
+msgstr "Пока ничего не отрисовано. Запустите, чтобы увидеть результат."
+
+#: ../Site/Search.qml:219
+msgid "Nothing matches “{query}”. Try a type name, like ListView."
+msgstr "Ничего не найдено по запросу «{query}». Попробуйте имя типа, например ListView."
+
+#: ../Demos/Watch/Watch.qml:416
+msgid "Notifications"
+msgstr "Уведомления"
+
+#: ../Demos/Watch/Watch.qml:430
+msgid "OCT"
+msgstr "ОКТ"
+
+#: ../Demos/Watch/WorkoutPage.qml:17
+msgid "OUTDOOR RUN"
+msgstr "ПРОБЕЖКА НА УЛИЦЕ"
+
+#: ../Shells/Cyberpunk.qml:559
+msgid "Objects"
+msgstr "Объекты"
+
+#: ../Shells/Cyberpunk.qml:331
+msgid "Objects alive"
+msgstr "Активные объекты"
+
+#: ../Shells/Cyberpunk.qml:333 ../Shells/Cyberpunk.qml:561
+msgid "Objects alive {0}"
+msgstr "Активные объекты {0}"
+
+#: ../Shells/Desktop.qml:1039
+msgid "Objects alive: {0}"
+msgstr "Активные объекты: {0}"
+
+#: ../Shells/Workbench.qml:1025 ../Shells/Workbench.qml:1139
+msgid "Objects: {0}"
+msgstr "Объекты: {0}"
+
+#: ../Demos/AgentView.qml:317 ../Shells/Desktop.qml:682 ../Shells/Workbench.qml:422 ../Site/HeroStage.qml:16 ../Site/ObserverDock.qml:120 ../Site/ObserverDock.qml:172
+msgid "Observer"
+msgstr "Наблюдатель"
+
+#: ../Site/ObserverButton.qml:17
+msgctxt "stage"
+msgid "Observer"
+msgstr "Наблюдатель"
+
+#: ../Demos/PantryDemo.qml:245
+msgid "Observer for the Pantry"
+msgstr "Наблюдатель: Pantry"
+
+#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:293
+msgid "Observer for {0}"
+msgstr "Наблюдатель: {0}"
+
+#: ../Shells/Desktop.qml:575
+msgid "Observer guide"
+msgstr "Гид по Наблюдателю"
+
+#: ../Site/DeviceFrame.qml:38
+msgid "Observer tree"
+msgstr "Дерево Наблюдателя"
+
+#: ../Site/ObserverDock.qml:172
+msgid "Observer · {0}"
+msgstr "Наблюдатель · {0}"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:218 ../Demos/Cockpit/SettingsPanel.qml:76
+msgid "Off"
+msgstr "Выкл"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:218 ../Demos/Cockpit/SettingsPanel.qml:69
+msgid "On"
+msgstr "Вкл"
+
+#: ../Main.qml:654 ../Site/Toc.qml:22 ../Site/Toc.qml:25
+msgid "On this page"
+msgstr "На этой странице"
+
+#: ../Demos/AgentReplay.qml:28 ../Demos/DispatchCard.qml:362
+msgid "On-call crew"
+msgstr "Дежурная команда"
+
+#: ../Site/DemosPage.qml:196
+msgid "Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU."
+msgstr "После запуска нажмите «Перемешать плитки», чтобы увидеть их перестройку с одним сглаженным значением, и нажмите и потяните в пружинном лотке, чтобы шайба тянулась за курсором на пружине. Когда движение затихает, ничего не тикает, и в простое приложение расходует 0 % CPU."
+
+#: ../Site/DemosPage.qml:145
+msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
+msgstr "После запуска ведите курсор по карточке, чтобы перемешивать свет, и нажимайте для смены цветов. Шейдер работает поверх живого содержимого приложения, а не готовой текстуры, и подстраивается под светлую и тёмную темы страницы."
+
+#: ../Site/Landing.qml:212
+msgid "Once this 3D scene runs, drag to look around, and scroll or pinch to zoom. The <a href=\"/demos/\">live demos</a> have more, including a car cockpit and a smartwatch you can edit. Each keeps a picture and its description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "Запустив эту 3D-сцену, тяните, чтобы осмотреться, и прокручивайте или сводите пальцы для масштаба. В <a href=\"/demos/\">живых демо</a> есть и другие примеры, включая панель автомобиля и умные часы, которые можно редактировать. Если в браузере нет WebAssembly или WebGL 2, сохраняются изображение и описание."
+
+#: ../Demos/Watch/TimerPage.qml:46
+msgid "One minute less"
+msgstr "На минуту меньше"
+
+#: ../Demos/Watch/TimerPage.qml:68
+msgid "One minute more"
+msgstr "На минуту больше"
+
+#: ../Demos/DispatchCard.qml:331
+msgid "Open"
+msgstr "Открыт"
+
+#: ../Site/Landing.qml:342
+msgid "Open a window, then change it while it runs."
+msgstr "Откройте окно — и меняйте его прямо на ходу."
+
+#: ../Shells/Desktop.qml:430
+msgid "Open benchmarks"
+msgstr "Открыть бенчмарки"
+
+#: ../Shells/Desktop.qml:418
+msgid "Open demos"
+msgstr "Открыть демо"
+
+#: ../Shells/Desktop.qml:435
+msgid "Open documentation"
+msgstr "Открыть документацию"
+
+#: ../Shells/Workbench.qml:675
+msgid "Open files"
+msgstr "Открытые файлы"
+
+#: ../Shells/Desktop.qml:413
+msgid "Open home"
+msgstr "Открыть главную"
+
+#: ../Shells/Desktop.qml:658
+msgid "Open landing page"
+msgstr "Открыть главную страницу"
+
+#: ../Shells/Desktop.qml:677
+msgid "Open native desktop benchmark tables"
+msgstr "Открыть таблицы нативных десктоп-бенчмарков"
+
+#: ../Shells/Desktop.qml:898 ../Shells/Desktop.qml:981
+msgid "Open pages"
+msgstr "Открытые страницы"
+
+#: ../Shells/Desktop.qml:423
+msgid "Open showcase"
+msgstr "Открыть витрину"
+
+#: ../Site/Landing.qml:190
+msgid "Open the Observer to see every part of your app, where its values come from, and what’s using time and memory. Your agent gets the same view."
+msgstr "Откройте Наблюдатель, чтобы видеть каждый элемент приложения, откуда берутся значения и на что уходят время и память. Ваш агент видит то же самое."
+
+#: ../Demos/Watch/NoteList.qml:53
+msgid "Open the message from {0}"
+msgstr "Открыть сообщение от {0}"
+
+#: ../Demos/WatchDemo.qml:192
+msgid "Other face"
+msgstr "Другой циферблат"
+
+#: ../Site/Landing.qml:199
+msgid "Our benchmark mail app shows its first frame in under 90 ms, uses under 24 MiB of private memory, and takes 0 % CPU when idle.<br><br>These are <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">native numbers</a> from Linux on 10 Nov 2026. They don’t measure this web page."
+msgstr "Наше эталонное почтовое приложение рисует первый кадр быстрее чем за 90 ms, занимает менее 24 MiB частной памяти и расходует 0 % CPU в простое.<br><br>Это <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">нативные замеры</a> на Linux от 10 нояб. 2026. Они не измеряют эту веб-страницу."
+
+#: ../Shells/Workbench.qml:861
+msgid "Output"
+msgstr "Вывод"
+
+#: ../Shells/Desktop.qml:775
+msgid "Overview"
+msgstr "Обзор"
+
+#: ../Demos/Watch/WorkoutPage.qml:17
+msgid "PAUSED"
+msgstr "НА ПАУЗЕ"
+
+#: ../Shells/Desktop.qml:979
+msgid "Page"
+msgstr "Страница"
+
+#: ../Shells/Desktop.qml:763 ../Shells/Desktop.qml:980 ../Site/PageTree.qml:20
+msgid "Pages"
+msgstr "Страницы"
+
+#: ../Shells/Workbench.qml:858
+msgid "Panel"
+msgstr "Панель"
+
+#: ../Demos/Cockpit/Cluster.qml:103
+msgid "Parking brake released"
+msgstr "Стояночный тормоз снят"
+
+#: ../Demos/Cockpit/Cluster.qml:103
+msgid "Parking brake set"
+msgstr "Стояночный тормоз включён"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:28
+msgid "Passenger"
+msgstr "Пассажир"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:38
+msgid "Passenger cooler"
+msgstr "Пассажир холоднее"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:51
+msgid "Passenger set to {0}"
+msgstr "Пассажир: {0}"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:58
+msgid "Passenger warmer"
+msgstr "Пассажир теплее"
+
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:262 ../Site/ReplayFrame.qml:103 ../Site/ShowcaseApp.qml:197
+msgid "Pause"
+msgstr "Пауза"
+
+#: ../Site/ShowcaseApp.qml:198
+msgid "Pause the recording of {0}"
+msgstr "Пауза записи: {0}"
+
+#: ../Demos/Watch/TimerPage.qml:107
+msgid "Pause timer"
+msgstr "Приостановить таймер"
+
+#: ../Site/DemoFrame.qml:275 ../Site/ReplayFrame.qml:119
+msgid "Pause {0}"
+msgstr "Пауза: {0}"
+
+#: ../Demos/AgentView.qml:630
+msgid "Pick an object to see its properties."
+msgstr "Выберите объект, чтобы увидеть его свойства."
+
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
+msgid "Play"
+msgstr "Играть"
+
+#: ../Site/ShowcaseApp.qml:198
+msgid "Play the recording of {0}"
+msgstr "Воспроизвести запись: {0}"
+
+#: ../Site/Search.qml:160
+msgid "Press / to search"
+msgstr "Нажмите / для поиска"
+
+#: ../Demos/Motion.qml:104
+msgid "Press and move — the puck springs after you"
+msgstr "Нажмите и ведите — шайба следует за вами на пружине"
+
+#: ../Demos/AgentReplay.qml:50
+msgid "Press it, as a person would."
+msgstr "Нажмите её так, как сделал бы человек."
+
+#: ../Shells/Workbench.qml:1059
+msgid "Preview"
+msgstr "Превью"
+
+#: ../Demos/Cockpit/MediaPanel.qml:121 ../Demos/Watch/MusicPage.qml:118
+msgid "Previous track"
+msgstr "Предыдущий трек"
+
+#: ../Site/DocPage.qml:457
+msgid "Previous: {0}"
+msgstr "Назад: {0}"
+
+#: ../Shells/Workbench.qml:861 ../Shells/Workbench.qml:909 ../Shells/Workbench.qml:1061
+msgid "Problems"
+msgstr "Проблемы"
+
+#: ../Site/Footer.qml:108
+msgid "Project"
+msgstr "Проект"
+
+#: ../Demos/Watch/FacePulse.qml:22
+msgid "Pulse face"
+msgstr "Циферблат «Пульс»"
+
+#: ../Demos/Cockpit/Dock.qml:106
+msgid "Quieter"
+msgstr "Тише"
+
+#: ../Demos/Watch/WorkoutPage.qml:17
+msgid "RUN COMPLETE"
+msgstr "ПРОБЕЖКА ЗАВЕРШЕНА"
+
+#: ../Shells/Workbench.qml:954
+msgid "Recorded MCP calls appear here as you step the agent replay."
+msgstr "Записанные вызовы MCP появляются здесь по мере прохождения повтора агента."
+
+#: ../Site/HeroStage.qml:224
+msgid "Recorded replay"
+msgstr "Записанный повтор"
+
+#: ../Site/ShowcaseApp.qml:184
+msgid "Recorded running"
+msgstr "Записано в работе"
+
+#: ../Shells/Desktop.qml:480 ../Site/MotionToggle.qml:25
+msgid "Reduce motion"
+msgstr "Уменьшить движение"
+
+#: ../Shells/Cyberpunk.qml:342
+msgid "Renderer"
+msgstr "Рендерер"
+
+#: ../Shells/Cyberpunk.qml:344
+msgid "Renderer {0}"
+msgstr "Рендерер {0}"
+
+#: ../Shells/Desktop.qml:1055 ../Shells/Workbench.qml:1019 ../Shells/Workbench.qml:1146
+msgid "Renderer: {0}"
+msgstr "Рендерер: {0}"
+
+#: ../Demos/AgentView.qml:308
+msgid "Replay views"
+msgstr "Виды повтора"
+
+#: ../Site/LandingCopy.qml:15
+msgid "Replay · no live agent"
+msgstr "Повтор · без живого агента"
+
+#: ../Demos/PantryDemo.qml:229 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:145 ../Site/ShellSource.qml:164
+msgid "Reset"
+msgstr "Сброс"
+
+#: ../Site/HeroStage.qml:239
+msgid "Reset demo"
+msgstr "Сбросить демо"
+
+#: ../Shells/Desktop.qml:446
+msgid "Reset demo state"
+msgstr "Сбросить состояние демо"
+
+#: ../Site/ProDemoPage.qml:320
+msgid "Reset every file"
+msgstr "Сбросить все файлы"
+
+#: ../Demos/PantryDemo.qml:230
+msgid "Reset to the app's shell"
+msgstr "Сбросить к оболочке приложения"
+
+#: ../Site/CodeBlock.qml:825
+msgid "Reset {0} to as written"
+msgstr "Сбросить к исходному: {0}"
+
+#: ../Site/Landing.qml:53
+msgid "Reshape the running interface, human or agent."
+msgstr "Перестраивайте работающий интерфейс — сами или с помощью агента."
+
+#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:264 ../Site/ReplayFrame.qml:96 ../Site/ReplayFrame.qml:105
+msgid "Resume"
+msgstr "Продолжить"
+
+#: ../Demos/Watch/TimerPage.qml:99
+msgid "Resume timer"
+msgstr "Продолжить таймер"
+
+#: ../Site/DemoFrame.qml:277 ../Site/ReplayFrame.qml:112 ../Site/ReplayFrame.qml:121
+msgid "Resume {0}"
+msgstr "Продолжить: {0}"
+
+#: ../Site/LiveSource.qml:175
+msgid "Retry"
+msgstr "Повторить"
+
+#: ../Demos/Cockpit/CarPanel.qml:38 ../Demos/Cockpit/CarPanel.qml:218
+msgid "Right door"
+msgstr "Правая дверь"
+
+#: ../Demos/Watch/Watch.qml:154
+msgid "Room Hekla, with the hardware team. The prototype boards came in this morning."
+msgstr "Комната Hekla, с командой железа. Прототипные платы приехали сегодня утром."
+
+#: ../Demos/WatchDemo.qml:164
+msgid "Round, 454"
+msgstr "Круглый, 454"
+
+#: ../Shells/Cyberpunk.qml:320 ../Shells/Cyberpunk.qml:551
+msgid "Route"
+msgstr "Маршрут"
+
+#: ../Shells/Cyberpunk.qml:322 ../Shells/Cyberpunk.qml:553
+msgid "Route {0}"
+msgstr "Маршрут {0}"
+
+#: ../Shells/Desktop.qml:1026 ../Shells/Workbench.qml:1118
+msgid "Route: {0}"
+msgstr "Маршрут: {0}"
+
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:266 ../Site/ReplayFrame.qml:107
+msgctxt "stage"
+msgid "Run"
+msgstr "Запуск"
+
+#: ../Site/ReplayFrame.qml:96
+msgid "Run again"
+msgstr "Запустить снова"
+
+#: ../Site/ReplayFrame.qml:112
+msgid "Run again: {0}"
+msgstr "Запустить снова: {0}"
+
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:279 ../Site/ReplayFrame.qml:123
+msgid "Run {0}"
+msgstr "Запустить: {0}"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:118 ../Site/DeviceFrame.qml:33
+msgid "Running"
+msgstr "Работает"
+
+#: ../Demos/Watch/Watch.qml:424
+msgid "SAT"
+msgstr "СБ"
+
+#: ../Demos/Watch/Watch.qml:430
+msgid "SEP"
+msgstr "СЕН"
+
+#: ../Demos/Watch/StopwatchPage.qml:14
+msgid "STOPWATCH"
+msgstr "СЕКУНДОМЕР"
+
+#: ../Demos/Watch/Watch.qml:423
+msgid "SUN"
+msgstr "ВС"
+
+#: ../Site/ShellChoices.qml:47
+msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
+msgstr "То же приложение, другая оболочка. Переключение сохраняет маршрут, прокрутку и запущенные демо."
+
+#: ../Shells/Desktop.qml:730
+msgid "Scheme"
+msgstr "Тема"
+
+#: ../Site/Search.qml:159
+msgid "Search"
+msgstr "Поиск"
+
+#: ../Demos/FieldGuide.qml:95
+msgid "Search by name…"
+msgstr "Поиск по имени…"
+
+#: ../Site/Search.qml:108
+msgid "Search docs and demos"
+msgstr "Поиск по документации и демо"
+
+#: ../Site/Search.qml:202
+msgid "Search results"
+msgstr "Результаты поиска"
+
+#: ../Demos/Cockpit/ClimatePanel.qml:96
+msgid "Seat off"
+msgstr "Подогрев выкл."
+
+#: ../Demos/Cockpit/ClimatePanel.qml:96
+msgid "Seat {0}"
+msgstr "Подогрев {0}"
+
+#: ../Shells/Cyberpunk.qml:393
+msgid "Sections"
+msgstr "Разделы"
+
+#: ../Site/Landing.qml:189
+msgid "See inside a running app"
+msgstr "Загляните внутрь живого приложения"
+
+#: ../Site/Landing.qml:211
+msgid "See it run"
+msgstr "Смотреть в деле"
+
+#: ../Demos/FieldGuide.qml:277
+msgid "Seen {0} of {1}"
+msgstr "Встречено {0} из {1}"
+
+#: ../Demos/Cockpit/Cockpit.qml:198 ../Demos/Watch/Watch.qml:415
+msgid "Settings"
+msgstr "Настройки"
+
+#: ../Demos/Shader.qml:72
+msgid "Shader canvas. Move the pointer to stir the light; tap to change the colours."
+msgstr "Холст шейдера. Двигайте курсор для света; нажмите для смены цветов."
+
+#: ../Site/ShellChoices.qml:36 ../Site/ShellSource.qml:78
+msgid "Shell"
+msgstr "Оболочка"
+
+#: ../Site/CodeBlock.qml:362
+msgctxt "code language"
+msgid "Shell"
+msgstr "Shell"
+
+#: ../Shells/Workbench.qml:446
+msgid "Shell switcher"
+msgstr "Выбор оболочки"
+
+#: ../Demos/PantryDemo.qml:224
+msgid "Shell.qml: edit it live"
+msgstr "Shell.qml: правьте на лету"
+
+#: ../Shells/Desktop.qml:1061
+msgid "Shell: Desktop"
+msgstr "Оболочка: Десктоп"
+
+#: ../Shells/Workbench.qml:1112
+msgid "Shell: Workbench"
+msgstr "Оболочка: Workbench"
+
+#: ../Shells/Cyberpunk.qml:46 ../Shells/Desktop.qml:813
+msgid "Shells"
+msgstr "Оболочки"
+
+#: ../Shells/Workbench.qml:531
+msgid "Shells/"
+msgstr "Оболочки/"
+
+#: ../Demos/Cockpit/CarPanel.qml:30
+msgid "Shift to P first: nothing opens out of park."
+msgstr "Сначала переключитесь на P: вне паркинга ничего не открывается."
+
+#: ../Demos/Cockpit/Dock.qml:42
+msgid "Shift to {0}"
+msgstr "Переключить на {0}"
+
+#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42
+msgid "Ship the beta"
+msgstr "Выпустить бету"
+
+#: ../Site/CodeBlock.qml:1218
+msgid "Show all {0, plural, one {# line} other {# lines}}"
+msgstr "Показать {0, plural, one {# строку} few {все # строки} many {все # строк} other {все # строки}}"
+
+#: ../Site/CodeBlock.qml:1219
+msgid "Show all {0, plural, one {# line} other {# lines}} of {1}"
+msgstr "Показать {0, plural, one {# строку} few {все # строки} many {все # строк} other {все # строки}} из {1}"
+
+#: ../Site/CodeBlock.qml:1218
+msgid "Show less"
+msgstr "Свернуть"
+
+#: ../Site/CodeBlock.qml:1219
+msgid "Show less of {0}"
+msgstr "Свернуть {0}"
+
+#: ../Site/CodeBlock.qml:833
+msgid "Show the source"
+msgstr "Показать код"
+
+#: ../Shells/Cyberpunk.qml:43 ../Site/Footer.qml:102 ../Site/Router.qml:40 ../Site/Router.qml:47 ../Site/Router.qml:85
+msgid "Showcase"
+msgstr "Витрина"
+
+#: ../Demos/WatchDemo.qml:193
+msgid "Shows the watch's other face"
+msgstr "Показывает другой циферблат часов"
+
+#: ../Demos/Motion.qml:253 ../Demos/Motion.qml:274
+msgid "Shuffle the tiles"
+msgstr "Перемешать плитки"
+
+#: ../Demos/WatchDemo.qml:170
+msgid "Side button"
+msgstr "Боковая кнопка"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:115
+msgid "Simulated drive"
+msgstr "Имитация поездки"
+
+#: ../Shells/Workbench.qml:558
+msgid "Site/"
+msgstr "Сайт/"
+
+#: ../Site/HeroApp.qml:15 ../Site/HeroApp.qml:39
+msgid "Sketch the shell"
+msgstr "Набросать оболочку"
+
+#: ../Main.qml:393 ../Main.qml:427
+msgid "Skip to content"
+msgstr "К содержимому"
+
+#: ../Demos/WatchDemo.qml:201
+msgid "Sleep"
+msgstr "Сон"
+
+#: ../Site/LandingCopy.qml:10
+msgid "Software you can reshape while it runs."
+msgstr "Программы, которые можно перестраивать на ходу."
+
+#: ../Shells/Cyberpunk.qml:451 ../Site/HeroStage.qml:16
+msgid "Source"
+msgstr "Код"
+
+#: ../Shells/Workbench.qml:783
+msgctxt "panel"
+msgid "Source"
+msgstr "Код"
+
+#: ../Site/CodeBlock.qml:832
+msgctxt "stage tab"
+msgid "Source"
+msgstr "Код"
+
+#: ../Site/ShellSource.qml:78
+msgid "Source of {0}"
+msgstr "Код: {0}"
+
+#: ../Shells/Desktop.qml:579
+msgid "Source on GitHub"
+msgstr "Исходники на GitHub"
+
+#: ../Demos/Cockpit/Cluster.qml:141
+msgid "Speed"
+msgstr "Скорость"
+
+#: ../Demos/Cockpit/AssistView.qml:144
+msgid "Speed limit {0}"
+msgstr "Ограничение {0}"
+
+#: ../Demos/Motion.qml:161
+msgid "Spring tray. Press and move to lead the puck; it springs after the pointer."
+msgstr "Пружинный лоток. Нажмите и ведите, чтобы направлять шайбу; она следует за курсором на пружине."
+
+#: ../Demos/Motion.qml:333
+msgid "Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen."
+msgstr "Пружины, поведения, переходы списков и состояния объявляются рядом со значениями, которыми они управляют — без ручного цикла анимации и лишней работы за пределами экрана."
+
+#: ../Demos/WatchDemo.qml:164
+msgid "Square, 410 × 502"
+msgstr "Квадратный, 410 × 502"
+
+#: ../Demos/Watch/HeartPage.qml:53
+msgid "Stand"
+msgstr "Разминка"
+
+#: ../Demos/Watch/TimerPage.qml:98
+msgid "Start"
+msgstr "Старт"
+
+#: ../Shells/Desktop.qml:536 ../Shells/Desktop.qml:784
+msgid "Start in a minute"
+msgstr "Старт за минуту"
+
+#: ../Site/Landing.qml:313
+msgid "Start reading"
+msgstr "Начать чтение"
+
+#: ../Demos/Watch/WorkoutPage.qml:52
+msgid "Start run"
+msgstr "Начать пробежку"
+
+#: ../Demos/Watch/StopwatchPage.qml:63
+msgid "Start stopwatch"
+msgstr "Запустить секундомер"
+
+#: ../Demos/Watch/TimerPage.qml:99
+msgid "Start timer"
+msgstr "Запустить таймер"
+
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:115
+msgid "Starting {0}…"
+msgstr "Запуск: {0}…"
+
+#: ../Site/Runner.qml:106
+msgid "Starting {what}…"
+msgstr "Запуск: {what}…"
+
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:260 ../Site/ReplayFrame.qml:99
+msgid "Starting…"
+msgstr "Запуск…"
+
+#: ../Shells/Desktop.qml:1010 ../Shells/Workbench.qml:1096
+msgid "Status bar"
+msgstr "Строка состояния"
+
+#: ../Demos/AgentView.qml:395
+msgid "Step {0} of {1}"
+msgstr "Шаг {0} из {1}"
+
+#: ../Demos/Watch/TimerPage.qml:115 ../Site/CodeBlock.qml:807
+msgid "Stop"
+msgstr "Стоп"
+
+#: ../Demos/Watch/StopwatchPage.qml:63
+msgid "Stop stopwatch"
+msgstr "Остановить секундомер"
+
+#: ../Demos/Cockpit/CarPanel.qml:29
+msgid "Stop the car first: nothing opens while it moves."
+msgstr "Сначала остановите машину: на ходу ничего не открывается."
+
+#: ../Site/CodeBlock.qml:808
+msgid "Stop {0}"
+msgstr "Остановить: {0}"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:118
+msgid "Stopped"
+msgstr "Остановлено"
+
+#: ../Demos/Watch/Watch.qml:413
+msgid "Stopwatch"
+msgstr "Секундомер"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:141
+msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
+msgstr "Svala GT — вымышленный автомобиль. Его модель создана скриптом Blender из этого примера; карта, музыка и улицы тоже выдуманы. Всё, что вы видите, нарисовано Ljós."
+
+#: ../Shells/Desktop.qml:720
+msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
+msgstr "Переключение между оболочками Элегантная, Киберпанк, Workbench и Десктоп"
+
+#: ../Site/ShellSwitcher.qml:54
+msgid "Switch shell"
+msgstr "Сменить оболочку"
+
+#: ../Shells/Desktop.qml:503
+msgid "Switch to Cyberpunk shell"
+msgstr "Переключиться на оболочку Киберпанк"
+
+#: ../Shells/Desktop.qml:511
+msgid "Switch to Desktop shell"
+msgstr "Переключиться на оболочку Десктоп"
+
+#: ../Shells/Desktop.qml:499
+msgid "Switch to Elegant shell"
+msgstr "Переключиться на оболочку Элегантная"
+
+#: ../Shells/Desktop.qml:507
+msgid "Switch to Workbench shell"
+msgstr "Переключиться на оболочку Workbench"
+
+#: ../Main.qml:911
+msgid "Switched to {shell}. Your place and edits are kept."
+msgstr "Включена оболочка {shell}. Позиция и правки сохранены."
+
+#: ../Site/Preferences.qml:34
+msgid "System"
+msgstr "Система"
+
+#: ../Demos/Watch/Watch.qml:424
+msgid "THU"
+msgstr "ЧТ"
+
+#: ../Demos/Watch/TimerPage.qml:32
+msgid "TIME'S UP"
+msgstr "ВРЕМЯ ВЫШЛО"
+
+#: ../Demos/Watch/TimerPage.qml:32
+msgid "TIMER"
+msgstr "ТАЙМЕР"
+
+#: ../Demos/Watch/Watch.qml:423
+msgid "TUE"
+msgstr "ВТ"
+
+#: ../Demos/AgentReplay.qml:54
+msgid "Take a screenshot to check the result."
+msgstr "Сделайте снимок экрана, чтобы проверить результат."
+
+#: ../Site/HeroApp.qml:48
+msgid "Task list"
+msgstr "Список задач"
+
+#: ../Shells/Cyberpunk.qml:531
+msgid "Telemetry"
+msgstr "Телеметрия"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:99
+msgid "Temperature"
+msgstr "Температура"
+
+#: ../Site/CodeBlock.qml:379
+msgctxt "code language"
+msgid "Text"
+msgstr "Текст"
+
+#: ../Demos/PantryDemo.qml:160
+msgid "The Pantry, running"
+msgstr "Pantry, работает"
+
+#: ../Site/ShellSource.qml:88
+msgid "The QML of the shell you are looking at. Edit it and press Apply: the page and your place on it stay."
+msgstr "QML оболочки, которую вы сейчас видите. Отредактируйте его и нажмите «Применить»: страница и ваша позиция на ней сохранятся."
+
+#: ../Site/PageSource.qml:49
+msgid "The QML this page is made from. The shell around it is its own file: open the shell menu to see it."
+msgstr "QML, из которого построена эта страница. Оболочка вокруг неё лежит в отдельном файле — откройте меню оболочки, чтобы увидеть его."
+
+#: ../Site/Landing.qml:333
+msgid "The big picture, in plain words."
+msgstr "Общая картина простыми словами."
+
+#: ../Demos/Cockpit/CarPanel.qml:31
+msgid "The car is locked. Unlock it to open anything."
+msgstr "Автомобиль заперт. Откройте замок, чтобы открыть любую часть."
+
+#: ../Demos/Cockpit/CarPanel.qml:137
+msgid "The car. Arrow keys choose a part; Space opens or closes it."
+msgstr "Автомобиль. Стрелки выбирают элемент; Пробел открывает или закрывает его."
+
+#: ../Main.qml:628
+msgid "The docs"
+msgstr "Документация"
+
+#: ../Site/ProDemoPage.qml:250
+msgid "The files of {0}"
+msgstr "Файлы: {0}"
+
+#: ../Demos/Watch/Watch.qml:153
+msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
+msgstr "Крыша открывается в восемь. Захвати куртку, там наверху прохладно."
+
+#: ../Site/LiveSource.qml:164
+msgid "The shell's QML could not be loaded: {0}"
+msgstr "Не удалось загрузить QML оболочки: {0}"
+
+#: ../Demos/WatchDemo.qml:160
+msgid "The watch's buttons"
+msgstr "Кнопки часов"
+
+#: ../Site/DocPage.qml:60
+msgid "There is no page at this address. The address may have moved — search, or begin at {0}."
+msgstr "По этому адресу нет страницы. Возможно, он изменился — воспользуйтесь поиском или начните с {0}."
+
+#: ../Site/LiveSource.qml:58
+msgid "There is no {0}.qml to edit."
+msgstr "Нет файла {0}.qml для редактирования."
+
+#: ../Main.qml:766
+msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
+msgstr "В этой правке отсутствует site.source.live, где отображается редактор, поэтому оставлена последняя рабочая версия."
+
+#: ../Site/Footer.qml:131
+msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
+msgstr "Этот сайт сам является приложением Ljós: при сборке он записывается в HTML и работает вживую в вашем браузере."
+
+#: ../Shells/Desktop.qml:1098
+msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
+msgstr "Этот сайт запускает Ljós, скомпилированный в Solid DOM через ljos-web, с WebGPU и откатом на WebGL2 для 3D-сцен. Меняйте оболочки через меню «Вид» или панель инструментов без перезагрузки."
+
+#: ../Demos/DispatchCard.qml:229
+msgid "Tickets"
+msgstr "Тикеты"
+
+#: ../Site/DemosPage.qml:212
+msgid "Tiles that shuffle and settle, driven by one eased value."
+msgstr "Плитки перемешиваются и встают на место с помощью одного сглаженного значения."
+
+#: ../Demos/Watch/TimerPage.qml:57
+msgid "Time's up"
+msgstr "Время вышло"
+
+#: ../Demos/Watch/Watch.qml:412
+msgid "Timer"
+msgstr "Таймер"
+
+#: ../Shells/Desktop.qml:492
+msgid "Toggle Observer panel"
+msgstr "Показать или скрыть панель Наблюдателя"
+
+#: ../Shells/Desktop.qml:731
+msgid "Toggle light and dark colour scheme"
+msgstr "Переключить светлую и тёмную темы"
+
+#: ../Shells/Desktop.qml:683
+msgid "Toggle live Observer panel"
+msgstr "Показать или скрыть живую панель Наблюдателя"
+
+#: ../Shells/Desktop.qml:486
+msgid "Toggle sidebar"
+msgstr "Показать или скрыть боковую панель"
+
+#: ../Shells/Desktop.qml:633
+msgid "Toolbar"
+msgstr "Панель инструментов"
+
+#: ../Demos/Cockpit/CarPanel.qml:40 ../Demos/Cockpit/CarPanel.qml:234
+msgid "Trunk"
+msgstr "Багажник"
+
+#: ../Site/Landing.qml:351
+msgid "Try Ljós in your browser, with nothing to install."
+msgstr "Попробуйте Ljós в браузере, ничего не устанавливая."
+
+#: ../Site/LandingCopy.qml:13
+msgid "Try a demo"
+msgstr "Открыть демо"
+
+#: ../Site/ReplayFrame.qml:101
+msgid "Try again"
+msgstr "Повторить"
+
+#: ../Demos/PantryDemo.qml:308
+msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+msgstr "Попробуйте перенести StatusSlot под Basket, задать color: \"#241a10\" или переименовать магазин. Ваша корзина и заметка останутся как есть."
+
+#: ../Site/ReplayFrame.qml:117
+msgid "Try {0} again"
+msgstr "Попробовать снова: {0}"
+
+#: ../Demos/Watch/TimerPage.qml:77
+msgid "Turn the crown to set"
+msgstr "Крутите колёсико для настройки"
+
+#: ../Demos/WatchDemo.qml:187
+msgid "Turns the crown down a notch"
+msgstr "Поворачивает колёсико на деление вниз"
+
+#: ../Demos/WatchDemo.qml:181
+msgid "Turns the crown up a notch"
+msgstr "Поворачивает колёсико на деление вверх"
+
+#: ../Demos/AgentView.qml:317
+msgid "TypeScript"
+msgstr "TypeScript"
+
+#: ../Site/Landing.qml:180
+msgid "TypeScript first"
+msgstr "TypeScript в основе"
+
+#: ../Demos/Cockpit/CarPanel.qml:251 ../Demos/Cockpit/StatusBar.qml:39
+msgid "Unlocked"
+msgstr "Отперто"
+
+#: ../Site/ThemeToggle.qml:10
+msgid "Use the dark theme"
+msgstr "Тёмная тема"
+
+#: ../Site/ThemeToggle.qml:10
+msgid "Use the light theme"
+msgstr "Светлая тема"
+
+#: ../Site/CodeBlock.qml:1120 ../Site/CodeBlock.qml:1139
+msgid "Values"
+msgstr "Значения"
+
+#: ../Shells/Desktop.qml:453
+msgctxt "menu bar"
+msgid "View"
+msgstr "Вид"
+
+#: ../Shells/Desktop.qml:736
+msgid "View QML"
+msgstr "Открыть QML"
+
+#: ../Shells/Desktop.qml:441 ../Site/ShellChoices.qml:146
+msgid "View this shell's QML"
+msgstr "Открыть QML этой оболочки"
+
+#: ../Shells/Desktop.qml:737
+msgid "View this shell's QML source"
+msgstr "Открыть QML-код этой оболочки"
+
+#: ../Shells/Desktop.qml:975 ../Shells/Workbench.qml:1054
+msgid "Views"
+msgstr "Виды"
+
+#: ../Demos/Cockpit/MediaPanel.qml:197
+msgid "Visualiser, at rest"
+msgstr "Визуализатор остановлен"
+
+#: ../Demos/Cockpit/MediaPanel.qml:197
+msgid "Visualiser, moving with the music"
+msgstr "Визуализатор движется под музыку"
+
+#: ../Demos/Watch/MusicPage.qml:69
+msgid "Volume"
+msgstr "Громкость"
+
+#: ../Demos/Cockpit/Dock.qml:113
+msgid "Volume {0} of 10"
+msgstr "Громкость {0} из 10"
+
+#: ../Demos/Watch/Watch.qml:423
+msgid "WED"
+msgstr "СР"
+
+#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:201
+msgid "Wake"
+msgstr "Разбудить"
+
+#: ../Demos/WatchDemo.qml:171
+msgid "Wakes the watch, or goes back to its face"
+msgstr "Пробуждает часы или возвращает к циферблату"
+
+#: ../Site/DocPage.qml:56 ../Site/Landing.qml:331
+msgid "What is Ljós?"
+msgstr "Что такое Ljós?"
+
+#: ../Site/Landing.qml:360
+msgid "What we care about, and what we leave out on purpose."
+msgstr "Что для нас важно — и что мы сознательно оставляем за скобками."
+
+#: ../Demos/WatchDemo.qml:214
+msgid "Whether the face stays on, dim, while the watch rests"
+msgstr "Остаётся ли циферблат приглушённо включённым, когда часы отдыхают"
+
+#: ../Demos/FieldGuide.qml:224
+msgid "Wingspan"
+msgstr "Размах крыльев"
+
+#: ../Site/HeroApp.qml:16 ../Site/HeroApp.qml:40
+msgid "Wire up the Observer"
+msgstr "Подключить Наблюдатель"
+
+#: ../Site/Preferences.qml:30
+msgid "Workbench"
+msgstr "Workbench"
+
+#: ../Demos/AgentView.qml:175
+msgid "Working…"
+msgstr "В работе…"
+
+#: ../Demos/Watch/Watch.qml:411
+msgid "Workout"
+msgstr "Тренировка"
+
+#: ../Shells/Workbench.qml:509
+msgid "Workspace: ljos.dev"
+msgstr "Пространство: ljos.dev"
+
+#: ../Site/Landing.qml:181
+msgid "Write app logic in TypeScript and catch mistakes with <code>ljos check</code>. Use Rust where you need it. Already have QML? <a href=\"/language/porting-from-qt/\">Bring it along</a>."
+msgstr "Пишите логику приложения на TypeScript и ловите ошибки через <code>ljos check</code>. Используйте Rust там, где он нужен. Уже есть QML? <a href=\"/language/porting-from-qt/\">Перенесите его</a>."
+
+#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41 ../Site/HeroStage.qml:24
+msgid "Write the release notes"
+msgstr "Написать заметки к релизу"
+
+#: ../Demos/Watch/Watch.qml:148
+msgid "You are 2,100 steps from your goal"
+msgstr "До цели осталось 2 100 шагов"
+
+#: ../Site/LandingCopy.qml:20
+msgid "Your agent can use the app, too."
+msgstr "Ваш агент тоже может работать с приложением."
+
+#: ../Demos/Cockpit/AssistView.qml:130
+msgid "Your car"
+msgstr "Ваш автомобиль"
+
+#: ../Demos/AgentView.qml:175
+msgid "Your edit"
+msgstr "Ваша правка"
+
+#: ../Site/Footer.qml:103 ../Site/Landing.qml:340
+msgid "Your first app"
+msgstr "Ваше первое приложение"
+
+#: ../Demos/FieldGuide.qml:267
+msgid "Your notes on this species…"
+msgstr "Ваши заметки об этом виде…"
+
+#: ../Demos/AgentStage.qml:295
+msgid "Your turn: try any button in the app and watch this log."
+msgstr "Ваша очередь: нажмите любую кнопку в приложении и следите за журналом."
+
+#: ../Demos/AgentLogRow.qml:146
+msgid "answered"
+msgstr "ответил"
+
+#: ../Demos/AgentLogRow.qml:205
+msgid "app"
+msgstr "прил."
+
+#: ../Demos/AgentView.qml:475
+msgid "board.ts, the code this app runs"
+msgstr "board.ts — код, который выполняет это приложение"
+
+#: ../Site/CodeBlock.qml:578
+msgid "in the {0} harness"
+msgstr "в стенде {0}"
+
+#: ../Demos/AgentLogRow.qml:146
+msgid "kept the last board"
+msgstr "оставлена прежняя доска"
+
+#: ../Demos/DispatchCard.qml:248
+msgid "no crew"
+msgstr "без команды"
+
+#: ../Site/HeroStage.qml:33
+msgid "no match"
+msgstr "нет совпадений"
+
+#: ../Demos/AgentLogRow.qml:146
+msgid "refused"
+msgstr "отклонено"
+
+#: ../Demos/AgentLogRow.qml:146
+msgid "reloaded"
+msgstr "перезагружено"
+
+#: ../Demos/AgentLogRow.qml:146
+msgid "reloading"
+msgstr "перезагрузка"
+
+#: ../Demos/AgentLogRow.qml:146
+msgid "sent"
+msgstr "отправлено"
+
+#: ../Demos/AgentView.qml:641
+msgid "set by the agent"
+msgstr "задано агентом"
+
+#: ../Site/DemosPage.qml:133 ../Site/Landing.qml:227
+msgid "the 3D demo"
+msgstr "3D-демо"
+
+#: ../Demos/PantryDemo.qml:246
+msgid "the Pantry"
+msgstr "Pantry"
+
+#: ../Site/LandingCopy.qml:14
+msgid "the agent replay"
+msgstr "повтор агента"
+
+#: ../Demos/AgentStage.qml:128
+msgid "the app runs the module built from it now"
+msgstr "приложение теперь запускает собранный здесь модуль"
+
+#: ../Site/DemosPage.qml:184
+msgid "the field guide"
+msgstr "определитель птиц"
+
+#: ../Site/DemosPage.qml:211
+msgid "the motion demo"
+msgstr "демо анимации"
+
+#: ../Site/DemosPage.qml:157
+msgid "the shader demo"
+msgstr "демо шейдера"
+
+#: ../Site/CodeBlock.qml:90
+msgid "this example"
+msgstr "этот пример"
+
+#: ../Main.qml:198
+msgid "this page"
+msgstr "эта страница"
+
+#: ../Demos/DispatchCard.qml:141
+msgid "{0, plural, one {# open} other {# open}}, all assigned"
+msgstr "{0, plural, one {# открыт} few {# открыты} many {# открыто} other {# открыто}}, все назначены"
+
+#: ../Demos/DispatchCard.qml:141
+msgid "{0, plural, one {# open} other {# open}}, {1, plural, one {# unassigned} other {# unassigned}}"
+msgstr "{0, plural, one {# открыт} few {# открыты} many {# открыто} other {# открыто}}, {1, plural, one {# без команды} few {# без команды} many {# без команды} other {# без команды}}"
+
+#: ../Demos/Watch/NoteList.qml:27
+msgid "{0} NEW"
+msgstr "{0} НОВЫХ"
+
+#: ../Demos/FieldGuide.qml:214 ../Demos/FieldGuide.qml:241
+msgid "{0} cm"
+msgstr "{0} cm"
+
+#: ../Shells/Cyberpunk.qml:337 ../Shells/Cyberpunk.qml:568
+msgid "{0} fps"
+msgstr "{0} fps"
+
+#: ../Demos/Cockpit/Cluster.qml:150
+msgid "{0} kW"
+msgstr "{0} kW"
+
+#: ../Demos/Watch/TimerPage.qml:58
+msgid "{0} minutes"
+msgstr "{0} мин"
+
+#: ../Demos/Watch/TimerPage.qml:61
+msgid "{0} minutes {1} seconds left"
+msgstr "Осталось {0} мин {1} с"
+
+#: ../Demos/Watch/TimerPage.qml:60
+msgid "{0} minutes {1} seconds left, paused"
+msgstr "Осталось {0} мин {1} с, на паузе"
+
+#: ../Demos/Watch/MusicPage.qml:70
+msgid "{0} of 10"
+msgstr "{0} из 10"
+
+#: ../Demos/Cockpit/MediaPanel.qml:150
+msgid "{0} of {1}"
+msgstr "{0} из {1}"
+
+#: ../Site/HeroApp.qml:75
+msgid "{0} of {1} done"
+msgstr "Готово {0} из {1}"
+
+#: ../Demos/Watch/FacePulse.qml:147
+msgid "{0} steps"
+msgstr "{0} шагов"
+
+#: ../Demos/Cockpit/AssistView.qml:178 ../Demos/Cockpit/Cluster.qml:177 ../Demos/Cockpit/NavPanel.qml:205 ../Demos/Cockpit/StatusBar.qml:68
+msgid "{0} {1}"
+msgstr "{0} {1}"
+
+#: ../Demos/Cockpit/NavPanel.qml:237
+msgid "{0} {1} to go"
+msgstr "Осталось {0} {1}"
+
+#: ../Demos/Cockpit/NavPanel.qml:242
+msgid "{0} {1} to {2}"
+msgstr "{0} {1} до {2}"
+
+#: ../Demos/FieldGuide.qml:188
+msgid "{0} · {1}"
+msgstr "{0} · {1}"
+
+#: ../Site/DocPage.qml:464
+msgid "{0} →"
+msgstr "{0} →"
+
+#: ../Demos/Cockpit/MediaPanel.qml:250
+msgid "{0}, {1}"
+msgstr "{0}, {1}"
+
+#: ../Pantry/Basket.qml:31
+msgid "{count, plural, one {# in the basket} other {# in the basket}} · £{0}"
+msgstr "{count, plural, one {# в корзине} few {# в корзине} many {# в корзине} other {# в корзине}} · £{0}"
+
+#: ../Demos/FieldGuide.qml:139
+msgid "{latin} · {season}"
+msgstr "{latin} · {season}"
+
+#: ../Demos/Watch/Watch.qml:160
+msgid "{minutes} min ago"
+msgstr "{minutes} мин назад"
+
+#: ../Site/Runner.qml:112
+msgid "{name} did not compile"
+msgstr "Ошибка компиляции: {name}"
+
+#: ../Site/Runner.qml:110
+msgid "{name} is paused"
+msgstr "На паузе: {name}"
+
+#: ../Site/Runner.qml:108
+msgid "{name} runs"
+msgstr "Работает: {name}"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:102
+msgid "°C"
+msgstr "°C"
+
+#: ../Demos/Cockpit/SettingsPanel.qml:108
+msgid "°F"
+msgstr "°F"
+
+#: ../Site/DocPage.qml:455
+msgid "← {0}"
+msgstr "← {0}"
+
+#: ../Demos/Cockpit/StatusBar.qml:46
+msgid "♪ {0} · {1}"
+msgstr "♪ {0} · {1}"
+
+#: ../Demos/FieldGuide.qml:133
+msgid "✓ {name}"
+msgstr "✓ {name}"
