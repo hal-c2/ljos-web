@@ -14,7 +14,13 @@ Item {
     // Where it stands in a console: 0 on the left, 1 on the right, -1 not.
     readonly property int column: frame.consoleLayout ? frame.columns.indexOf(index) : -1
     readonly property bool chosen: frame.consoleLayout ? column >= 0 : frame.current === index
-    default property alias content: holder.data
+    // What it shows, made the first time it is chosen and kept: a page
+    // is written with none chosen, so it carries no panel it hides
+    // (tests/payload.spec.js).
+    property Component panel
+    property bool made: false
+    onChosenChanged: if (chosen) made = true
+    Component.onCompleted: if (chosen) made = true
 
     x: column === 1 ? frame.width - frame.side : 0
     width: column >= 0 ? frame.side : parent !== null ? parent.width : 0
@@ -31,8 +37,9 @@ Item {
         }
     }
 
-    Item {
-        id: holder
+    Loader {
         anchors.fill: parent
+        active: page.made
+        sourceComponent: page.panel
     }
 }

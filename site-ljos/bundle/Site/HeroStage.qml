@@ -85,29 +85,35 @@ DeviceFrame {
         DevicePage {
             frame: hero
             index: 0
-            Rectangle {
-                anchors.fill: parent
-                fill: Theme.codeBg
-            }
-            Flickable {
-                anchors.fill: parent
-                contentWidth: width
-                contentHeight: code.implicitHeight + 2 * Theme.m
-                clip: true
-                Text {
-                    id: code
-                    // As far from either side, so the same on a mirrored page.
-                    x: Theme.m
-                    y: Theme.m
-                    width: parent.width - 2 * Theme.m
-                    format: Text.RichText
-                    text: Hero.rich()
-                    color: Theme.codeFg
-                    font.family: Theme.mono
-                    font.size: 12
-                    lineHeightMode: Text.FixedHeight
-                    lineHeight: 18
-                    wrap: Text.Wrap
+            // Made the first time its tab is chosen (DevicePage).
+            panel: Component {
+                Item {
+                    anchors.fill: parent
+                    Rectangle {
+                        anchors.fill: parent
+                        fill: Theme.codeBg
+                    }
+                    Flickable {
+                        anchors.fill: parent
+                        contentWidth: width
+                        contentHeight: code.implicitHeight + 2 * Theme.m
+                        clip: true
+                        Text {
+                            id: code
+                            // As far from either side, so the same on a mirrored page.
+                            x: Theme.m
+                            y: Theme.m
+                            width: parent.width - 2 * Theme.m
+                            format: Text.RichText
+                            text: Hero.rich()
+                            color: Theme.codeFg
+                            font.family: Theme.mono
+                            font.size: 12
+                            lineHeightMode: Text.FixedHeight
+                            lineHeight: 18
+                            wrap: Text.Wrap
+                        }
+                    }
                 }
             }
         },
@@ -116,82 +122,88 @@ DeviceFrame {
         DevicePage {
             frame: hero
             index: 1
-            Column {
-                // As far from either side, so the same on a mirrored page.
-                x: Theme.m
-                y: Theme.s
-                width: parent.width - 2 * Theme.m
+            // Made the first time its tab is chosen (DevicePage).
+            panel: Component {
+                Item {
+                    anchors.fill: parent
+                    Column {
+                        // As far from either side, so the same on a mirrored page.
+                        x: Theme.m
+                        y: Theme.s
+                        width: parent.width - 2 * Theme.m
 
-                Repeater {
-                    model: hero.lines.concat(app.tasks.map((task: Tasks.Task, at: number): Tasks.Line => ({ depth: 2, type: "Task", name: "\"" + task.title + "\"", key: "checked", value: String(task.done), point: at })))
+                        Repeater {
+                            model: hero.lines.concat(app.tasks.map((task: Tasks.Task, at: number): Tasks.Line => ({ depth: 2, type: "Task", name: "\"" + task.title + "\"", key: "checked", value: String(task.done), point: at })))
 
-                    Item {
-                        id: line
-                        required property Tasks.Line modelData
-                        width: parent.width
-                        height: 26
+                            Item {
+                                id: line
+                                required property Tasks.Line modelData
+                                width: parent.width
+                                height: 26
 
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 4
-                            fill: Theme.surfaceHover
-                            opacity: hover.containsMouse ? 1 : 0
-                        }
-                        Row {
-                            id: named
-                            // Where it starts, read from the left; a right-to-left page
-                            // sets it as far from the right (LayoutMirroring).
-                            readonly property real startX: Theme.xs + line.modelData.depth * Theme.m
-                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.xs
-                            Text {
-                                id: kind
-                                text: line.modelData.type
-                                color: Theme.text
-                                font.family: Theme.mono
-                                font.size: 12
-                                font.weight: Font.Medium
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 4
+                                    fill: Theme.surfaceHover
+                                    opacity: hover.containsMouse ? 1 : 0
+                                }
+                                Row {
+                                    id: named
+                                    // Where it starts, read from the left; a right-to-left page
+                                    // sets it as far from the right (LayoutMirroring).
+                                    readonly property real startX: Theme.xs + line.modelData.depth * Theme.m
+                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.xs
+                                    Text {
+                                        id: kind
+                                        text: line.modelData.type
+                                        color: Theme.text
+                                        font.family: Theme.mono
+                                        font.size: 12
+                                        font.weight: Font.Medium
+                                    }
+                                    // A long name gives way to its reading on the
+                                    // right, ending in an ellipsis, never under it.
+                                    Text {
+                                        width: Math.max(0, Math.min(implicitWidth, reading.startX - Theme.s - named.startX - kind.width - named.spacing))
+                                        text: line.modelData.name
+                                        elide: Text.ElideRight
+                                        color: Theme.accent2Text
+                                        font.family: Theme.mono
+                                        font.size: 12
+                                    }
+                                }
+                                Row {
+                                    id: reading
+                                    // Where it starts, read from the left; a right-to-left page
+                                    // sets it as far from the right (LayoutMirroring).
+                                    readonly property real startX: parent.width - width - Theme.xs
+                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.xs
+                                    Text {
+                                        text: line.modelData.key
+                                        color: Theme.textMuted
+                                        font.family: Theme.mono
+                                        font.size: 12
+                                    }
+                                    Text {
+                                        text: line.modelData.value
+                                        color: Theme.link
+                                        font.family: Theme.mono
+                                        font.size: 12
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
+                                PointerArea {
+                                    id: hover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    Accessible.ignored: true
+                                    onContainsMouseChanged: app.pointing = containsMouse ? line.modelData.point : ""
+                                }
                             }
-                            // A long name gives way to its reading on the
-                            // right, ending in an ellipsis, never under it.
-                            Text {
-                                width: Math.max(0, Math.min(implicitWidth, reading.startX - Theme.s - named.startX - kind.width - named.spacing))
-                                text: line.modelData.name
-                                elide: Text.ElideRight
-                                color: Theme.accent2Text
-                                font.family: Theme.mono
-                                font.size: 12
-                            }
-                        }
-                        Row {
-                            id: reading
-                            // Where it starts, read from the left; a right-to-left page
-                            // sets it as far from the right (LayoutMirroring).
-                            readonly property real startX: parent.width - width - Theme.xs
-                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.xs
-                            Text {
-                                text: line.modelData.key
-                                color: Theme.textMuted
-                                font.family: Theme.mono
-                                font.size: 12
-                            }
-                            Text {
-                                text: line.modelData.value
-                                color: Theme.link
-                                font.family: Theme.mono
-                                font.size: 12
-                                font.weight: Font.DemiBold
-                            }
-                        }
-                        PointerArea {
-                            id: hover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            Accessible.ignored: true
-                            onContainsMouseChanged: app.pointing = containsMouse ? line.modelData.point : ""
                         }
                     }
                 }
@@ -202,97 +214,103 @@ DeviceFrame {
         DevicePage {
             frame: hero
             index: 2
-            Item {
-                id: agentBar
-                width: parent.width
-                height: 48
-
-                Rectangle {
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: Theme.m
-                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: badge.implicitWidth + 2 * Theme.xs
-                    height: 22
-                    radius: 11
-                    fill: "transparent"
-                    border.color: Theme.accent2
-                    border.width: 1
-                    Text {
-                        id: badge
-                        anchors.centerIn: parent
-                        text: t`Recorded replay`
-                        color: Theme.accent2Text
-                        font.family: Theme.sans
-                        font.size: 12
-                        font.weight: Font.DemiBold
-                    }
-                }
-                Row {
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: parent.width - width - Theme.m
-                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.xs
-                    StageButton {
-                        text: t`Reset demo`
-                        enabled: hero.answers.length > 0
-                        onPressed: hero.replay()
-                    }
-                    StageButton {
-                        primary: true
-                        text: t`Next step`
-                        enabled: hero.answers.length < hero.steps.length
-                        onPressed: hero.step()
-                    }
-                }
-            }
-            Column {
-                y: agentBar.height
-                // As far from either side, so the same on a mirrored page.
-                x: Theme.m
-                width: parent.width - 2 * Theme.m
-                spacing: Theme.xs
-
-                Repeater {
-                    model: hero.steps
-
-                    Column {
-                        id: call
-                        required property Tasks.Step modelData
-                        required property int index
-                        readonly property bool sent: index < hero.answers.length
-                        readonly property bool next: index === hero.answers.length
+            // Made the first time its tab is chosen (DevicePage).
+            panel: Component {
+                Item {
+                    anchors.fill: parent
+                    Item {
+                        id: agentBar
                         width: parent.width
-                        opacity: sent ? 1 : next ? 0.7 : 0.35
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: Theme.enterSmall
+                        height: 48
+
+                        Rectangle {
+                            // Where it starts, read from the left; a right-to-left page
+                            // sets it as far from the right (LayoutMirroring).
+                            readonly property real startX: Theme.m
+                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: badge.implicitWidth + 2 * Theme.xs
+                            height: 22
+                            radius: 11
+                            fill: "transparent"
+                            border.color: Theme.accent2
+                            border.width: 1
+                            Text {
+                                id: badge
+                                anchors.centerIn: parent
+                                text: t`Recorded replay`
+                                color: Theme.accent2Text
+                                font.family: Theme.sans
+                                font.size: 12
+                                font.weight: Font.DemiBold
                             }
                         }
-
-                        Text {
-                            width: parent.width
-                            elide: Text.ElideRight
-                            format: Text.StyledText
-                            text: "<b>" + call.modelData.tool + "</b> " + call.modelData.args.replace(/&/g, "&amp;").replace(/</g, "&lt;")
-                            color: Theme.text
-                            font.family: Theme.mono
-                            font.size: 12
-                            lineHeightMode: Text.FixedHeight
-                            lineHeight: 18
+                        Row {
+                            // Where it starts, read from the left; a right-to-left page
+                            // sets it as far from the right (LayoutMirroring).
+                            readonly property real startX: parent.width - width - Theme.m
+                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.xs
+                            StageButton {
+                                text: t`Reset demo`
+                                enabled: hero.answers.length > 0
+                                onPressed: hero.replay()
+                            }
+                            StageButton {
+                                primary: true
+                                text: t`Next step`
+                                enabled: hero.answers.length < hero.steps.length
+                                onPressed: hero.step()
+                            }
                         }
-                        Text {
-                            visible: call.sent
-                            Layout.leftMargin: Theme.m
-                            text: "→ " + (call.sent ? hero.answers[call.index] : "")
-                            color: Theme.link
-                            font.family: Theme.mono
-                            font.size: 12
-                            lineHeightMode: Text.FixedHeight
-                            lineHeight: 18
+                    }
+                    Column {
+                        y: agentBar.height
+                        // As far from either side, so the same on a mirrored page.
+                        x: Theme.m
+                        width: parent.width - 2 * Theme.m
+                        spacing: Theme.xs
+
+                        Repeater {
+                            model: hero.steps
+
+                            Column {
+                                id: call
+                                required property Tasks.Step modelData
+                                required property int index
+                                readonly property bool sent: index < hero.answers.length
+                                readonly property bool next: index === hero.answers.length
+                                width: parent.width
+                                opacity: sent ? 1 : next ? 0.7 : 0.35
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: Theme.enterSmall
+                                    }
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    elide: Text.ElideRight
+                                    format: Text.StyledText
+                                    text: "<b>" + call.modelData.tool + "</b> " + call.modelData.args.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                                    color: Theme.text
+                                    font.family: Theme.mono
+                                    font.size: 12
+                                    lineHeightMode: Text.FixedHeight
+                                    lineHeight: 18
+                                }
+                                Text {
+                                    visible: call.sent
+                                    Layout.leftMargin: Theme.m
+                                    text: "→ " + (call.sent ? hero.answers[call.index] : "")
+                                    color: Theme.link
+                                    font.family: Theme.mono
+                                    font.size: 12
+                                    lineHeightMode: Text.FixedHeight
+                                    lineHeight: 18
+                                }
+                            }
                         }
                     }
                 }
