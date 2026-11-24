@@ -1,7 +1,9 @@
-import QtQuick
+import Ljos.Ui
 import Site
 import Ljos.Core
+import Ljos.Layout
 import Ljos.Controls as C
+import "logic/languages.ts" as Languages
 
 // The language switcher's popover (Site/LanguageSwitcher.qml): every
 // language the site is read in, each named as it names itself, the one
@@ -11,7 +13,8 @@ import Ljos.Controls as C
 Item {
     id: choices
 
-    property var preferences: null
+    // The site's Preferences, given by the switcher once it is made.
+    property Preferences preferences
     readonly property bool opened: popover.opened
     // Left by keys (a pick or Escape): the button that opened it takes
     // the keyboard back, as a menu gives it back in Qt.
@@ -21,30 +24,30 @@ Item {
     // Down go through the others; opened by a pointer, nothing is ringed.
     property bool byKeys: false
 
-    function toggle(keys) {
+    function toggle(keys: bool): void {
         byKeys = keys === true;
         popover.opened ? popover.close() : popover.open();
     }
 
-    function row(at) {
+    function row(at: int): Item {
         const count = rows.count;
         return count ? rows.itemAt(((at % count) + count) % count) : null;
     }
 
-    function leave() {
+    function leave(): void {
         popover.close();
         if (byKeys) leftByKeys();
     }
 
     C.Popover {
         id: popover
-        edge: Qt.BottomEdge
+        edge: Edge.Bottom
         width: 232
         padding: Theme.xs
         onOpened: {
             if (!choices.byKeys) return;
-            const languages = choices.preferences ? choices.preferences.languages : [];
-            const at = languages.findIndex((it) => it.tag === choices.preferences.language);
+            const languages = choices.preferences !== null ? Languages.languagesIn(choices.preferences.languages) : [];
+            const at = languages.findIndex((it) => it.tag === choices.preferences?.language);
             choices.row(Math.max(0, at))?.forceActiveFocus();
         }
 
@@ -60,50 +63,50 @@ Item {
                 text: t`Language`
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 font.weight: Font.DemiBold
             }
             Repeater {
                 id: rows
-                model: choices.preferences ? choices.preferences.languages : []
+                model: choices.preferences !== null ? Languages.languagesIn(choices.preferences.languages) : []
 
                 Rectangle {
                     id: row
-                    required property var modelData
+                    required property Languages.Language modelData
                     required property int index
-                    readonly property bool picked: choices.preferences.language === modelData.tag
+                    readonly property bool picked: choices.preferences !== null && choices.preferences.language === modelData.tag
 
                     width: 216
                     height: Math.max(Theme.rowLeast, name.implicitHeight + 2 * Theme.xxs)
                     radius: Theme.radiusSmall
-                    color: rowArea.pressed ? Theme.surfacePressed : row.picked ? Theme.surfaceSelected : rowArea.containsMouse || row.activeFocus ? Theme.surfaceHover : "transparent"
+                    fill: rowArea.pressed ? Theme.surfacePressed : row.picked ? Theme.surfaceSelected : rowArea.containsMouse || row.activeFocus ? Theme.surfaceHover : "transparent"
                     border.width: row.activeFocus ? 2 : 0
                     border.color: Theme.focusRing
                     activeFocusOnTab: true
                     Accessible.role: Accessible.RadioButton
-                    Accessible.name: modelData.name
-                    Accessible.description: modelData.english
+                    Accessible.name: row.modelData.name
+                    Accessible.description: Languages.nameIn(row.modelData.tag, choices.preferences !== null ? choices.preferences.language : "en")
                     Accessible.checkable: true
                     Accessible.checked: row.picked
                     Accessible.onPressAction: () => row.pick()
-                    Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                    Keys.onPressed: (event: KeyEvent) => {
+                        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                             row.pick();
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_Escape) {
+                        } else if (event.key === Key.Escape) {
                             choices.leave();
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
-                            choices.row(row.index + (event.key === Qt.Key_Down ? 1 : -1))?.forceActiveFocus();
+                        } else if (event.key === Key.Down || event.key === Key.Up) {
+                            choices.row(row.index + (event.key === Key.Down ? 1 : -1))?.forceActiveFocus();
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_Home || event.key === Qt.Key_End) {
-                            choices.row(event.key === Qt.Key_Home ? 0 : -1)?.forceActiveFocus();
+                        } else if (event.key === Key.Home || event.key === Key.End) {
+                            choices.row(event.key === Key.Home ? 0 : -1)?.forceActiveFocus();
                             event.accepted = true;
                         }
                     }
 
-                    function pick() {
-                        choices.preferences.setLanguage(modelData.tag);
+                    function pick(): void {
+                        choices.preferences?.setLanguage(row.modelData.tag);
                         choices.leave();
                     }
 
@@ -130,16 +133,16 @@ Item {
                         text: row.modelData.name
                         color: Theme.text
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize + 1
+                        font.size: Theme.captionSize + 1
                         font.weight: row.picked ? Font.DemiBold : Font.Normal
                         elide: Text.ElideRight
                     }
-                    MouseArea {
+                    PointerArea {
                         id: rowArea
                         anchors.fill: parent
                         Accessible.ignored: true
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.PointingHand
                         onClicked: {
                             choices.byKeys = false;
                             row.pick();

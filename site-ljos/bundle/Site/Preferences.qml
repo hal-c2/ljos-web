@@ -37,23 +37,24 @@ QtObject {
     ]
 
     // The languages the site is read in, each named as it names itself
-    // (a reader looking for their own finds it written as they write it),
+    // (a reader looking for their own finds it written as they write it;
+    // the picker says it in the page's language too, Site/LanguageChoices.qml),
     // and the one it is read in: `App.language`, which the page's start
     // sets from the address, the reader's last pick or the browser's own
     // (ljos-web's site-languages.js). Each but English has its catalogue,
     // i18n/<tag>.po; site-tests/i18n.spec.js holds the two to each other.
     readonly property var languages: [
-        { tag: "en", name: "English", english: "English" },
-        { tag: "es", name: "Español", english: "Spanish" },
-        { tag: "zh-Hans", name: "简体中文", english: "Chinese (Simplified)" },
-        { tag: "hi", name: "हिन्दी", english: "Hindi" },
-        { tag: "ar", name: "العربية", english: "Arabic" },
-        { tag: "pt-BR", name: "Português (Brasil)", english: "Portuguese (Brazil)" },
-        { tag: "fr", name: "Français", english: "French" },
-        { tag: "de", name: "Deutsch", english: "German" },
-        { tag: "ja", name: "日本語", english: "Japanese" },
-        { tag: "ru", name: "Русский", english: "Russian" },
-        { tag: "is", name: "Íslenska", english: "Icelandic" }
+        { tag: "en", name: "English" },
+        { tag: "es", name: "Español" },
+        { tag: "zh-Hans", name: "简体中文" },
+        { tag: "hi", name: "हिन्दी" },
+        { tag: "ar", name: "العربية" },
+        { tag: "pt-BR", name: "Português (Brasil)" },
+        { tag: "fr", name: "Français" },
+        { tag: "de", name: "Deutsch" },
+        { tag: "ja", name: "日本語" },
+        { tag: "ru", name: "Русский" },
+        { tag: "is", name: "Íslenska" }
     ]
     readonly property string language: {
         var asked = String(App.language).toLowerCase();
