@@ -29,6 +29,20 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     And each of its three captures is sized, fetched lazily, and says what it shows about Ljós
     And it links to the app's source and its repository
 
+  Scenario: An app names the engine it is built on
+    Given an app whose entry names an engine, as the Office names ljos-play
+    When a reader with no script opens /showcase/
+    Then the app's section says it runs on that engine, in a line of its own
+    And it links to the engine's repository
+
+  Scenario: The engine is shown in its own words, with its source
+    Given an app whose engine has an example
+    When a reader with no script opens /showcase/
+    Then the section shows lines of the example's own file, coloured as code
+    And the lines are the file's at the commit the entry names, byte for byte
+    And each links to those lines at that commit
+    And beside them is a capture of the example running, made off-screen
+
   Scenario: No other page loads the showcase
     When a reader opens any page but /showcase/
     Then its first load holds none of the showcase: not the page, its apps' data or what names its pictures
