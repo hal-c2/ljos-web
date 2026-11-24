@@ -41,7 +41,7 @@ const KNOWN = [
   // A debug build's turns are slow; the budget is a release build's.
   /a turn of the UI thread took/,
 ];
-const FAILS = /error|unable to|is not available|could not|cannot|binding loop|unhandled/i;
+const FAILS = /error|unable to|is not available|is not a type|is not exported|could not|cannot|binding loop|unhandled/i;
 
 mkdirSync(scratch, { recursive: true });
 const logPath = join(scratch, "ljos.log");
