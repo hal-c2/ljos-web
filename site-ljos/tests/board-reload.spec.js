@@ -22,6 +22,7 @@ function bundled(dir) {
   for (const name of ["Theme.qml", "StageButton.qml"]) cpSync(join(site, "Site", name), join(dir, "Site", name));
   writeFileSync(join(dir, "Site/qmldir"), "module Site\nsingleton Theme 1.0 Theme.qml\nStageButton 1.0 StageButton.qml\n");
   cpSync(join(site, "Demos/DispatchCard.qml"), join(dir, "DispatchCard.qml"));
+  cpSync(join(site, "Demos/logic/dispatch.ts"), join(dir, "logic/dispatch.ts"));
   writeFileSync(join(dir, "ljos-site.json"), JSON.stringify(manifest(dir, "Main.qml")));
 }
 
