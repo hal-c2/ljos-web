@@ -1352,9 +1352,10 @@ for (const [viewport, least, most] of [
         });
         expect(size).toBeGreaterThanOrEqual(least);
         expect(size).toBeLessThanOrEqual(most);
-        // The replay beside the headline, or under it on a phone.
+        // The replay beside the headline, or under it on a phone (from
+        // which window it stands beside: the boundary test below).
         const [words, replay] = [await heading.boundingBox(), await page.getByText("Replay · no live agent", { exact: true }).filter({ visible: true }).first().boundingBox()];
-        if (viewport.width >= 1112) expect(replay.x, "the replay beside the headline").toBeGreaterThanOrEqual(words.x + words.width);
+        if (viewport.width >= 1279) expect(replay.x, "the replay beside the headline").toBeGreaterThanOrEqual(words.x + words.width);
         else expect(replay.y, "the replay under the headline").toBeGreaterThanOrEqual(words.y + words.height);
         const device = page.getByRole("tablist", { name: "Live app" }).filter({ visible: true });
         await expect(device).toBeVisible();
@@ -1371,6 +1372,43 @@ for (const [viewport, least, most] of [
       }
     });
   }
+}
+
+// The replay stands beside the headline only where the room left it
+// beside the words is wide enough for its code beside its app; narrower,
+// it goes under them, where it has the page's width. The bound is the
+// replay's own, not the page's: at 1176 and 1278 the page is wide, but
+// beside the words the replay would stack its code under its app, so it
+// stands under them. 1279 is the narrowest window that leaves it room.
+for (const [width, beside] of [
+  [1176, false],
+  [1200, false],
+  [1278, false],
+  [1279, true],
+  [1440, true],
+]) {
+  test(`at ${width}, the front page's replay stands ${beside ? "beside" : "under"} its headline, its code beside its app`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
+    try {
+      const page = await context.newPage();
+      await open(page, "/");
+      const box = async (locator) => {
+        const shown = locator.filter({ visible: true }).first();
+        await expect(shown).toBeVisible();
+        return shown.boundingBox();
+      };
+      const words = await box(shownPage(page, "Home").getByRole("heading", { level: 1 }));
+      const replay = await box(page.getByText("Replay · no live agent", { exact: true }));
+      const app = await box(page.getByText("North district dispatch", { exact: true }));
+      const views = await box(page.getByRole("tablist", { name: "Replay views" }));
+      const where = `the replay's label at ${Math.round(replay.x)},${Math.round(replay.y)}, the headline at ${Math.round(words.x)},${Math.round(words.y)} ${Math.round(words.width)}×${Math.round(words.height)}`;
+      if (beside) expect(replay.x, `beside the headline: ${where}`).toBeGreaterThanOrEqual(words.x + words.width);
+      else expect(replay.y, `under the headline: ${where}`).toBeGreaterThanOrEqual(words.y + words.height);
+      expect(views.x, `the replay's views beside its app, at ${Math.round(views.x)},${Math.round(views.y)}; the app's heading ends at ${Math.round(app.x + app.width)}`).toBeGreaterThanOrEqual(app.x + app.width);
+    } finally {
+      await context.close();
+    }
+  });
 }
 
 // The live app's tabs are one set: an arrow moves the choice and the

@@ -2,6 +2,7 @@ pragma Singleton
 // Ljós's Core before QtQuick: only its t`` is wanted here.
 import Ljos.Core
 import QtQuick
+import Site
 
 // The agent session the landing replays, from the app as a list to the
 // same app as a board: each step an MCP tool call, with the arguments a
@@ -53,6 +54,15 @@ QtObject {
         { tool: "app_screenshot", args: { max_size: 320 }, say: t`Take a screenshot to check the result.`, wait: 1400 }
     ]
     readonly property int calls: steps.filter((step) => step.tool !== "").length
+
+    // How the replay lays out (AgentView), for the page that places it
+    // too: the code's column, the room round the app and between them,
+    // and the narrowest the code stands beside the app in, where the app
+    // keeps its filters by its heading and the code its 14 pixels.
+    readonly property int sideWidth: 358
+    readonly property int pad: Theme.xxs
+    readonly property int gap: Theme.s
+    readonly property int sideBySide: sideWidth + 360 + gap + 2 * pad
 
     // The edit of board.ts from one module's file to the other's, as a
     // diff's lines: what was taken out, then what was put in.
