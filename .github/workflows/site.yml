@@ -246,7 +246,9 @@ jobs:
       - if: steps.ljos.outputs.cache-hit == 'true'
         run: echo "LJOS_BIN=$GITHUB_WORKSPACE/target/ljos-ui/debug/ljos" >> "$GITHUB_ENV"
       - run: mise run site:native --check
-      - if: steps.ljos.outputs.cache-hit != 'true'
+      # Kept once built, the check passing or not, so a red check is not
+      # followed by a build from scratch.
+      - if: always() && steps.ljos.outputs.cache-hit != 'true' && hashFiles('target/ljos-ui/debug/ljos') != ''
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: target/ljos-ui/debug/ljos
