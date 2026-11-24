@@ -85,16 +85,17 @@ Rectangle {
             anchors.fill: parent
             Accessible.name: t`Spring tray. Press and move to lead the puck; it springs after the pointer.`
             Accessible.role: Accessible.Slider
-            function lead(mouse) {
-                puck.goalX = Math.max(0, Math.min(tray.width - puck.width, mouse.x - puck.width / 2));
-                puck.goalY = Math.max(0, Math.min(tray.height - puck.height, mouse.y - puck.height / 2));
+            // Where the pointer is: the area's own, as its signal's is.
+            function lead(): void {
+                puck.goalX = Math.max(0, Math.min(tray.width - puck.width, chase.mouseX - puck.width / 2));
+                puck.goalY = Math.max(0, Math.min(tray.height - puck.height, chase.mouseY - puck.height / 2));
                 puck.x = puck.goalX;
                 puck.y = puck.goalY;
             }
-            onPressed: (mouse) => lead(mouse)
-            onPositionChanged: (mouse) => {
+            onPressed: lead()
+            onPositionChanged: {
                 if (pressed)
-                    lead(mouse);
+                    lead();
             }
         }
     }
@@ -170,7 +171,7 @@ Rectangle {
             Accessible.name: t`Shuffle the tiles`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: shuffleButton.shuffle()
-            Keys.onPressed: (event) => {
+            Keys.onPressed: (event: KeyEvent) => {
                 if (event.key === Key.Space || event.key === Key.Return) {
                     shuffleButton.shuffle();
                     event.accepted = true;
@@ -217,7 +218,7 @@ Rectangle {
             Accessible.name: t`About this motion. Tap to open or close.`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: card.open = !card.open
-            Keys.onPressed: (event) => {
+            Keys.onPressed: (event: KeyEvent) => {
                 if (event.key === Key.Space || event.key === Key.Return) {
                     card.open = !card.open;
                     event.accepted = true;

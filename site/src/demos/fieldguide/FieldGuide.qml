@@ -2,6 +2,7 @@ import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
 import Ljos.Controls
+import "guide.ts" as Guide
 
 // A small but whole application: a searchable field guide with a
 // species list, a detail pane, sightings you tick off and notes you
@@ -37,32 +38,27 @@ Rectangle {
 
     // The visitor's own records, kept by latin name so filtering the
     // list never loses them.
-    property unknown seen: ({})
-    property unknown notes: ({})
-    property int seenCount: 0
+    property list<string> seen
+    property list<Guide.Note> notes
+    readonly property int seenCount: seen.length
     property int current: 0
 
-    function refilter() {
+    function refilter(): void {
         const needle = search.text.trim().toLowerCase();
         shown.clear();
         for (let i = 0; i < guide.count; i++) {
-            const bird = guide.get(i);
+            const bird = Guide.birdOf(guide.get(i));
             if (needle === "" || bird.name.toLowerCase().includes(needle) || bird.latin.toLowerCase().includes(needle))
                 shown.append({ "name": bird.name, "latin": bird.latin, "season": bird.season, "at": i });
         }
         if (shown.count > 0)
-            root.current = shown.get(0).at;
-    }
-    function recount() {
-        let n = 0;
-        for (const key in seen)
-            if (seen[key] === true)
-                n++;
-        seenCount = n;
+            root.current = Guide.atOf(shown.get(0));
     }
     Component.onCompleted: refilter()
 
-    readonly property unknown bird: guide.get(current)
+    // The bird picked, or `Guide.nobody` (no Latin name) for none.
+    readonly property Guide.Bird bird: Guide.birdOf(guide.get(current))
+    readonly property bool picked: bird.latin !== ""
 
     Column {
         anchors.fill: parent
@@ -147,14 +143,14 @@ Rectangle {
                     font.size: 26
                     font.weight: Font.Bold
                     elide: Text.ElideRight
-                    text: root.bird ? root.bird.name : ""
+                    text: root.picked ? root.bird.name : ""
                 }
                 Text {
                     width: parent.width
                     color: "#a8b3c9"
                     font.size: 14
                     font.italic: true
-                    text: root.bird ? root.bird.latin + " · " + root.bird.season.toLowerCase() : ""
+                    text: root.picked ? root.bird.latin + " · " + root.bird.season.toLowerCase() : ""
                 }
                 Row {
                     spacing: 10
@@ -170,7 +166,7 @@ Rectangle {
                         radius: 5
                         fill: "#39415a"
                         Rectangle {
-                            width: parent.width * (root.bird ? root.bird.lengthCm / 100 : 0)
+                            width: parent.width * (root.picked ? root.bird.lengthCm / 100 : 0)
                             height: parent.height
                             radius: 5
                             fill: "#e8a33d"
@@ -179,7 +175,7 @@ Rectangle {
                     Text {
                         color: "#dfe4ef"
                         font.size: 13
-                        text: root.bird ? root.bird.lengthCm + " cm" : ""
+                        text: root.picked ? root.bird.lengthCm + " cm" : ""
                     }
                 }
                 Row {
@@ -196,7 +192,7 @@ Rectangle {
                         radius: 5
                         fill: "#39415a"
                         Rectangle {
-                            width: parent.width * (root.bird ? root.bird.wingspanCm / 200 : 0)
+                            width: parent.width * (root.picked ? root.bird.wingspanCm / 200 : 0)
                             height: parent.height
                             radius: 5
                             fill: "#7ba05b"
@@ -205,7 +201,7 @@ Rectangle {
                     Text {
                         color: "#dfe4ef"
                         font.size: 13
-                        text: root.bird ? root.bird.wingspanCm + " cm" : ""
+                        text: root.picked ? root.bird.wingspanCm + " cm" : ""
                     }
                 }
                 Text {
@@ -213,7 +209,7 @@ Rectangle {
                     wrap: Text.WordWrap
                     color: "#ccd3e2"
                     font.size: 14
-                    text: root.bird ? root.bird.blurb : ""
+                    text: root.picked ? root.bird.blurb : ""
                 }
                 CheckBox {
                     id: seenBox
@@ -222,14 +218,11 @@ Rectangle {
                     palette.windowText: "#dfe4ef"
                     palette.base: "#202636"
                     text: t`I have seen this one`
-                    checked: root.bird ? root.seen[root.bird.latin] === true : false
+                    checked: root.picked ? Guide.isSeen(root.seen, root.bird.latin) : false
                     onToggled: {
-                        if (!root.bird)
+                        if (!root.picked)
                             return;
-                        const next = Object.assign({}, root.seen);
-                        next[root.bird.latin] = checked;
-                        root.seen = next;
-                        root.recount();
+                        root.seen = Guide.setSeen(root.seen, root.bird.latin, checked);
                     }
                 }
                 TextArea {
@@ -239,13 +232,11 @@ Rectangle {
                     palette.text: "#e8eaf0"
                     palette.placeholderText: "#8b95af"
                     placeholderText: t`Your notes on this species…`
-                    text: root.bird ? (root.notes[root.bird.latin] ?? "") : ""
+                    text: root.picked ? Guide.noteFor(root.notes, root.bird.latin) : ""
                     onTextChanged: {
-                        if (!root.bird)
+                        if (!root.picked)
                             return;
-                        const next = Object.assign({}, root.notes);
-                        next[root.bird.latin] = text;
-                        root.notes = next;
+                        root.notes = Guide.setNote(root.notes, root.bird.latin, text);
                     }
                 }
                 Text {

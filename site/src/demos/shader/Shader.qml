@@ -18,7 +18,7 @@ Rectangle {
     property bool active: true
     property bool calm: false
 
-    Keys.onPressed: (event) => {
+    Keys.onPressed: (event: KeyEvent) => {
         if (event.key === Key.Space || event.key === Key.Return) {
             effect.cycle();
             event.accepted = true;
@@ -57,8 +57,9 @@ Rectangle {
         Accessible.name: t`Shader canvas. Move the pointer to stir the light; tap to change the colours.`
         Accessible.role: Accessible.Button
         Accessible.onPressAction: effect.cycle()
-        onPositionChanged: (mouse) => {
-            effect.pointer = point(mouse.x / Math.max(width, 1), 1.0 - mouse.y / Math.max(height, 1));
+        // Where the pointer is: the area's own, as its signal's is.
+        onPositionChanged: {
+            effect.pointer = point(mouseX / Math.max(width, 1), 1.0 - mouseY / Math.max(height, 1));
         }
         onClicked: effect.cycle()
     }
