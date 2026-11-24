@@ -133,34 +133,42 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const request = shown(page.getByText("Agent: make this a board", { exact: true }));
       const status = shown(page.getByText("Working…", { exact: true }));
       const list = shown(page.getByRole("button", { name: "List layout" }));
-      const boxes = await Promise.all([pause, request, status, list].map((locator) => locator.evaluate((element) => {
-        const box = element.getBoundingClientRect();
-        return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
-      })));
-      // The frame: the first painted box round the request that holds the
-      // frame's button too.
-      const frame = await request.evaluate((element, button) => {
-        const held = button.getBoundingClientRect();
-        for (let up = element.parentElement; up; up = up.parentElement) {
-          const box = up.getBoundingClientRect();
-          const painted = !/rgba\(.*, 0\)$|transparent/.test(getComputedStyle(up).backgroundColor);
-          if (painted && box.left <= held.left && box.right >= held.right && box.top <= held.top) return { left: box.left, top: box.top, right: box.right };
-        }
-        return null;
-      }, await pause.elementHandle());
-      expect(frame, "the frame").not.toBeNull();
-      const [paused, asked, said, listed] = boxes;
-      const room = {
-        "the request from the frame's left": asked.left - frame.left,
-        "List from the frame's left": listed.left - frame.left,
-        "Pause from the frame's top": paused.top - frame.top,
-        "Pause from the frame's right": frame.right - paused.right,
-        "List from the frame's top": listed.top - frame.top,
-      };
-      // A phone's is the smaller step (8 px), so its code keeps 14 pixels.
-      for (const [what, gap] of Object.entries(room)) expect(gap, what).toBeGreaterThanOrEqual(phone ? 7.5 : 11.5);
-      expect(said.top, "the status under List and Board").toBeGreaterThanOrEqual(listed.bottom);
-      if (phone) expect(listed.top, "List and Board under Pause").toBeGreaterThanOrEqual(paused.bottom);
+      // Under load the kept shell can take over after hydration, and the
+      // render read first is then hidden (its boxes all 0): read the boxes
+      // again until the shown render has them, then hold it to the gaps.
+      await expect(async () => {
+        const boxes = await Promise.all([pause, request, status, list].map((locator) => locator.evaluate((element) => {
+          const box = element.getBoundingClientRect();
+          return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+        })));
+        // The frame: the first painted box round the request that holds the
+        // frame's button too.
+        const frame = await request.evaluate((element, button) => {
+          const held = button.getBoundingClientRect();
+          for (let up = element.parentElement; up; up = up.parentElement) {
+            const box = up.getBoundingClientRect();
+            const painted = !/rgba\(.*, 0\)$|transparent/.test(getComputedStyle(up).backgroundColor);
+            if (painted && box.left <= held.left && box.right >= held.right && box.top <= held.top) return { left: box.left, top: box.top, right: box.right };
+          }
+          return null;
+        }, await pause.elementHandle());
+        expect(frame, "the frame").not.toBeNull();
+        const [paused, asked, said, listed] = boxes;
+        const room = {
+          "the request from the frame's left": asked.left - frame.left,
+          "List from the frame's left": listed.left - frame.left,
+          "Pause from the frame's top": paused.top - frame.top,
+          "Pause from the frame's right": frame.right - paused.right,
+          "List from the frame's top": listed.top - frame.top,
+        };
+        // A phone's is the smaller step (8 px), so its code keeps 14 pixels.
+        // The boxes go with each failure: a request read before it is laid out
+        // stands at 0, which says so.
+        const where = JSON.stringify({ frame, pause: paused, request: asked, list: listed });
+        for (const [what, gap] of Object.entries(room)) expect(gap, `${what}: ${where}`).toBeGreaterThanOrEqual(phone ? 7.5 : 11.5);
+        expect(said.top, "the status under List and Board").toBeGreaterThanOrEqual(listed.bottom);
+        if (phone) expect(listed.top, "List and Board under Pause").toBeGreaterThanOrEqual(paused.bottom);
+      }).toPass({ timeout: 15_000 });
     });
 
     test("shows the app being reshaped, and says it is a replay while it plays", async ({ page }) => {
