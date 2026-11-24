@@ -6,9 +6,9 @@ export function topOf(point: unknown): number {
 }
 
 // The pro demo (Demos/pro.json) what loads a page says it is the page of,
-// or null.
+// if it says.
 export function demoIn(loader: unknown): unknown {
-  return typeof loader === "object" && loader !== null && "demo" in loader ? loader.demo : null;
+  return typeof loader === "object" && loader !== null && "demo" in loader ? loader.demo : undefined;
 }
 
 // Whether what loads a page says it is wide; a page with no word on it is.
@@ -16,7 +16,7 @@ export function wideIn(loader: unknown): boolean {
   return typeof loader === "object" && loader !== null && "wide" in loader && typeof loader.wide === "boolean" ? loader.wide : true;
 }
 
-// The search what loads its results says they are for, or null.
+// The search what loads its results says they are for, if it says.
 export function searchIn(loader: unknown): unknown {
-  return typeof loader === "object" && loader !== null && "owner" in loader ? loader.owner : null;
+  return typeof loader === "object" && loader !== null && "owner" in loader ? loader.owner : undefined;
 }
