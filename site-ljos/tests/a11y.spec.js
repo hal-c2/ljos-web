@@ -88,7 +88,13 @@ for (const kept of ["workbench", "desktop"]) {
       test(`${route} in the kept ${kept} shell, in ${colorScheme}, gives a reader all axe asks`, async ({ browser }) => {
         const context = await browser.newContext({ viewport: SIZES[1], colorScheme, reducedMotion: "reduce" });
         try {
-          await context.addInitScript((name) => localStorage.setItem("ljos.dev:shell", name), kept);
+          // axe finishes in a blank page of its own, of no origin, where
+          // storage is refused: that one keeps no shell.
+          await context.addInitScript((name) => {
+            try {
+              localStorage.setItem("ljos.dev:shell", name);
+            } catch {}
+          }, kept);
           const page = await context.newPage();
           await page.goto(route);
           await page.waitForSelector('#app[data-ljos-hydrated="true"]');
