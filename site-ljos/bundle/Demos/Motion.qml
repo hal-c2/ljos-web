@@ -1,6 +1,10 @@
 import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
+// Its animations are QtQuick's: the demo calms its own motion (a softer
+// spring, shorter glides) when asked for less, where Ljos.Ui's would put
+// what moves at its end at once.
+import QtQuick as Q
 import "logic/motion.ts" as MotionLogic
 
 // Declarative motion in three forms: a spring-driven puck, list transitions
@@ -131,7 +135,7 @@ Rectangle {
 
             Behavior on x {
                 enabled: root.active && puck.led && !puck.placing
-                SpringAnimation {
+                Q.SpringAnimation {
                     spring: root.spring.spring
                     damping: root.spring.damping
                     epsilon: 0.4
@@ -139,7 +143,7 @@ Rectangle {
             }
             Behavior on y {
                 enabled: root.active && puck.led && !puck.placing
-                SpringAnimation {
+                Q.SpringAnimation {
                     spring: root.spring.spring
                     damping: root.spring.damping
                     epsilon: 0.4
@@ -148,7 +152,7 @@ Rectangle {
             scale: chase.pressed ? 0.92 : 1.0
             Behavior on scale {
                 enabled: root.active
-                NumberAnimation {
+                Q.NumberAnimation {
                     duration: MotionLogic.duration(root.calm, 140, 150)
                     easing.type: Easing.OutCubic
                 }
@@ -218,14 +222,14 @@ Rectangle {
             }
         }
         moveDisplaced: Transition {
-            NumberAnimation {
+            Q.NumberAnimation {
                 properties: "x,y"
                 duration: root.tileDuration
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
             }
         }
         move: Transition {
-            NumberAnimation {
+            Q.NumberAnimation {
                 properties: "x,y"
                 duration: root.tileDuration
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
@@ -261,7 +265,7 @@ Rectangle {
             }
             Behavior on scale {
                 enabled: root.active
-                NumberAnimation {
+                Q.NumberAnimation {
                     duration: MotionLogic.duration(root.calm, 120, 150)
                     easing.type: Easing.OutCubic
                 }
@@ -303,7 +307,7 @@ Rectangle {
             }
             Behavior on height {
                 enabled: root.active
-                NumberAnimation {
+                Q.NumberAnimation {
                     duration: MotionLogic.duration(root.calm, 320, 200)
                     easing.type: Easing.InOutCubic
                 }
@@ -325,7 +329,7 @@ Rectangle {
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
                     enabled: root.active
-                    NumberAnimation {
+                    Q.NumberAnimation {
                         duration: MotionLogic.duration(root.calm, 220, 180)
                         easing.type: Easing.OutCubic
                     }

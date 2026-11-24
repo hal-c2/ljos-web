@@ -1,5 +1,4 @@
-import Ljos.Ui
-import Ljos.Layout
+import QtQuick
 import Pantry
 
 // The Pantry app's own shell: the arrangement, words and colours
@@ -11,7 +10,7 @@ Rectangle {
     objectName: "appShell"
     width: 480
     height: 400
-    fill: "#171a23"
+    color: "#171a23"
 
     Column {
         x: 18
@@ -21,7 +20,7 @@ Rectangle {
         Text {
             objectName: "pantryTitle"
             color: "#f0ead8"
-            font.size: 24
+            font.pixelSize: 24
             text: "The Corner Pantry"
         }
         // The status line lives here, in the header. Move the
@@ -38,12 +37,12 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                fill: "#232839"
+                color: "#232839"
                 Text {
                     x: 10
                     y: 8
                     color: "#e8eaf0"
-                    font.size: 15
+                    font.pixelSize: 15
                     text: "Tea · £" + basket.teaPrice.toFixed(2)
                 }
                 Text {
@@ -51,10 +50,10 @@ Rectangle {
                     x: 10
                     y: 32
                     color: "#9aa3b2"
-                    font.size: 13
+                    font.pixelSize: 13
                     text: basket.teaCount + " in basket"
                 }
-                PointerArea {
+                MouseArea {
                     Accessible.name: "Add tea"
                     Accessible.role: Accessible.Button
                     width: parent.width
@@ -67,12 +66,12 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                fill: "#232839"
+                color: "#232839"
                 Text {
                     x: 10
                     y: 8
                     color: "#e8eaf0"
-                    font.size: 15
+                    font.pixelSize: 15
                     text: "Bread · £" + basket.breadPrice.toFixed(2)
                 }
                 Text {
@@ -80,10 +79,10 @@ Rectangle {
                     x: 10
                     y: 32
                     color: "#9aa3b2"
-                    font.size: 13
+                    font.pixelSize: 13
                     text: basket.breadCount + " in basket"
                 }
-                PointerArea {
+                MouseArea {
                     Accessible.name: "Add bread"
                     Accessible.role: Accessible.Button
                     width: parent.width
@@ -96,12 +95,12 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                fill: "#232839"
+                color: "#232839"
                 Text {
                     x: 10
                     y: 8
                     color: "#e8eaf0"
-                    font.size: 15
+                    font.pixelSize: 15
                     text: "Jam · £" + basket.jamPrice.toFixed(2)
                 }
                 Text {
@@ -109,10 +108,10 @@ Rectangle {
                     x: 10
                     y: 32
                     color: "#9aa3b2"
-                    font.size: 13
+                    font.pixelSize: 13
                     text: basket.jamCount + " in basket"
                 }
-                PointerArea {
+                MouseArea {
                     Accessible.name: "Add jam"
                     Accessible.role: Accessible.Button
                     width: parent.width
@@ -133,7 +132,7 @@ Rectangle {
         }
         Text {
             color: "#7c869e"
-            font.size: 13
+            font.pixelSize: 13
             text: "Tap a good to add it. Then rewrite this shell — nothing you bought moves."
         }
     }
