@@ -2797,8 +2797,9 @@ for (const kept of SHELLS)
           const home = page.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true }).first();
           expect(await home.innerText(), "the header has no word beside the logo").toBe("");
           const header = await drawn(home.locator('img[src$="ljos.svg"]'));
-          // Desktop's menu bar is 36 high: its logo is 28. A phone's header, and the others', have 40.
-          const tall = kept === "desktop" && viewport === DESKTOP ? 28 : 40;
+          // Desktop's menu bar and Workbench's title bar are thin: wide, their
+          // logo is 28. A phone's header, and the others', have 40.
+          const tall = (kept === "desktop" || kept === "workbench") && viewport === DESKTOP ? 28 : 40;
           expect(header, "the header's logo").toEqual({ loaded: true, width: Math.round(tall * LOGO_RATIO), height: tall, filter: "none", opacity: "1" });
 
           const footerLogo = page.getByRole("contentinfo").locator('img[src$="ljos.svg"]').filter({ visible: true }).last();
