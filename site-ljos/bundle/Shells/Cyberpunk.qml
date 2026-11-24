@@ -39,7 +39,8 @@ Rectangle {
     // site has that page (a route it has no name for is not one).
     readonly property var channels: router === null ? [] : [
         { label: t`Console`, to: "/", current: route === "/" },
-        { label: t`Demos`, to: "/demos/", current: router.demosRoute }
+        { label: t`Demos`, to: "/demos/", current: router.demosRoute },
+        { label: t`Showcase`, to: "/showcase/", current: router.showcaseRoute }
     ].concat(router.nameOf(metricsRoute) !== metricsRoute ? [{ label: t`Metrics`, to: metricsRoute, current: route === metricsRoute }] : []).concat([
         { label: t`Docs`, to: "/start/", current: docs && route !== shellsRoute && route !== metricsRoute },
         { label: t`Shells`, to: shellsRoute, current: route === shellsRoute }

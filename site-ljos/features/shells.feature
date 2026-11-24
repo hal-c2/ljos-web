@@ -361,10 +361,12 @@ Feature: The site is shown in a shell the reader picks
   Scenario: Cyberpunk's nav rail goes to each part of the site
     Given a reader with script at a desktop's width, in the Cyberpunk shell
     When they open the front page
-    Then a rail down the left lists "Console", "Demos", "Docs", "Shells" and "Source", numbered
+    Then a rail down the left lists "Console", "Demos", "Showcase", "Docs", "Shells" and "Source", numbered
     And "Console" is marked as where they are
     When they press "Demos"
     Then the demos page is shown and "Demos" is marked as where they are
+    When they press "Showcase"
+    Then the showcase is shown and "Showcase" is marked as where they are
     When they press "Source"
     Then they see "Source of Shells/Cyberpunk.qml"
 
