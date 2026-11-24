@@ -292,6 +292,29 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       expect(await page.getByText("answered", { exact: true }).count(), "no call after Pause").toBe(answered);
     });
 
+    test("a layout the reader picks between a find and its click is found in again, and clicked", async ({ page }) => {
+      test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+      await open(page, "/");
+      await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
+      const answered = page.getByText("answered", { exact: true });
+      // The find has answered; its click is a second away.
+      await expect(page.getByText(/match · .*Assign crew to BG-415/), "the find").toHaveCount(1, { timeout: 30_000 });
+      await press(page.getByRole("button", { name: "Pause the agent replay" }));
+      await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
+      expect(await answered.count(), "paused after the find, before its click").toBe(3);
+      // The app the button was found in is gone once the board runs.
+      await press(shown(page.getByRole("button", { name: "Board layout" })));
+      await press(page.getByRole("button", { name: "Resume the agent replay" }));
+      // What the app said while paused streams in once it plays.
+      await expect(page.getByText(/^app {2}layout changed to board$/)).toHaveCount(1, { timeout: 30_000 });
+      // Found again in the board, and pressed: every call answered, the
+      // find twice, and none refused.
+      await expect(answered, "every call is answered").toHaveCount(calls + 1, { timeout: 60_000 });
+      await expect(page.getByText("refused", { exact: true })).toHaveCount(0);
+      await expect(page.getByText(/match · .*Assign crew to BG-415/), "found again").toHaveCount(2);
+      await expect(page.getByText(/^app {2}assigned BG-415 to On-call crew$/)).toHaveCount(1);
+    });
+
     test.describe("with less motion", () => {
       test.use({ reducedMotion: "reduce" });
 

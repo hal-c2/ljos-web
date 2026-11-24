@@ -53,6 +53,20 @@ test("the agent log shows a call's arguments short, and puts a found ref where a
   expect(stage.withFound({ target: "$found", wait: 1 }, "@7")).toEqual({ target: "@7", wait: 1 });
 });
 
+test("a replay whose found ref is gone goes on from the find before the click that names it", async () => {
+  const stage = await import("../bundle/Demos/logic/stage.ts");
+  const steps = [
+    { tool: "app_status", args: {} },
+    { tool: "app_find", args: { locator: "role=button" } },
+    { tool: "app_click", args: { target: "$found" } },
+    { tool: "", args: {} },
+  ];
+  expect(stage.resumeAt(steps, 2, ""), "back to the find").toBe(1);
+  expect(stage.resumeAt(steps, 2, "@7"), "a ref that still names it").toBe(2);
+  expect(stage.resumeAt(steps, 3, ""), "a step that names no ref").toBe(3);
+  expect(stage.resumeAt(steps, 4, ""), "at the end").toBe(4);
+});
+
 test("the agent log says what each tool answered, and what a refusal said", async () => {
   const stage = await import("../bundle/Demos/logic/stage.ts");
   const answer = (structured, text = "") => stage.parsed(true, JSON.stringify({ structuredContent: structured, content: [{ type: "text", text }] }));
