@@ -122,6 +122,7 @@ AgentView {
             log.setProperty(stage.stepRow, "answer", why ? "error" : "ok");
             log.setProperty(stage.stepRow, "summary", why ? why : t`the app runs the module built from it now`);
             stage.advance();
+            stage.pickLater();
         });
     }
 
@@ -141,6 +142,7 @@ AgentView {
             swapping = true;
             swap("list").then(() => {
                 stage.swapping = false;
+                stage.pickLater();
             });
         }
     }
@@ -150,23 +152,40 @@ AgentView {
     function play() {
         if (at >= total)
             reset();
+        at = Stage.resumeAt(AgentReplay.steps, at, found);
         edited = false;
         playing = true;
     }
     // The reader's own swap to either module: the agent's edit undone or
     // made again. It takes the replay's place, or the next step would be
     // theirs to fight.
+    // A pick made while a swap is on its way is made once it is done: the
+    // last one, if it is not what that swap left running.
+    property string nextPick: ""
     onLayoutPicked: (picked) => {
-        if (picked === running || swapping)
+        if (swapping) {
+            nextPick = picked;
+            return;
+        }
+        if (picked === running)
             return;
         playing = false;
         edited = true;
         swapping = true;
+        // The app the ref was found in is gone once the other one runs.
+        found = "";
         swap(picked).then((why) => {
             stage.swapping = false;
             if (!why)
                 stage.tell(`layout changed to ${picked}`);
+            stage.pickLater();
         });
+    }
+    function pickLater() {
+        const later = nextPick;
+        nextPick = "";
+        if (later !== "")
+            layoutPicked(later);
     }
     onTabPicked: (picked) => {
         tab = picked;
@@ -224,6 +243,12 @@ AgentView {
             logsSerial = -1;
             Stage.logEntries(answer).forEach((entry) => row({ kind: "event", text: entry.message }));
             logSince = Stage.nextSince(answer, logSince);
+            // A page holds 20 lines: the rest of what was counted is the
+            // next page's.
+            if (ok && logSince < logsSeen) {
+                logsSerial = ask("app_logs", JSON.stringify({ since: logSince, limit: 20 }));
+                return;
+            }
             if (owed)
                 listen();
             return;

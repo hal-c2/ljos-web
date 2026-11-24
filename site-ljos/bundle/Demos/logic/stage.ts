@@ -30,6 +30,17 @@ export interface Answer {
 
 // The ref a found control was given, put where a step names `$found`: a
 // replay cannot know a handle ahead of the page that mints it.
+// Where a replay goes on from: back to the find before it when the next
+// step clicks what was found and the app it was found in is gone (`found`
+// cleared), as an agent finds it again in the app that stands now.
+export function resumeAt(steps: readonly { tool: string; args: Record<string, unknown> }[], at: number, found: string): number {
+    if (found !== "" || at >= steps.length) return at
+    const args = steps[at].args
+    if (!keys(args).some((name) => args[name] === "$found")) return at
+    for (let back = at - 1; back >= 0; back--) if (steps[back].tool === "app_find") return back
+    return at
+}
+
 export function withFound(args: Record<string, unknown>, found: string): Record<string, unknown> {
     const out: Record<string, unknown> = {}
     for (const name of keys(args)) {
