@@ -65,6 +65,20 @@ test("no page's static first load holds the editor, the compiler, PhysX or sql.j
   expect(wasm).toEqual([]);
 });
 
+// What only `mise run site:native` runs: each `X.native.js` stands in
+// the place of `X.js` in the desktop's copy of the bundle, and Native.qml
+// and Site/ObserverNote.qml are only that copy's (host.js). No page's
+// first load holds any of it, nor a word of what it says.
+test("no page's first load holds what only the desktop runs", () => {
+  const desktop = ["--site=", "on the desktop this is the example as it was built", "ljos observe command opens"];
+  const files = new Set(report.flatMap(({ first }) => first.files.map((entry) => entry.file).filter((file) => /\.(js|html)$/.test(file))));
+  const holding = [...files].flatMap((file) => {
+    const text = readFileSync(join(dist, file), "utf8");
+    return desktop.filter((said) => text.includes(said)).map((said) => `${file} holds "${said}"`);
+  });
+  expect(holding).toEqual([]);
+});
+
 // The in-page compiler's table of modules, and the whole namespaces it
 // hands compiled QML (every type `QtQuick` has), come with a reader's
 // first edit: a page's own QML takes only the types it names.
