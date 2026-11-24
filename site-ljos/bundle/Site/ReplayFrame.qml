@@ -84,14 +84,17 @@ Item {
             width: frame.actWidth
             anchors.verticalCenter: parent.verticalCenter
             visible: runner.phase !== ""
-            busy: runner.phase === "loading" || runner.phase === "failed"
+            // A replay that did not load is tried again from here, not
+            // left starting: nothing else on the frame would offer it.
+            busy: runner.phase === "loading"
             text: {
                 if (frame.replayable)
                     return frame.again ? t`Run again` : t`Resume`;
                 switch (runner.phase) {
                 case "loading":
-                case "failed":
                     return t`Starting…`;
+                case "failed":
+                    return t`Try again`;
                 case "live":
                     return t`Pause`;
                 case "paused":
@@ -105,8 +108,9 @@ Item {
                     return frame.again ? t`Run again: ${frame.what}` : t`Resume ${frame.what}`;
                 switch (runner.phase) {
                 case "loading":
-                case "failed":
                     return t`Starting ${frame.what}…`;
+                case "failed":
+                    return t`Try ${frame.what} again`;
                 case "live":
                     return t`Pause ${frame.what}`;
                 case "paused":
@@ -116,6 +120,13 @@ Item {
                 }
             }
             onPressed: {
+                // Back to its picture, which lets the failed module go,
+                // and asked again once that is done.
+                if (runner.phase === "failed") {
+                    runner.evict();
+                    Qt.callLater(() => runner.ask());
+                    return;
+                }
                 if (!frame.replayable)
                     return runner.act();
                 loader.item.play();

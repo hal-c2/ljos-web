@@ -416,6 +416,22 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect.poll(() => page.evaluate(() => window.said), { message: "what a screen reader is told", timeout: 30_000 }).toContain("The agent replay did not compile");
       });
 
+      test("a replay whose module did not load is tried again from its button", async ({ page }) => {
+        test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+        let aborted = 0;
+        await page.route(/\/assets\/AgentStage-[^/]*\.js$/, (route) => {
+          aborted += 1;
+          return route.abort();
+        }, { times: 1 });
+        await open(page, "/");
+        await press(runButton(page, "Run the agent replay"));
+        const again = page.getByRole("button", { name: "Try the agent replay again" });
+        await expect(again, "a failed load offers to try again, not a start in progress").toBeVisible({ timeout: 30_000 });
+        expect(aborted, "the module's one failed load").toBe(1);
+        await press(again);
+        await expect(page.getByRole("button", { name: "Pause the agent replay" }), "loaded the second time, and playing").toBeVisible({ timeout: 30_000 });
+      });
+
       test("a pause of the reader's stays one once motion is allowed", async ({ page }) => {
         test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
         await page.emulateMedia({ reducedMotion: "reduce" });
