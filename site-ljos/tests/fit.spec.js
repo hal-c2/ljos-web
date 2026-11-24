@@ -395,7 +395,7 @@ for (const [size, viewport] of SIZES) {
     test("the landing's showcase stays inside its frame", async ({ page }) => {
       await page.goto("/");
       await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-      const pause = await runDemo(page, "the 3D demo");
+      const pause = await runDemo(page, "the watch");
       await expect.poll(() => fits(pause), { message: `the showcase at ${size} width stands inside its frame` }).toEqual([]);
     });
   });

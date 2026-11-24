@@ -6,6 +6,7 @@
 // shader's) would then be in the files every page loads first.
 
 function orbit() { return import("./Orbit.qml"); }
+function watch() { return import("./WatchDemo.qml"); }
 function shader() { return import("./Shader.qml"); }
 function fieldGuide() { return import("./FieldGuide.qml"); }
 function motion() { return import("./Motion.qml"); }

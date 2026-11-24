@@ -1,4 +1,4 @@
-// The demos: the front page's Pantry and Orbit, and /demos/' five,
+// The demos: the front page's Pantry and watch, and /demos/' five,
 // each driven by the input it is for. A demo is the slot under its
 // heading. The Pantry runs with the page, as a plain example would: it
 // holds still, and its shell is the one compiled with the page. The
@@ -243,13 +243,13 @@ test.describe("/demos/", () => {
 });
 
 test.describe("the front page", () => {
-  test("loads with nothing in its console; the Pantry and Orbit run", async ({ page, errors }) => {
+  test("loads with nothing in its console; the Pantry and the watch run", async ({ page, errors }) => {
     await settled(page, "/");
-    const button = runButton(page, "Run the 3D demo");
+    const button = runButton(page, "Run the watch");
     await press(button);
-    await expect(button, "Run starts Orbit").toBeHidden();
+    await expect(button, "Run starts the watch").toBeHidden();
     await expect(page.getByLabel("The Pantry, running")).toBeVisible();
-    // Orbit is made as the reader nears the showcase under this heading.
+    // The watch is made as the reader nears the showcase under this heading.
     await centre(headingOf(page, "See it run"));
     const canvas = page.locator("canvas.qq-view3d").first();
     await centre(canvas);
