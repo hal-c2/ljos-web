@@ -259,7 +259,11 @@ Item {
                             font.weight: Font.DemiBold
                             lineHeightMode: Text.FixedHeight
                             lineHeight: Theme.bodyLine
-                            elide: Text.ElideRight
+                            // A link is rich text, which is never elided:
+                            // a title wider than the list wraps inside it,
+                            // between words, or within a word too long
+                            // for a line.
+                            wrapMode: Text.Wrap
                             onLinkActivated: (to) => search.go(index)
                         }
                         Text {

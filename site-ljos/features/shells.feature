@@ -663,3 +663,13 @@ Feature: The site is shown in a shell the reader picks
     Then the search field's "Search docs and demos" ends inside the field, shortened if it must be
     And where the field shows the "/" key, its words end before it
 
+  Scenario Outline: Search results stay inside their list in every shell
+    Given a reader has any shell, on a <device>
+    When they search for "h"
+    Then every result, "How a Rust and QML App Fits Together" among them, ends inside the list, wrapped if it must be
+    And the list ends inside the window
+
+    Examples:
+      | device  |
+      | desktop |
+      | phone   |
