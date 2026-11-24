@@ -92,11 +92,22 @@ Item {
                 anchors.fill: parent
                 made: Live.isLive(demo.live) ? undefined : own
                 module: demo.live ?? undefined
-                // The watch takes the keys once, as it comes; a watch made
-                // again from an edit leaves them where the reader types.
+                // The watch takes the keys once, as it comes, unless the
+                // reader has them elsewhere (a menu, a field: it may come
+                // late, on a page it is only part of); a watch made again
+                // from an edit leaves them where the reader types.
                 property bool first: true
+                function readerElsewhere() {
+                    const focused = Window.activeFocusItem;
+                    if (!focused)
+                        return false;
+                    for (let at = app; at; at = at.parent)
+                        if (at === focused)
+                            return false;
+                    return true;
+                }
                 onLoaded: {
-                    if (first)
+                    if (first && !readerElsewhere())
                         Live.focus(item);
                     first = false;
                 }
