@@ -971,7 +971,7 @@ Rectangle {
                     height: 55
                     stacked: true
                     icon: modelData.icon
-                    label: modelData.label
+                    label: index === 3 && shell.problems.length > 0 ? `${modelData.label} ${shell.problems.length}` : modelData.label
                     current: shell.view === index
                     onPressed: shell.view = index
                 }

@@ -238,13 +238,23 @@ Feature: The site is shown in a shell the reader picks
 
   Scenario: The editor holds the shell that asked for it
     Given a reader in the Workbench shell whose editor is still on its way
-    When they pick Desktop before it arrives, and Workbench again after
+    When they pick Desktop before it arrives, and it arrives while Desktop is shown
+    And they pick Workbench again
     Then the Source tab holds Workbench's QML
+
+  Scenario: An edit that faults after it came up is never the one fallen back to
+    Given a reader in the Workbench shell whose edit made the status bar say "Shell: Workbench, edited"
+    When they change it again to one that comes up, then throws "faulted later"
+    Then the panel's "Problems" lists "faulted later"
+    And the status bar says "Shell: Workbench, edited" again
+    When they pick Desktop, and Workbench again
+    Then the status bar says "Shell: Workbench, edited", and the edit that faulted is not shown
 
   Scenario: An answer to text since changed is not shown over it
     Given a reader in the Workbench shell who broke its QML in the Source tab
     When they mend it while the broken text is still compiling, and type on
-    Then what broke is never shown
+    Then the broken text is answered before anything newer is asked
+    And what broke is never shown
     And once they pause, the status bar says "Shell: Workbench, mended", and "Diagnostics: 0"
 
   Scenario: An edit without the editor's place leaves the last that ran
@@ -267,6 +277,18 @@ Feature: The site is shown in a shell the reader picks
     Then the renamed tab is still the one chosen, with the editor in it
     When they press the tab "Explorer" and the row "first-app.md"
     Then the tab "Preview" is chosen, showing "Your First App"
+
+  Scenario: Workbench's Problems tab on a phone says how many there are
+    Given a reader on a phone in the Workbench shell, on "/start/first-app/"
+    When they press the tab "Inspector" and break its QML in the Source tab
+    Then the tab bar's "Problems" reads "Problems 1", and lists one problem when pressed
+    When they press "Reset" in the tab "Inspector"
+    Then it reads "Problems" again
+
+  Scenario: Desktop on a phone shows the page whose row is pressed, though it is already open
+    Given a reader on a phone in the Desktop shell, on "/start/"
+    When they press the tab "Pages" and the row "Start in a minute"
+    Then the tab "Page" is chosen, and the page is shown in place of the pages
 
   Scenario: Workbench's MCP log lists the calls the front page's agent sends
     Given a reader in the Workbench shell on the front page, with the panel's "MCP log" chosen

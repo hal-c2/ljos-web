@@ -56,6 +56,9 @@ Rectangle {
     }
 
     function go(to) {
+        // The page already shown keeps its route, so on a phone its pane is shown here.
+        if (!shell.wide && to === shell.route)
+            shell.view = 0;
         if (shell.router)
             shell.router.go(to);
     }

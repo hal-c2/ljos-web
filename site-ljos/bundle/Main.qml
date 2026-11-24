@@ -234,10 +234,14 @@ Rectangle {
         housed();
     }
     // The shell the reader's last edit made, and the last of those that
-    // came up: a later edit that compiles but does not run gives way to
-    // it, and coming back to the shell it is of shows the edit again,
-    // one that compiled while they were away too.
+    // ran well: a later edit that compiles but does not run, or faults
+    // once up, gives way to it, and coming back to the shell it is of
+    // shows the edit again, one that compiled while they were away too.
+    // An edit that came up is on trial (`liveTried`) until the reader
+    // changes it: only one that never faulted while shown is kept as
+    // the last that ran, so recovery never falls back to what faulted.
     property var liveShell: null
+    property var liveTried: null
     property var liveGood: null
     property string liveOf: ""
     // The shell the editor edits is the one shown, and no other is asked
@@ -739,7 +743,7 @@ Rectangle {
                 // place, had it one, took the editor as the shell was
                 // made; the old shell, and its place, goes after this.
                 if (main.holds(loader.item, main.liveHost)) {
-                    main.liveGood = main.liveShell;
+                    main.liveTried = main.liveShell;
                 } else {
                     var file = liveSource.item && liveSource.item.source ? liveSource.item.source.file : "";
                     var why = t`This edit has no site.source.live, where its editor is shown, so the last edit that ran stays.`;
@@ -822,6 +826,10 @@ Rectangle {
     Connections {
         target: liveSource.item
         function onRan(shell) {
+            // The edit on trial ran, with no fault, until this one.
+            if (main.liveTried !== null)
+                main.liveGood = main.liveTried;
+            main.liveTried = null;
             main.problems = [];
             main.liveShell = shell;
             if (!main.liveShown)
@@ -835,6 +843,7 @@ Rectangle {
         function onReset() {
             main.problems = [];
             main.liveShell = null;
+            main.liveTried = null;
             main.liveGood = null;
             if (!main.liveShown)
                 return;
@@ -842,16 +851,24 @@ Rectangle {
             main.userShell = null;
         }
     }
-    // An edit that compiled but did not come up: it is a problem too, and
-    // the last that did stays.
+    // An edit that compiled but did not come up, or faulted once up: it
+    // is a problem too, and the last that ran well stays. What faulted
+    // is let go of wherever it was kept, so it is neither fallen back to
+    // nor shown again on coming back.
     Connections {
         target: loader
         function onErrorChanged() {
-            if (loader.error === "" || main.liveShell === null || main.userShell !== main.liveShell)
+            var faulted = main.userShell;
+            if (loader.error === "" || faulted === null || (faulted !== main.liveShell && faulted !== main.liveGood))
                 return;
             var file = liveSource.item && liveSource.item.source ? liveSource.item.source.file : "";
             main.problems = [{ file: file, line: 0, column: 0, message: loader.error, text: loader.error }];
-            main.liveShell = null;
+            if (faulted === main.liveShell)
+                main.liveShell = null;
+            if (faulted === main.liveTried)
+                main.liveTried = null;
+            if (faulted === main.liveGood)
+                main.liveGood = null;
             pageView.hold();
             main.userShell = main.liveGood;
         }

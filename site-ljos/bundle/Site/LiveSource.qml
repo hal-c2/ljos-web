@@ -51,9 +51,10 @@ Item {
         live.failed = "";
         Shells.sources(Content.base).then((all) => {
             live.source = all.shells[live.name] ?? null;
-            if (live.source)
+            if (live.source) {
                 editor.text = live.source.text;
-            else
+                Shells.editorHeld(live.name);
+            } else
                 live.failed = t`There is no ${live.name}.qml to edit.`;
         }, (why) => {
             console.warn(`LiveSource: ${why}`);
