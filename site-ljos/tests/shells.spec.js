@@ -1032,7 +1032,8 @@ test("a kept shell's page is never drawn in Elegant's colours while its own come
       };
       requestAnimationFrame(look);
     });
-    await open(page, "/start/cli/");
+    // How a kept shell's colours arrive is what is tested: a late page fails.
+    await open(page, "/start/cli/", { arrival: true });
     const grounds = await page.evaluate(() => window.__grounds);
     expect(grounds.length, "frames were drawn").toBeGreaterThan(0);
     expect([...new Set(grounds)], "every frame's ground").toEqual([looks.workbench.light.canvas.toLowerCase()]);
