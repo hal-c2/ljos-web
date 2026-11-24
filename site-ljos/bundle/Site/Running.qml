@@ -26,6 +26,12 @@ QtObject {
     // A hidden tab runs nothing: the reader is not looking.
     readonly property bool shown: Qt.application.state !== Qt.ApplicationHidden && Qt.application.state !== Qt.ApplicationSuspended
 
+    // The page is taken over and its kept shell in, or given up on
+    // (Main.qml `settle`, `late`). What starts itself waits for it: the
+    // head holds the page back for the kept shell only so long, and work
+    // started under the swap takes that time from it.
+    property bool settled: false
+
     readonly property int most: 3
     // The runners started, the one that started first first; a paused
     // one keeps its place.

@@ -405,6 +405,39 @@ test("the pick is kept, and a reload puts it in before the page is seen", async 
   }
 });
 
+// The front page's replay starts itself, and its module is the most the
+// page asks for after it is taken over. Asked for while the kept shell is
+// still coming, it takes the time the head holds the page back for, and
+// on a slow machine the head's watchdog gives up on the shell.
+test("the front page's replay is asked for only once the kept shell is in", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    // When the kept shell was said to be in, on the page's own clock.
+    await page.addInitScript(() => {
+      new MutationObserver((_, watching) => {
+        if (!("ljosShellShown" in document.documentElement.dataset)) return;
+        window.__shownAt = performance.now();
+        watching.disconnect();
+      }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-ljos-shell-shown"] });
+    });
+    await open(page, "/");
+    expect(await showing(page)).toBe("desktop");
+    await expect(page.getByRole("button", { name: "Pause the agent replay" }), "the replay started itself").toBeVisible({ timeout: 30_000 });
+    const asked = await page.evaluate(() =>
+      performance
+        .getEntriesByType("resource")
+        .filter((entry) => /\/AgentStage-[^/]*\.js$/.test(entry.name))
+        .map((entry) => Math.round(entry.startTime)),
+    );
+    const shownAt = await page.evaluate(() => Math.round(window.__shownAt));
+    expect(asked, "the replay's module, asked for once").toHaveLength(1);
+    expect(asked[0], `asked for at ${asked[0]} ms, the kept shell in at ${shownAt} ms`).toBeGreaterThanOrEqual(shownAt);
+  } finally {
+    await context.close();
+  }
+});
+
 test("with no view transitions, a reload still puts the kept shell in before the page is seen", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop" });
   try {
