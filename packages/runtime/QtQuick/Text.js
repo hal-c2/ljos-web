@@ -338,8 +338,10 @@ const ALIGNS = { 1: "left", 2: "right", 4: "center", 8: "justify" };
 // The letters written from right to left: Hebrew, Arabic, Syriac, Thaana,
 // N'Ko and their presentation forms.
 const FROM_RIGHT = "\\u0590-\\u08FF\\uFB1D-\\uFDFF\\uFE70-\\uFEFF";
-const RIGHT_LETTER = new RegExp(`[${FROM_RIGHT}]`, "u");
-const LEFT_LETTER = new RegExp(`(?![${FROM_RIGHT}])\\p{L}`, "u");
+// A letter, not a digit or a mark: Arabic-Indic digits are in the block
+// but are weak, so "Order ١." stays left to right.
+const RIGHT_LETTER = new RegExp(`(?=\\p{L})[${FROM_RIGHT}]`, "u");
+const LEFT_LETTER = new RegExp(`(?=\\p{L})[^${FROM_RIGHT}]`, "u");
 
 // The way a text runs. One with letters of the UI language's direction is
 // the UI's own (a translation, which may start with a name: "Ljós هي…"),

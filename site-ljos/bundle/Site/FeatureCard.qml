@@ -115,8 +115,11 @@ Item {
             height: visible ? markWords.implicitHeight + Theme.xs : 0
             Accessible.ignored: true
 
+            // Anchored, so a right-to-left page mirrors the mark and the
+            // hairline from it together.
             Text {
                 id: markWords
+                anchors.left: parent.left
                 text: card.mark
                 color: Theme.accent2Text
                 font.family: Theme.mono
@@ -126,12 +129,10 @@ Item {
                 lineHeight: Theme.subtitleLine
             }
             Rectangle {
-                // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
-                readonly property real startX: markWords.implicitWidth + Theme.s
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                anchors.left: markWords.right
+                anchors.leftMargin: Theme.s
+                anchors.right: parent.right
                 anchors.verticalCenter: markWords.verticalCenter
-                width: parent.width - startX
                 height: 1
                 fill: Theme.divider
             }

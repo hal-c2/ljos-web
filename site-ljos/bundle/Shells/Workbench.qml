@@ -947,6 +947,7 @@ Rectangle {
                         Repeater {
                             model: shell.problems
                             Item {
+                                id: problem
                                 required property L.Problem modelData
                                 width: problemList.width
                                 height: Math.max(22, said.implicitHeight + 4)
@@ -954,6 +955,7 @@ Rectangle {
                                 Accessible.name: modelData.text
 
                                 C.Icon {
+                                    x: Q.LayoutMirroring.enabled ? problem.width - width : 0
                                     y: 3
                                     size: 14
                                     name: "circle-x"

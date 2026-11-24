@@ -22,6 +22,15 @@ Item {
             x: 10; y: 10; width: 50; height: 50
             closePolicy: T.Popup.CloseOnEscape | T.Popup.CloseOnPressOutside
         }
+        // A popup a press closes, by its own handler, before the release.
+        T.Popup {
+            id: closer
+            x: 100; y: 100; width: 50; height: 50
+            closePolicy: T.Popup.CloseOnEscape
+            contentItem: MouseArea {
+                onPressed: closer.close()
+            }
+        }
     }
     Item {
         id: holder

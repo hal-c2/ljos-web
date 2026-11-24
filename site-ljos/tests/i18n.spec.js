@@ -245,6 +245,14 @@ test.describe("a page in the reader's language", () => {
       await expect(page.getByRole("radio", { name: "Deutsch", exact: true })).toHaveAttribute("aria-checked", "true");
       await page.keyboard.press("Escape");
       await expect(page.getByRole("radio")).toHaveCount(0);
+      await expect.poll(() => ringed(again), "Escape gives the button the keyboard back").toBe(true);
+      // Opened by a pointer and left by keys, the button has the keyboard
+      // back all the same.
+      await again.click();
+      await press(page, "Tab", page.getByRole("radio", { name: "Deutsch", exact: true }));
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("radio")).toHaveCount(0);
+      await expect.poll(() => ringed(again), "the button has the keyboard back after a pointer's opening").toBe(true);
       // The page in the language picked gives a reader all WCAG A and AA
       // ask (tests/a11y.spec.js says why a scroller is left out).
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(["scrollable-region-focusable"]).analyze();
