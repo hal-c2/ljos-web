@@ -4,9 +4,10 @@ import Ljos.Core
 import "../nav.js" as Nav
 
 // Under every page: what Ljós is in a line, where to go, the principles
-// it follows, and its licence. On a wide page it stands on the page's
-// grid, the name and its line on the first five columns and the links
-// on the last ones; on a phone or beside the docs it stacks.
+// it follows, its licence, and what is built with it. On a wide page it
+// stands on the page's grid, the name and its line on the first five
+// columns and the links on the last ones; on a phone or beside the docs
+// it stacks.
 Rectangle {
     id: footer
     Accessible.role: Accessible.Footer
@@ -67,11 +68,14 @@ Rectangle {
                     lineHeight: Theme.bodyLine
                 }
             }
-            Row {
+            // Three columns of links where they fit, two on a phone.
+            Grid {
                 id: links
                 x: footer.spread ? parent.width - width : 0
                 y: footer.spread ? Theme.xs : said.implicitHeight + Theme.xl
-                spacing: footer.spread ? Theme.xxxl : Theme.xxl
+                columns: footer.spread || footer.innerWidth >= 560 ? 3 : 2
+                columnSpacing: footer.spread ? Theme.xxxl : Theme.xxl
+                rowSpacing: Theme.xl
 
                 Column {
                     spacing: Theme.s
@@ -106,6 +110,23 @@ Rectangle {
                     // How the project means to work together, on every page.
                     NavLink { label: t`Community principles`; to: "https://community-software.org/"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                     NavLink { label: t`MIT licence`; to: "https://github.com/hal-c2/ljos-ui/blob/main/LICENSE"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
+                }
+                // What is built with Ljós (Site/BuiltWith.qml), each at its source.
+                Column {
+                    spacing: Theme.s
+                    Text {
+                        text: t`Built with Ljós`
+                        color: Theme.textMuted
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.captionSize
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1.1
+                        font.capitalization: Font.AllUppercase
+                        Accessible.ignored: true
+                    }
+                    NavLink { label: t`Ljós Studio`; to: "https://github.com/hal-c2/ljos-studio"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
+                    NavLink { label: t`Eldur`; to: "https://github.com/hal-c2/eldur"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
+                    NavLink { label: t`Ljós Hof`; to: "https://github.com/hal-c2/ljos-hof"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                 }
             }
         }

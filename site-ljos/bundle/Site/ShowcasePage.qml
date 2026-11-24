@@ -3,6 +3,7 @@ import Ljos.Core
 import Ljos.Layout
 import "logic/place.ts" as Place
 import Site
+import "../nav.js" as Nav
 
 // The showcase: apps built with Ljós, each recorded as it runs. The
 // apps are data (Showcase/products.json, carried in ShowcaseApps.apps),
@@ -57,6 +58,34 @@ Column {
             width: showcase.width
             wide: showcase.wide
             scroller: showcase.scroller
+        }
+    }
+
+    // The tools built with Ljós that have no recording here: a capture
+    // of each and its source (BuiltWith.qml, as the front page has them).
+    Column {
+        width: parent.width
+        spacing: Theme.l
+
+        Text {
+            width: parent.width
+            text: t`Tools built with Ljós`
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: showcase.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: showcase.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
+            wrapMode: Text.Wrap
+            readonly property int headingLevel: 2
+            Accessible.role: Accessible.Heading
+        }
+        BuiltWith {
+            width: parent.width
+            names: ["studio", "eldur"]
+            wide: showcase.wide
+            route: "/showcase/"
+            onFollowed: (link) => Nav.go(link)
         }
     }
 }

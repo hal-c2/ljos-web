@@ -235,6 +235,40 @@ Column {
         }
     }
 
+    // What is built with Ljós: a capture of each, what it is and its
+    // source, and the showcase, where they are recorded running.
+    Rise {
+        Column {
+            width: parent.width
+            spacing: Theme.l
+
+            Heading {
+                width: parent.width
+                level: "display"
+                wide: landing.wide
+                text: t`Built with Ljós`
+            }
+            Text {
+                width: Math.min(parent.width, Theme.measure)
+                textFormat: Text.RichText
+                color: Theme.textMuted
+                linkColor: Theme.link
+                font.family: Theme.sans
+                font.pixelSize: Theme.bodySize
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.bodyLine
+                wrapMode: Text.Wrap
+                text: Nav.linked(Content.base, t`Apps and tools made with Ljós, all public on GitHub. The <a href="/showcase/">showcase</a> has a recording of Hof and pictures of Studio and Eldur.`)
+                onLinkActivated: (link) => landing.follow(link)
+            }
+            BuiltWith {
+                width: parent.width
+                wide: landing.wide
+                onFollowed: (link) => landing.follow(link)
+            }
+        }
+    }
+
     // How the project means to work together: the headline on the
     // grid's first five columns, the words on the other seven.
     // It stands in a panel of its own, on the hero's wash, so the words
