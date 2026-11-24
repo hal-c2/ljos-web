@@ -112,13 +112,22 @@ const switcher = (page) => page.getByRole("button", { name: SWITCHER }).filter({
 async function pick(page, name) {
   // On a phone, Elegant keeps the switcher in its menu.
   const menu = page.getByRole("button", { name: "Menu", exact: true }).filter({ visible: true });
-  if ((await switcher(page).count()) === 0 && (await menu.count()) > 0) await press(menu.first());
+  const opened = (await switcher(page).count()) === 0 && (await menu.count()) > 0;
+  if (opened) await press(menu.first());
   await press(switcher(page));
   await press(page.getByRole("radio", { name: LABEL[name], exact: true }));
   // Cyberpunk, Workbench and Desktop come the first time one is picked
   // (Shells/later.js): the wait is the fetch's, not a fixed few seconds.
   await expect.poll(() => showing(page), { message: `the ${name} shell frames the page`, timeout: 30_000 }).toBe(name);
   await page.waitForFunction(() => !document.documentElement.dataset.ljosSwap);
+  // The menu stays open in the shell picked, as the reader left it; a
+  // reader done with it closes it, and so does the pick here, so a test
+  // after a late page (`open`) starts from the page, not from the menu.
+  if (opened) {
+    const close = page.getByRole("button", { name: "Close menu", exact: true }).filter({ visible: true });
+    if ((await close.count()) > 0) await press(close.first());
+    await expect(close).toHaveCount(0);
+  }
 }
 
 const region = (page, name) => page.getByRole("region", { name, exact: true }).filter({ visible: true });
