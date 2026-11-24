@@ -96,10 +96,8 @@ DeviceFrame {
                 clip: true
                 Text {
                     id: code
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: Theme.m
-                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    // As far from either side, so the same on a mirrored page.
+                    x: Theme.m
                     y: Theme.m
                     width: parent.width - 2 * Theme.m
                     format: Text.RichText
@@ -119,10 +117,8 @@ DeviceFrame {
             frame: hero
             index: 1
             Column {
-                // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
-                readonly property real startX: Theme.m
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                // As far from either side, so the same on a mirrored page.
+                x: Theme.m
                 y: Theme.s
                 width: parent.width - 2 * Theme.m
 
@@ -255,10 +251,8 @@ DeviceFrame {
             }
             Column {
                 y: agentBar.height
-                // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
-                readonly property real startX: Theme.m
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                // As far from either side, so the same on a mirrored page.
+                x: Theme.m
                 width: parent.width - 2 * Theme.m
                 spacing: Theme.xs
 

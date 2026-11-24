@@ -108,10 +108,8 @@ Item {
 
     Column {
         id: words
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: card.padding
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        // As far from either side, so the same on a mirrored page.
+        x: card.padding
         y: card.padding
         width: parent.width - 2 * card.padding
         spacing: Theme.s

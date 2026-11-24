@@ -144,7 +144,9 @@ Rectangle {
                 title.toggle();
                 event.accepted = true;
             } else if (event.key === Key.Left || event.key === Key.Right) {
-                title.shell.besideTitle(title.label, event.key === Key.Right ? 1 : -1);
+                // Right is the next title on the screen: on a mirrored bar,
+                // the one before it.
+                title.shell.besideTitle(title.label, (event.key === Key.Right) !== Q.LayoutMirroring.enabled ? 1 : -1);
                 event.accepted = true;
             }
         }
