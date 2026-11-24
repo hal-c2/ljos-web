@@ -986,6 +986,40 @@ test("a kept shell's page is never drawn in Elegant's colours while its own come
   }
 });
 
+// Colours that never come hold the page back no longer than the head's
+// watchdog does (2500 ms): as it shows the page it drops their pending
+// request, render block and all, and the page stays in Elegant's own
+// colours, which a late sheet would otherwise turn into the kept
+// shell's under the reader. A frame is seen by a requestAnimationFrame,
+// which no render-blocked page runs.
+test("colours that never come hold the page back no longer than the watchdog", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  let release = () => {};
+  const held = new Promise((done) => (release = done));
+  try {
+    const page = await context.newPage();
+    await page.route(/\/looks-[0-9a-f]{10}\.css$/, async (route) => {
+      await held;
+      await route.continue().catch(() => {});
+    });
+    await page.addInitScript(() => requestAnimationFrame(() => (window.__drawnAt = performance.now())));
+    await page.goto(at("/start/cli/"), { waitUntil: "commit" });
+    const drawnAt = await page.waitForFunction(() => window.__drawnAt, null, { polling: 100, timeout: 20_000 }).then((at) => at.jsonValue()).catch(() => null);
+    expect(drawnAt, "a frame was drawn while the colours were still on their way").not.toBeNull();
+    expect(await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset), "the watchdog showed the page").toBe(true);
+    expect(await page.locator("#ljos-looks").count(), "the pending colours are dropped").toBe(0);
+    await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+    await expect.poll(() => showing(page), { message: "the page stays in Elegant" }).toBe("elegant");
+    release();
+    await page.waitForTimeout(300);
+    const ground = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase());
+    expect(ground, "in Elegant's ground").toBe(looks.elegant.light.canvas.toLowerCase());
+  } finally {
+    release();
+    await context.close();
+  }
+});
+
 // A stylesheet of colours that failed to come is not kept: it is asked
 // for once more, whether the page (picked) or the head (kept) asked
 // first, and the page takes the shell's colours from the second.

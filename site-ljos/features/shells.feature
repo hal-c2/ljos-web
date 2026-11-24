@@ -84,6 +84,13 @@ Feature: The site is shown in a shell the reader picks
     When they open "/start/cli/"
     Then every frame drawn before the page is shown has the Workbench shell's ground
 
+  Scenario: Colours that never come hold the page back no longer than the watchdog
+    Given a reader who kept the Workbench shell, on a connection where its colours never come
+    When they open "/start/cli/"
+    Then the page is drawn once the head's watchdog shows it
+    And the colours still on their way are dropped
+    And the page stays in the Elegant shell's colours
+
   Scenario Outline: Colours that failed to come are asked for once more
     Given a reader on "/start/cli/" who <how> the Workbench shell
     And its colours failed to come the first time they were asked for
