@@ -3,6 +3,7 @@
 // scripts/pro.mjs); do not edit by hand. Each pro demo's app and its
 // files for the editor, imported when its page asks, so no other page
 // loads them.
+.import "../nav.js" as Nav
 var browser = Qt.platform.os === "wasm";
 
 function app(name) {
@@ -29,20 +30,10 @@ var QML = ".qml";
 function fileAt(name) { return Qt.resolvedUrl(name + QML); }
 
 // A JSON file beside this one, as import() gives it: { default: value }.
+// Read by the desktop's own reader (nav.js `readJson`), so no browser's
+// first load holds one.
 function read(file) {
-    return new Promise(function (resolve, reject) {
-        var address = Qt.resolvedUrl(file);
-        var request = new XMLHttpRequest();
-        request.onreadystatechange = function () {
-            if (request.readyState !== XMLHttpRequest.DONE)
-                return;
-            try {
-                resolve({ "default": JSON.parse(request.responseText) });
-            } catch (error) {
-                reject(new Error(address + ": " + error.message));
-            }
-        };
-        request.open("GET", address);
-        request.send();
+    return Nav.readJson(Qt.resolvedUrl(file)).then(function (value) {
+        return { "default": value };
     });
 }
