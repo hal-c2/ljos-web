@@ -209,6 +209,8 @@ test("the field guide searches, selects and keeps its records", async ({ page })
   await expect(fig).toContainText("Morus bassanus");
   await fig.getByRole("checkbox").click();
   await expect(fig).toContainText("Seen 1 of 9");
+  // The list marks the species seen, as the count does.
+  await expect(fig).toContainText("✓ Northern gannet");
 });
 
 test("the motion demo springs, shuffles and opens", async ({ page }) => {
