@@ -41,7 +41,7 @@ const qtQuick = {
       "Brand", "CodeBlock", "CodeEditor", "ControlsHost", "DemoFrame", "DemoSection", "DemosPage", "DocPage", "DocsMap", "Footer",
       "GitHubMark", "Heading", "IconButton", "LinkButton", "MenuButton", "MotionToggle", "NavLink", "ObserverButton", "ObserverDock",
       "PageSource", "PageTree", "PageView", "Preferences", "ProDemoPage", "ReplayFrame", "Rise", "Router", "Runner", "Running",
-      "Search", "ShellSwitcher", "StageButton", "ThemeToggle", "Toc", "Wordmark",
+      "Search", "ShellSwitcher", "StageButton", "ThemeToggle", "Toc",
     ].map((name) => `Site/${name}`),
     firstLoad,
   ),
