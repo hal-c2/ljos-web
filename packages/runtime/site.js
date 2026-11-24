@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
+import { rightToLeft } from "./QtQml/direction.ts";
 import { provided } from "./modules.js";
 import qml, { compilerAt, hasControls, installed, kernelNamed, runCompiler } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";
@@ -781,16 +782,18 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   // the bundle, which holds only what its manifest lists.
   const stage = mkdtempSync(join(tmpdir(), "ljos-site-"));
   try {
-    writeFileSync(join(stage, "index.html"), PAGE);
+    const source = languages.source ?? "en";
+    writeFileSync(join(stage, "index.html"), PAGE.replace('<html lang="en">', `<html lang="${source.replace(/[^A-Za-z0-9_-]/gu, "")}"${rightToLeft(source) ? ' dir="rtl"' : ""}>`));
     const sheets = css.map((_, at) => `import "ljos-site:sheet-${at}";\n`).join("");
     // After the runtime's sheet, so a site's rules win over its defaults.
     let main = (liveShell ? LIVE : prerender ? PRERENDERED : MAIN).replace('import "ljos-site:css";\n', (own) => own + sheets);
     // A bundle's catalogues (`i18n/<language>.po`, as a native project
     // keeps them), each its own module that the page asks for when its
-    // language is first wanted, so none is in a page's first load.
+    // language is first wanted, so none is in a page's first load. A
+    // bundle written in a language it names, though it has no catalogue,
+    // is read in that language all the same (its direction too).
     const catalogs = manifest.files.map(({ path }) => /^i18n\/([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*)\.po$/u.exec(path)?.[1]).filter(Boolean).sort();
-    if (catalogs.length) {
-      const source = languages.source ?? "en";
+    if (catalogs.length || languages.source !== undefined) {
       if (catalogs.includes(source)) throw new SiteError(`i18n/${source}.po is a catalogue of the language the bundle is written in (languages.source); a source has no translations`);
       const loaders = catalogs.map((tag) => `    ${JSON.stringify(tag)}: () => import(${JSON.stringify(`${join(dir, "i18n", `${tag}.po`)}?raw`)}).then((it) => it.default),`).join("\n");
       writeFileSync(
