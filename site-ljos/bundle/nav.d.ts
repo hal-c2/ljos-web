@@ -2,7 +2,8 @@
 export declare function at(base: string, href: string): string;
 export declare function linked(base: string, html: string): string;
 export declare function go(address: string): void;
-export declare function anchor(address: string, label: string, underline: boolean): string;
+// `colour`, when given, is the link's colour in its style (nav.js says why).
+export declare function anchor(address: string, label: string, underline: boolean, colour?: unknown): string;
 export declare function escape(text: string): string;
 export declare function fromPage(route: string, href: string): string;
 export declare function inBrowser(): boolean;
