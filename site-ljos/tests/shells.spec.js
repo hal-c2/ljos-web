@@ -422,6 +422,14 @@ test("the front page's replay is asked for only once the kept shell is in", asyn
       }).observe(document, { attributes: true, subtree: true, attributeFilter: ["data-ljos-shell-shown"] });
     });
     await open(page, "/");
+    // Shown, or given up on by the head's watchdog: the wait says which.
+    const outcome = await page
+      .waitForFunction(() => {
+        const set = document.documentElement.dataset;
+        return "ljosShellShown" in set ? "shown" : "ljosShellLate" in set ? "late" : false;
+      })
+      .then((handle) => handle.jsonValue());
+    expect(outcome, "the kept shell came before the head's watchdog (2500 ms) showed the page without it").toBe("shown");
     expect(await showing(page)).toBe("desktop");
     await expect(page.getByRole("button", { name: "Pause the agent replay" }), "the replay started itself").toBeVisible({ timeout: 30_000 });
     const asked = await page.evaluate(() =>
@@ -1344,6 +1352,10 @@ for (const [viewport, least, most] of [
         });
         expect(size).toBeGreaterThanOrEqual(least);
         expect(size).toBeLessThanOrEqual(most);
+        // The replay beside the headline, or under it on a phone.
+        const [words, replay] = [await heading.boundingBox(), await page.getByText("Replay · no live agent", { exact: true }).filter({ visible: true }).first().boundingBox()];
+        if (viewport.width >= 1112) expect(replay.x, "the replay beside the headline").toBeGreaterThanOrEqual(words.x + words.width);
+        else expect(replay.y, "the replay under the headline").toBeGreaterThanOrEqual(words.y + words.height);
         const device = page.getByRole("tablist", { name: "Live app" }).filter({ visible: true });
         await expect(device).toBeVisible();
         await expect(device.getByRole("tab")).toHaveText(["Source", "Observer", "Agent"]);

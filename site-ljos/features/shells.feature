@@ -4,7 +4,7 @@ Feature: The site is shown in a shell the reader picks
   its own in site-ljos/bundle/Shells/ that only says where each of the
   site's pieces goes. Three ship: Elegant, the one every page is
   written in and the one a reader with no script gets, a wide editorial
-  page in one sans with a live app framed beside its headline;
+  page in one sans with the front page's replay beside its headline;
   Workbench, the pages on the left, the page in the middle and its
   Source on the right; and Desktop, a menu bar, a toolbar, the pages in
   a sidebar, routes as tabs and a status bar. A reader swaps them
@@ -292,7 +292,8 @@ Feature: The site is shown in a shell the reader picks
     Given a reader with script at <width> wide, in <scheme>
     When they open the front page in the Elegant shell
     Then the headline is set at <least> to <most> pixels
-    And a live app runs in a framed device with the tabs "Source", "Observer" and "Agent"
+    And the agent replay stands in the wash beside it, or under it on a phone
+    And in the section on agents, a live app runs in a framed device with the tabs "Source", "Observer" and "Agent"
     And picking a tab shows what it names
 
     Examples:

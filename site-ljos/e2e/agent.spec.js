@@ -31,8 +31,10 @@ const replayLabel = (page) => shown(page.getByText("Replay · no live agent", { 
 // The poster, the page as written, has the replay's tabs too, and is
 // hidden once the replay is drawn and faded in: a tab found before then
 // can be the poster's, gone by the time it is pressed.
-const takenOver = (page) =>
-  expect(page.getByRole("tab", { name: "Agent", exact: true }).filter({ visible: true }), "the poster gave way to the replay").toHaveCount(1);
+// The replay's own tabs: the page's live app further down has an Agent
+// and an Observer tab too.
+const tab = (page, name) => page.getByRole("tablist", { name: "Replay views" }).getByRole("tab", { name, exact: true });
+const takenOver = (page) => expect(tab(page, "Agent").filter({ visible: true }), "the poster gave way to the replay").toHaveCount(1);
 
 test("the agent replay drives the app over MCP, its edit reloads it with the crew kept, and what the app does streams back", async ({ page }) => {
   test.skip(test.info().project.name === "no-webassembly", "the replay's poster stands where nothing runs; site-ljos.spec.js reads it");
@@ -46,7 +48,7 @@ test("the agent replay drives the app over MCP, its edit reloads it with the cre
   // comes first on the page, so its code is the first read until it goes.
   await expect(page.getByText("Crew assigned", { exact: true }).filter({ visible: true }), "one lane, the poster's board gone").toHaveCount(0);
   expect(words(await codeOf(page)), "the list's board.ts").toBe(words(SHOWN.list));
-  await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
+  await press(shown(tab(page, "Agent")));
 
   // Every call answered, none refused: the poster's calls say neither.
   await expect(page.getByText("answered", { exact: true }), "every call is answered").toHaveCount(calls, { timeout: 60_000 });
@@ -65,9 +67,9 @@ test("the agent replay drives the app over MCP, its edit reloads it with the cre
   await expect(shown(page.getByText("Crew assigned", { exact: true })), "the list became a board").toBeVisible();
   await expect(page.getByRole("button", { name: "Assign crew to BG-415" })).toHaveCount(0);
   // The code beside it is now the board's file.
-  await press(shown(page.getByRole("tab", { name: "TypeScript", exact: true })));
+  await press(shown(tab(page, "TypeScript")));
   expect(words(await codeOf(page)), "the board's board.ts").toBe(words(SHOWN.board));
-  await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
+  await press(shown(tab(page, "Agent")));
   // What the reload kept, read back from the app's answer.
   await expect(page.getByText(/→ crews = .*BG-415.*On-call crew/), "the crew it kept").toHaveCount(1);
   // One ticket is left for a person, where the board says so.
@@ -99,7 +101,7 @@ test("the agent replay drives the app over MCP, its edit reloads it with the cre
   await expect(shown(page.getByText("On-call crew", { exact: true }))).toBeVisible();
   await expect(page.getByRole("button", { name: "Assign crew to BG-415" })).toHaveCount(0);
   await expect(page.getByText(/^app {2}layout changed to list$/)).toHaveCount(1);
-  await press(shown(page.getByRole("tab", { name: "TypeScript", exact: true })));
+  await press(shown(tab(page, "TypeScript")));
   expect(words(await codeOf(page)), "the list's board.ts again").toBe(words(SHOWN.list));
 });
 
@@ -168,8 +170,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const app = await boxOf(shown(page.getByText("Brekka Grid", { exact: true })));
       const request = await boxOf(shown(page.getByText("Agent: make this a board", { exact: true })));
       const [button, label, list] = [await boxOf(pause), await boxOf(replayLabel(page)), await boxOf(shown(page.getByRole("button", { name: "List layout" })))];
+      // By their middles: a button's box is a touch target, taller than
+      // the line of words it stands beside.
       for (const [name, box] of Object.entries({ button, label, list })) {
-        expect(box.y, `${name} in the toolbar`).toBeGreaterThanOrEqual(request.y - 16);
+        expect(box.y + box.height / 2, `${name} in the toolbar`).toBeGreaterThanOrEqual(request.y - 16);
         expect(box.y + box.height, `${name} over the app`).toBeLessThanOrEqual(app.y);
       }
       expect(button.x, "the button after the request").toBeGreaterThanOrEqual(request.x + request.width - 1);
@@ -178,7 +182,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const fill = (locator) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
       expect(await fill(pause), "a quiet button").not.toBe(await fill(shown(page.getByRole("button", { name: /^Assign crew to / }))));
       for (const name of ["Agent", "Observer", "TypeScript"]) {
-        await press(shown(page.getByRole("tab", { name, exact: true })));
+        await press(shown(tab(page, name)));
         await expect(pause, "still playing").toBeVisible();
         await expect(replayLabel(page), `its label over the ${name} tab`).toBeVisible();
         if (!phone) await expect(replayLabel(page)).toBeInViewport({ ratio: 1 });
@@ -302,7 +306,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await open(page, "/");
       await expect(page.getByRole("button", { name: "Pause the agent replay" })).toBeVisible({ timeout: 30_000 });
       await takenOver(page);
-      await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
+      await press(shown(tab(page, "Agent")));
       const answered = page.getByText("answered", { exact: true });
       // The find has answered; its click is a second away.
       await expect(page.getByText(/match · .*Assign crew to BG-415/), "the find").toHaveCount(1, { timeout: 30_000 });
@@ -329,7 +333,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await press(page.getByRole("button", { name: "Pause the agent replay" }));
       await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
       await takenOver(page);
-      await press(shown(page.getByRole("tab", { name: "Observer", exact: true })));
+      await press(shown(tab(page, "Observer")));
       const rows = page.getByRole("button", { name: /^Inspect / }).filter({ visible: true });
       await expect(rows.first(), "the app's objects").toBeVisible({ timeout: 30_000 });
       const none = page.getByText("Pick an object to see its properties.", { exact: true }).filter({ visible: true });
@@ -365,7 +369,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await press(page.getByRole("button", { name: "Pause the agent replay" }));
       await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
       await takenOver(page);
-      await press(shown(page.getByRole("tab", { name: "Observer", exact: true })));
+      await press(shown(tab(page, "Observer")));
       const rows = page.getByRole("button", { name: /^Inspect / }).filter({ visible: true });
       await expect(rows.first(), "the app's objects").toBeVisible({ timeout: 30_000 });
       const count = await rows.count();
