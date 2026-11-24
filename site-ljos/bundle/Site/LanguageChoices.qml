@@ -16,8 +16,8 @@ Item {
     // The site's Preferences, given by the switcher once it is made.
     property Preferences preferences
     readonly property bool opened: popover.opened
-    // Left by keys (a pick or Escape): the button that opened it takes
-    // the keyboard back, as a menu gives it back in Qt.
+    // Left by keys (a pick or Escape), however it was opened: the button
+    // that opened it takes the keyboard back, as a menu gives it back in Qt.
     signal leftByKeys
 
     // Opened by keys, the language shown has the keyboard, so Up and
@@ -39,10 +39,10 @@ Item {
             keyed = ((at % count) + count) % count;
     }
 
-    function leave(): void {
+    function leave(keys: bool): void {
         keyed = -1;
         popover.close();
-        if (byKeys) leftByKeys();
+        if (keys) leftByKeys();
     }
 
     C.Popover {
@@ -99,13 +99,13 @@ Item {
                     Accessible.name: row.modelData.name
                     Accessible.checkable: true
                     Accessible.checked: row.picked
-                    Accessible.onPressAction: () => row.pick()
+                    Accessible.onPressAction: () => row.pick(true)
                     Keys.onPressed: (event: KeyEvent) => {
                         if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
-                            row.pick();
+                            row.pick(true);
                             event.accepted = true;
                         } else if (event.key === Key.Escape) {
-                            choices.leave();
+                            choices.leave(true);
                             event.accepted = true;
                         } else if (event.key === Key.Down || event.key === Key.Up) {
                             choices.key(row.index + (event.key === Key.Down ? 1 : -1));
@@ -116,9 +116,9 @@ Item {
                         }
                     }
 
-                    function pick(): void {
+                    function pick(keys: bool): void {
                         choices.preferences?.setLanguage(row.modelData.tag);
-                        choices.leave();
+                        choices.leave(keys);
                     }
 
                     // Anchored, not placed, so a right-to-left page
@@ -156,7 +156,7 @@ Item {
                         cursorShape: Cursor.PointingHand
                         onClicked: {
                             choices.byKeys = false;
-                            row.pick();
+                            row.pick(false);
                         }
                     }
                 }

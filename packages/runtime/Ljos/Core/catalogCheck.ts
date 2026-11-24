@@ -67,8 +67,11 @@ export function checkCatalog(catalog: Catalog | string, file?: string): string[]
       const keys = new Set((own.get(name) ?? []).flatMap((part) => (part.kind === "select" ? part.forms.map(([k]) => k) : [])));
       for (const part of parts) {
         if (part.kind !== "select") continue;
-        const other = part.forms.map(([k]) => k).filter((k) => !keys.has(k));
+        const given = new Set(part.forms.map(([k]) => k));
+        const other = [...given].filter((k) => !keys.has(k));
+        const missing = [...keys].filter((k) => !given.has(k));
         if (other.length) problems.push(`${where}: the choice {${part.arg}} has the form(s) ${other.join(", ")}, which the message does not`);
+        if (missing.length) problems.push(`${where}: the choice {${part.arg}} leaves out the form(s) ${missing.join(", ")}`);
       }
     }
   }

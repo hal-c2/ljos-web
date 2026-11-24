@@ -66,7 +66,9 @@ Item {
         width: line.width
         height: sayText.height + 4
 
+        // On the side the words start from, as they are.
         Rectangle {
+            x: Q.LayoutMirroring.enabled ? sayRow.width - width : 0
             y: 7
             width: 6
             height: 6
@@ -190,8 +192,9 @@ Item {
         height: eventText.height + 6
 
         Rectangle {
+            x: Q.LayoutMirroring.enabled ? eventRow.width - width : 0
             width: 2
-            height: parent.height
+            height: eventRow.height
             radius: 1
             fill: Theme.link
         }

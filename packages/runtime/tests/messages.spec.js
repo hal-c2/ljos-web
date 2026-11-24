@@ -508,6 +508,14 @@ test.describe("a site in many languages", () => {
     expect(await check(po("ja", [[files, "{0, plural, one {# ファイル} other {# ファイル}}"]]), "ja.po")).toEqual([
       expect.stringMatching(/the count \{0\} has the form\(s\) one, which ja does not use$/u),
     ]);
+    // A choice keeps every form its message has, and no other.
+    const state = "{state, select, open {Open} closed {Closed} other {Unknown}}";
+    expect(await check(po("de", [[state, "{state, select, open {Offen} other {Unbekannt}}"]]), "de.po")).toEqual([
+      expect.stringMatching(/the choice \{state\} leaves out the form\(s\) closed$/u),
+    ]);
+    expect(await check(po("de", [[state, "{state, select, open {Offen} closed {Zu} shut {Zu} other {Unbekannt}}"]]), "de.po")).toEqual([
+      expect.stringMatching(/the choice \{state\} has the form\(s\) shut, which the message does not$/u),
+    ]);
     // An id is not its message: what the message names is not known, so
     // only how the translation reads is checked.
     const ided = (id, str) => `msgid ""\nmsgstr ""\n"Language: fr\\n"\n\n#. js-lingui-explicit-id\nmsgid ${JSON.stringify(id)}\nmsgstr ${JSON.stringify(str)}\n`;
@@ -520,7 +528,7 @@ test.describe("a site in many languages", () => {
   // none runs the way it is written.
   test("a text runs the way it is written, or the UI's way where it is the UI's", async ({ page }) => {
     await shown(page, {
-      "Main.qml": 'import QtQuick\nColumn {\n  Text { text: "Katrín S." }\n  Text { text: "ملف واحد." }\n  Text { text: "Ljós هي حزمة." }\n}\n',
+      "Main.qml": 'import QtQuick\nColumn {\n  Text { text: "Katrín S." }\n  Text { text: "ملف واحد." }\n  Text { text: "Ljós هي حزمة." }\n  Text { text: "Order ١." }\n}\n',
     });
     await language(page, "ar");
     await page.evaluate(() => (document.documentElement.dir = "rtl"));
@@ -541,6 +549,9 @@ test.describe("a site in many languages", () => {
     expect(await ends("Katrín S.")).toBe(1);
     expect(await ends("ملف واحد.")).toBe(-1);
     expect(await ends("Ljós هي حزمة.")).toBe(-1);
+    // An Arabic digit is no Arabic letter: an English text that has one
+    // runs the way it is written.
+    expect(await ends("Order ١.")).toBe(1);
     await language(page, "en");
     await page.evaluate(() => (document.documentElement.dir = "ltr"));
     expect(await ends("Ljós هي حزمة.")).toBe(1);

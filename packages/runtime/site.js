@@ -793,7 +793,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     // bundle written in a language it names, though it has no catalogue,
     // is read in that language all the same (its direction too).
     const catalogs = manifest.files.map(({ path }) => /^i18n\/([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*)\.po$/u.exec(path)?.[1]).filter(Boolean).sort();
-    if (catalogs.length || languages.source !== undefined) {
+    const languagesStarted = catalogs.length > 0 || languages.source !== undefined;
+    if (languagesStarted) {
       if (catalogs.includes(source)) throw new SiteError(`i18n/${source}.po is a catalogue of the language the bundle is written in (languages.source); a source has no translations`);
       const loaders = catalogs.map((tag) => `    ${JSON.stringify(tag)}: () => import(${JSON.stringify(`${join(dir, "i18n", `${tag}.po`)}?raw`)}).then((it) => it.default),`).join("\n");
       writeFileSync(
@@ -940,7 +941,13 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     // The same entry made where there is no browser: a server bundle of
     // the entry over this runtime, rendered in a Node process of its own
     // into the page the client build wrote.
-    if (prerender) writeFileSync(join(stage, "server-entry.js"), SERVER);
+    // The render lays the page out in the language it is written in, as
+    // the client starts in it before taking the page over: a source read
+    // from right to left is then mirrored in what is written, not only
+    // once the page is taken over. Setting it is a signal's write, with no
+    // document needed, so it is safe before the render installs its own.
+    const serverEntry = languagesStarted ? `import { startInSource } from "ljos-site:languages";\n\nstartInSource(${JSON.stringify(source)});\n\n${SERVER}` : SERVER;
+    if (prerender) writeFileSync(join(stage, "server-entry.js"), serverEntry);
     const server = prerender
       ? timed("server", () =>
           build({

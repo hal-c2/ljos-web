@@ -310,8 +310,12 @@ export function inspect(root) {
           element.dispatchEvent(new MouseEvent("mousemove", { ...pointer, buttons: 0 }));
           element.dispatchEvent(new PointerEvent("pointerdown", pressed));
           element.dispatchEvent(new MouseEvent("mousedown", pressed));
-          // What the press took is where the release goes, as a real one is.
-          const up = document.elementFromPoint(clientX, clientY) ?? element;
+          // What the press took is where the release goes, as a real one is;
+          // but when the press closed what was over the point and left the
+          // page there, the release stays with the pressed element, so a
+          // driven click never lands outside the root.
+          const hit = document.elementFromPoint(clientX, clientY);
+          const up = ours(hit) ? hit : element;
           up.dispatchEvent(new PointerEvent("pointerup", released));
           up.dispatchEvent(new MouseEvent("mouseup", released));
           up.dispatchEvent(new MouseEvent("click", released));

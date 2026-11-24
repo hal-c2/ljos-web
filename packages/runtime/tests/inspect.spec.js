@@ -146,6 +146,40 @@ test("a click asked of a root never goes to what the page draws over it", async 
   expect(await ask(page, () => window.inspector.read("hit", ["hits"]))).toEqual({ hits: 0 });
 });
 
+// A press that closes the popup it lands on leaves under the point what
+// was beneath it; when that is the page's, not the root's, the release
+// stays with what was pressed, so a driven click reaches nothing outside
+// the root.
+test("a click whose press closes a popup releases on what it pressed, never on the page beneath", async ({ page }) => {
+  await opened(page, "inspectdriven");
+  await ask(page, () => window.inspector.find("closer").open());
+  await expect.poll(() => ask(page, () => window.inspector.read("closer", ["visible"]).visible)).toBe(true);
+  await ask(page, () => {
+    const box = window.inspector.find("app").$node.getBoundingClientRect();
+    const cover = document.createElement("div");
+    cover.id = "beneath";
+    cover.dataset.clicks = "0";
+    cover.addEventListener("click", () => (cover.dataset.clicks = String(Number(cover.dataset.clicks) + 1)));
+    // Over the root, under the popup: just before the popup's layer, in
+    // the part of the page that holds the root too, and outside the root.
+    const app = window.inspector.find("app").$node;
+    let layer = window.inspector.find("closer").$item.$node;
+    while (layer.parentElement && !layer.parentElement.contains(app)) layer = layer.parentElement;
+    Object.assign(cover.style, { position: "fixed", left: `${box.left + 100}px`, top: `${box.top + 100}px`, width: "50px", height: "50px" });
+    layer.before(cover);
+  });
+  const hitAt = () => ask(page, () => {
+    const box = window.inspector.find("app").$node.getBoundingClientRect();
+    return document.elementFromPoint(box.left + 125, box.top + 125)?.id === "beneath";
+  });
+  expect(await ask(page, () => window.inspector.find("app").$node.contains(document.getElementById("beneath"))), "the page's part is not the root's").toBe(false);
+  expect(await hitAt(), "the popup is over the page's part").toBe(false);
+  expect(await ask(page, () => window.inspect(window.inspector.find("app")).click({ at: [125, 125] }))).toEqual({ at: [125, 125] });
+  await expect.poll(() => ask(page, () => window.inspector.read("closer", ["visible"]).visible)).toBe(false);
+  expect(await hitAt(), "the page's part is under the point once the popup is closed").toBe(true);
+  expect(await ask(page, () => document.getElementById("beneath").dataset.clicks)).toBe("0");
+});
+
 test("the outline is the object tree: types, ids, objectNames, children in order", async ({ page }) => {
   await opened(page, "inspected");
   // What qml6 lists as the root's `data`: the Timer first, then the

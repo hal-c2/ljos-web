@@ -94,7 +94,7 @@ export async function startLanguages({ catalogs, source = "en", key = "ljos-site
   try {
     asked = new URL(globalThis.location.href).searchParams.get("lang") ?? "";
   } catch {
-    asked = "";
+    // A page with no address of its own names none.
   }
   const picked =
     bestLanguage([asked].filter(Boolean), languages) ||
