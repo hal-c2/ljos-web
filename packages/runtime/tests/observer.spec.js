@@ -294,6 +294,30 @@ test("an object under a page's fixed header is clicked, not the header, and the 
   expect(await page.evaluate(() => [window.scrollX, window.scrollY])).toEqual(scrolled);
 });
 
+test("an object a Flickable has scrolled out of its view is clicked where it is brought in, and the Flickable stays where it was", async ({ page }) => {
+  await opened(page, "inspectflicked");
+  await page.setViewportSize({ width: 400, height: 300 });
+  const stood = () => page.evaluate(() => [window.objects.list.contentY, window.scrollX, window.scrollY]);
+  const counts = () => page.evaluate(() => [window.objects.app.near, window.objects.app.far, window.objects.app.under]);
+  // Its centre, [200, 170], is on the root but below the Flickable, over
+  // what is under it: the click goes where the Flickable brings it, at the
+  // middle of its view.
+  const near = await call(page, "app_click", { target: "id=near" });
+  expect(near.ok).toBe(true);
+  expect(near.result.structuredContent.at).toEqual([200, 50]);
+  expect(await counts()).toEqual([1, 0, 0]);
+  // Its centre, [200, 370], is past the root's edge until it is brought in,
+  // as far as the Flickable scrolls: its content ends 10 px below it.
+  const far = await call(page, "app_click", { target: "id=far" });
+  expect(far.ok).toBe(true);
+  expect(far.result.structuredContent.at).toEqual([200, 70]);
+  expect(await counts()).toEqual([1, 1, 0]);
+  // Put back before a frame shows it, and still there once the scrolls
+  // have been heard.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  expect(await stood()).toEqual([0, 0, 0]);
+});
+
 test("a locator finds what is shown, by text, name, id or role, and its ref is a target", async ({ page }) => {
   await opened(page);
   const byText = (await call(page, "app_find", { locator: "text=N=0" })).result;
