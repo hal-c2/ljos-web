@@ -116,9 +116,12 @@ export async function startLanguages({ catalogs, source = "en", key = "ljos-site
     keep(key, tag);
   });
   mark(source);
-  await Promise.all([picked === source ? undefined : loadCatalogs(picked), Promise.resolve(after).catch(() => undefined)]);
+  const [shown] = await Promise.all([picked === source || loadCatalogs(picked), Promise.resolve(after).catch(() => undefined)]);
   starting = false;
   if (readers) return readers;
+  // A catalogue that could not be had, which was said, leaves the page as
+  // it was written, and the language unkept: the next page asks again.
+  if (!shown) return source;
   ours = true;
   try {
     App.language = picked;

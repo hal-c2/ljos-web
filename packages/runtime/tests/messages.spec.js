@@ -428,10 +428,11 @@ test.describe("a site in many languages", () => {
   test("a catalogue loaded before the language is set is there at once", async ({ page }) => {
     await page.route("**/i18n/de.po", (route) => route.fulfill({ body: DE_PO }));
     await shown(page, { "Main.qml": qml("property string open: t`Open`") });
-    await page.evaluate(async () => {
+    const loaded = await page.evaluate(async () => {
       window.messages.catalogSources({ de: "/i18n/de.po" });
-      await window.messages.loadCatalogs("de");
+      return window.messages.loadCatalogs("de-AT");
     });
+    expect(loaded, "the language has a catalogue in").toBe(true);
     await language(page, "de");
     expect(await read(page, "open")).toBe("Öffnen");
   });
@@ -441,10 +442,11 @@ test.describe("a site in many languages", () => {
     test("a catalogue that cannot be fetched leaves the source text and is said", async ({ page }) => {
       await page.route("**/i18n/de.po", (route) => route.fulfill({ status: 404, body: "" }));
       await shown(page, { "Main.qml": qml("property string open: t`Open`") });
-      await page.evaluate(async () => {
+      const loaded = await page.evaluate(async () => {
         window.messages.catalogSources({ de: "/i18n/de.po" });
-        await window.messages.loadCatalogs("de");
+        return window.messages.loadCatalogs("de");
       });
+      expect(loaded, "the language has no catalogue in").toBe(false);
       await language(page, "de");
       expect(await read(page, "open")).toBe("Open");
     });

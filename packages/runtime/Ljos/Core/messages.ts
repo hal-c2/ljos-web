@@ -784,10 +784,12 @@ function load(name: string): Promise<void> {
 /**
  * Fetches and installs the catalogues `language` is looked up in (its
  * fallback chain, `pt-BR` then `pt`) that {@link catalogSources} named and
- * that are not in yet. Resolves when each is in, or has failed and been said.
+ * that are not in yet. Resolves when each is in, or has failed and been said,
+ * with whether `language` has a catalogue in.
  */
-export function loadCatalogs(language: string = Qt.uiLanguage): Promise<void> {
-  return Promise.all(fallbacks(language).map(load)).then(() => undefined);
+export function loadCatalogs(language: string = Qt.uiLanguage): Promise<boolean> {
+  const names = fallbacks(language);
+  return Promise.all(names.map(load)).then(() => installed.some((it) => names.includes(it.name)));
 }
 
 /**
