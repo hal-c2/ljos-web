@@ -119,8 +119,8 @@ Column {
                 width: ownShell.exampleWidth
                 scroller: landing.scroller
                 lang: "qml"
-                code: LandingCode.ownShell.code
-                rich: LandingCode.ownShell.rich
+                code: LandingCode.ownShellCode
+                rich: LandingCode.ownShellRich
             }
             // What to do with the playground under the section.
             Text {

@@ -14,7 +14,7 @@ Column {
     // says), so a phone never lays out the wide page first and then again.
     property bool wide: Place.wideIn(parent)
     // What the page scrolls in (PageView sets it once loaded).
-    property var scroller: null
+    property Flickable scroller
 
     width: parent !== null ? parent.width : 680
     spacing: showcase.wide ? Theme.xxxl + Theme.l : Theme.xxl
