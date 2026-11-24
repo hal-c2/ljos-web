@@ -1,0 +1,36 @@
+// An app or tool made with Ljós, as Site/BuiltWith.qml shows it: its
+// card's words, where its source is, and its capture.
+export interface Made {
+  readonly name: string;
+  readonly title: string;
+  readonly href: string;
+  readonly body: string;
+  readonly picture: string;
+  // "" where the capture has no dark one.
+  readonly pictureDark: string;
+  readonly alt: string;
+}
+
+// Those `names` asks for, in its order; a name none has is left out.
+export function pick(all: readonly Made[], names: readonly string[]): Made[] {
+  const picked: Made[] = [];
+  for (const name of names) {
+    for (const one of all) {
+      if (one.name === name) picked.push(one);
+    }
+  }
+  return picked;
+}
+
+// The heights of `count` cards, with the one at `at` now `height`; a card
+// that has not said yet is 0.
+export function withHeight(heights: readonly number[], count: number, at: number, height: number): number[] {
+  const next: number[] = [];
+  for (let i = 0; i < count; ++i) next.push(i === at ? height : heights[i] ?? 0);
+  return next;
+}
+
+// The tallest of the heights given, 0 for none.
+export function tallest(heights: readonly number[]): number {
+  return heights.reduce((most, one) => Math.max(most, one), 0);
+}

@@ -6,3 +6,5 @@ export declare function anchor(address: string, label: string, underline: boolea
 export declare function escape(text: string): string;
 export declare function fromPage(route: string, href: string): string;
 export declare function inBrowser(): boolean;
+// A capture as rich text: `href` from the site's root, without its extension.
+export declare function capture(route: string, href: string, width: number, height: number, alt: string): string;

@@ -1,8 +1,8 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
-// both have stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
+import "logic/made.ts" as Made
 
 // Apps and tools built with Ljós, a card each: a capture of it running
 // (bundle/assets/built-*, served from /pictures/), what it is in a line
@@ -13,14 +13,15 @@ Grid {
     id: built
 
     // Which to show, by name, in this order.
-    property var names: ["studio", "eldur", "hof"]
+    property list<string> names: ["studio", "eldur", "hof"]
     property bool wide: true
     // The page's route, which the pictures' addresses are written from.
     property string route: "/"
     signal followed(string href)
 
-    readonly property var all: ({
-        studio: {
+    readonly property list<Made.Made> all: [
+        {
+            name: "studio",
             title: t`Ljós Studio`,
             href: "https://github.com/hal-c2/ljos-studio",
             body: t`A visual designer where the design is the app’s own QML. A change on the canvas leaves the rest of the file as it was, and agents drive Studio through MCP.`,
@@ -28,7 +29,8 @@ Grid {
             pictureDark: "/pictures/built-studio-dark",
             alt: t`Ljós Studio with a rectangle selected on the canvas: the layers on the left, its properties on the right and its QML under the canvas.`
         },
-        eldur: {
+        {
+            name: "eldur",
             title: t`Eldur`,
             href: "https://github.com/hal-c2/eldur",
             body: t`Turns a static HTML, CSS and JavaScript page into a runnable QML app you can read and edit. What it can’t convert, it reports.`,
@@ -36,7 +38,8 @@ Grid {
             pictureDark: "",
             alt: t`A recipe card for red lentil soup, converted from a web page by Eldur and running on Ljós.`
         },
-        hof: {
+        {
+            name: "hof",
             title: t`Ljós Hof`,
             href: "https://github.com/hal-c2/ljos-hof",
             body: t`A terminal for Linux and macOS, with tabs, splits and one small config file. It tells you when an agent in a pane is waiting for you. The <a href="/showcase/">showcase</a> shows it running.`,
@@ -44,18 +47,16 @@ Grid {
             pictureDark: "/pictures/built-hof-dark",
             alt: t`Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right.`
         }
-    })
-    readonly property var shown: names.map((name) => all[name])
+    ]
+    readonly property list<Made.Made> shown: Made.pick(all, names)
+    // Each card's height as it reports it, by its index: cards side by
+    // side share the tallest one's.
+    property list<real> heights: []
+    readonly property real tallest: Made.tallest(heights)
     readonly property int cardWidth: Math.floor((width - (columns - 1) * columnSpacing) / columns)
-    // Cards side by side share the tallest one's height.
-    readonly property real tallest: {
-        var most = 0;
-        for (var i = 0; i < cards.count; ++i) {
-            var card = cards.itemAt(i);
-            if (card)
-                most = Math.max(most, card.contentHeight);
-        }
-        return most;
+
+    function report(at: int, height: real): void {
+        heights = Made.withHeight(heights, shown.length, at, height);
     }
 
     columns: wide ? Math.min(3, shown.length) : 1
@@ -63,10 +64,10 @@ Grid {
     rowSpacing: Theme.l
 
     Repeater {
-        id: cards
         model: built.shown
         FeatureCard {
-            required property var modelData
+            required property Made.Made modelData
+            required property int index
             width: built.cardWidth
             height: built.columns > 1 ? built.tallest : contentHeight
             title: modelData.title
@@ -77,6 +78,8 @@ Grid {
             pictureAlt: modelData.alt
             route: built.route
             onFollowed: (link) => built.followed(link)
+            onContentHeightChanged: built.report(index, contentHeight)
+            Component.onCompleted: built.report(index, contentHeight)
         }
     }
 }

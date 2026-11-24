@@ -113,7 +113,7 @@ Item {
             width: parent.width
             height: visible ? Math.round(width * card.pictureAspect) + 2 : 0
             radius: Theme.brackets ? 0 : Theme.radius
-            color: Theme.canvas
+            fill: Theme.canvas
             border.color: Theme.divider
             border.width: 1
             clip: true
@@ -128,7 +128,7 @@ Item {
                     width: parent.width - 2
                     height: parent.height - 2
                     visible: card.pictureDark === "" || (index === 1) === Theme.dark
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     text: Nav.capture(card.route, modelData, width, height, card.pictureAlt)
                 }
             }
