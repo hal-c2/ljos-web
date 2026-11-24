@@ -30,3 +30,5 @@ showcase.awaited = true;
 function proDemo() { return import("./ProDemoPage.qml"); }
 proDemo.awaited = true;
 function liveSource() { return import("./LiveSource.qml"); }
+// What the search found: no page is written with a query typed.
+function searchResults() { return import("./SearchResults.qml"); }

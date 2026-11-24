@@ -98,6 +98,13 @@ test("no page's first load holds the Observer's dock", () => {
   expect([...later].some((file) => named(file, "ObserverDock-")), "an ObserverDock-* chunk the first Observer fetches").toBe(true);
 });
 
+// What the search found is drawn once a reader types (Site/Search.qml):
+// no page is written with a query.
+test("no page's first load holds the search's results", () => {
+  expect(reaching(["SearchResults-"])).toEqual({});
+  expect([...later].some((file) => named(file, "SearchResults-")), "a SearchResults-* chunk the first query fetches").toBe(true);
+});
+
 // The showcase is a module of its own (bundle/Site/later.js), with its
 // apps' data: no other page's first load holds it. The showcase is
 // written with it and asks for it as it is taken over, so it is counted
