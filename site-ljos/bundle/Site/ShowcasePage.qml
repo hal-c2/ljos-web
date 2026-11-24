@@ -72,11 +72,11 @@ Column {
             text: t`Tools built with Ljós`
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: showcase.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.size: showcase.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: showcase.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }

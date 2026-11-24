@@ -250,14 +250,14 @@ Column {
             }
             Text {
                 width: Math.min(parent.width, Theme.measure)
-                textFormat: Text.RichText
+                format: Text.RichText
                 color: Theme.textMuted
                 linkColor: Theme.link
                 font.family: Theme.sans
-                font.pixelSize: Theme.bodySize
+                font.size: Theme.bodySize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.bodyLine
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
                 text: Nav.linked(Content.base, t`Apps and tools made with Ljós, all public on GitHub. The <a href="/showcase/">showcase</a> has a recording of Hof and pictures of Studio and Eldur.`)
                 onLinkActivated: (link) => landing.follow(link)
             }
