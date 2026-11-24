@@ -1,5 +1,6 @@
-import QtQuick
+import Ljos.Ui
 import Ljos.Core
+import Ljos.Layout
 import Ljos.Blocks
 import Ljos.Controls as C
 
@@ -20,8 +21,8 @@ Rectangle {
     id: shell
     objectName: "workbenchShell"
 
-    property var site: null
-    readonly property var router: site ? site.router : null
+    property unknown site: null
+    readonly property unknown router: site ? site.router : null
     readonly property bool wide: site ? site.preferences.wide : width >= 1000
     readonly property bool menuOpen: site ? site.menuOpen && !wide : false
     readonly property bool calm: site ? site.preferences.calm : false
@@ -29,9 +30,9 @@ Rectangle {
     // A page other than the docs is this wide at most here.
     readonly property int pageWidest: 960
 
-    readonly property var opened: site ? site.opened : [route]
-    readonly property var problems: site ? site.problems : []
-    readonly property var calls: site ? site.calls : []
+    readonly property unknown opened: site ? site.opened : [route]
+    readonly property unknown problems: site ? site.problems : []
+    readonly property unknown calls: site ? site.calls : []
     readonly property int alive: site ? site.alive : 0
     readonly property string renderer: site ? site.renderer : ""
     readonly property int hydratedMs: site ? site.hydratedIn : -1
@@ -45,7 +46,7 @@ Rectangle {
     property int view: 1
     // The folders the reader opened or shut, by name; the others are as
     // they start (`opens`).
-    property var folded: ({})
+    property unknown folded: ({})
 
     function isOpen(folder, start) {
         return shell.folded[folder] !== undefined ? !shell.folded[folder] : start;
@@ -68,7 +69,7 @@ Rectangle {
     // of this file makes it again, as coming back to it does. Put back
     // once the site is had, after the route it brings has moved the
     // view, and kept from then on.
-    readonly property var arranged: ({ explorerOpen: shell.explorerOpen, inspectorOpen: shell.inspectorOpen, panelShown: shell.panelShown, view: shell.view, folded: shell.folded, route: shell.route })
+    readonly property unknown arranged: ({ explorerOpen: shell.explorerOpen, inspectorOpen: shell.inspectorOpen, panelShown: shell.panelShown, view: shell.view, folded: shell.folded, route: shell.route })
     property bool restored: false
     onArrangedChanged: if (site && restored) site.keep(objectName, arranged)
     function restore() {
@@ -90,18 +91,18 @@ Rectangle {
         if (!site)
             return;
         site.measureRenderer();
-        Qt.callLater(shell.restore);
+        later(shell.restore);
     }
     Component.onCompleted: {
         if (!site)
             return;
         site.measureRenderer();
-        Qt.callLater(shell.restore);
+        later(shell.restore);
     }
 
-    QtObject {
+    Object {
         id: look
-        readonly property var theme: shell.site ? shell.site.theme : null
+        readonly property unknown theme: shell.site ? shell.site.theme : null
         readonly property color canvas: theme ? theme.canvas : C.Theme.canvas
         readonly property color surface: theme ? theme.surface : C.Theme.surface
         readonly property color raised: theme ? theme.surfaceRaised : C.Theme.surface
@@ -121,7 +122,7 @@ Rectangle {
 
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
-    color: look.canvas
+    fill: look.canvas
 
     // A button of the activity bar or a pane's header: its icon, and what
     // it does in a tip beside it under the pointer.
@@ -133,7 +134,7 @@ Rectangle {
         display: C.Button.IconOnly
         width: 40
         height: 40
-        HoverHandler { id: over }
+        Hover { id: over }
         C.ToolTip {
             visible: over.hovered
             text: tool.tip
@@ -168,7 +169,7 @@ Rectangle {
         Accessible.selected: current
         Accessible.onPressAction: () => entry.press()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 entry.press();
                 event.accepted = true;
             }
@@ -187,7 +188,7 @@ Rectangle {
 
         Rectangle {
             anchors.fill: parent
-            color: entry.current ? look.selected : area.containsMouse ? look.hover : "transparent"
+            fill: entry.current ? look.selected : area.containsMouse ? look.hover : "transparent"
             border.color: entry.activeFocus ? look.focus : "transparent"
             border.width: 1
             Accessible.ignored: true
@@ -207,16 +208,16 @@ Rectangle {
             text: entry.label
             color: look.text
             font.family: entry.folder ? look.sans : look.mono
-            font.pixelSize: look.ui
+            font.size: look.ui
             font.weight: entry.folder ? Font.DemiBold : Font.Normal
             elide: Text.ElideRight
             Accessible.ignored: true
         }
-        MouseArea {
+        PointerArea {
             id: area
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.PointingHand
             Accessible.ignored: true
             onClicked: entry.press()
         }
@@ -238,14 +239,14 @@ Rectangle {
         signal pressed
 
         height: 35
-        color: current ? look.canvas : "transparent"
+        fill: current ? look.canvas : "transparent"
         activeFocusOnTab: true
         Accessible.role: Accessible.PageTab
         Accessible.name: label
         Accessible.selected: current
         Accessible.onPressAction: () => tab.pressed()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 tab.pressed();
                 event.accepted = true;
             }
@@ -255,12 +256,12 @@ Rectangle {
             visible: tab.current
             width: parent.width
             height: 2
-            color: look.accent
+            fill: look.accent
             Accessible.ignored: true
         }
         Rectangle {
             anchors.fill: parent
-            color: "transparent"
+            fill: "transparent"
             border.color: tab.activeFocus ? look.focus : "transparent"
             border.width: 1
             Accessible.ignored: true
@@ -280,16 +281,16 @@ Rectangle {
             x: tab.stacked ? 4 : mark.visible ? 32 : 12
             y: tab.stacked ? mark.y + mark.height + 4 : (parent.height - height) / 2
             width: tab.stacked ? parent.width - 8 : parent.width - x - (tab.closable ? 32 : 12)
-            horizontalAlignment: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
+            align: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
             text: tab.label
             color: tab.current ? look.text : look.muted
             font.family: tab.mono ? look.mono : look.sans
-            font.pixelSize: look.ui
+            font.size: look.ui
             elide: Text.ElideMiddle
         }
-        MouseArea {
+        PointerArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.PointingHand
             Accessible.ignored: true
             onClicked: tab.pressed()
         }
@@ -301,7 +302,7 @@ Rectangle {
         z: 3
         width: parent.width
         height: shell.wide ? 40 : 56
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.Section
         Accessible.name: "Ljós"
 
@@ -309,7 +310,7 @@ Rectangle {
             y: parent.height - 1
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         Row {
             x: shell.wide ? 12 : 16
@@ -317,17 +318,17 @@ Rectangle {
             spacing: 14
 
             Row {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: shell.wide ? "site.brand.small" : "site.brand" }
             }
             Text {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 width: Math.max(0, titleBar.width - 620)
                 text: shell.router ? shell.router.fileOf(shell.route) : ""
                 color: look.muted
                 font.family: look.mono
-                font.pixelSize: look.ui
+                font.size: look.ui
                 elide: Text.ElideMiddle
             }
         }
@@ -340,18 +341,18 @@ Rectangle {
                 visible: shell.wide
                 width: 280
                 height: 30
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.search" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.github" }
             }
             // A phone's one control: the menu.
             Row {
                 visible: !shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.menu" }
             }
         }
@@ -366,7 +367,7 @@ Rectangle {
         y: titleBar.height
         width: shell.wide ? 48 : 0
         height: statusBar.y - y
-        color: look.surface
+        fill: look.surface
         // A landmark round its toolbar: what is in the page is in one.
         Accessible.role: Accessible.Section
         Accessible.name: t`Activity`
@@ -406,7 +407,7 @@ Rectangle {
                 Item {
                     width: 40
                     height: 40
-                    HoverHandler { id: overSwitcher }
+                    Hover { id: overSwitcher }
                     Row {
                         anchors.centerIn: parent
                         Slot { name: "site.switcher.compact" }
@@ -427,7 +428,7 @@ Rectangle {
 
                     C.Popover {
                         id: looks
-                        edge: Qt.RightEdge
+                        edge: Edge.Right
                         padding: 8
                         contentItem: Row {
                             Slot { name: "site.preferences" }
@@ -440,7 +441,7 @@ Rectangle {
             x: parent.width - 1
             width: 1
             height: parent.height
-            color: look.divider
+            fill: look.divider
         }
     }
 
@@ -453,7 +454,7 @@ Rectangle {
         y: titleBar.height
         width: !shown ? 0 : shell.wide ? 240 : shell.width
         height: (shell.wide ? statusBar.y : views.y) - y
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.ComplementaryContent
         Accessible.name: t`Explorer`
 
@@ -464,7 +465,7 @@ Rectangle {
             text: t`Workspace: ljos.dev`
             color: look.muted
             font.family: look.sans
-            font.pixelSize: 11
+            font.size: 11
             font.weight: Font.DemiBold
             font.letterSpacing: 0.4
         }
@@ -498,7 +499,7 @@ Rectangle {
                         { file: "Desktop", name: "desktop" }
                     ] : []
                     Entry {
-                        required property var modelData
+                        required property unknown modelData
                         depth: 1
                         icon: "code"
                         label: [modelData.file, "qml"].join(".")
@@ -517,7 +518,7 @@ Rectangle {
                 Repeater {
                     model: siteFolder.open ? ["/", "/demos/", "/showcase/"] : []
                     Entry {
-                        required property var modelData
+                        required property unknown modelData
                         depth: 1
                         icon: "code"
                         label: shell.router ? shell.router.fileOf(modelData) : ""
@@ -535,7 +536,7 @@ Rectangle {
                 Repeater {
                     model: demosFolder.open && shell.router ? shell.router.demos : []
                     Entry {
-                        required property var modelData
+                        required property unknown modelData
                         depth: 1
                         icon: "code"
                         label: modelData.app
@@ -547,7 +548,7 @@ Rectangle {
                     model: shell.router ? shell.router.docs : []
                     Column {
                         id: section
-                        required property var modelData
+                        required property unknown modelData
                         readonly property string folderName: modelData.label + "/"
                         // A section starts shut unless the page shown is in it.
                         readonly property bool open: shell.isOpen(folderName, modelData.pages.some((one) => one.route === shell.route))
@@ -562,7 +563,7 @@ Rectangle {
                         Repeater {
                             model: section.open ? section.modelData.pages : []
                             Entry {
-                                required property var modelData
+                                required property unknown modelData
                                 depth: 1
                                 icon: "file-text"
                                 label: shell.router ? shell.router.fileOf(modelData.route) : ""
@@ -579,7 +580,7 @@ Rectangle {
             x: parent.width - 1
             width: 1
             height: parent.height
-            color: look.divider
+            fill: look.divider
         }
     }
 
@@ -599,7 +600,7 @@ Rectangle {
             visible: shell.wide
             width: parent.width
             height: shell.wide ? 35 : 0
-            color: look.surface
+            fill: look.surface
             // A landmark of its own beside the page's main one.
             Accessible.role: Accessible.Section
             Accessible.name: t`Editor`
@@ -623,7 +624,7 @@ Rectangle {
                         Repeater {
                             model: shell.opened
                             Tab {
-                                required property var modelData
+                                required property unknown modelData
                                 width: 176
                                 mono: true
                                 closable: shell.opened.length > 1
@@ -640,7 +641,7 @@ Rectangle {
                         model: shell.opened.length > 1 ? shell.opened : []
                         C.Button {
                             required property int index
-                            required property var modelData
+                            required property unknown modelData
                             x: index * 176 + 176 - width - 4
                             y: (35 - height) / 2
                             width: 26
@@ -668,7 +669,7 @@ Rectangle {
                 y: parent.height - 1
                 width: parent.width
                 height: 1
-                color: look.divider
+                fill: look.divider
             }
         }
         Item {
@@ -689,7 +690,7 @@ Rectangle {
         y: titleBar.height
         width: !shown ? 0 : shell.wide ? Math.round(Math.min(420, Math.max(340, shell.width * 0.25))) : shell.width
         height: (shell.wide ? statusBar.y : views.y) - y
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.ComplementaryContent
         Accessible.name: t`Inspector`
 
@@ -697,7 +698,7 @@ Rectangle {
             visible: shell.wide
             width: 1
             height: parent.height
-            color: look.divider
+            fill: look.divider
         }
         // Its one view, named as a tab would be, at a tab's height.
         Item {
@@ -711,7 +712,7 @@ Rectangle {
                 text: t({ message: "Source", context: "panel" })
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: 12
+                font.size: 12
                 font.weight: Font.DemiBold
                 font.capitalization: Font.AllUppercase
                 font.letterSpacing: 0.6
@@ -723,7 +724,7 @@ Rectangle {
                 y: parent.height - 1
                 width: inspector.width - 1
                 height: 1
-                color: look.divider
+                fill: look.divider
             }
         }
         Tool {
@@ -757,14 +758,14 @@ Rectangle {
         y: shell.wide ? statusBar.y - height : titleBar.height
         width: shell.wide ? centre.width : shell.width
         height: shell.wide ? Math.min(180, Math.round(shell.height * 0.24)) : views.y - y
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.Section
         Accessible.name: t`Bottom panel`
 
         Rectangle {
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         Row {
             id: panelTabs
@@ -776,7 +777,7 @@ Rectangle {
             Repeater {
                 model: [t`Problems`, t`MCP log`, t`Output`]
                 Tab {
-                    required property var modelData
+                    required property unknown modelData
                     required property int index
                     // Its width as its words are, so each sits snug.
                     width: wordsWidth + 24
@@ -804,8 +805,8 @@ Rectangle {
                     text: t`No compiler or lint diagnostics in the open file.`
                     color: look.muted
                     font.family: look.sans
-                    font.pixelSize: look.ui
-                    wrapMode: Text.Wrap
+                    font.size: look.ui
+                    wrap: Text.Wrap
                 }
                 Flickable {
                     visible: shell.problems.length > 0
@@ -824,7 +825,7 @@ Rectangle {
                         Repeater {
                             model: shell.problems
                             Item {
-                                required property var modelData
+                                required property unknown modelData
                                 width: problemList.width
                                 height: Math.max(22, said.implicitHeight + 4)
                                 Accessible.role: Accessible.ListItem
@@ -845,8 +846,8 @@ Rectangle {
                                     text: modelData.text
                                     color: look.text
                                     font.family: look.mono
-                                    font.pixelSize: 12
-                                    wrapMode: Text.Wrap
+                                    font.size: 12
+                                    wrap: Text.Wrap
                                     Accessible.ignored: true
                                 }
                             }
@@ -864,8 +865,8 @@ Rectangle {
                     text: t`Recorded MCP calls appear here as you step the agent replay.`
                     color: look.muted
                     font.family: look.sans
-                    font.pixelSize: look.ui
-                    wrapMode: Text.Wrap
+                    font.size: look.ui
+                    wrap: Text.Wrap
                 }
                 Flickable {
                     visible: shell.calls.length > 0
@@ -885,13 +886,13 @@ Rectangle {
                         Repeater {
                             model: shell.calls
                             Text {
-                                required property var modelData
+                                required property unknown modelData
                                 width: callList.width
                                 text: `${modelData.tool}(${modelData.args}) → ${modelData.said}`
                                 color: look.text
                                 font.family: look.mono
-                                font.pixelSize: 12
-                                wrapMode: Text.Wrap
+                                font.size: 12
+                                wrap: Text.Wrap
                                 Accessible.role: Accessible.ListItem
                                 Accessible.name: text
                             }
@@ -919,20 +920,20 @@ Rectangle {
                     text: t`Hydrated in ${shell.hydratedMs} ms`
                     color: look.text
                     font.family: look.mono
-                    font.pixelSize: 12
+                    font.size: 12
                 }
                 Text {
                     visible: shell.renderer !== ""
                     text: t`Renderer: ${shell.renderer}`
                     color: look.text
                     font.family: look.mono
-                    font.pixelSize: 12
+                    font.size: 12
                 }
                 Text {
                     text: t`Objects: ${shell.alive}`
                     color: look.text
                     font.family: look.mono
-                    font.pixelSize: 12
+                    font.size: 12
                 }
             }
         }
@@ -945,12 +946,12 @@ Rectangle {
         y: shell.wide ? shell.height : shell.height - height
         width: parent.width
         height: shell.wide ? 0 : 56
-        color: look.surface
+        fill: look.surface
 
         Rectangle {
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         Row {
             y: 1
@@ -965,7 +966,7 @@ Rectangle {
                     { label: t`Problems`, icon: "circle-alert" }
                 ]
                 Tab {
-                    required property var modelData
+                    required property unknown modelData
                     required property int index
                     width: Math.floor(views.width / 4)
                     height: 55
@@ -992,14 +993,14 @@ Rectangle {
         y: shell.wide ? shell.height - height : shell.height
         width: parent.width
         height: shell.wide ? 24 : 0
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.StatusBar
         Accessible.name: t`Status bar`
 
         Rectangle {
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         Row {
             x: 12
@@ -1010,19 +1011,19 @@ Rectangle {
                 text: t`Shell: Workbench`
                 color: look.text
                 font.family: look.sans
-                font.pixelSize: look.ui
+                font.size: look.ui
             }
             Text {
                 text: t`Route: ${shell.route}`
                 color: look.muted
                 font.family: look.mono
-                font.pixelSize: look.ui
+                font.size: look.ui
             }
             Text {
                 text: t`Diagnostics: ${shell.problems.length}`
                 color: shell.problems.length > 0 ? look.danger : look.muted
                 font.family: look.sans
-                font.pixelSize: look.ui
+                font.size: look.ui
             }
         }
         Row {
@@ -1034,14 +1035,14 @@ Rectangle {
                 text: t`Objects: ${shell.alive}`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: look.ui
+                font.size: look.ui
             }
             Text {
                 visible: shell.renderer !== ""
                 text: t`Renderer: ${shell.renderer}`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: look.ui
+                font.size: look.ui
             }
         }
     }
@@ -1058,7 +1059,7 @@ Rectangle {
         height: parent.height - titleBar.height
         visible: !shell.wide && (shell.menuOpen || opacity > 0)
         opacity: shell.menuOpen ? 1 : 0
-        color: look.canvas
+        fill: look.canvas
         Behavior on opacity {
             NumberAnimation {
                 duration: shell.menuOpen ? 250 : 100
@@ -1102,7 +1103,7 @@ Rectangle {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: look.divider
+                    fill: look.divider
                 }
                 Column {
                     width: parent.width

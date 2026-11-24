@@ -1,5 +1,8 @@
-import QtQuick
+import Ljos.Ui
 import Ljos.Core
+// Ljos.Ui has no `FrameAnimation` yet: it comes from QtQuick, by name.
+import QtQuick as Q
+import Ljos.Layout
 import Ljos.Blocks
 
 // A console for the running site: a rail along the top reads out what
@@ -17,8 +20,8 @@ Rectangle {
     id: shell
     objectName: "cyberpunkShell"
 
-    property var site: null
-    readonly property var router: site ? site.router : null
+    property unknown site: null
+    readonly property unknown router: site ? site.router : null
     readonly property bool wide: site ? site.preferences.wide : width >= 1000
     readonly property bool calm: site ? site.preferences.calm : false
     readonly property string route: router ? router.route : "/"
@@ -37,7 +40,7 @@ Rectangle {
     readonly property string metricsRoute: "/benchmarks/"
     // Where to go, each a channel. The benchmarks are one only once the
     // site has that page (a route it has no name for is not one).
-    readonly property var channels: router === null ? [] : [
+    readonly property unknown channels: router === null ? [] : [
         { label: t`Console`, to: "/", current: route === "/" },
         { label: t`Demos`, to: "/demos/", current: router.demosRoute },
         { label: t`Showcase`, to: "/showcase/", current: router.showcaseRoute }
@@ -48,9 +51,9 @@ Rectangle {
 
     // The colours and faces the site draws in: none of its own before it
     // is given the site.
-    QtObject {
+    Object {
         id: look
-        readonly property var theme: shell.site ? shell.site.theme : null
+        readonly property unknown theme: shell.site ? shell.site.theme : null
         readonly property bool dark: theme ? theme.dark : true
         readonly property color canvas: theme ? theme.canvas : "transparent"
         readonly property color surface: theme ? theme.surface : "transparent"
@@ -89,7 +92,7 @@ Rectangle {
         id: minute
         onTriggered: shell.tick()
     }
-    FrameAnimation {
+    Q.FrameAnimation {
         id: frames
         onTriggered: {
             if (frames.smoothFrameTime > 0)
@@ -112,7 +115,7 @@ Rectangle {
 
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
-    color: look.canvas
+    fill: look.canvas
 
     // One reading of the rails: what it is, muted, and its value in the
     // accent, said to a reader as one line.
@@ -133,7 +136,7 @@ Rectangle {
             text: reading.label
             color: look.muted
             font.family: look.mono
-            font.pixelSize: 12
+            font.size: 12
             lineHeightMode: Text.FixedHeight
             lineHeight: reading.stacked ? 16 : 20
             Accessible.ignored: true
@@ -147,7 +150,7 @@ Rectangle {
             elide: Text.ElideMiddle
             color: look.link
             font.family: look.mono
-            font.pixelSize: 12
+            font.size: 12
             font.weight: Font.DemiBold
             lineHeightMode: Text.FixedHeight
             lineHeight: reading.stacked ? 18 : 20
@@ -179,7 +182,7 @@ Rectangle {
         Accessible.selected: current
         Accessible.onPressAction: () => channel.press()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 channel.press();
                 event.accepted = true;
             }
@@ -195,7 +198,7 @@ Rectangle {
             x: -1
             width: parent.width
             height: parent.height
-            color: "transparent"
+            fill: "transparent"
             border.color: look.accent2
             border.width: 1
             opacity: area.containsMouse ? 0.9 : 0
@@ -205,7 +208,7 @@ Rectangle {
             x: 1
             width: parent.width
             height: parent.height
-            color: "transparent"
+            fill: "transparent"
             border.color: look.accent
             border.width: 1
             opacity: area.containsMouse ? 0.9 : 0
@@ -213,7 +216,7 @@ Rectangle {
         }
         Rectangle {
             anchors.fill: parent
-            color: channel.current ? look.hover : "transparent"
+            fill: channel.current ? look.hover : "transparent"
             border.color: channel.activeFocus ? look.accent : "transparent"
             border.width: 2
             Accessible.ignored: true
@@ -222,7 +225,7 @@ Rectangle {
             visible: channel.current
             width: 2
             height: parent.height
-            color: look.accent
+            fill: look.accent
             Accessible.ignored: true
         }
         Text {
@@ -231,7 +234,7 @@ Rectangle {
             text: String(channel.number).padStart(2, "0")
             color: channel.current ? look.link : look.muted
             font.family: look.mono
-            font.pixelSize: 12
+            font.size: 12
             Accessible.ignored: true
         }
         Text {
@@ -240,15 +243,15 @@ Rectangle {
             text: channel.label
             color: channel.current ? look.link : look.text
             font.family: look.sans
-            font.pixelSize: 15
+            font.size: 15
             font.weight: channel.current ? Font.DemiBold : Font.Normal
             Accessible.ignored: true
         }
-        MouseArea {
+        PointerArea {
             id: area
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.PointingHand
             Accessible.ignored: true
             onClicked: channel.press()
         }
@@ -273,7 +276,7 @@ Rectangle {
         z: 3
         width: parent.width
         height: shell.wide ? shell.hudHeight : 56
-        color: look.canvas
+        fill: look.canvas
         Accessible.role: Accessible.Section
         Accessible.name: "Ljós"
 
@@ -281,7 +284,7 @@ Rectangle {
             y: parent.height - 1
             width: parent.width
             height: 1
-            color: look.accent
+            fill: look.accent
             opacity: 0.55
         }
         Row {
@@ -290,12 +293,12 @@ Rectangle {
             spacing: 28
 
             Row {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.brand" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 spacing: 24
 
                 Reading {
@@ -334,23 +337,23 @@ Rectangle {
 
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.github" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.switcher" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.preferences" }
             }
             // A phone's one control: the menu.
             Row {
                 visible: !shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.menu" }
             }
         }
@@ -364,7 +367,7 @@ Rectangle {
         y: hud.height
         width: shell.railWidth
         height: parent.height - y
-        color: look.canvas
+        fill: look.canvas
         Accessible.role: Accessible.Section
         Accessible.name: t`Sections`
 
@@ -372,7 +375,7 @@ Rectangle {
             x: parent.width - 1
             width: 1
             height: parent.height
-            color: look.divider
+            fill: look.divider
         }
         Column {
             x: 16
@@ -394,7 +397,7 @@ Rectangle {
                 model: shell.channels
 
                 Channel {
-                    required property var modelData
+                    required property unknown modelData
                     required property int index
                     number: index + 1
                     label: modelData.label
@@ -409,7 +412,7 @@ Rectangle {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: look.divider
+                fill: look.divider
             }
             Item {
                 width: 1
@@ -440,7 +443,7 @@ Rectangle {
         y: hud.height
         width: 1
         height: parent.height - y
-        color: look.divider
+        fill: look.divider
     }
 
     // The page itself, the footer under it.
@@ -472,14 +475,14 @@ Rectangle {
         y: parent.height - height
         width: parent.width
         height: shell.barHeight
-        color: look.canvas
+        fill: look.canvas
         Accessible.role: Accessible.Section
         Accessible.name: t`Telemetry`
 
         Rectangle {
             width: parent.width
             height: 1
-            color: look.accent
+            fill: look.accent
             opacity: 0.55
         }
         Row {
@@ -535,7 +538,7 @@ Rectangle {
         height: parent.height - hud.height - shell.barHeight
         visible: !shell.wide && (shell.menuOpen || opacity > 0)
         opacity: shell.menuOpen ? 1 : 0
-        color: look.canvas
+        fill: look.canvas
         Behavior on opacity {
             NumberAnimation {
                 duration: shell.menuOpen ? 250 : 100
@@ -575,7 +578,7 @@ Rectangle {
                         model: shell.channels
 
                         Channel {
-                            required property var modelData
+                            required property unknown modelData
                             required property int index
                             number: index + 1
                             label: modelData.label
@@ -600,7 +603,7 @@ Rectangle {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: look.divider
+                    fill: look.divider
                 }
                 Column {
                     width: parent.width
