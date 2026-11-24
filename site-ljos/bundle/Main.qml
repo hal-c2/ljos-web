@@ -386,6 +386,12 @@ Rectangle {
         active: main.controlsShown
         source: SiteLater.controlsLook
     }
+    // The desktop's own back, forward and reading (Site/DesktopNav.qml);
+    // none in a browser, which has its own.
+    Loader {
+        active: SiteLater.desktopNav !== ""
+        source: SiteLater.desktopNav
+    }
 
     // Named, never made: this page is built with Qt Quick Controls,
     // so a live block's compiler may be given them (A15).

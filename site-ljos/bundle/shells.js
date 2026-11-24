@@ -108,7 +108,7 @@ var catalog = null;
 function sources(base) {
     if (catalog === null) {
         // On the desktop the build wrote it into the site's directory.
-        var read = Nav.siteRoot !== "" ? Nav.fileJson(Nav.siteRoot + "shell-sources.json") : globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
+        var read = Nav.siteRoot !== "" ? Nav.siteJson("shell-sources.json") : globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
             if (!response.ok)
                 throw new Error("shell-sources.json: " + response.status);
             return response.json();
