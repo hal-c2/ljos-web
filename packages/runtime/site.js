@@ -810,22 +810,40 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     // of the compiler, or is asking, the other is told (`answers`).
     // What tree shaking leaves in the entry's file beyond the entry itself,
     // which the graph does not tell (`firstOnly`): read from the files a
-    // build made, when one of them imports the entry's back.
+    // build made, when one of them imports `site-*` back.
     const leftOver = new Set();
-    const leftIn = (made) => {
+    // The files that something a `site-*` file imports, however far down,
+    // imports it back through: a cycle, whose files run out of order.
+    const backTo = (made) => {
       const chunks = [made].flat().flatMap((output) => output.output ?? []).filter((file) => file.type === "chunk");
-      return chunks
-        .filter((chunk) => chunk.isEntry && chunks.some((other) => other.imports.includes(chunk.fileName)))
-        .flatMap((chunk) => chunk.moduleIds.filter((id) => id !== chunk.facadeModuleId));
+      const named = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+      const back = new Set();
+      for (const site of chunks.filter((chunk) => chunk.name === "site")) {
+        const seen = new Set();
+        const stack = [...site.imports];
+        while (stack.length) {
+          const chunk = named.get(stack.pop());
+          if (!chunk || seen.has(chunk)) continue;
+          seen.add(chunk);
+          if (chunk.imports.includes(site.fileName)) back.add(chunk);
+          stack.push(...chunk.imports);
+        }
+      }
+      return [...back];
     };
+    const cyclic = (back) => new Error(`the site's files import \`site-*\` back through ${back.map((chunk) => `${chunk.fileName} (${chunk.moduleIds.join(", ")})`).join("; ")}`);
     const client = timed("client", async () => {
       const made = await clientBuild();
-      const left = leftIn(made);
-      if (!left.length) return made;
-      for (const id of left) leftOver.add(id);
-      const again = await clientBuild();
-      const still = leftIn(again);
-      if (still.length) throw new Error(`the site's first-load files import each other through ${still.join(", ")}`);
+      const back = backTo(made);
+      if (!back.length) return made;
+      // Only the entry's file is mended, by moving what it holds into
+      // the group; any other file that imports `site-*` back is a cut
+      // this build does not expect, and it says which.
+      if (back.some((chunk) => !chunk.isEntry)) throw cyclic(back);
+      for (const chunk of back) for (const id of chunk.moduleIds) if (id !== chunk.facadeModuleId) leftOver.add(id);
+      const again = await timed("client again", clientBuild);
+      const still = backTo(again);
+      if (still.length) throw cyclic(still);
       return again;
     });
     function clientBuild() {
@@ -854,8 +872,10 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // small site that is all of the runtime, and its classes would be
         // extended before they are made. So the group takes those as
         // well (`firstOnly`, and what a build shows tree shaking left
-        // there, `leftOver`); what later modules reach is in their chunks,
-        // which never import the bundle's files. That holds only while
+        // there, `leftOver`, built once more); what later modules reach is
+        // in their chunks, which never import the bundle's files, and a
+        // build whose files still import `site-*` back fails and says
+        // which (`backTo`). That holds only while
         // rolldown cuts files by which entries reach a module: its merging
         // would move what later modules share into the entry's file too.
         // A top-level await turns the merging off in any site that has

@@ -751,5 +751,5 @@ for (const demo of Pro.demos) cpSync(Pro.targetOf(demo), join(out, Pro.sourceAt(
 console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}, standing at ${base}`);
 console.log(`site-ljos: ${out} (${built.files.length} files, ${built.bytes} bytes)`);
 // Where the build's time went, so a slow one says which part was slow.
-const { client, server, prerender, renders, jobs } = built.timings;
-console.log(`site-ljos: client ${client} ms, server ${server} ms (at once), ${renders} prerenders ${prerender} ms on ${jobs} jobs`);
+const { client, "client again": again, server, prerender, renders, jobs } = built.timings;
+console.log(`site-ljos: client ${client} ms${again === undefined ? "" : ` (${again} ms of it built again)`}, server ${server} ms (at once), ${renders} prerenders ${prerender} ms on ${jobs} jobs`);
