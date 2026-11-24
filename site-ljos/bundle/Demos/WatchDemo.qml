@@ -1,5 +1,4 @@
-import QtQuick
-import QtQuick.Shapes
+import Ljos.Ui
 import Ljos.Core
 
 // The watch's files, by their own names: its Theme is its own, so the
@@ -32,7 +31,7 @@ Item {
     property bool calm: false
     // The watch as the reader's edits make it (Demos/pro-live.js), or
     // null for the one the page was built with.
-    property var live: null
+    property unknown live: null
 
     // The round screen, or the rounded square.
     property bool round: true
@@ -45,13 +44,13 @@ Item {
 
     // The watch's state, which every screen reads and the keys below
     // drive: its Pages hold it, by the name the app gives them.
-    readonly property var pages: app.item ? Array.from(app.item.children).find((child) => child.objectName === "pages") ?? null : null
-    readonly property var watch: pages ? pages.watch : null
+    readonly property unknown pages: app.item ? Array.from(app.item.children).find((child) => child.objectName === "pages") ?? null : null
+    readonly property unknown watch: pages ? pages.watch : null
     readonly property bool asleep: watch ? watch.ambient : false
 
     Rectangle {
         anchors.fill: parent
-        color: Page.Theme.surface
+        fill: Page.Theme.surface
     }
 
     // The flat watch, and the keys that stand for its hardware.
@@ -81,12 +80,12 @@ Item {
                 radius: demo.round ? width / 2 : 112
                 // Black as the screen is, so the edge of the app's square
                 // does not show inside the case.
-                color: "#000000"
+                fill: "#000000"
             }
             Loader {
                 id: app
                 anchors.fill: parent
-                sourceComponent: demo.live ? null : own
+                component: demo.live ? null : own
                 source: demo.live ?? undefined
                 // The watch takes the keys once, as it comes; a watch made
                 // again from an edit leaves them where the reader types.
@@ -114,7 +113,7 @@ Item {
             Rectangle {
                 anchors.fill: metal
                 radius: metal.radius
-                color: "transparent"
+                fill: "transparent"
                 border.color: demo.asleep ? "#1d2a3a" : "#0f5560"
                 border.width: 3
             }
@@ -126,7 +125,7 @@ Item {
             readonly property real gap: Page.Theme.xs
             readonly property real room: flat.width - 2 * Page.Theme.m
             // Where each key stands, and how tall the lines are.
-            readonly property var spots: {
+            readonly property unknown spots: {
                 const sizes = Array.from(children).map((key) => key.implicitWidth);
                 const lines = [[]];
                 let used = -gap;
@@ -142,7 +141,7 @@ Item {
                 lines.forEach((line, row) => {
                     let x = (room - line.reduce((sum, i) => sum + sizes[i] + gap, -gap)) / 2;
                     for (const i of line) {
-                        at[i] = Qt.point(Math.round(x), row * (36 + gap));
+                        at[i] = point(Math.round(x), row * (36 + gap));
                         x += sizes[i] + gap;
                     }
                 });
@@ -329,7 +328,7 @@ Item {
             text: t`Drag to turn it`
             color: Page.Theme.textMuted
             font.family: Page.Theme.sans
-            font.pixelSize: Page.Theme.captionSize
+            font.size: Page.Theme.captionSize
         }
     }
 
@@ -400,7 +399,7 @@ Item {
         property bool on: false
         // Its index among the keys, where its row's spots say it stands.
         property int place: 0
-        readonly property point spot: parent && parent.spots && parent.spots.at[place] ? parent.spots.at[place] : Qt.point(0, 0)
+        readonly property point spot: parent && parent.spots && parent.spots.at[place] ? parent.spots.at[place] : point(0, 0)
         signal pressed()
 
         x: spot.x
@@ -409,7 +408,7 @@ Item {
         implicitWidth: words.implicitWidth + 2 * Page.Theme.s
         implicitHeight: 36
         radius: Page.Theme.radiusSmall
-        color: area.pressed ? Page.Theme.surfacePressed : on ? Page.Theme.surfaceSelected : area.containsMouse ? Page.Theme.surfaceHover : Page.Theme.surfaceRaised
+        fill: area.pressed ? Page.Theme.surfacePressed : on ? Page.Theme.surfaceSelected : area.containsMouse ? Page.Theme.surfaceHover : Page.Theme.surfaceRaised
         border.color: activeFocus ? Page.Theme.focusRing : on ? Page.Theme.accent : Page.Theme.border
         border.width: activeFocus ? 2 : 1
         activeFocusOnTab: true
@@ -418,7 +417,7 @@ Item {
         Accessible.description: hint
         Accessible.onPressAction: () => key.pressed()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 key.pressed();
                 event.accepted = true;
             }
@@ -430,14 +429,14 @@ Item {
             text: key.label
             color: Page.Theme.text
             font.family: Page.Theme.sans
-            font.pixelSize: Page.Theme.captionSize
+            font.size: Page.Theme.captionSize
             font.weight: Font.DemiBold
         }
-        MouseArea {
+        PointerArea {
             id: area
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.PointingHand
             Accessible.ignored: true
             onClicked: key.pressed()
         }

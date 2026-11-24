@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
-// both have stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 
 // A field-service dispatch card for Brekka Grid, a made-up grid operator:
@@ -21,16 +20,16 @@ Rectangle {
     // What the card shows.
     property string heading: ""
     property string org: "Brekka Grid"
-    property var tickets: []
-    property var filters: []
+    property unknown tickets: []
+    property unknown filters: []
     property bool openOnly: false
     // Which board module made the card: "list" or "board".
     property string layout: ""
     // That module's `lanes`. Without one, the tickets are one list.
-    property var lay: null
+    property unknown lay: null
     // The crew each ticket was given here, by its key: a person's press
     // or an agent's, over the crew the ticket came with.
-    property var crews: ({})
+    property unknown crews: ({})
     // The ticket picked, by its key.
     property string picked: ""
     // Gently, for a reader who asked for less motion: rows fade in place.
@@ -42,14 +41,14 @@ Rectangle {
 
     signal told(string line)
 
-    readonly property var shown: openOnly ? tickets.filter((ticket) => ticket.state === "Open") : tickets
+    readonly property unknown shown: openOnly ? tickets.filter((ticket) => ticket.state === "Open") : tickets
     readonly property int openCount: tickets.filter((ticket) => ticket.state === "Open").length
     readonly property int unassigned: tickets.filter((ticket) => ticket.state === "Open" && crewOf(ticket) === "").length
     readonly property bool narrow: width < 420
     // Too narrow for the filters beside the heading.
     readonly property bool tight: width < 360
-    readonly property var placed: shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) }))
-    readonly property var lanes: lay ? lay(placed) : [{ title: "", tickets: placed }]
+    readonly property unknown placed: shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) }))
+    readonly property unknown lanes: lay ? lay(placed) : [{ title: "", tickets: placed }]
     readonly property bool boarded: lanes.length > 1
     // The board with no ticket left to assign: its crewed lane has all the
     // width, as half a board of nothing reads as something missing.
@@ -58,7 +57,7 @@ Rectangle {
     // Where rows already stood: a row rises in the first time its ticket
     // stands in a layout with that crew, so a change of either is seen to
     // move, and a filter that makes its delegate again is not.
-    property var seen: ({})
+    property unknown seen: ({})
 
     function crewOf(ticket) {
         return crews[ticket.key] !== undefined ? crews[ticket.key] : (ticket.crew || "");
@@ -78,7 +77,7 @@ Rectangle {
     // As tall as what it shows: nothing is cut, and no state is mostly blank.
     implicitHeight: body.height + 2 * body.y
     radius: Theme.radius
-    color: Theme.surfaceRaised
+    fill: Theme.surfaceRaised
     border.color: Theme.divider
     border.width: 1
     clip: true
@@ -104,7 +103,7 @@ Rectangle {
                     text: card.org
                     color: Theme.link
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                     font.weight: Font.DemiBold
                 }
                 Text {
@@ -115,13 +114,13 @@ Rectangle {
                     visible: text !== ""
                     color: Theme.text
                     font.family: Theme.serif
-                    font.pixelSize: card.narrow ? Theme.subtitleSize : Theme.titleSize
+                    font.size: card.narrow ? Theme.subtitleSize : Theme.titleSize
                     font.weight: Font.DemiBold
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                     opacity: card.still ? 1 : 0
                     Component.onCompleted: {
                         if (!card.still)
-                            opacity = Qt.binding(() => headingText.text !== "" ? 1 : 0);
+                            opacity = bind(() => headingText.text !== "" ? 1 : 0);
                     }
                     Behavior on opacity {
                         NumberAnimation {
@@ -135,7 +134,7 @@ Rectangle {
                     text: card.unassigned > 0 ? t`${card.openCount} open, ${card.unassigned} unassigned` : t`${card.openCount} open, all assigned`
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                 }
             }
             Row {
@@ -180,7 +179,7 @@ Rectangle {
             visible: card.tickets.length > 0
             width: parent.width
             height: 1
-            color: Theme.divider
+            fill: Theme.divider
         }
 
         // The tickets, a list a screen reader counts, in the lanes board.ts
@@ -198,7 +197,7 @@ Rectangle {
 
                 Column {
                     id: lane
-                    required property var modelData
+                    required property unknown modelData
                     required property int index
                     // Hidden, not unmade: the page as written and as hydrated
                     // make the same parts.
@@ -212,9 +211,9 @@ Rectangle {
                         text: lane.modelData.title
                         color: Theme.text
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                         font.weight: Font.DemiBold
-                        wrapMode: Text.Wrap
+                        wrap: Text.Wrap
                     }
                     Column {
                         width: parent.width
@@ -227,7 +226,7 @@ Rectangle {
 
                             Rectangle {
                                 id: row
-                                required property var modelData
+                                required property unknown modelData
                                 readonly property string crew: modelData.crew
                                 readonly property bool open: modelData.state === "Open"
                                 readonly property bool boarded: card.boarded
@@ -235,7 +234,7 @@ Rectangle {
                                 width: lane.width
                                 height: (boarded ? lines.height + 2 + crewSide.height : Math.max(lines.height, crewSide.height)) + 2 * Theme.xs
                                 radius: Theme.radiusSmall
-                                color: card.picked === modelData.key ? Theme.surfaceSelected : pick.containsMouse ? Theme.surfaceHover : boarded ? Theme.surface : "transparent"
+                                fill: card.picked === modelData.key ? Theme.surfaceSelected : pick.containsMouse ? Theme.surfaceHover : boarded ? Theme.surface : "transparent"
                                 border.width: boarded ? 1 : 0
                                 border.color: Theme.divider
                                 Accessible.role: Accessible.ListItem
@@ -271,13 +270,13 @@ Rectangle {
                                         easing.type: Easing.OutCubic
                                     }
                                 }
-                                Behavior on color {
+                                Behavior on fill {
                                     ColorAnimation {
                                         duration: Theme.moveSmall
                                     }
                                 }
 
-                                MouseArea {
+                                PointerArea {
                                     id: pick
                                     anchors.fill: parent
                                     hoverEnabled: true
@@ -296,7 +295,7 @@ Rectangle {
                                     width: 8
                                     height: 8
                                     radius: 4
-                                    color: row.open ? Theme.accent : "transparent"
+                                    fill: row.open ? Theme.accent : "transparent"
                                     border.color: row.open ? Theme.accent : Theme.border
                                     border.width: 1
                                 }
@@ -312,14 +311,14 @@ Rectangle {
                                         text: row.modelData.title
                                         color: Theme.text
                                         font.family: Theme.sans
-                                        font.pixelSize: Theme.bodySize - 2
-                                        wrapMode: Text.Wrap
+                                        font.size: Theme.bodySize - 2
+                                        wrap: Text.Wrap
                                     }
                                     Text {
                                         text: `${row.modelData.key}  ${row.open ? t`Open` : t`Closed`}`
                                         color: Theme.textMuted
                                         font.family: Theme.mono
-                                        font.pixelSize: Theme.captionSize - 1
+                                        font.size: Theme.captionSize - 1
                                     }
                                 }
                                 Item {
@@ -336,7 +335,7 @@ Rectangle {
                                         text: row.crew === "" ? t`No crew` : row.crew
                                         color: row.open ? Theme.text : Theme.textMuted
                                         font.family: Theme.sans
-                                        font.pixelSize: Theme.captionSize
+                                        font.size: Theme.captionSize
                                     }
                                     StageButton {
                                         id: assignButton

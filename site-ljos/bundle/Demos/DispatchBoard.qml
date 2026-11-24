@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import "logic/after/board.ts" as Board
 
 // The dispatch app once board.ts is edited, built from

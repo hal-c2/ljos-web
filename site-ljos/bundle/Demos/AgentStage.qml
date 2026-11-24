@@ -1,7 +1,5 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and a name
-// both have (Timer) stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
 import Site
 import "logic/stage.ts" as Stage
 import "../observed.js" as Observed
@@ -24,9 +22,9 @@ AgentView {
     id: stage
 
     property bool active: false
-    readonly property var observed: card
+    readonly property unknown observed: card
     // The card's log, for the Observer the stage's toolbar opens.
-    readonly property var logs: Observed.logSource(key)
+    readonly property unknown logs: Observed.logSource(key)
     readonly property string key: "agent-" + Math.floor(Math.random() * 1e9)
 
     total: AgentReplay.steps.length
@@ -310,9 +308,9 @@ AgentView {
             item.clientName = "replay";
             // The log and title before the target: the target is served
             // with what it is given then.
-            item.logs = Qt.binding(() => stage.logs);
-            item.title = Qt.binding(() => stage.inspectedAs);
-            item.target = Qt.binding(() => stage.card);
+            item.logs = bind(() => stage.logs);
+            item.title = bind(() => stage.inspectedAs);
+            item.target = bind(() => stage.card);
         }
     }
     Connections {
