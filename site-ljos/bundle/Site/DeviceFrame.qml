@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 
 // A framed "device" holding a live app: a title bar that says it runs,
@@ -21,7 +21,7 @@ Panel {
 
     property string name: t`Live app`
     property string title: ""
-    property var tabs: []
+    property unknown tabs: []
     property int current: 0
     // How tall the stage and the panels are. A frame that opens with no
     // tab chosen may give the panels no height until one is.
@@ -34,8 +34,8 @@ Panel {
 
     // The console's two side panels, by their tab's index, and the names
     // its three regions go by.
-    property var columns: [1, 2]
-    property var columnNames: [t`Observer tree`, t`Live stage`, t`Agent MCP stream`]
+    property unknown columns: [1, 2]
+    property unknown columnNames: [t`Observer tree`, t`Live stage`, t`Agent MCP stream`]
     readonly property bool consoleLayout: Theme.consoleAt(width)
     readonly property int side: Math.min(400, Math.round(width * 0.3))
     readonly property int heading: consoleLayout ? 32 : 0
@@ -53,7 +53,7 @@ Panel {
     // press goes on from there.
     function walk(at) {
         frame.pick(at);
-        tabs.itemAt(frame.current)?.forceActiveFocus(Qt.TabFocusReason);
+        tabs.itemAt(frame.current)?.forceActiveFocus(FocusReason.Tab);
     }
 
     // The parts, each placed: under one another, or as a console.
@@ -74,25 +74,25 @@ Panel {
                 text: frame.title
                 color: Theme.textMuted
                 font.family: Theme.mono
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
             }
             Row {
                 x: parent.width - width - Theme.m
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.xs
                 Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     width: 8
                     height: 8
                     radius: 4
-                    color: Theme.accent
+                    fill: Theme.accent
                 }
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     text: frame.status
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                     font.weight: Font.Medium
                 }
             }
@@ -100,7 +100,7 @@ Panel {
                 y: parent.height - 1
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
         }
 
@@ -120,7 +120,7 @@ Panel {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 6
                     height: 6
-                    color: index === 1 ? Theme.accent : index === 0 ? Theme.accent3 : Theme.accent2
+                    fill: index === 1 ? Theme.accent : index === 0 ? Theme.accent3 : Theme.accent2
                 }
                 Text {
                     x: Theme.m + 6 + Theme.xs
@@ -128,13 +128,13 @@ Panel {
                     text: frame.columnNames[index]
                     color: Theme.textMuted
                     font.family: Theme.mono
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                 }
                 Rectangle {
                     y: parent.height - 1
                     width: parent.width
                     height: 1
-                    color: Theme.divider
+                    fill: Theme.divider
                 }
             }
         }
@@ -147,7 +147,7 @@ Panel {
                 y: bar.height
                 width: 1
                 height: frame.heading + frame.bodyHeight
-                color: Theme.divider
+                fill: Theme.divider
             }
         }
 
@@ -177,13 +177,13 @@ Panel {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
             Rectangle {
                 y: parent.height - 1
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
             Row {
                 x: Theme.xs
@@ -197,7 +197,7 @@ Panel {
 
                     Item {
                         id: tab
-                        required property var modelData
+                        required property unknown modelData
                         required property int index
                         readonly property bool chosen: index === frame.current
 
@@ -209,10 +209,10 @@ Panel {
                         Accessible.selected: chosen
                         Accessible.onPressAction: () => frame.pick(index)
                         Keys.onPressed: (event) => {
-                            if (event.key === Qt.Key_Right || event.key === Qt.Key_Left) {
-                                frame.walk(index + (event.key === Qt.Key_Right ? 1 : -1));
+                            if (event.key === Key.Right || event.key === Key.Left) {
+                                frame.walk(index + (event.key === Key.Right ? 1 : -1));
                                 event.accepted = true;
-                            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            } else if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                                 frame.pick(index);
                                 event.accepted = true;
                             }
@@ -224,7 +224,7 @@ Panel {
                             text: tab.modelData
                             color: tab.chosen ? Theme.text : Theme.textMuted
                             font.family: Theme.sans
-                            font.pixelSize: Theme.uiSize
+                            font.size: Theme.uiSize
                             font.weight: tab.chosen ? Font.DemiBold : Font.Medium
                         }
                         // The chosen tab's mark, in the second colour.
@@ -234,7 +234,7 @@ Panel {
                             width: parent.width - 2 * Theme.m
                             height: 2
                             radius: 1
-                            color: Theme.accent2
+                            fill: Theme.accent2
                             opacity: tab.chosen ? 1 : 0
                             Behavior on opacity {
                                 NumberAnimation {
@@ -243,15 +243,15 @@ Panel {
                                 }
                             }
                         }
-                        MouseArea {
+                        PointerArea {
                             anchors.fill: parent
                             Accessible.ignored: true
-                            cursorShape: Qt.PointingHandCursor
+                            cursorShape: Cursor.PointingHand
                             // A press gives the tab the focus too, as a button's
                             // does, so the arrows go on from the tab pressed.
                             onClicked: {
                                 frame.pick(tab.index);
-                                tab.forceActiveFocus(Qt.MouseFocusReason);
+                                tab.forceActiveFocus(FocusReason.Mouse);
                             }
                         }
                     }

@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 import "../nav.js" as Nav
 
@@ -73,7 +73,7 @@ Item {
             width: pill.implicitWidth + Theme.m + 14
             height: 30
             radius: Theme.brackets ? 0 : 15
-            color: Theme.surfaceRaised
+            fill: Theme.surfaceRaised
             border.color: Theme.divider
             border.width: 1
 
@@ -83,7 +83,7 @@ Item {
                 width: 6
                 height: 6
                 radius: 3
-                color: Theme.accent
+                fill: Theme.accent
             }
             Text {
                 id: pill
@@ -92,7 +92,7 @@ Item {
                 text: hero.eyebrow
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 font.weight: Font.Medium
             }
         }
@@ -104,15 +104,15 @@ Item {
         }
         Text {
             width: Math.min(parent.width - (hero.roomy ? Theme.xl : 0), Theme.measure)
-            textFormat: Text.RichText
+            format: Text.RichText
             text: Nav.linked(Content.base, hero.subtitle)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans
-            font.pixelSize: hero.wide ? Theme.subtitleSize : Theme.bodySize
+            font.size: hero.wide ? Theme.subtitleSize : Theme.bodySize
             lineHeightMode: Text.FixedHeight
             lineHeight: hero.wide ? Theme.subtitleLine : Theme.bodyLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             onLinkActivated: (link) => hero.followed(link)
         }
         Flow {
@@ -164,10 +164,10 @@ Item {
             text: hero.caption
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.captionLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 }

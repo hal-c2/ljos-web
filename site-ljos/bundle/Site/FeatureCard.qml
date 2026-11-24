@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Layout
 import QtQuick.Effects
 import Site
 import "../nav.js" as Nav
@@ -47,7 +48,7 @@ Item {
         id: face
         anchors.fill: parent
         radius: Theme.brackets ? 0 : Theme.radiusLarge
-        color: card.lifted ? Theme.surfaceRaised : Theme.surface
+        fill: card.lifted ? Theme.surfaceRaised : Theme.surface
         border.color: Theme.brackets ? "transparent" : card.lifted ? Theme.border : Theme.divider
         border.width: 1
         Accessible.ignored: true
@@ -67,23 +68,23 @@ Item {
                 y: parent.atBottom ? parent.height - 2 : 0
                 width: parent.width
                 height: 2
-                color: Theme.accent
+                fill: Theme.accent
             }
             Rectangle {
                 x: parent.atRight ? parent.width - 2 : 0
                 width: 2
                 height: parent.height
-                color: Theme.accent
+                fill: Theme.accent
             }
         }
     }
 
-    MouseArea {
+    PointerArea {
         id: area
         anchors.fill: parent
         enabled: card.href !== ""
         hoverEnabled: card.href !== ""
-        cursorShape: card.href !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
+        cursorShape: card.href !== "" ? Cursor.PointingHand : Cursor.Arrow
         Accessible.ignored: true
         onClicked: card.followed(card.href)
     }
@@ -108,7 +109,7 @@ Item {
                 text: card.mark
                 color: Theme.accent2Text
                 font.family: Theme.mono
-                font.pixelSize: Theme.subtitleSize
+                font.size: Theme.subtitleSize
                 font.weight: Font.Medium
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.subtitleLine
@@ -118,22 +119,22 @@ Item {
                 anchors.verticalCenter: markWords.verticalCenter
                 width: parent.width - x
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
         }
         Text {
             width: parent.width
-            textFormat: card.href !== "" ? Text.RichText : Text.PlainText
+            format: card.href !== "" ? Text.RichText : Text.PlainText
             text: card.href !== "" ? Nav.anchor(Nav.at(Content.base, card.href), card.title, area.containsMouse) : card.title
             color: card.href !== "" ? Theme.link : Theme.onCanvasStrong
             linkColor: color
             font.family: Theme.sans
-            font.pixelSize: Theme.titleSize - 3
+            font.size: Theme.titleSize - 3
             font.weight: Font.DemiBold
             font.letterSpacing: -0.2
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.titleLine - 2
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             // A card stands under its section's heading.
             readonly property int headingLevel: 3
             Accessible.role: Accessible.Heading
@@ -141,15 +142,15 @@ Item {
         }
         Text {
             width: parent.width
-            textFormat: Text.RichText
+            format: Text.RichText
             text: Nav.linked(Content.base, card.body)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize - 1
+            font.size: Theme.bodySize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine - 2
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             onLinkActivated: (link) => card.followed(link)
         }
     }

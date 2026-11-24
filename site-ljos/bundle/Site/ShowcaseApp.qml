@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and a name
-// both have (Timer) stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 import "../Showcase/later.js" as Later
 import "../nav.js" as Nav
@@ -20,7 +19,7 @@ import "../Showcase/media.js" as Media
 Column {
     id: app
 
-    required property var product
+    required property unknown product
     property string route: "/showcase/"
     property bool wide: true
     // What the page scrolls in, for the engine's code (CodeBlock's).
@@ -30,7 +29,7 @@ Column {
 
     // The reader's own Play or Pause; null until they press one, when
     // the motion they asked the browser or the site for decides.
-    property var chosen: null
+    property unknown chosen: null
     readonly property bool wanted: chosen !== null ? chosen : !Theme.calm
     property bool onScreen: false
     // Set once the page this was written into is the reader's: the
@@ -70,7 +69,7 @@ Column {
             text: app.product.maker
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: Font.DemiBold
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.captionLine
@@ -80,11 +79,11 @@ Column {
             text: app.product.name
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: app.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.size: app.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: app.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
@@ -93,10 +92,10 @@ Column {
             text: app.product.claim
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.subtitleSize
+            font.size: Theme.subtitleSize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -107,7 +106,7 @@ Column {
         width: parent.width
         height: screen.height + bar.height
         radius: Theme.radiusLarge
-        color: Theme.surface
+        fill: Theme.surface
         border.color: Theme.divider
         border.width: 1
         clip: true
@@ -123,7 +122,7 @@ Column {
 
             Text {
                 anchors.fill: parent
-                textFormat: Text.RichText
+                format: Text.RichText
                 text: Media.pictureSet(app.route, "/showcase/media/" + app.product.recording.name + "-poster", parent.width, parent.height, app.product.recording.label, true)
             }
             Loader {
@@ -142,7 +141,7 @@ Column {
                 }
                 onLoaded: {
                     item.source = Nav.at(Content.base, "/showcase/media/" + app.product.recording.name) + Media.recordingFormat();
-                    item.wanted = Qt.binding(() => app.wanted && app.onScreen && Running.shown);
+                    item.wanted = bind(() => app.wanted && app.onScreen && Running.shown);
                 }
             }
         }
@@ -152,14 +151,14 @@ Column {
             y: screen.y + screen.height
             width: parent.width
             height: 48
-            color: Theme.surfaceRaised
+            fill: Theme.surfaceRaised
             border.color: Theme.divider
             border.width: 0
 
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
             Row {
                 anchors.left: parent.left
@@ -168,23 +167,23 @@ Column {
                 spacing: Theme.xs
 
                 Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     width: 8
                     height: 8
                     radius: 4
-                    color: app.wanted && app.awake ? Theme.accent : Theme.textMuted
-                    Behavior on color {
+                    fill: app.wanted && app.awake ? Theme.accent : Theme.textMuted
+                    Behavior on fill {
                         ColorAnimation {
                             duration: Theme.moveSmall
                         }
                     }
                 }
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     text: t`Recorded running`
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.captionLine
                 }
@@ -222,10 +221,10 @@ Column {
                     text: modelData
                     color: Theme.text
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize + 1
+                    font.size: Theme.bodySize + 1
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.bodyLine + 4
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                 }
             }
         }
@@ -238,10 +237,10 @@ Column {
                 text: app.product.note
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.captionLine
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
             }
             Flow {
                 width: parent.width
@@ -280,7 +279,7 @@ Column {
             Repeater {
                 model: app.wide ? app.product.captures : []
                 ShowcaseCapture {
-                    required property var modelData
+                    required property unknown modelData
                     capture: modelData
                     route: app.route
                     width: Math.floor(captures.rowHeight * modelData.width / modelData.height)
@@ -296,7 +295,7 @@ Column {
             Repeater {
                 model: app.wide ? [] : app.product.captures
                 ShowcaseCapture {
-                    required property var modelData
+                    required property unknown modelData
                     capture: modelData
                     route: app.route
                     width: column.width

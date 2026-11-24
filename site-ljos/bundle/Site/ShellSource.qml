@@ -1,6 +1,7 @@
-import QtQuick
+import Ljos.Ui
 import Site
 import Ljos.Core
+import Ljos.Layout
 import Ljos.Controls as C
 import "../shells.js" as Shells
 
@@ -17,10 +18,10 @@ C.Popup {
     property string name: "elegant"
     // Why the shell shown is not the one asked for, as ShellLoader says.
     property string error: ""
-    property var source: null
+    property unknown source: null
     // What the reader has written in each shell's QML and not reset, by
     // its file: the editor holds one shell's at a time.
-    property var drafts: ({})
+    property unknown drafts: ({})
 
     signal applied(string file, string text)
     signal reset
@@ -78,7 +79,7 @@ C.Popup {
                     text: panel.source ? t`Source of ${panel.source.file}` : t`Shell`
                     color: Theme.text
                     font.family: Theme.mono
-                    font.pixelSize: Theme.bodySize
+                    font.size: Theme.bodySize
                     font.weight: Font.DemiBold
                     elide: Text.ElideMiddle
                     Accessible.role: Accessible.Heading
@@ -88,8 +89,8 @@ C.Popup {
                     text: t`The QML of the shell you are looking at. Edit it and press Apply: the page and your place on it stay.`
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
-                    wrapMode: Text.Wrap
+                    font.size: Theme.captionSize
+                    wrap: Text.Wrap
                 }
             }
             C.Button {
@@ -108,7 +109,7 @@ C.Popup {
             width: parent.width
             height: parent.height - y - foot.height - Theme.s
             radius: Theme.radiusSmall
-            color: Theme.codeBg
+            fill: Theme.codeBg
             border.color: editor.activeFocus ? Theme.focusRing : Theme.border
             border.width: editor.activeFocus ? 2 : 1
 
@@ -144,8 +145,8 @@ C.Popup {
                 text: panel.error
                 color: Theme.danger
                 font.family: Theme.mono
-                font.pixelSize: 12
-                wrapMode: Text.Wrap
+                font.size: 12
+                wrap: Text.Wrap
             }
             Row {
                 spacing: Theme.xs

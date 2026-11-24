@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 
 // The front page's live app: a list of tasks and how far through it you
@@ -11,7 +11,7 @@ Item {
     id: app
 
     property string heading: t`Launch week`
-    property var tasks: [
+    property unknown tasks: [
         { title: t`Sketch the shell`, done: true },
         { title: t`Wire up the Observer`, done: true },
         { title: t`Write the release notes`, done: false },
@@ -20,7 +20,7 @@ Item {
     readonly property int done: tasks.filter((task) => task.done).length
     readonly property real progress: tasks.length > 0 ? done / tasks.length : 0
     // What the agent acts on: "title", "progress", a task's index, or "".
-    property var pointing: ""
+    property unknown pointing: ""
 
     function toggle(at) {
         var next = tasks.slice();
@@ -62,7 +62,7 @@ Item {
                 text: app.heading
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: Theme.titleSize
+                font.size: Theme.titleSize
                 font.weight: Font.DemiBold
                 font.letterSpacing: -0.3
             }
@@ -72,7 +72,7 @@ Item {
                 text: t`${app.done} of ${app.tasks.length} done`
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
             }
             Ring {
                 target: titleText
@@ -87,13 +87,13 @@ Item {
                 width: parent.width
                 height: parent.height
                 radius: 3
-                color: Theme.surfaceHover
+                fill: Theme.surfaceHover
             }
             Rectangle {
                 width: Math.round(parent.width * app.progress)
                 height: parent.height
                 radius: 3
-                color: Theme.accent
+                fill: Theme.accent
                 Behavior on width {
                     NumberAnimation {
                         duration: Theme.enterPanel
@@ -115,7 +115,7 @@ Item {
 
             Item {
                 id: row
-                required property var modelData
+                required property unknown modelData
                 required property int index
 
                 width: parent.width
@@ -127,7 +127,7 @@ Item {
                 Accessible.checked: modelData.done
                 Accessible.onPressAction: () => app.toggle(index)
                 Keys.onPressed: (event) => {
-                    if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    if (event.key === Key.Space || event.key === Key.Return || event.key === Key.Enter) {
                         app.toggle(row.index);
                         event.accepted = true;
                     }
@@ -136,7 +136,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.radiusSmall
-                    color: area.containsMouse ? Theme.surfaceHover : "transparent"
+                    fill: area.containsMouse ? Theme.surfaceHover : "transparent"
                 }
                 Rectangle {
                     id: box
@@ -145,10 +145,10 @@ Item {
                     width: 20
                     height: 20
                     radius: 6
-                    color: row.modelData.done ? Theme.accent : "transparent"
+                    fill: row.modelData.done ? Theme.accent : "transparent"
                     border.color: row.modelData.done ? Theme.accent : Theme.border
                     border.width: 1.5
-                    Behavior on color {
+                    Behavior on fill {
                         ColorAnimation {
                             duration: Theme.enterSmall
                         }
@@ -159,7 +159,7 @@ Item {
                         text: "✓"
                         color: Theme.textOnAccent
                         font.family: Theme.sans
-                        font.pixelSize: 13
+                        font.size: 13
                         font.weight: Font.Bold
                         Accessible.ignored: true
                     }
@@ -172,14 +172,14 @@ Item {
                     text: row.modelData.title
                     color: row.modelData.done ? Theme.textMuted : Theme.text
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize - 1
+                    font.size: Theme.bodySize - 1
                     font.strikeout: row.modelData.done
                 }
-                MouseArea {
+                PointerArea {
                     id: area
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape: Cursor.PointingHand
                     Accessible.ignored: true
                     onClicked: app.toggle(row.index)
                 }
@@ -201,7 +201,7 @@ Item {
         width: target.width + 8
         height: target.height + 8
         radius: Theme.radiusSmall
-        color: "transparent"
+        fill: "transparent"
         border.color: Theme.accent2
         border.width: 2
         opacity: on ? 1 : 0

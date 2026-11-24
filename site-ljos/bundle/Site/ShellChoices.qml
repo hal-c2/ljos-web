@@ -1,6 +1,7 @@
-import QtQuick
+import Ljos.Ui
 import Site
 import Ljos.Core
+import Ljos.Layout
 import Ljos.Controls as C
 
 // The switcher's popover (Site/ShellSwitcher.qml): the three shells and
@@ -11,7 +12,7 @@ import Ljos.Controls as C
 Item {
     id: choices
 
-    property var preferences: null
+    property unknown preferences: null
     property string shown: "elegant"
     readonly property bool opened: popover.opened
     signal sourceAsked(string name)
@@ -22,7 +23,7 @@ Item {
 
     C.Popover {
         id: popover
-        edge: Qt.BottomEdge
+        edge: Edge.Bottom
         width: 320
         padding: Theme.xs
 
@@ -36,7 +37,7 @@ Item {
                 text: t`Shell`
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 font.weight: Font.DemiBold
             }
             Text {
@@ -47,23 +48,23 @@ Item {
                 text: t`Same app, different shell. Switching keeps your route, scroll position, and running demos.`
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: 18
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
             }
             Repeater {
                 model: choices.preferences ? choices.preferences.shells : []
 
                 Rectangle {
                     id: row
-                    required property var modelData
+                    required property unknown modelData
                     readonly property bool picked: choices.preferences.shell === modelData.name
 
                     width: 304
                     height: words.implicitHeight + 2 * Theme.xs
                     radius: Theme.radiusSmall
-                    color: rowArea.pressed ? Theme.surfacePressed : row.picked ? Theme.surfaceSelected : rowArea.containsMouse ? Theme.surfaceHover : "transparent"
+                    fill: rowArea.pressed ? Theme.surfacePressed : row.picked ? Theme.surfaceSelected : rowArea.containsMouse ? Theme.surfaceHover : "transparent"
                     activeFocusOnTab: true
                     Accessible.role: Accessible.RadioButton
                     Accessible.name: modelData.label
@@ -72,7 +73,7 @@ Item {
                     Accessible.checked: row.picked
                     Accessible.onPressAction: () => row.pick()
                     Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                             row.pick();
                             event.accepted = true;
                         }
@@ -103,7 +104,7 @@ Item {
                             text: row.modelData.label
                             color: Theme.text
                             font.family: Theme.sans
-                            font.pixelSize: Theme.captionSize + 1
+                            font.size: Theme.captionSize + 1
                             font.weight: Font.DemiBold
                         }
                         Text {
@@ -111,18 +112,18 @@ Item {
                             text: row.modelData.about
                             color: Theme.textMuted
                             font.family: Theme.sans
-                            font.pixelSize: Theme.captionSize
+                            font.size: Theme.captionSize
                             lineHeightMode: Text.FixedHeight
                             lineHeight: 18
-                            wrapMode: Text.Wrap
+                            wrap: Text.Wrap
                         }
                     }
-                    MouseArea {
+                    PointerArea {
                         id: rowArea
                         anchors.fill: parent
                         Accessible.ignored: true
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.PointingHand
                         onClicked: row.pick()
                     }
                 }
@@ -130,7 +131,7 @@ Item {
             Rectangle {
                 width: 304
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
             C.Button {
                 height: Math.max(implicitHeight, Theme.rowLeast)
