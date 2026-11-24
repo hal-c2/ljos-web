@@ -29,23 +29,24 @@ Rectangle {
     property bool calm: false
 
     // Reader state, keyed by Latin name so filtering never drops ticks or notes.
-    property unknown seen: []
-    property unknown notes: []
+    property list<string> seen
+    property list<Guide.NoteEntry> notes
     readonly property int seenCount: seen.length
     readonly property int totalSpecies: Guide.species.length
     property int current: 0
-    readonly property unknown bird: Guide.birdAt(current)
+    readonly property Guide.Bird bird: Guide.birdAt(current)
 
     // Filtered rows feeding the ListView; rebuilt whenever the search text changes.
     ListModel { id: shown }
 
-    function refilter() {
+    function refilter(): void {
         const matches = Guide.filterSpecies(search.text);
         shown.clear();
         for (const item of matches)
             shown.append({ "name": item.name, "latin": item.latin, "season": item.season, "at": item.index });
-        if (matches.length > 0)
-            root.current = matches[0].index;
+        const first = matches[0];
+        if (first !== undefined)
+            root.current = first.index;
     }
 
     Component.onCompleted: refilter()

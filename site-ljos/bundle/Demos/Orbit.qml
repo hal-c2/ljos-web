@@ -3,7 +3,8 @@ import Ljos.Core
 // Ljos.Ui has no `FrameAnimation` yet: it comes from QtQuick, by name.
 import QtQuick as Q
 import QtQuick3D
-import QtQuick3D.Helpers
+// By name: unqualified, its types stand over Ljos.Core's `App`.
+import QtQuick3D.Helpers as Helpers
 import "logic/orbit.ts" as OrbitLogic
 
 // Declarative 3D driven by a typed TypeScript clock (logic/orbit.ts).
@@ -33,7 +34,7 @@ Rectangle {
     // One clock turns the whole scene; every angle in `pose` is a whole multiple.
     property real turn: startAngle
     readonly property real pace: OrbitLogic.degreesPerSecond(calm, loopSeconds, calmLoopSeconds)
-    readonly property unknown pose: OrbitLogic.poseAt(turn)
+    readonly property OrbitLogic.OrbitPose pose: OrbitLogic.poseAt(turn)
 
     // FrameAnimation advances by elapsed time rather than interpolating from/to,
     // so changing pace or resuming from pause never jumps back to the start.
@@ -78,7 +79,7 @@ Rectangle {
             }
         }
 
-        OrbitCameraController {
+        Helpers.OrbitCameraController {
             anchors.fill: parent
             origin: origin
             camera: camera

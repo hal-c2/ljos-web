@@ -29,7 +29,7 @@ Rectangle {
     // Stays false until the shader compiles so the poster holds until then.
     readonly property bool ready: effect.status === Q.ShaderEffect.Compiled
 
-    Keys.onPressed: (event) => {
+    Keys.onPressed: (event: KeyEvent) => {
         if (event.key === Key.Space || event.key === Key.Return) {
             effect.cycle();
             event.accepted = true;
@@ -55,7 +55,7 @@ Rectangle {
         property point resolution: point(Math.max(width, 1), Math.max(height, 1))
         fragmentShader: "light.frag.qsb"
 
-        function cycle() {
+        function cycle(): void {
             choice = ShaderLogic.nextPalette(choice, root.paletteCount);
         }
 
@@ -73,8 +73,9 @@ Rectangle {
         Accessible.name: t`Shader canvas. Move the pointer to stir the light; tap to change the colours.`
         Accessible.role: Accessible.Button
         Accessible.onPressAction: effect.cycle()
-        onPositionChanged: (mouse) => {
-            const uv = ShaderLogic.pointerUv(mouse.x, mouse.y, width, height);
+        // Where the pointer is: the area's own, as its signal's is.
+        onPositionChanged: {
+            const uv = ShaderLogic.pointerUv(mouseX, mouseY, width, height);
             effect.pointer = point(uv.x, uv.y);
         }
         onClicked: effect.cycle()
