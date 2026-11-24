@@ -26,7 +26,7 @@
      for once a reader keeps or shows another shell (here, and
      shells.js `dress`), never by a page read in the default one. -->
 <meta name="ljos-looks" content="%LOOKS_CSS%" />
-<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;const s=document.createElement("link");s.id="ljos-looks";s.rel="stylesheet";s.href=document.querySelector('meta[name="ljos-looks"]').content;document.head.append(s);const l=()=>{if(!("ljosShellShown"in r.dataset))r.dataset.ljosShellLate=""};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
+<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;const s=document.createElement("link");s.id="ljos-looks";s.rel="stylesheet";s.href=document.querySelector('meta[name="ljos-looks"]').content;s.blocking="render";s.onerror=()=>s.remove();document.head.append(s);const l=()=>{if(!("ljosShellShown"in r.dataset))r.dataset.ljosShellLate=""};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
 <!-- The design tokens as the HTML around the app reads them: the
      build writes tokens.js's colours here as `--ljos-<role>` and
      `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes

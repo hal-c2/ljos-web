@@ -192,8 +192,10 @@ function swap(change, calm, arrived) {
 // Not once the watchdog has shown it: it would fade in a second time.
 function shown() {
     var document = globalThis.document;
-    if (document && document.documentElement && !late())
+    if (document && document.documentElement && !late()) {
         document.documentElement.dataset.ljosShellShown = "";
+        unhold();
+    }
 }
 
 // Whether the head's watchdog (assets/head.html) has shown the page
@@ -238,18 +240,42 @@ function forward() {
 }
 
 // Which shell frames the page, on its root (`data-ljos-shell-showing`).
+// While the head holds the page back for the kept shell (its
+// `data-ljos-shell`), one framing it on the way is not what the reader
+// will see: it is said once the page is shown (`held`), and until then
+// the ground keeps the kept shell's colours (the build's `looks`).
+var held = "";
 function showing(name) {
     var document = globalThis.document;
+    var root = document && document.documentElement;
     dress(name);
-    if (document && document.documentElement && name)
-        document.documentElement.dataset.ljosShellShowing = name;
+    if (!root || !name)
+        return;
+    var kept = root.dataset.ljosShell;
+    if (kept && kept !== name && !("ljosShellShown" in root.dataset) && !late()) {
+        if (!held)
+            whenLate(unhold);
+        held = name;
+        return;
+    }
+    held = "";
+    root.dataset.ljosShellShowing = name;
+}
+function unhold() {
+    var document = globalThis.document;
+    if (held && document && document.documentElement)
+        document.documentElement.dataset.ljosShellShowing = held;
+    held = "";
 }
 
 // The other shells' colours (the build's `looks`, which the head names
 // in `meta[name="ljos-looks"]`) asked for as a stylesheet once a shell
 // other than the default is kept or shown; `dressed` is their arrival,
-// which a swap waits for as it waits for the shell.
+// which a swap waits for as it waits for the shell. A stylesheet that
+// failed to come is dropped and asked for once more; one that fails
+// again is asked for at the next shell picked.
 var dressed = null;
+var askedAgain = false;
 function dress(name) {
     var document = globalThis.document;
     if (!document || !document.head || !name || name === "elegant")
@@ -257,7 +283,7 @@ function dress(name) {
     var sheet = document.getElementById("ljos-looks");
     if (sheet) {
         if (!dressed)
-            dressed = Promise.resolve();
+            dressed = come(sheet, name);
         return;
     }
     var named = document.querySelector('meta[name="ljos-looks"]');
@@ -267,9 +293,32 @@ function dress(name) {
     sheet.id = "ljos-looks";
     sheet.rel = "stylesheet";
     sheet.href = named.content;
-    dressed = new Promise(function (done) {
-        sheet.onload = done;
-        sheet.onerror = done;
-    });
+    dressed = come(sheet, name);
     document.head.appendChild(sheet);
+}
+
+// When `sheet` has come, or failed to and been asked for again. One the
+// head asked for may have come already: its rules are then there.
+function come(sheet, name) {
+    if (sheet.sheet)
+        return Promise.resolve();
+    return new Promise(function (done) {
+        sheet.addEventListener("load", function () {
+            done();
+        });
+        sheet.addEventListener("error", function () {
+            sheet.remove();
+            dressed = null;
+            if (askedAgain) {
+                done();
+                return;
+            }
+            askedAgain = true;
+            dress(name);
+            if (dressed)
+                dressed.then(done);
+            else
+                done();
+        });
+    });
 }
