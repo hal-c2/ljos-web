@@ -2840,3 +2840,37 @@ for (const shell of SHELLS) {
     }
   });
 }
+
+// A result's title once ran past the list's right edge ("How a Rust
+// and QML App Fits Together" in Elegant's header): a link is rich
+// text, which is never elided. Every result stays inside the list, and
+// the list inside the window, at a desktop's width and a phone's.
+for (const shell of SHELLS)
+  for (const viewport of [DESKTOP, PHONE]) {
+    test(`${LABEL[shell]}'s search results stay inside their list at ${viewport.width}`, async ({ browser }) => {
+      const context = await reader(browser, { kept: shell, viewport });
+      try {
+        const page = await context.newPage();
+        await open(page, "/start/");
+        const field = () => page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true });
+        const menu = page.getByRole("button", { name: "Menu", exact: true }).filter({ visible: true });
+        if ((await field().count()) === 0 && (await menu.count()) > 0) await press(menu.first());
+        await field().first().click();
+        await page.keyboard.type("h");
+        const list = page.getByRole("list", { name: "Search results" }).filter({ visible: true }).first();
+        await expect(list.getByRole("link", { name: "How a Rust and QML App Fits Together" })).toBeVisible();
+        const spilled = await list.evaluate((box, width) => {
+          const edge = box.getBoundingClientRect();
+          const out = [];
+          if (edge.left < 0 || edge.right > width) out.push(`the list, ${edge.left}–${edge.right}, in a window ${width} wide`);
+          for (const link of box.querySelectorAll("a"))
+            for (const line of link.getClientRects())
+              if (line.left < edge.left || line.right > edge.right) out.push(`"${link.textContent}", ${line.left}–${line.right}, in the list's ${edge.left}–${edge.right}`);
+          return out;
+        }, viewport.width);
+        expect(spilled, "what spills").toEqual([]);
+      } finally {
+        await context.close();
+      }
+    });
+  }
