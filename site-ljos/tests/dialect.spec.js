@@ -39,7 +39,7 @@ const qtQuick = {
   ...site(
     [
       "Brand", "CodeBlock", "CodeEditor", "ControlsHost", "DemoFrame", "DemoSection", "DemosPage", "DocPage", "DocsMap", "Footer",
-      "GitHubMark", "Heading", "IconButton", "LinkButton", "MenuButton", "MotionToggle", "NavLink", "ObserverButton", "ObserverDock",
+      "GitHubMark", "Heading", "IconButton", "LanguageSwitcher", "LinkButton", "MenuButton", "MotionToggle", "NavLink", "ObserverButton", "ObserverDock",
       "PageSource", "PageTree", "PageView", "Preferences", "ProDemoPage", "ReplayFrame", "Rise", "Router", "Runner", "Running",
       "Search", "ShellSwitcher", "StageButton", "ThemeToggle", "Toc",
     ].map((name) => `Site/${name}`),
@@ -47,8 +47,19 @@ const qtQuick = {
   ),
   ...site(["Site/Theme"], `${firstLoad}; and Ljos.Ui has no MotionPreference to compare styleHints.accessibility.motionPreference with`),
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
-  // By name only (`import QtQuick as Q`), for the one type Ljos.Ui lacks.
-  ...site(["Demos/Orbit", "Shells/Cyberpunk"], "Ljos.Ui has no FrameAnimation"),
+  // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
+  ...site(["Demos/Orbit"], "Ljos.Ui has no FrameAnimation"),
+  ...site(["Shells/Cyberpunk"], "Ljos.Ui has no FrameAnimation or LayoutMirroring"),
+  // A right-to-left page reads LayoutMirroring.enabled to set from the
+  // right what these place from the left; Ljos.Ui has no LayoutMirroring.
+  ...site(
+    [
+      "Demos/AgentLogRow", "Demos/AgentView", "Demos/DispatchCard", "Demos/FieldGuide", "Demos/WatchDemo", "Shells/Desktop", "Shells/Workbench",
+      "Site/Capability", "Site/FeatureCard", "Site/Hero", "Site/HeroApp", "Site/HeroStage", "Site/Landing", "Site/LiveSource", "Site/Panel",
+      "Site/ShellChoices", "Site/ShowcasePage",
+    ],
+    "Ljos.Ui has no LayoutMirroring",
+  ),
   ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
   // It loads the recording it shows when a reader asks (Loader.source given
   // an import) and sets what it shows on the item loaded; Ljos.Ui's Loader
