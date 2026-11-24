@@ -18,7 +18,9 @@ export { Task } from "./task.js";
 export {
   __ljos_message,
   __ljos_msg,
+  catalogSources,
   installCatalog,
+  loadCatalogs,
   msg,
   plural,
   readPo,
@@ -26,6 +28,7 @@ export {
   select,
   selectOrdinal,
   t,
+  untranslated,
 } from "./messages.ts";
 // What Qt's `Qt` object held, each under its own name: a file of Ljós's
 // API has no `Qt`. `Locale` here is the enums with `current` and `named`.

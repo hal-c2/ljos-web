@@ -7,7 +7,7 @@ import { application, font, inputMethod, styleHints } from "./application.ts";
 import { formatDate, formatDateTimeOf, formatTime, locale } from "./locale.ts";
 import { enums } from "./namespace.ts";
 import { general, Matrix4x4, Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "./values.ts";
-import { signal } from "#kernel";
+import { setUiLanguage, uiLanguage } from "./uiLanguage.ts";
 
 // What marks the function `Qt.binding` returns: a slot assigned one takes it
 // as a binding. A registered symbol, so the kernel needs nothing from here.
@@ -77,8 +77,6 @@ function callLater<A extends unknown[]>(callback: (...args: A) => unknown, ...ar
   later.delete(callback);
   later.set(callback, args);
 }
-
-const [uiLanguage, setUiLanguage] = signal(globalThis.navigator?.language ?? "en");
 
 // What `Qt.binding` returns: a function marked as a binding.
 type Bound = ((this: unknown) => unknown) & { [BINDING]?: boolean };
@@ -261,7 +259,7 @@ Object.defineProperties(Qt, {
   application: { get: application, enumerable: true },
   styleHints: { get: styleHints, enumerable: true },
   inputMethod: { get: inputMethod, enumerable: true },
-  uiLanguage: { get: uiLanguage, set: (language: string) => void setUiLanguage(language), enumerable: true },
+  uiLanguage: { get: uiLanguage, set: (language: string) => setUiLanguage(language), enumerable: true },
 });
 
 // How `arg` and `%n` write a value: a whole number as one, any other as

@@ -365,3 +365,116 @@ test("qsTr is unchanged by the catalogues of t", async ({ page }) => {
   await language(page, "is");
   expect(await read(page, "open")).toBe("Open");
 });
+
+// The languages a site is read in: plural forms each language has, a
+// catalogue fetched when its language is first asked for, what a
+// catalogue lacks said rather than read past, and the direction the
+// language is written in.
+const po = (language, entries) =>
+  `msgid ""\nmsgstr ""\n"Language: ${language}\\n"\n\n${entries.map(([id, str]) => `msgid ${JSON.stringify(id)}\nmsgstr ${JSON.stringify(str)}\n`).join("\n")}`;
+const FILES = "{count, plural, one {# file} other {# files}}";
+const RU_PO = po("ru", [[FILES, "{count, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"]]);
+const AR_PO = po("ar", [[FILES, "{count, plural, zero {لا ملفات} one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفًا} other {# ملف}}"]]);
+const DE_PO = po("de", [["Open", "Öffnen"]]);
+const ZH_PO = po("zh-Hans", [["Open", "打开"]]);
+
+test.describe("a site in many languages", () => {
+  for (const [tag, catalogue, counts] of [
+    ["ru", RU_PO, [[1, "1 файл"], [3, "3 файла"], [5, "5 файлов"], [21, "21 файл"], [1.5, "1,5 файла"]]],
+    ["ar", AR_PO, [[0, "لا ملفات"], [1, "ملف واحد"], [2, "ملفان"], [3, "3 ملفات"], [11, "11 ملفًا"], [100, "100 ملف"]]],
+  ]) {
+    for (const [count, expected] of counts) {
+      test(`a count picks ${tag}'s plural form: ${count}`, async ({ page }) => {
+        await shown(page, {
+          "Main.qml": qml(`property real count: ${count}`, 'property string files: plural(count, { one: "# file", other: "# files" })'),
+        });
+        await page.evaluate(([text, file]) => window.messages.installCatalog(text, file), [catalogue, `${tag}.po`]);
+        await language(page, tag);
+        expect(await read(page, "files")).toBe(expected);
+      });
+    }
+  }
+
+  test("a message a language's catalogue lacks is shown as written and reported", async ({ page }) => {
+    await shown(page, { "Main.qml": qml("property int left: 4", "property string shown: t`${left} left`", "property string open: t`Open`") });
+    await language(page, "is");
+    expect(await read(page, "shown")).toBe("4 left");
+    expect(await read(page, "open")).toBe("Opna");
+    expect(await page.evaluate(() => window.messages.untranslated())).toEqual([{ language: "is", context: "", key: "{left} left" }]);
+    // The source language has no catalogue, so nothing is missing in it.
+    await language(page, "en");
+    expect(await page.evaluate(() => window.messages.untranslated())).toHaveLength(1);
+  });
+
+  test("a catalogue is fetched when its language is first asked for, and the page follows", async ({ page }) => {
+    const fetched = [];
+    await page.route("**/i18n/*.po", (route) => {
+      fetched.push(new URL(route.request().url()).pathname);
+      return route.fulfill({ body: DE_PO, contentType: "text/x-gettext-translation" });
+    });
+    await shown(page, { "Main.qml": qml("property string open: t`Open`") });
+    await page.evaluate(() => window.messages.catalogSources({ de: "/i18n/de.po", fr: "/i18n/fr.po" }));
+    expect(fetched).toEqual([]);
+    await language(page, "de");
+    await expect.poll(() => page.evaluate(() => (window.flush(), window.scene.open))).toBe("Öffnen");
+    expect(fetched).toEqual(["/i18n/de.po"]);
+    // Asked for again, it is not fetched again.
+    await language(page, "en");
+    await language(page, "de-AT");
+    expect(await read(page, "open")).toBe("Öffnen");
+    expect(fetched).toEqual(["/i18n/de.po"]);
+  });
+
+  test("a catalogue loaded before the language is set is there at once", async ({ page }) => {
+    await page.route("**/i18n/de.po", (route) => route.fulfill({ body: DE_PO }));
+    await shown(page, { "Main.qml": qml("property string open: t`Open`") });
+    await page.evaluate(async () => {
+      window.messages.catalogSources({ de: "/i18n/de.po" });
+      await window.messages.loadCatalogs("de");
+    });
+    await language(page, "de");
+    expect(await read(page, "open")).toBe("Öffnen");
+  });
+
+  test.describe(() => {
+    test.use({ told: [/de\.po: the catalogue could not be fetched: 404|Failed to load resource/] });
+    test("a catalogue that cannot be fetched leaves the source text and is said", async ({ page }) => {
+      await page.route("**/i18n/de.po", (route) => route.fulfill({ status: 404, body: "" }));
+      await shown(page, { "Main.qml": qml("property string open: t`Open`") });
+      await page.evaluate(async () => {
+        window.messages.catalogSources({ de: "/i18n/de.po" });
+        await window.messages.loadCatalogs("de");
+      });
+      await language(page, "de");
+      expect(await read(page, "open")).toBe("Open");
+    });
+  });
+
+  for (const tag of ["zh-CN", "zh-SG", "zh-Hans", "zh"]) {
+    test(`${tag} finds a zh-Hans catalogue`, async ({ page }) => {
+      await shown(page, { "Main.qml": qml("property string open: t`Open`") });
+      await page.evaluate((text) => window.messages.installCatalog(text, "zh-Hans.po"), ZH_PO);
+      await language(page, tag);
+      expect(await read(page, "open")).toBe("打开");
+    });
+  }
+
+  test("zh-TW does not take a zh-Hans catalogue", async ({ page }) => {
+    await shown(page, { "Main.qml": qml("property string open: t`Open`") });
+    await page.evaluate((text) => window.messages.installCatalog(text, "zh-Hans.po"), ZH_PO);
+    await language(page, "zh-TW");
+    expect(await read(page, "open")).toBe("Open");
+  });
+
+  test("the layout direction follows the UI language", async ({ page }) => {
+    await shown(page, { "Main.qml": "import QtQuick\nItem {\n  property int direction: Qt.application.layoutDirection\n}\n" });
+    await language(page, "en");
+    expect(await read(page, "direction")).toBe(0);
+    for (const tag of ["ar", "ar-EG", "he", "fa"]) {
+      await language(page, tag);
+      expect(await read(page, "direction"), tag).toBe(1);
+    }
+    await language(page, "ja");
+    expect(await read(page, "direction")).toBe(0);
+  });
+});
