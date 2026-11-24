@@ -23,7 +23,7 @@ import { frameOf, itemToScene, sceneToItem } from "../geometry.ts";
 import { Item } from "../Item.js";
 import { Rectangle } from "../Rectangle.js";
 import { AllButtons, buttonOf, Key, RightButton, ShiftModifier } from "../keycodes.ts";
-import { gone, hoverable, overhear, receive, wheels } from "../pointer.js";
+import { drivenRoot, gone, hoverable, overhear, receive, wheels, inRoot } from "../pointer.js";
 import { windowOf } from "../Window.js";
 import { Page } from "./Pane.js";
 import { signal as graphed, untrack } from "#kernel";
@@ -857,8 +857,10 @@ function pressed(event) {
     const point = pointOf(overlay, event);
     const popups = stacked(overlay);
     const within = popups.find((popup) => popup.$item.$node.contains(event.target));
+    const root = drivenRoot();
     for (const popup of popups) {
       if (popup === within) break;
+      if (root && !inRoot(popup.$item, root)) continue;
       const pop = popup.$pop;
       const parent = popup.parent;
       pop.outside = !contains(popup.$item, point);
@@ -880,7 +882,9 @@ function released(event) {
     const barrier = overlay.$barrier;
     if (overlay.visible && buttonOf(event) !== RightButton) tell(overlay, "released");
     const point = pointOf(overlay, event);
+    const root = drivenRoot();
     for (const popup of barrier ? [barrier] : stacked(overlay)) {
+      if (root && !inRoot(popup.$item, root)) continue;
       const pop = popup.$pop;
       if (pop.outside || pop.outsideParent) tryClose(popup, point, CloseOnReleaseOutside | CloseOnReleaseOutsideParent);
       pop.outside = pop.outsideParent = false;
