@@ -120,8 +120,8 @@ Column {
                 width: ownShell.exampleWidth
                 scroller: landing.scroller
                 lang: "qml"
-                code: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's layout\n    fallback: \"AppShell.qml\"  // used if theirs won't compile\n}\n"
-                rich: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's layout\n    fallback: \"AppShell.qml\"  // used if theirs won't compile\n}\n"
+                code: LandingCode.ownShell.code
+                rich: LandingCode.ownShell.rich
             }
             // What to do with the playground under the section.
             Text {

@@ -43,3 +43,13 @@ Feature: A code card works on the narrowest phone, and gives its code as the rea
     Given a column that can scroll down, in a row that goes only sideways
     When the wheel turns down over the column
     Then the column scrolls and the row stays where it is
+
+  Scenario Outline: Every code block on the front page is coloured, in <scheme>
+    Given the front page in <scheme>
+    Then the "Make it your own" block, which loads a shell, shows its keywords, strings and comments in their own colours
+    And so does every other code block there, none drawn in one plain colour
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
