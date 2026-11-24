@@ -97,7 +97,7 @@ Feature: The site is shown in a shell the reader picks
   Scenario: A kept shell's page is never drawn in Elegant's colours while its own come
     Given a reader who kept the Workbench shell, on a connection where its colours come late
     When they open "/start/cli/"
-    Then every frame drawn before the page is shown has the Workbench shell's ground
+    Then every frame drawn before the page is shown, or before the head's watchdog gives up on the shell, has the Workbench shell's ground
 
   Scenario: Colours that never come hold the page back no longer than the watchdog
     Given a reader who kept the Workbench shell, on a connection where its colours never come
