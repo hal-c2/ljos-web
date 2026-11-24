@@ -303,6 +303,20 @@ Feature: The site is shown in a shell the reader picks
       | 390   | light  | 36    | 40   |
       | 390   | dark   | 36    | 40   |
 
+  Scenario Outline: The front page's replay stands beside its headline only with room for its code beside its app
+    Given a reader at <width> wide who asked for less motion
+    When they open the front page in the Elegant shell
+    Then the agent replay stands <where> the headline
+    And in the replay, the code stands beside the app
+
+    Examples:
+      | width | where  |
+      | 1176  | under  |
+      | 1200  | under  |
+      | 1278  | under  |
+      | 1279  | beside |
+      | 1440  | beside |
+
   Scenario: The arrow keys walk the live app's tabs
     Given a reader on the front page who pressed the live app's "Source" tab
     When they press the right arrow twice

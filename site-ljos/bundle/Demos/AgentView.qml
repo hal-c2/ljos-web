@@ -88,9 +88,9 @@ Rectangle {
     signal treePicked(string ref)
 
     // Side by side only where the card keeps its filters by its heading
-    // and the code its 14 pixels.
-    readonly property int sideWidth: 358
-    readonly property bool wide: width >= sideWidth + 360 + gap + 2 * pad
+    // and the code its 14 pixels (AgentReplay, which the page reads too).
+    readonly property int sideWidth: AgentReplay.sideWidth
+    readonly property bool wide: width >= AgentReplay.sideBySide
     // The toolbar on two rows, else three. The frame lays its button at the
     // end of the first (actWidth) and its label at the end of the second.
     readonly property bool roomy: width >= 600
@@ -106,8 +106,8 @@ Rectangle {
     readonly property int codeStrip: wide ? 0 : 48
     implicitHeight: strip.height + codeStrip + pad + (wide ? Math.max(cardRoom, sideRoom) : cardRoom + gap + sideRoom)
     // Room for a focus ring at the edges, and no more: the app is the subject.
-    readonly property int pad: Theme.xxs
-    readonly property int gap: Theme.s
+    readonly property int pad: AgentReplay.pad
+    readonly property int gap: AgentReplay.gap
 
     color: Theme.canvas
 

@@ -17,10 +17,14 @@ Item {
     property string title: ""
     property string subtitle: ""
     property bool wide: true
-    // Whether the demo stands beside the words, and how many of the
-    // grid's twelve columns the words take there: the demo has the rest.
-    property bool beside: wide
+    // How many of the grid's twelve columns the words take beside the
+    // demo: the demo has the rest. It stands there on a wide page where
+    // the width it gets is at least `stageFrom`, the narrowest the demo
+    // shows itself whole in; narrower, it follows the words, as wide as
+    // the page.
     property int wordsColumns: 6
+    property int stageFrom: 0
+    readonly property bool beside: wide && sideStageWidth >= stageFrom
     // What the demo is and what can be done with it, under the wash.
     property string caption: ""
     // The calls to act, a row of LinkButtons.
@@ -38,7 +42,11 @@ Item {
     // a column of four needs all of it.
     readonly property bool roomy: beside && wordsColumns > 4
     readonly property real column: (width - (Theme.columns - 1) * Theme.columnGap) / Theme.columns
-    readonly property int wordsWidth: beside ? Math.round(wordsColumns * column + (wordsColumns - 1) * Theme.columnGap) : width
+    readonly property int sideWordsWidth: Math.round(wordsColumns * column + (wordsColumns - 1) * Theme.columnGap)
+    // The demo's width beside the words: the rest, less the gap before
+    // the wash and the wash's reach round it.
+    readonly property int sideStageWidth: width - sideWordsWidth - Theme.columnGap - 2 * Theme.xl
+    readonly property int wordsWidth: beside ? sideWordsWidth : width
     // The wash takes the rest of the columns and the gap before them; the
     // words keep a gap of their own inside theirs.
     readonly property int deviceWidth: beside ? width - wordsWidth - Theme.columnGap : width

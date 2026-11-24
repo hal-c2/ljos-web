@@ -40,13 +40,13 @@ Column {
     // What Ljós is, and beside it (under it, on a narrower page) the
     // replay that shows it: an app reshaped while it runs, the TypeScript
     // that does it and the controls to do it by hand, in the first screen.
-    // The words take four of the grid's columns, so the replay has room
-    // for its code beside the app.
+    // The words take four of the grid's columns, and the replay stands
+    // beside them where the rest is room for its code beside the app.
     Hero {
         width: parent.width
         wide: landing.wide
-        beside: landing.wide && landing.width >= 1112
         wordsColumns: 4
+        stageFrom: AgentReplay.sideBySide
         title: LandingCopy.headline
         subtitle: LandingCopy.subhead
         caption: LandingCopy.heroCaption
