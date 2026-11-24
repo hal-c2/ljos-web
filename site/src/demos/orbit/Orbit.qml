@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
 import QtQuick3D
 import QtQuick3D.Helpers
 
@@ -11,7 +12,7 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#12141b"
+    fill: "#12141b"
 
     // Driven by the page that embeds this file; harmless standalone.
     property bool active: true
@@ -59,7 +60,7 @@ Rectangle {
         }
 
         DirectionalLight {
-            eulerRotation: Qt.vector3d(-48, -35, 0)
+            eulerRotation: vector3d(-48, -35, 0)
             color: "#ffe7c4"
             brightness: 1.35
             castsShadow: true
@@ -67,7 +68,7 @@ Rectangle {
         }
         // Cool fill from the opposite side, so the night side still reads.
         DirectionalLight {
-            eulerRotation: Qt.vector3d(-20, 140, 0)
+            eulerRotation: vector3d(-20, 140, 0)
             color: "#7d92c4"
             brightness: 0.35
         }
@@ -76,7 +77,7 @@ Rectangle {
         Model {
             source: "#Cylinder"
             y: -92
-            scale: Qt.vector3d(11, 0.12, 11)
+            scale: vector3d(11, 0.12, 11)
             materials: PrincipledMaterial {
                 baseColor: "#22304a"
                 roughness: 0.35
@@ -87,7 +88,7 @@ Rectangle {
         Model {
             source: "#Cylinder"
             y: -68
-            scale: Qt.vector3d(1.9, 0.55, 1.9)
+            scale: vector3d(1.9, 0.55, 1.9)
             materials: PrincipledMaterial {
                 baseColor: "#3a4152"
                 roughness: 0.95
@@ -100,7 +101,7 @@ Rectangle {
             Model {
                 source: "#Cylinder"
                 y: 55
-                scale: Qt.vector3d(0.62, 2.5, 0.62)
+                scale: vector3d(0.62, 2.5, 0.62)
                 materials: PrincipledMaterial {
                     baseColor: "#e9e2d2"
                     roughness: 0.6
@@ -109,7 +110,7 @@ Rectangle {
             Model {
                 source: "#Cylinder"
                 y: 15
-                scale: Qt.vector3d(0.66, 0.42, 0.66)
+                scale: vector3d(0.66, 0.42, 0.66)
                 materials: PrincipledMaterial {
                     baseColor: "#c77f2a"
                     roughness: 0.55
@@ -118,7 +119,7 @@ Rectangle {
             Model {
                 source: "#Cylinder"
                 y: 115
-                scale: Qt.vector3d(0.66, 0.42, 0.66)
+                scale: vector3d(0.66, 0.42, 0.66)
                 materials: PrincipledMaterial {
                     baseColor: "#c77f2a"
                     roughness: 0.55
@@ -128,7 +129,7 @@ Rectangle {
             Model {
                 source: "#Cylinder"
                 y: 186
-                scale: Qt.vector3d(0.95, 0.16, 0.95)
+                scale: vector3d(0.95, 0.16, 0.95)
                 materials: PrincipledMaterial {
                     baseColor: "#39415a"
                     roughness: 0.55
@@ -138,17 +139,17 @@ Rectangle {
             Model {
                 source: "#Cylinder"
                 y: 222
-                scale: Qt.vector3d(0.52, 0.62, 0.52)
+                scale: vector3d(0.52, 0.62, 0.52)
                 materials: PrincipledMaterial {
                     baseColor: "#ffca7a"
-                    emissiveFactor: Qt.vector3d(3.0, 1.7, 0.45)
+                    emissiveFactor: vector3d(3.0, 1.7, 0.45)
                     roughness: 0.4
                 }
             }
             Model {
                 source: "#Cone"
                 y: 278
-                scale: Qt.vector3d(0.85, 0.95, 0.85)
+                scale: vector3d(0.85, 0.95, 0.85)
                 materials: PrincipledMaterial {
                     baseColor: "#39415a"
                     roughness: 0.55
@@ -170,10 +171,10 @@ Rectangle {
         Node {
             id: sweep
             y: 222
-            eulerRotation: Qt.vector3d(0, root.turn * 2, 0)
+            eulerRotation: vector3d(0, root.turn * 2, 0)
             SpotLight {
                 z: 30
-                eulerRotation: Qt.vector3d(-24, 0, 0)
+                eulerRotation: vector3d(-24, 0, 0)
                 color: "#ffd9a0"
                 brightness: 6
                 coneAngle: 26
@@ -190,12 +191,12 @@ Rectangle {
         Node {
             id: ring
             y: 40
-            eulerRotation: Qt.vector3d(0, root.turn, 0)
+            eulerRotation: vector3d(0, root.turn, 0)
             Model {
                 x: 215
-                scale: Qt.vector3d(0.55, 0.55, 0.55)
+                scale: vector3d(0.55, 0.55, 0.55)
                 source: "#Sphere"
-                eulerRotation: Qt.vector3d(0, root.turn * 4, 0)
+                eulerRotation: vector3d(0, root.turn * 4, 0)
                 materials: PrincipledMaterial {
                     baseColor: "#d8b36a"
                     roughness: 0.3
@@ -206,9 +207,9 @@ Rectangle {
                 x: -190
                 y: 55
                 z: 90
-                scale: Qt.vector3d(0.62, 0.62, 0.62)
+                scale: vector3d(0.62, 0.62, 0.62)
                 source: "#Cube"
-                eulerRotation: Qt.vector3d(root.turn * 2, root.turn * 3, 0)
+                eulerRotation: vector3d(root.turn * 2, root.turn * 3, 0)
                 materials: PrincipledMaterial {
                     baseColor: "#5b7ba8"
                     roughness: 0.85
@@ -218,9 +219,9 @@ Rectangle {
                 x: -60
                 y: -30
                 z: -215
-                scale: Qt.vector3d(0.7, 0.7, 0.7)
+                scale: vector3d(0.7, 0.7, 0.7)
                 source: "#Cone"
-                eulerRotation: Qt.vector3d(0, root.turn * -3, 0)
+                eulerRotation: vector3d(0, root.turn * -3, 0)
                 materials: PrincipledMaterial {
                     baseColor: "#c4572e"
                     roughness: 0.35
@@ -234,15 +235,15 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.margins: 14
         color: "#c9cfdd"
-        font.pixelSize: 14
-        text: qsTr("Drag to orbit · scroll or pinch to zoom")
+        font.size: 14
+        text: t`Drag to orbit · scroll or pinch to zoom`
     }
     Text {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 14
         color: "#8b93a7"
-        font.pixelSize: 13
-        text: qsTr("One QML file, drawn by Ljós's 3D renderer")
+        font.size: 13
+        text: t`One QML file, drawn by Ljós's 3D renderer`
     }
 }

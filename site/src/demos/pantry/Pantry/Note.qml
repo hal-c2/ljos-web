@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
 import QtQuick.Controls
 
 // A note the visitor types. The text belongs to this block, not to
@@ -10,7 +11,7 @@ Rectangle {
     width: 300
     height: 76
     radius: 8
-    color: "#202636"
+    fill: "#202636"
 
     readonly property string text: field.text
 
@@ -18,8 +19,8 @@ Rectangle {
         x: 12
         y: 8
         color: "#93a0ba"
-        font.pixelSize: 12
-        text: qsTr("Note for the baker")
+        font.size: 12
+        text: t`Note for the baker`
     }
     TextField {
         id: field
@@ -34,6 +35,6 @@ Rectangle {
         // No Accessible.name: the control says its placeholder,
         // as every TextField does; naming the wrapper here would
         // label the box around the field instead of the field.
-        placeholderText: qsTr("Note for the baker…")
+        placeholderText: t`Note for the baker…`
     }
 }
