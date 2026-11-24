@@ -169,7 +169,8 @@ Column {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: Math.max(0, (parent.width - width * stageBox.fit) / 2)
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    // Scaled from its top left, it takes width × fit.
+                    x: LayoutMirroring.enabled ? parent.width - width * stageBox.fit - startX : startX
                     fallback: appShell
                 }
                 Component {

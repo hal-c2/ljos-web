@@ -124,6 +124,7 @@ Rectangle {
     // Above it, at every width and in every tab, the one toolbar: what the
     // agent was asked, how that stands, the same change in the reader's own
     // hands, and the room for the frame's label and button.
+
     Item {
         id: strip
         width: view.width
@@ -137,7 +138,7 @@ Rectangle {
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: view.pad
             x: LayoutMirroring.enabled ? parent.width - width - startX : startX
-            y: view.pad + Math.round((editButtons.height - height) / 2)
+            y: view.pad + Math.max(0, Math.round((editButtons.height - height) / 2))
             width: (view.roomy ? editButtons.startX : strip.width - view.pad - view.actWidth) - startX - Theme.xs
             text: t`Agent: make this a board`
             color: Theme.text
@@ -152,7 +153,8 @@ Rectangle {
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: view.roomy ? strip.width - view.pad - view.actWidth - Theme.xs - width : view.pad
             x: LayoutMirroring.enabled ? parent.width - width - startX : startX
-            y: view.roomy ? view.pad : view.pad + editButtons.height + Theme.xs
+            // Under the request on a phone, however many lines it is in.
+            y: view.roomy ? view.pad : Math.max(view.pad + editButtons.height, request.y + request.height) + Theme.xs
             spacing: Theme.xxs
             enabled: view.editable
 
@@ -179,7 +181,7 @@ Rectangle {
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: view.pad
             x: LayoutMirroring.enabled ? parent.width - width - startX : startX
-            y: view.roomy ? view.pad + editButtons.height + Theme.s : editButtons.y + editButtons.height + Theme.xs
+            y: view.roomy ? Math.max(view.pad + editButtons.height + Theme.s, request.y + request.height + Theme.xs) : editButtons.y + editButtons.height + Theme.xs
             width: strip.width - 2 * view.pad - (view.roomy ? 176 : 0)
             text: view.edited ? t`Your edit` : view.still ? t`End result, not run` : view.finished ? (card !== null && card.unassigned > 0 ? t`Done. Try Assign crew or List / Board.` : t`Done`) : view.working ? t`Working…` : ""
             color: Theme.link
