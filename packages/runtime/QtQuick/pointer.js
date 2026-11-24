@@ -152,6 +152,9 @@ export const hoverable = (by) => void (hovers += by);
 // An item that takes pointer events: `$press(point)` answers whether it
 // accepts one, and it is then told `$move`, `$release` and `$grab`. One that
 // has `$filter(point, receiver)` is asked before what is inside it.
+// The item an element takes pointer events for, if it takes any.
+export const receiverOf = (node) => receivers.get(node) ?? null;
+
 export function receive(item) {
   if (receivers.has(item.$node)) return;
   receivers.set(item.$node, item);
