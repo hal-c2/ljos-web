@@ -186,6 +186,10 @@ QtObject {
     // Whether a live device lays its panels out beside its app, all at
     // once, as a console (Cyberpunk), rather than under it, a tab each.
     readonly property bool consoleLayout: look.console === true
+    // How wide a device must be to stand as a console; a narrower one
+    // keeps its tabs. The front page reads it too, so its live app
+    // stands under its words only as a console.
+    readonly property int consoleFrom: 960
 
     // Layout: the reading column, the wide layout's side columns, and
     // where the wide layout starts.

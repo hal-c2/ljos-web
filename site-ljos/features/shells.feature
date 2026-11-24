@@ -376,6 +376,18 @@ Feature: The site is shown in a shell the reader picks
     Then the live app stands between the "Observer tree" on its left and the "Agent MCP stream" on its right, all seen at once
     And its headline is in sentence case, never all capitals
 
+  Scenario Outline: Cyberpunk's front page never stacks its words over a tabbed app
+    Given a reader with script in a window <width> wide, in the Cyberpunk shell
+    When they open the front page
+    Then the live app under "Built for agents" is either a console or stands beside the section's words, never a tabbed app under them
+
+    Examples:
+      | width |
+      | 1000  |
+      | 1100  |
+      | 1200  |
+      | 1440  |
+
   Scenario: Cyberpunk stands on a phone, with one menu control and its telemetry at the bottom
     Given a reader on a phone whose kept shell is Cyberpunk
     When they open the front page
