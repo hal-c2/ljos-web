@@ -167,6 +167,32 @@ test.describe("a page in the reader's language", () => {
     await context.close();
   });
 
+  // On a slow link the page is the reader's before the catalogue of the
+  // browser's language is in: what they pick meanwhile is what it stays in.
+  test("a language picked while the browser's is still coming is the one kept", async ({ browser }) => {
+    const context = await browser.newContext({ locale: "de-DE", viewport: DESKTOP });
+    const page = await context.newPage();
+    let release;
+    const held = new Promise((done) => (release = done));
+    let asked = false;
+    await page.route(/\/de(?:\.po)?-[\w-]+\.js$/u, async (route) => {
+      asked = true;
+      await held;
+      await route.continue();
+    });
+    await open(page, "/");
+    await expect.poll(() => asked).toBe(true);
+    await pick(page, "English");
+    release();
+    await page.waitForLoadState("networkidle");
+    await expect(headline(page, HEADLINE)).toBeVisible();
+    expect(await language(page)).toEqual({ lang: "en", dir: "ltr" });
+    expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBe("en");
+    await open(page, "/");
+    await expect(headline(page, HEADLINE)).toBeVisible();
+    await context.close();
+  });
+
   test("Arabic is laid out from the right", async ({ page }) => {
     await page.setViewportSize(DESKTOP);
     await open(page, "/");

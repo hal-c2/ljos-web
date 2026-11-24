@@ -11,7 +11,7 @@
 // screen reader reads it in that language and the browser sets text the
 // way it is written.
 import { App, catalogSources, loadCatalogs } from "./Ljos/Core/index.js";
-import { onUiLanguage, rightToLeft, setUiLanguage, uiLanguage } from "./QtQml/uiLanguage.ts";
+import { chooseUiLanguage, onUiLanguage, rightToLeft, setUiLanguage, uiLanguage } from "./QtQml/uiLanguage.ts";
 
 function locale(tag) {
   try {
@@ -74,6 +74,7 @@ function mark(tag) {
  */
 export function startInSource(source = "en") {
   if (uiLanguage() !== source) setUiLanguage(source);
+  else chooseUiLanguage();
   mark(source);
 }
 
@@ -100,17 +101,32 @@ export async function startLanguages({ catalogs, source = "en", key = "ljos-site
     bestLanguage([kept(key)].filter(Boolean), languages) ||
     bestLanguage(globalThis.navigator?.languages ?? [], languages) ||
     source;
-  // Every change after this is the reader's (a picker sets App.language),
-  // and is kept for the next page.
+  // Every change after this that is not the start's own is the reader's
+  // (a picker sets App.language), and is kept for the next page. One made
+  // while the start still waits (on a slow link the page is the reader's
+  // before the catalogue is in) is what the page stays in.
   let starting = true;
+  let ours = false;
+  let readers = "";
   onUiLanguage((tag) => {
     mark(tag);
-    if (!starting) keep(key, tag);
+    if (ours) return;
+    if (starting) readers = tag;
+    else keep(key, tag);
   });
   mark(source);
   await Promise.all([picked === source ? undefined : loadCatalogs(picked), Promise.resolve(after).catch(() => undefined)]);
-  App.language = picked;
-  if (asked && picked === bestLanguage([asked], languages)) keep(key, picked);
   starting = false;
+  if (readers) {
+    keep(key, readers);
+    return readers;
+  }
+  ours = true;
+  try {
+    App.language = picked;
+  } finally {
+    ours = false;
+  }
+  if (asked && picked === bestLanguage([asked], languages)) keep(key, picked);
   return picked;
 }
