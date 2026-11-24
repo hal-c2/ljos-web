@@ -109,7 +109,8 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: dock.sheet ? 0 : dock.open || dock.still ? dock.room - width : dock.room
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        // Set in the dock's room: the dock itself is no wider than nothing.
+        x: LayoutMirroring.enabled ? dock.room - width - startX : startX
         y: dock.sheet ? (dock.open || dock.still ? dock.roomHeight - height : dock.roomHeight) : 0
         opacity: dock.still && !dock.open ? 0 : 1
         radius: dock.sheet ? Theme.radiusLarge : 0

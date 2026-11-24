@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Site
@@ -88,7 +89,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: Theme.s
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Theme.s
         width: card.width - 2 * Theme.s
         spacing: Theme.s
@@ -300,7 +301,7 @@ Rectangle {
                                     // Where it starts, read from the left; a right-to-left page
                                     // sets it as far from the right (LayoutMirroring).
                                     readonly property real startX: Theme.xs
-                                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                                     y: Theme.xs + 5
                                     width: 8
                                     height: 8
@@ -314,7 +315,7 @@ Rectangle {
                                     // Where it starts, read from the left; a right-to-left page
                                     // sets it as far from the right (LayoutMirroring).
                                     readonly property real startX: dot.startX + dot.width + Theme.xs
-                                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                                     y: Theme.xs
                                     width: row.width - startX - Theme.xs - (row.boarded ? 0 : crewSide.width + Theme.xs)
                                     spacing: 0
@@ -340,7 +341,7 @@ Rectangle {
                                     // Where it starts, read from the left; a right-to-left page
                                     // sets it as far from the right (LayoutMirroring).
                                     readonly property real startX: row.boarded ? lines.startX : row.width - width - Theme.xs
-                                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                                     y: row.boarded ? lines.y + lines.height + 2 : Theme.xs
                                     width: row.open && row.crew === "" ? assignButton.width : crewName.implicitWidth
                                     height: row.open && row.crew === "" ? assignButton.height : crewName.implicitHeight

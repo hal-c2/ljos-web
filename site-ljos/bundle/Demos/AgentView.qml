@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Ljos.Blocks
@@ -137,7 +138,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: view.pad
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: view.pad + Math.max(0, Math.round((editButtons.height - height) / 2))
             width: (view.roomy ? editButtons.startX : strip.width - view.pad - view.actWidth) - startX - Theme.xs
             text: t`Agent: make this a board`
@@ -152,7 +153,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: view.roomy ? strip.width - view.pad - view.actWidth - Theme.xs - width : view.pad
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             // Under the request on a phone, however many lines it is in.
             y: view.roomy ? view.pad : Math.max(view.pad + editButtons.height, request.y + request.height) + Theme.xs
             spacing: Theme.xxs
@@ -180,7 +181,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: view.pad
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: view.roomy ? Math.max(view.pad + editButtons.height + Theme.s, request.y + request.height + Theme.xs) : editButtons.y + editButtons.height + Theme.xs
             width: strip.width - 2 * view.pad - (view.roomy ? 176 : 0)
             text: view.edited ? t`Your edit` : view.still ? t`End result, not run` : view.finished ? (card !== null && card.unassigned > 0 ? t`Done. Try Assign crew or List / Board.` : t`Done`) : view.working ? t`Working…` : ""
@@ -201,7 +202,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: view.pad
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: strip.height
         width: view.width - 2 * view.pad
         height: view.codeStrip - Theme.xxs
@@ -212,7 +213,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Theme.xs
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: Math.round((parent.height - height) / 2)
             width: parent.width - 2 * Theme.xs
 
@@ -253,7 +254,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: view.pad
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: strip.height + view.codeStrip
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
         // A poster's board is drawn with the page: the board module, still.
@@ -301,7 +302,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: view.wide ? shell.startX + shell.width + view.gap : view.pad
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: view.wide ? strip.height : strip.height + view.codeStrip + view.cardRoom + view.gap
         width: view.wide ? view.sideWidth : view.width - 2 * view.pad
         height: view.height - y - view.pad
@@ -321,7 +322,7 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: 2
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
 
@@ -384,7 +385,7 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: Theme.s
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 text: t`Agent log`
                 color: Theme.text
@@ -517,7 +518,7 @@ Rectangle {
                         // Where it starts, read from the left; a right-to-left page
                         // sets it as far from the right (LayoutMirroring).
                         readonly property real startX: Theme.xxs
-                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: Theme.xs
                         width: parent.width - 2 * Theme.xxs
                         color: Theme.codeFg
@@ -551,6 +552,8 @@ Rectangle {
             Flickable {
                 id: treeView
                 width: observerView.sideBySide ? Math.round(parent.width * 0.5) - Theme.xs : parent.width
+                // Beside the properties, it changes sides with them on a right-to-left page.
+                x: Q.LayoutMirroring.enabled ? parent.width - width : 0
                 height: observerView.sideBySide ? parent.height : Math.round(parent.height * 0.5) - Theme.xs
                 contentHeight: treeColumn.height
                 clip: true
@@ -591,7 +594,7 @@ Rectangle {
                                 // Where it starts, read from the left; a right-to-left page
                                 // sets it as far from the right (LayoutMirroring).
                                 readonly property real startX: 4 + 12 * treeRow.modelData.depth
-                                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: parent.width - startX - 4
                                 text: treeRow.modelData.label
@@ -624,7 +627,7 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: observerView.sideBySide ? treeView.width + 2 * Theme.xs : 0
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: observerView.sideBySide ? 0 : treeView.height + 2 * Theme.xs
                 width: parent.width - startX
                 height: parent.height - y

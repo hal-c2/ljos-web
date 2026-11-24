@@ -251,6 +251,61 @@ test.describe("a page in the reader's language", () => {
   }
 });
 
+// What stands apart in English stands apart in Arabic: each part of the
+// page (a landmark, a group, a list, a toolbar) is mirrored with what is
+// beside it, never left where the mirrored one now is.
+const PARTS = '[role="main"],[role="navigation"],[role="complementary"],[role="region"],[role="group"],[role="contentinfo"],[role="toolbar"],[role="list"],[role="tablist"]';
+async function parts(browser, shell, route, lang) {
+  const context = await browser.newContext({ viewport: DESKTOP });
+  await context.addInitScript((tag) => localStorage.setItem("ljos.dev:shell", tag), shell);
+  const page = await context.newPage();
+  try {
+    await open(page, `${route}?lang=${lang}`);
+    await expect.poll(() => language(page)).toEqual({ lang, dir: lang === "ar" ? "rtl" : "ltr" });
+    // The shell kept is the one compared: one the head's watchdog gave up
+    // on shows Elegant instead (Main.qml's late()), which has other parts.
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.ljosShellShowing ?? "elegant"), { message: `${shell} is shown, not given up on by the head's watchdog`, timeout: 30_000 })
+      .toBe(shell);
+    // Down the whole page, so what is made where it shows is there.
+    for (let y = 0; y < (await page.evaluate(() => document.documentElement.scrollHeight)); y += 600) {
+      await page.evaluate((to) => window.scrollTo(0, to), y);
+      await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(500);
+    return await page.evaluate((selector) =>
+      [...document.querySelectorAll(selector)]
+        .filter((node) => node.checkVisibility?.() ?? true)
+        .map((node) => {
+          const box = node.getBoundingClientRect();
+          return { at: node.getAttribute("aria-label") ?? node.getAttribute("role"), x: box.left + scrollX, y: box.top + scrollY, w: box.width, h: box.height };
+        })
+        .filter((box) => box.w > 1 && box.h > 1),
+    PARTS);
+  } finally {
+    await context.close();
+  }
+}
+const overlap = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 2 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 2;
+const holds = (a, b) => a.x <= b.x + 2 && a.y <= b.y + 2 && a.x + a.w >= b.x + b.w - 2 && a.y + a.h >= b.y + b.h - 2;
+for (const [shell, route] of [["elegant", "/"], ["elegant", "/demos/"], ["cyberpunk", "/"], ["workbench", "/"], ["desktop", "/"]]) {
+  test(`in ${shell} on ${route}, what stands apart in English stands apart in Arabic`, async ({ browser }) => {
+    test.setTimeout(120_000);
+    const english = await parts(browser, shell, route, "en");
+    const arabic = await parts(browser, shell, route, "ar");
+    expect(arabic.length, "the same parts").toBe(english.length);
+    const covered = [];
+    for (let i = 0; i < english.length; i++)
+      for (let j = i + 1; j < english.length; j++) {
+        const [a, b] = [english[i], english[j]];
+        if (overlap(a, b) || holds(a, b) || holds(b, a)) continue;
+        if (overlap(arabic[i], arabic[j])) covered.push(`${arabic[i].at} / ${arabic[j].at}`);
+      }
+    expect(covered).toEqual([]);
+  });
+}
+
 // A catalogue is fetched only when its language is: the first load of a
 // page in English holds none.
 test("no catalogue is in an English page's first load", async ({ page }) => {

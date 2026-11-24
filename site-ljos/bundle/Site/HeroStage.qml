@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Site
@@ -98,7 +99,7 @@ DeviceFrame {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: Theme.m
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: Theme.m
                     width: parent.width - 2 * Theme.m
                     format: Text.RichText
@@ -121,7 +122,7 @@ DeviceFrame {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: Theme.m
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: Theme.s
                 width: parent.width - 2 * Theme.m
 
@@ -145,7 +146,7 @@ DeviceFrame {
                             // Where it starts, read from the left; a right-to-left page
                             // sets it as far from the right (LayoutMirroring).
                             readonly property real startX: Theme.xs + line.modelData.depth * Theme.m
-                            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs
                             Text {
@@ -172,7 +173,7 @@ DeviceFrame {
                             // Where it starts, read from the left; a right-to-left page
                             // sets it as far from the right (LayoutMirroring).
                             readonly property real startX: parent.width - width - Theme.xs
-                            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs
                             Text {
@@ -214,7 +215,7 @@ DeviceFrame {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: Theme.m
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     width: badge.implicitWidth + 2 * Theme.xs
                     height: 22
@@ -236,7 +237,7 @@ DeviceFrame {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: parent.width - width - Theme.m
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.xs
                     StageButton {
@@ -257,7 +258,7 @@ DeviceFrame {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: Theme.m
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 width: parent.width - 2 * Theme.m
                 spacing: Theme.xs
 

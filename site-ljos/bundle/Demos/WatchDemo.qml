@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Core
 
 // The watch's files, by their own names: its Theme is its own, so the
@@ -59,6 +60,8 @@ Item {
     Item {
         id: flat
         width: demo.across ? Math.round(demo.width * 0.5) : demo.width
+        // Beside the worn watch, it changes sides with it on a right-to-left page.
+        x: Q.LayoutMirroring.enabled ? parent.width - width : 0
         height: demo.across ? demo.height : Math.round(demo.height * 0.56)
 
         readonly property real room: height - keys.height - 2 * Page.Theme.m
@@ -71,7 +74,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Math.round((flat.width - width) / 2)
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: Math.round(Page.Theme.m + (flat.room - height) / 2)
             scale: flat.fit
             transformOrigin: Item.Center
@@ -253,7 +256,7 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: demo.across ? flat.width : 0
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: demo.across ? 0 : flat.height
         width: demo.across ? demo.width - flat.width : demo.width
         height: demo.across ? demo.height : demo.height - flat.height
@@ -421,7 +424,7 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: spot.x
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: spot.y
 
         implicitWidth: words.implicitWidth + 2 * Page.Theme.s

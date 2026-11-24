@@ -48,6 +48,8 @@ Rectangle {
             Column {
                 id: said
                 width: footer.spread ? Math.round(5 * footer.column + 4 * Theme.columnGap) : parent.width
+                // Beside the links, it changes sides with them on a right-to-left page.
+                x: LayoutMirroring.enabled ? parent.width - width : 0
                 spacing: Theme.s
 
                 // The logo, in the page as written, as the header's is

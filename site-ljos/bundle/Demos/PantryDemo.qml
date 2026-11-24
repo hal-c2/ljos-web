@@ -154,6 +154,8 @@ Column {
                 // cut off at the page's edge.
                 readonly property real fit: Math.min(1, width / 480)
                 width: demo.side ? 480 : parent.width
+                // Beside the editor, it changes sides with it on a right-to-left page.
+                x: LayoutMirroring.enabled ? parent.width - width : 0
                 height: Math.round(400 * fit)
                 color: Theme.stage
                 Accessible.role: Accessible.Grouping
