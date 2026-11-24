@@ -2023,7 +2023,14 @@ test("editing Workbench's Source tab changes the running page in place", async (
     expect((await increment.boundingBox()).y, "the page is where it was").toBeCloseTo(place.y, 0);
     await expect(source, "the reader is still in the editor").toBeFocused();
 
-    await source.fill(`${edited}\n}}`);
+    // The editor draws only the lines in sight (CodeMirror), and after
+    // the edit the reader is at its end: what it has drawn is the end
+    // alone, so filling it again would replace only that end. The braces
+    // are typed there, as a reader would.
+    const lines = edited.split("\n").length;
+    await expect.poll(() => source.evaluate((node) => node.querySelectorAll(".cm-line").length), { message: "only the end is drawn" }).toBeLessThan(lines / 2);
+    await source.press("ControlOrMeta+End");
+    await page.keyboard.insertText("\n}}");
     const problems = page.getByRole("list", { name: "Problems", exact: true });
     await expect(problems.getByRole("listitem").first(), "what broke, with its line").toHaveText(/Shells\/Workbench\.qml:\d+:\d+/, { timeout: 30_000 });
     await expect(status.getByText("Diagnostics: 1", { exact: true })).toBeVisible();
