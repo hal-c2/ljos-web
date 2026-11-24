@@ -13,7 +13,7 @@
 // object of such a file is listed and clicked all the same, with no place.
 import { flush, native } from "./object.ts";
 import { drawn as drawnOf } from "./QtQuick/drawn.ts";
-import { driving, inRoot, receiverOf } from "./QtQuick/pointer.js";
+import { driving, inRoot, receiverOf } from "./QtQuick/receivers.js";
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says
 // `console.log` is a debug message and `console.error` a critical one.
