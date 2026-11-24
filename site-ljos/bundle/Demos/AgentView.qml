@@ -259,7 +259,7 @@ Rectangle {
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
         // A poster's board is drawn with the page: the board module, still.
         // Ljós on the desktop takes a shell by its address alone.
-        stand: view.still ? (Qt.platform.os === "wasm" ? posterBoard : Boards.boardAt()) : undefined
+        stand: view.still ? (App.platform.os === "wasm" ? posterBoard : Boards.boardAt()) : undefined
         onItemChanged: {
             if (item !== null)
                 item.still = bind(() => view.still);
