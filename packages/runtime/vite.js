@@ -66,8 +66,6 @@ const VIRTUAL = "\0ljos-web:";
 // The theme an entry reads (ljos-ui's `docs/theme.md`): a module of its own,
 // so that a change of the file is taken without the page being made again.
 const THEME = "\0ljos-web-theme:";
-// Whether a module's id is a theme's: one the entry and its files share.
-export const isTheme = (id) => id.startsWith(THEME);
 // Qt's own QML is of no program, and takes the style of the one that came
 // to it: its address says which (`DebugView.qml?for=Material`), and so does
 // that of each module on the way.

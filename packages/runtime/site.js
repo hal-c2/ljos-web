@@ -17,7 +17,7 @@ import { dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:p
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
 import { provided } from "./modules.js";
-import qml, { compilerAt, hasControls, installed, isTheme, kernelNamed, runCompiler } from "./vite.js";
+import qml, { compilerAt, hasControls, installed, kernelNamed, runCompiler } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";
 import { askedJobs, fittingJobs, pooled } from "./pool.js";
 
@@ -775,16 +775,63 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       : false;
     // The bundle as a module's id names it, through a link or not.
     const bundled = [...new Set([dir, realpathSync(dir)])].map((at) => at + sep);
+    // What the entry's own file would hold: the modules the entry imports,
+    // however far down, that no module imported later reaches. A module
+    // imported later that the entry already imports is loaded with it,
+    // so what it reaches is not later.
+    const firstOnly = new Set();
+    const first = {
+      name: "ljos-site:first-only",
+      buildEnd() {
+        const ids = [...this.getModuleIds()];
+        const info = (id) => this.getModuleInfo(id);
+        const reached = (roots) => {
+          const seen = new Set();
+          const stack = [...roots];
+          while (stack.length) {
+            const id = stack.pop();
+            if (seen.has(id)) continue;
+            seen.add(id);
+            stack.push(...(info(id)?.importedIds ?? []));
+          }
+          return seen;
+        };
+        const entry = reached(ids.filter((id) => info(id)?.isEntry));
+        const later = reached(ids.filter((id) => info(id)?.dynamicImporters.length && !entry.has(id)));
+        firstOnly.clear();
+        for (const id of entry) if (!later.has(id)) firstOnly.add(id);
+      },
+    };
     const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell, answers, inspect: placed });
     // The page's build and, for a prerender, the server bundle of the same
     // entry, at once: neither reads what the other writes, and each has a
     // plugin of its own. A file's compile runs beside the others
     // (`compilerRun`, as many as there are cores), and what one build asked
     // of the compiler, or is asking, the other is told (`answers`).
-    const client = timed("client", () =>
-      build({
+    // What tree shaking leaves in the entry's file beyond the entry itself,
+    // which the graph does not tell (`firstOnly`): read from the files a
+    // build made, when one of them imports the entry's back.
+    const leftOver = new Set();
+    const leftIn = (made) => {
+      const chunks = [made].flat().flatMap((output) => output.output ?? []).filter((file) => file.type === "chunk");
+      return chunks
+        .filter((chunk) => chunk.isEntry && chunks.some((other) => other.imports.includes(chunk.fileName)))
+        .flatMap((chunk) => chunk.moduleIds.filter((id) => id !== chunk.facadeModuleId));
+    };
+    const client = timed("client", async () => {
+      const made = await clientBuild();
+      const left = leftIn(made);
+      if (!left.length) return made;
+      for (const id of left) leftOver.add(id);
+      const again = await clientBuild();
+      const still = leftIn(again);
+      if (still.length) throw new Error(`the site's first-load files import each other through ${still.join(", ")}`);
+      return again;
+    });
+    function clientBuild() {
+      return build({
         ...shared,
-        plugins: [plugin()],
+        plugins: [plugin(), first],
         // Each file is compiled by qmlc in the plugin's load, so nearly all
         // of a build's time is in callbacks; that is expected, not a warning.
         //
@@ -801,24 +848,33 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // imported statically, and its chunks stay as rolldown cuts them
         // to what each page uses. A group without its modules'
         // dependencies keeps the order they run in only while no chunk
-        // it imports imports it back (tests/payload.spec.js). The runtime
-        // never imports the bundle, but the bundle's theme, a module of
-        // its own that the entry imports too, would stay in the entry's
-        // file, which imports `site-*`, so it is in the group as well.
+        // it imports imports it back (tests/payload.spec.js,
+        // site-tests/site.spec.js). A module that only the entry reaches
+        // would stay in the entry's file, which imports `site-*`: in a
+        // small site that is all of the runtime, and its classes would be
+        // extended before they are made. So the group takes those as
+        // well (`firstOnly`, and what a build shows tree shaking left
+        // there, `leftOver`); what later modules reach is in their chunks,
+        // which never import the bundle's files. That holds only while
+        // rolldown cuts files by which entries reach a module: its merging
+        // would move what later modules share into the entry's file too.
+        // A top-level await turns the merging off in any site that has
+        // one; it is off in every site, so each is cut the same way.
         build: {
           outDir: join(stage, "dist"),
           emptyOutDir: true,
           target: "esnext",
           chunkSizeWarningLimit: 4000,
           rollupOptions: {
-            output: { codeSplitting: { groups: [{ name: "site", test: (id) => isTheme(id) || bundled.some((at) => id.startsWith(at)), tags: ["$initial"], includeDependenciesRecursively: false }] } },
+            output: { codeSplitting: { groups: [{ name: "site", test: (id) => firstOnly.has(id) || leftOver.has(id) || bundled.some((at) => id.startsWith(at)), tags: ["$initial"], includeDependenciesRecursively: false }] } },
             checks: { bundlerTimings: false },
+            experimental: { chunkOptimization: false },
           },
         },
         // The live shell's compiler runs in a module worker.
         worker: { format: "es" },
-      }),
-    );
+      });
+    }
     // The same entry made where there is no browser: a server bundle of
     // the entry over this runtime, rendered in a Node process of its own
     // into the page the client build wrote.
