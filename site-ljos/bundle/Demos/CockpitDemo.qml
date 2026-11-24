@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
 import Site
 import "Cockpit" as Svala
 
@@ -20,12 +21,12 @@ Item {
     property bool calm: false
     // The cockpit as the reader's edits make it (Demos/pro-live.js),
     // or null for the one the page was built with.
-    property var live: null
+    property unknown live: null
 
     Loader {
         id: app
         anchors.fill: parent
-        sourceComponent: demo.live ? null : own
+        component: demo.live ? null : own
         source: demo.live ?? undefined
     }
     Component {
@@ -37,9 +38,9 @@ Item {
     function named(name) {
         return app.item ? Array.from(app.item.resources).find((object) => object.objectName === name) ?? null : null;
     }
-    readonly property var theme: named("theme")
-    readonly property var car: named("car")
-    readonly property var player: named("player")
+    readonly property unknown theme: named("theme")
+    readonly property unknown car: named("car")
+    readonly property unknown player: named("player")
 
     // Given when the site's scheme changes, not bound: the cockpit's own
     // settings change its look too, and the last one asked is the one

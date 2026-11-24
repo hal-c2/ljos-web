@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 
 // One line of the agent's log: what it said it would do (`say`), a tool
@@ -70,7 +70,7 @@ Item {
             width: 6
             height: 6
             radius: 3
-            color: line.kind === "end" ? Theme.link : Theme.textMuted
+            fill: line.kind === "end" ? Theme.link : Theme.textMuted
         }
         Text {
             id: sayText
@@ -79,11 +79,11 @@ Item {
             text: line.text
             color: line.kind === "end" ? Theme.text : Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: line.kind === "end" ? Font.DemiBold : Font.Normal
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.captionLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -95,7 +95,7 @@ Item {
         width: line.width
         height: callColumn.height + 2 * Theme.xs
         radius: Theme.radiusSmall
-        color: Theme.codeBg
+        fill: Theme.codeBg
         border.color: line.answer === "error" ? Theme.danger : Theme.divider
         border.width: 1
 
@@ -115,7 +115,7 @@ Item {
                     text: line.tool
                     color: Theme.link
                     font.family: Theme.mono
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                     font.weight: Font.DemiBold
                 }
                 // Where the call is: on its way, answered, refused; where the
@@ -128,11 +128,11 @@ Item {
                     spacing: 6
 
                     Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Align.VCenter
                         width: 7
                         height: 7
                         radius: 3.5
-                        color: line.answer === "error" ? Theme.danger : line.answer === "ok" ? Theme.accent : "transparent"
+                        fill: line.answer === "error" ? Theme.danger : line.answer === "ok" ? Theme.accent : "transparent"
                         border.color: line.answer === "pending" ? Theme.textMuted : "transparent"
                         border.width: 1
                     }
@@ -140,7 +140,7 @@ Item {
                         text: line.answer === "" ? "" : line.kind === "edit" ? (line.answer === "pending" ? t`reloading` : line.answer === "error" ? t`kept the last board` : t`reloaded`) : line.answer === "pending" ? t`sent` : line.answer === "error" ? t`refused` : t`answered`
                         color: Theme.codeGutter
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize - 1
+                        font.size: Theme.captionSize - 1
                     }
                 }
             }
@@ -149,10 +149,10 @@ Item {
                 text: line.args
                 color: Theme.codeGutter
                 font.family: Theme.mono
-                font.pixelSize: Theme.captionSize - 1
+                font.size: Theme.captionSize - 1
                 lineHeightMode: Text.FixedHeight
                 lineHeight: 17
-                wrapMode: Text.WrapAnywhere
+                wrap: Text.WrapAnywhere
             }
             Text {
                 width: parent.width
@@ -160,10 +160,10 @@ Item {
                 text: "→ " + line.summary
                 color: line.answer === "error" ? Theme.danger : Theme.codeFg
                 font.family: Theme.mono
-                font.pixelSize: Theme.captionSize - 1
+                font.size: Theme.captionSize - 1
                 lineHeightMode: Text.FixedHeight
                 lineHeight: 17
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
             }
             Image {
                 visible: line.image !== ""
@@ -186,7 +186,7 @@ Item {
             width: 2
             height: parent.height
             radius: 1
-            color: Theme.link
+            fill: Theme.link
         }
         Text {
             id: eventText
@@ -196,10 +196,10 @@ Item {
             text: t`app` + "  " + (line.text)
             color: Theme.text
             font.family: Theme.mono
-            font.pixelSize: Theme.captionSize - 1
+            font.size: Theme.captionSize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: 17
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 }

@@ -1,6 +1,6 @@
-// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import "logic/motion.ts" as MotionLogic
 
 // Declarative motion in three forms: a spring-driven puck, list transitions
@@ -11,7 +11,7 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: look.canvas
+    fill: look.canvas
     radius: 8
 
     // Remix knobs: tune the spring feel, shuffle pace, and puck size here.
@@ -33,14 +33,14 @@ Rectangle {
     property bool active: true
     property bool calm: false
 
-    readonly property var spring: MotionLogic.springTuning(
+    readonly property unknown spring: MotionLogic.springTuning(
         calm, livelySpring, livelyDamping, calmSpring, calmDamping
     )
     readonly property int tileDuration: MotionLogic.duration(calm, tileMoveMs, calmMoveMs)
 
-    QtObject {
+    Object {
         id: look
-        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property bool dark: App.hints.colorScheme === ColorScheme.Dark
         readonly property color accent: dark ? "#e8a33d" : "#c07a12"
         readonly property color accentPressed: dark ? "#c77f2a" : "#a8650a"
         readonly property color onAccent: "#1a1408"
@@ -61,7 +61,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.margins: 16
         height: root.compact ? 132 : 168
-        color: look.panel
+        fill: look.panel
         radius: 10
         // A tray that changes size (a window narrowed past compactBelow, a
         // phone turned) keeps a puck the reader has led inside it. Before
@@ -100,7 +100,7 @@ Rectangle {
             width: parent.width - 28
             elide: Text.ElideRight
             color: look.muted1
-            font.pixelSize: 13
+            font.size: 13
             text: t`Press and move — the puck springs after you`
         }
 
@@ -109,7 +109,7 @@ Rectangle {
             width: root.puckSize
             height: root.puckSize
             radius: root.puckSize / 2
-            color: look.accent
+            fill: look.accent
             x: tray.width / 2 - width / 2
             y: tray.height / 2 - height / 2
             property real goalX: x
@@ -123,7 +123,7 @@ Rectangle {
             // from inside, the puck is drawn within the tray wherever its
             // spring is.
             property bool kept: false
-            readonly property var held: MotionLogic.clampPuck(x + width / 2, y + height / 2, width, tray.width, tray.height)
+            readonly property unknown held: MotionLogic.clampPuck(x + width / 2, y + height / 2, width, tray.width, tray.height)
             transform: Translate {
                 x: puck.kept ? puck.held.x - puck.x : 0
                 y: puck.kept ? puck.held.y - puck.y : 0
@@ -155,7 +155,7 @@ Rectangle {
             }
         }
 
-        MouseArea {
+        PointerArea {
             id: chase
             anchors.fill: parent
             Accessible.name: t`Spring tray. Press and move to lead the puck; it springs after the pointer.`
@@ -206,14 +206,14 @@ Rectangle {
             width: (strip.width - strip.spacing * 5) / 6
             height: root.compact ? 48 : 64
             radius: 10
-            color: tone
+            fill: tone
             Text {
                 anchors.centerIn: parent
                 // A tile narrower than its word shrinks the word to fit.
                 scale: Math.min(1, (parent.width - 8) / Math.max(1, implicitWidth))
                 color: look.onTile
-                font.pixelSize: 17
-                font.bold: true
+                font.size: 17
+                font.weight: Font.Bold
                 text: label
             }
         }
@@ -247,14 +247,14 @@ Rectangle {
             width: 168
             height: 42
             radius: 8
-            color: shufflePress.pressed ? look.accentPressed : look.accent
+            fill: shufflePress.pressed ? look.accentPressed : look.accent
             scale: shufflePress.pressed ? 0.97 : 1.0
             activeFocusOnTab: true
             Accessible.name: t`Shuffle the tiles`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: shuffleButton.shuffle()
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Space || event.key === Qt.Key_Return) {
+                if (event.key === Key.Space || event.key === Key.Return) {
                     shuffleButton.shuffle();
                     event.accepted = true;
                 }
@@ -269,11 +269,11 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 color: look.onAccent
-                font.pixelSize: 15
-                font.bold: true
+                font.size: 15
+                font.weight: Font.Bold
                 text: t`Shuffle the tiles`
             }
-            MouseArea {
+            PointerArea {
                 id: shufflePress
                 anchors.fill: parent
                 onClicked: shuffleButton.shuffle()
@@ -288,7 +288,7 @@ Rectangle {
             width: Math.min(300, parent.width)
             height: open ? root.cardOpenHeight : 42
             radius: 8
-            color: look.raised
+            fill: look.raised
             clip: true
             property bool open: false
             activeFocusOnTab: true
@@ -296,7 +296,7 @@ Rectangle {
             Accessible.role: Accessible.Button
             Accessible.onPressAction: card.open = !card.open
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Space || event.key === Qt.Key_Return) {
+                if (event.key === Key.Space || event.key === Key.Return) {
                     card.open = !card.open;
                     event.accepted = true;
                 }
@@ -312,16 +312,16 @@ Rectangle {
                 x: 12
                 y: 11
                 color: look.ink
-                font.pixelSize: 15
+                font.size: 15
                 text: card.open ? t`About this motion ▾` : t`About this motion ▸`
             }
             Text {
                 x: 12
                 y: 42
                 width: parent.width - 24
-                wrapMode: Text.WordWrap
+                wrap: Text.WordWrap
                 color: look.muted2
-                font.pixelSize: 13
+                font.size: 13
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
                     enabled: root.active
@@ -332,7 +332,7 @@ Rectangle {
                 }
                 text: t`Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen.`
             }
-            MouseArea {
+            PointerArea {
                 anchors.fill: parent
                 onClicked: card.open = !card.open
             }

@@ -1,7 +1,6 @@
 pragma Singleton
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
 import Site
 
 // The agent session the landing replays, from the app as a list to the
@@ -13,8 +12,8 @@ import Site
 // and the replay reloads the running card from the edited one's, which
 // keeps what the card was given. Only the agent's choices are recorded,
 // no model is asked. The tickets are made up, for a made up grid operator.
-QtObject {
-    readonly property var tickets: [
+Object {
+    readonly property unknown tickets: [
         { key: "BG-412", title: "Substation Nord-4 transformer fan alert", state: "Open", crew: "Katrín S." },
         { key: "BG-415", title: "Feeder 12 voltage sag log", state: "Open", crew: "" },
         { key: "BG-419", title: "Quay relay cabinet door sensor", state: "Open", crew: "Emil R." },
@@ -22,14 +21,14 @@ QtObject {
         { key: "BG-421", title: "Harbour pump meter check", state: "Open", crew: "" }
     ]
     readonly property string heading: "North district dispatch"
-    readonly property var filters: ["Open only"]
+    readonly property unknown filters: ["Open only"]
     // The ticket the agent finds without a crew, and gives one.
     readonly property string uncrewed: "BG-415"
     readonly property string crew: t`On-call crew`
     // Every state the app's own buttons and the toolbar reach on all its
     // tickets: each set of them given a crew, in each layout, filtered or
     // not.
-    readonly property var reachable: {
+    readonly property unknown reachable: {
         const given = tickets.filter((ticket) => ticket.state === "Open" && ticket.crew === "").reduce((sets, ticket) => sets.concat(sets.map((set) => {
             const next = Object.assign({}, set);
             next[ticket.key] = crew;
@@ -43,7 +42,7 @@ QtObject {
     // `$found` is the ref the last app_find answered with. A step with
     // `edit` is no call: it is the edit of board.ts that makes the app the
     // module of that layout.
-    readonly property var steps: [
+    readonly property unknown steps: [
         { tool: "app_status", args: {}, say: t`Check that the app is running.`, wait: 500 },
         { tool: "app_objects", args: { depth: 2 }, say: t`Look at the app before changing it.`, wait: 900 },
         { tool: "app_find", args: { locator: `role=button[name="Assign crew to ${uncrewed}"]` }, say: t`Feeder 12 needs a crew. Find its button.`, wait: 1000 },

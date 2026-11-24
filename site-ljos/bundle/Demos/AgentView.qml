@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
-// both have stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Ljos.Blocks
 import Site
 import Demos
@@ -45,12 +44,12 @@ Rectangle {
     property bool editable: !still
     // The small Observer's tree (Stage.treeRows) and the picked object's
     // properties (Stage.propertyRows).
-    property var treeRows: []
-    property var propertyRows: []
+    property unknown treeRows: []
+    property unknown propertyRows: []
     property string pickedRef: ""
 
     // The app, once its loader has made it.
-    readonly property var card: shell.item
+    readonly property unknown card: shell.item
     readonly property alias log: logModel
     // The module the loader is asked for: "list" or "board".
     property string wanted: still ? "board" : "list"
@@ -114,7 +113,7 @@ Rectangle {
     readonly property int noteCentre: roomy ? status.y + Math.round(Theme.captionLine / 2) : editButtons.y + Math.round(editButtons.height / 2)
     readonly property int gap: AgentReplay.gap
 
-    color: Theme.canvas
+    fill: Theme.canvas
 
     ListModel {
         id: logModel
@@ -138,9 +137,9 @@ Rectangle {
             text: t`Agent: make this a board`
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
+            font.size: Theme.bodySize
             font.weight: Font.DemiBold
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
         Row {
             id: editButtons
@@ -174,9 +173,9 @@ Rectangle {
             text: view.edited ? t`Your edit` : view.still ? t`End result, not run` : view.finished ? (card !== null && card.unassigned > 0 ? t`Done. Try Assign crew or List / Board.` : t`Done`) : view.working ? t`Working…` : ""
             color: Theme.link
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: Font.DemiBold
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -191,7 +190,7 @@ Rectangle {
         width: view.width - 2 * view.pad
         height: view.codeStrip - Theme.xxs
         radius: Theme.radiusSmall
-        color: Theme.codeBg
+        fill: Theme.codeBg
 
         Column {
             x: Theme.xs
@@ -201,15 +200,15 @@ Rectangle {
             Repeater {
                 model: view.wide ? [] : DispatchSource[view.running].strip
                 Row {
-                    required property var modelData
+                    required property unknown modelData
                     spacing: Theme.xs
                     Text {
                         width: 20
-                        horizontalAlignment: Text.AlignRight
+                        align: Text.AlignRight
                         text: String(parent.modelData.line)
                         color: Theme.codeGutter
                         font.family: Theme.mono
-                        font.pixelSize: Theme.captionSize - 1
+                        font.size: Theme.captionSize - 1
                         lineHeightMode: Text.FixedHeight
                         lineHeight: 20
                     }
@@ -218,7 +217,7 @@ Rectangle {
                         text: parent.modelData.text
                         color: Theme.codeFg
                         font.family: Theme.mono
-                        font.pixelSize: Theme.captionSize - 1
+                        font.size: Theme.captionSize - 1
                         lineHeightMode: Text.FixedHeight
                         lineHeight: 20
                         elide: Text.ElideRight
@@ -238,7 +237,7 @@ Rectangle {
         fallback: view.still ? posterBoard : undefined
         onItemChanged: {
             if (item)
-                item.still = Qt.binding(() => view.still);
+                item.still = bind(() => view.still);
         }
     }
     Component {
@@ -259,7 +258,7 @@ Rectangle {
         Repeater {
             model: AgentReplay.reachable
             DispatchCard {
-                required property var modelData
+                required property unknown modelData
                 width: shell.width
                 still: true
                 heading: AgentReplay.heading
@@ -301,23 +300,23 @@ Rectangle {
                     model: view.tabs ? [{ key: "source", name: t`TypeScript` }, { key: "agent", name: t`Agent` }, { key: "observer", name: t`Observer` }] : []
                     Rectangle {
                         id: tabButton
-                        required property var modelData
+                        required property unknown modelData
                         readonly property bool current: view.tab === modelData.key
                         width: tabWords.implicitWidth + 2 * Theme.xs
                         height: 30
                         radius: Theme.radiusSmall
-                        color: current ? Theme.surfaceSelected : tabHit.containsMouse && !view.still ? Theme.surfaceHover : "transparent"
+                        fill: current ? Theme.surfaceSelected : tabHit.containsMouse && !view.still ? Theme.surfaceHover : "transparent"
                         activeFocusOnTab: !view.still
                         Accessible.role: Accessible.PageTab
                         Accessible.name: modelData.name
                         Accessible.selected: current
                         Keys.onPressed: (event) => {
-                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                                 view.tabPicked(tabButton.modelData.key);
                                 event.accepted = true;
                             }
                         }
-                        Behavior on color {
+                        Behavior on fill {
                             ColorAnimation {
                                 duration: Theme.moveSmall
                             }
@@ -328,7 +327,7 @@ Rectangle {
                             text: tabButton.modelData.name
                             color: tabButton.current ? Theme.text : Theme.textMuted
                             font.family: Theme.sans
-                            font.pixelSize: Theme.captionSize
+                            font.size: Theme.captionSize
                             font.weight: tabButton.current ? Font.DemiBold : Font.Normal
                         }
                         Rectangle {
@@ -336,11 +335,11 @@ Rectangle {
                             anchors.fill: parent
                             anchors.margins: -2
                             radius: parent.radius + 2
-                            color: "transparent"
+                            fill: "transparent"
                             border.color: Theme.focusRing
                             border.width: 2
                         }
-                        MouseArea {
+                        PointerArea {
                             id: tabHit
                             anchors.fill: parent
                             hoverEnabled: true
@@ -358,14 +357,14 @@ Rectangle {
                 text: t`Agent log`
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 font.weight: Font.DemiBold
             }
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
         }
 
@@ -376,7 +375,7 @@ Rectangle {
             text: t`Step ${view.at} of ${view.total}`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
         }
 
         // The agent's log, kept at its newest line while the reader
@@ -456,14 +455,14 @@ Rectangle {
                     text: t`board.ts, the code this app runs`
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize - 1
-                    wrapMode: Text.Wrap
+                    font.size: Theme.captionSize - 1
+                    wrap: Text.Wrap
                 }
                 Rectangle {
                     width: parent.width
                     height: source.height + 2 * Theme.xs
                     radius: Theme.radiusSmall
-                    color: Theme.codeBg
+                    fill: Theme.codeBg
 
                     // Beside the lines the edit changed, a bar: a mark that is
                     // not told by colour alone. DECISION: no tint behind them,
@@ -477,7 +476,7 @@ Rectangle {
                             y: source.y + modelData * source.lineHeight
                             width: 3
                             height: source.lineHeight
-                            color: Theme.link
+                            fill: Theme.link
                         }
                     }
                     Text {
@@ -489,11 +488,11 @@ Rectangle {
                         color: Theme.codeFg
                         font.family: Theme.mono
                         // board.ts keeps this to 39 columns, each 0.6 of the size, and a little.
-                        font.pixelSize: Math.max(10, Math.min(14, Math.floor(width / 23.6)))
+                        font.size: Math.max(10, Math.min(14, Math.floor(width / 23.6)))
                         lineHeightMode: Text.FixedHeight
                         lineHeight: 22
-                        textFormat: Text.RichText
-                        wrapMode: Text.NoWrap
+                        format: Text.RichText
+                        wrap: Text.NoWrap
                         // Markup keeps no run of spaces: each line's own indent stays.
                         text: Editor.richOf(DispatchSource[view.running].rich).split("\n").map((line) => {
                             const indent = /^ */.exec(line)[0];
@@ -529,16 +528,16 @@ Rectangle {
                         model: view.treeRows
                         Rectangle {
                             id: treeRow
-                            required property var modelData
+                            required property unknown modelData
                             width: treeColumn.width
                             height: 24
                             radius: 4
-                            color: view.pickedRef === modelData.ref ? Theme.surfaceSelected : rowHit.containsMouse ? Theme.surfaceHover : "transparent"
+                            fill: view.pickedRef === modelData.ref ? Theme.surfaceSelected : rowHit.containsMouse ? Theme.surfaceHover : "transparent"
                             activeFocusOnTab: true
                             Accessible.role: Accessible.Button
                             Accessible.name: t`Inspect ${modelData.label}`
                             Keys.onPressed: (event) => {
-                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                                     view.treePicked(treeRow.modelData.ref);
                                     event.accepted = true;
                                 }
@@ -560,7 +559,7 @@ Rectangle {
                                 text: treeRow.modelData.label
                                 color: Theme.text
                                 font.family: Theme.mono
-                                font.pixelSize: Theme.captionSize - 1
+                                font.size: Theme.captionSize - 1
                                 elide: Text.ElideRight
                             }
                             // Inside the row: the list clips what is past it.
@@ -568,11 +567,11 @@ Rectangle {
                                 visible: treeRow.activeFocus
                                 anchors.fill: parent
                                 radius: parent.radius
-                                color: "transparent"
+                                fill: "transparent"
                                 border.color: Theme.focusRing
                                 border.width: 2
                             }
-                            MouseArea {
+                            PointerArea {
                                 id: rowHit
                                 anchors.fill: parent
                                 hoverEnabled: true
@@ -602,18 +601,18 @@ Rectangle {
                         text: t`Pick an object to see its properties.`
                         color: Theme.textMuted
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
-                        wrapMode: Text.Wrap
+                        font.size: Theme.captionSize
+                        wrap: Text.Wrap
                     }
                     Repeater {
                         model: view.propertyRows
                         Text {
-                            required property var modelData
+                            required property unknown modelData
                             width: propertyColumn.width
                             text: `${modelData.name}: ${modelData.value}${modelData.mine ? "  ·  " + t`set by the agent` : ""}`
                             color: modelData.mine ? Theme.link : Theme.text
                             font.family: Theme.mono
-                            font.pixelSize: Theme.captionSize - 1
+                            font.size: Theme.captionSize - 1
                             elide: Text.ElideRight
                         }
                     }

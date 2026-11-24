@@ -1,7 +1,7 @@
-// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
-import QtQuick.Controls
+import Ljos.Layout
+import Ljos.Controls
 import "logic/fieldGuide.ts" as Guide
 
 // A complete searchable field guide app: typed species data, search filtering,
@@ -11,7 +11,7 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: look.canvas
+    fill: look.canvas
     radius: 8
 
     // Remix knobs: adjust bar scales and list proportions in one line.
@@ -29,12 +29,12 @@ Rectangle {
     property bool calm: false
 
     // Reader state, keyed by Latin name so filtering never drops ticks or notes.
-    property var seen: []
-    property var notes: []
+    property unknown seen: []
+    property unknown notes: []
     readonly property int seenCount: seen.length
     readonly property int totalSpecies: Guide.species.length
     property int current: 0
-    readonly property var bird: Guide.birdAt(current)
+    readonly property unknown bird: Guide.birdAt(current)
 
     // Filtered rows feeding the ListView; rebuilt whenever the search text changes.
     ListModel { id: shown }
@@ -50,9 +50,9 @@ Rectangle {
 
     Component.onCompleted: refilter()
 
-    QtObject {
+    Object {
         id: look
-        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property bool dark: App.hints.colorScheme === ColorScheme.Dark
         readonly property color canvas: dark ? "#171b26" : "#f6f4ee"
         readonly property color raised: dark ? "#202636" : "#ffffff"
         readonly property color selected: dark ? "#2e3a55" : "#d6e0f2"
@@ -81,8 +81,8 @@ Rectangle {
                 height: 40
                 verticalAlignment: Text.AlignVCenter
                 color: look.ink
-                font.pixelSize: 22
-                font.bold: true
+                font.size: 22
+                font.weight: Font.Bold
                 elide: Text.ElideRight
                 text: t`Field guide`
             }
@@ -119,24 +119,24 @@ Rectangle {
                     width: list.width
                     height: root.rowHeight
                     radius: 8
-                    color: root.current === at ? look.selected : look.raised
+                    fill: root.current === at ? look.selected : look.raised
                     Column {
                         x: 12
                         y: 7
                         spacing: 1
                         Text {
                             color: look.ink
-                            font.pixelSize: 15
+                            font.size: 15
                             text: Guide.isSeen(root.seen, latin) ? t`✓ ${name}` : name
                         }
                         Text {
                             color: look.muted
-                            font.pixelSize: 12
+                            font.size: 12
                             font.italic: true
                             text: t`${latin} · ${season}`
                         }
                     }
-                    MouseArea {
+                    PointerArea {
                         anchors.fill: parent
                         Accessible.name: name
                         Accessible.role: Accessible.Button
@@ -168,15 +168,15 @@ Rectangle {
                     Text {
                         width: parent.width
                         color: look.ink
-                        font.pixelSize: 26
-                        font.bold: true
+                        font.size: 26
+                        font.weight: Font.Bold
                         elide: Text.ElideRight
                         text: root.bird.name
                     }
                     Text {
                         width: parent.width
                         color: look.muted
-                        font.pixelSize: 14
+                        font.size: 14
                         font.italic: true
                         elide: Text.ElideRight
                         text: t`${root.bird.latin} · ${root.bird.season.toLowerCase()}`
@@ -186,7 +186,7 @@ Rectangle {
                         Text {
                             width: 86
                             color: look.muted
-                            font.pixelSize: 13
+                            font.size: 13
                             elide: Text.ElideRight
                             text: t`Length`
                         }
@@ -194,17 +194,17 @@ Rectangle {
                             width: facts.barWidth
                             height: 10
                             radius: 5
-                            color: look.track
+                            fill: look.track
                             Rectangle {
                                 width: parent.width * Guide.barRatio(root.bird.lengthCm, root.maxLengthCm)
                                 height: parent.height
                                 radius: 5
-                                color: look.accent
+                                fill: look.accent
                             }
                         }
                         Text {
                             color: look.inkSoft
-                            font.pixelSize: 13
+                            font.size: 13
                             text: t`${root.bird.lengthCm} cm`
                         }
                     }
@@ -213,7 +213,7 @@ Rectangle {
                         Text {
                             width: 86
                             color: look.muted
-                            font.pixelSize: 13
+                            font.size: 13
                             elide: Text.ElideRight
                             text: t`Wingspan`
                         }
@@ -221,25 +221,25 @@ Rectangle {
                             width: facts.barWidth
                             height: 10
                             radius: 5
-                            color: look.track
+                            fill: look.track
                             Rectangle {
                                 width: parent.width * Guide.barRatio(root.bird.wingspanCm, root.maxWingspanCm)
                                 height: parent.height
                                 radius: 5
-                                color: look.growth
+                                fill: look.growth
                             }
                         }
                         Text {
                             color: look.inkSoft
-                            font.pixelSize: 13
+                            font.size: 13
                             text: t`${root.bird.wingspanCm} cm`
                         }
                     }
                     Text {
                         width: parent.width
-                        wrapMode: Text.WordWrap
+                        wrap: Text.WordWrap
                         color: look.inkSoft
-                        font.pixelSize: 14
+                        font.size: 14
                         text: root.bird.blurb
                     }
                     CheckBox {
@@ -266,7 +266,7 @@ Rectangle {
                     Text {
                         width: parent.width
                         color: look.accentText
-                        font.pixelSize: 14
+                        font.size: 14
                         elide: Text.ElideRight
                         text: t`Seen ${root.seenCount} of ${root.totalSpecies}`
                     }

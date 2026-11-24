@@ -1,6 +1,5 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
 import Site
 import "../nav.js" as Nav
 import "logic/stage.ts" as Stage
