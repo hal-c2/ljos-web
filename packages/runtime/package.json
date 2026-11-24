@@ -102,6 +102,7 @@
     "./Ljos/Ui": "./Ljos/Ui/index.js",
     "./Ljos/Layout": "./Ljos/Layout/index.ts",
     "./Ljos/Core": "./Ljos/Core/index.js",
+    "./Ljos/Core/catalogCheck": "./Ljos/Core/catalogCheck.ts",
     "./Ljos/Observer": "./Ljos/Observer/index.ts",
     "./observer/InspectorSession.qml": "./Ljos/Observer/InspectorSession.qml",
     "./observer/ObserverPanel.qml": "./Ljos/Observer/ObserverPanel.qml",

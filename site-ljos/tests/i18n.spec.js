@@ -22,7 +22,8 @@ const HEADLINE = "Software you can reshape while it runs.";
 // The runtime's catalogues, as the page reads them. Its module reads
 // the browser's scheme as it loads, which Node has none of.
 globalThis.matchMedia ??= () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
-const { checkCatalog, readPo } = await import("ljos-web/Ljos/Core");
+const { readPo } = await import("ljos-web/Ljos/Core");
+const { checkCatalog } = await import("ljos-web/Ljos/Core/catalogCheck");
 
 const catalogues = readdirSync(i18n)
   .filter((name) => name.endsWith(".po"))
