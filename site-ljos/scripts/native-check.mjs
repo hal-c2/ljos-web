@@ -58,10 +58,11 @@ app.on("exit", (code, signal) => (exited = signal || code));
 process.on("exit", () => {
   if (exited === null) app.kill("SIGKILL");
 });
-for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+// A shell reads 128 and the signal's number as "ended by it".
+for (const [signal, number] of [["SIGINT", 2], ["SIGTERM", 15], ["SIGHUP", 1]]) {
   process.on(signal, () => {
     console.error(`site:native: ${signal}; ending ljos`);
-    process.exit(130);
+    process.exit(128 + number);
   });
 }
 
