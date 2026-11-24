@@ -102,9 +102,9 @@ Item {
                 property bool first: true
                 function readerElsewhere() {
                     const focused = Window.activeFocusItem;
-                    if (!focused)
+                    if (focused === null || focused === undefined)
                         return false;
-                    for (let at = app; at; at = at.parent)
+                    for (let at: QtObject | undefined = app; at !== undefined && at !== null; at = at.parent)
                         if (at === focused)
                             return false;
                     return true;

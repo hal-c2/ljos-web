@@ -193,7 +193,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Math.max(0, (tool.width - implicitWidth) / 2)
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? tool.width - width - startX : startX
             y: tool.height + 6
         }
     }
@@ -1136,7 +1136,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: Math.round((shell.width - width) / 2)
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? shell.width - width - startX : startX
         y: Math.round(shell.height * 0.22)
         padding: 20
 

@@ -20,14 +20,3 @@ function language(one: unknown): Language {
 export function languagesIn(languages: unknown): readonly Language[] {
   return Array.isArray(languages) ? languages.map(language) : [];
 }
-
-// A language's name in the language the page is read in (`Spanisch` on a
-// German page), for a reader who does not read the name it gives itself.
-// The browser knows them all, so the first load carries none.
-export function nameIn(tag: string, language: string): string {
-  try {
-    return new Intl.DisplayNames([language, "en"], { type: "language" }).of(tag) ?? tag;
-  } catch {
-    return tag;
-  }
-}

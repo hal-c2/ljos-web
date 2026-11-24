@@ -29,12 +29,18 @@ Item {
         popover.opened ? popover.close() : popover.open();
     }
 
-    function row(at: int): Item {
+    // The row given the keyboard, counted round from either end: each row
+    // takes it when it is the one named (a Repeater's itemAt is untyped).
+    property int keyed: -1
+    function key(at: int): void {
         const count = rows.count;
-        return count ? rows.itemAt(((at % count) + count) % count) : null;
+        keyed = -1;
+        if (count > 0)
+            keyed = ((at % count) + count) % count;
     }
 
     function leave(): void {
+        keyed = -1;
         popover.close();
         if (byKeys) leftByKeys();
     }
@@ -44,11 +50,15 @@ Item {
         edge: Edge.Bottom
         width: 232
         padding: Theme.xs
+        onClosed: choices.keyed = -1
         onOpened: {
             if (!choices.byKeys) return;
-            const languages = choices.preferences !== null ? Languages.languagesIn(choices.preferences.languages) : [];
-            const at = languages.findIndex((it) => it.tag === choices.preferences?.language);
-            choices.row(Math.max(0, at))?.forceActiveFocus();
+            const languages: readonly Languages.Language[] = choices.preferences !== null ? Languages.languagesIn(choices.preferences.languages) : [];
+            let at = 0;
+            for (let i = 0; i < languages.length; i++)
+                if (languages[i]?.tag === choices.preferences?.language)
+                    at = i;
+            choices.key(at);
         }
 
         contentItem: Column {
@@ -75,6 +85,8 @@ Item {
                     required property Languages.Language modelData
                     required property int index
                     readonly property bool picked: choices.preferences !== null && choices.preferences.language === modelData.tag
+                    readonly property bool keyed: choices.keyed === index
+                    onKeyedChanged: if (keyed) forceActiveFocus()
 
                     width: 216
                     height: Math.max(Theme.rowLeast, name.implicitHeight + 2 * Theme.xxs)
@@ -85,7 +97,6 @@ Item {
                     activeFocusOnTab: true
                     Accessible.role: Accessible.RadioButton
                     Accessible.name: row.modelData.name
-                    Accessible.description: Languages.nameIn(row.modelData.tag, choices.preferences !== null ? choices.preferences.language : "en")
                     Accessible.checkable: true
                     Accessible.checked: row.picked
                     Accessible.onPressAction: () => row.pick()
@@ -97,10 +108,10 @@ Item {
                             choices.leave();
                             event.accepted = true;
                         } else if (event.key === Key.Down || event.key === Key.Up) {
-                            choices.row(row.index + (event.key === Key.Down ? 1 : -1))?.forceActiveFocus();
+                            choices.key(row.index + (event.key === Key.Down ? 1 : -1));
                             event.accepted = true;
                         } else if (event.key === Key.Home || event.key === Key.End) {
-                            choices.row(event.key === Key.Home ? 0 : -1)?.forceActiveFocus();
+                            choices.key(event.key === Key.Home ? 0 : -1);
                             event.accepted = true;
                         }
                     }
