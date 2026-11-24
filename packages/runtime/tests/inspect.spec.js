@@ -94,6 +94,18 @@ test("a click outside the root, or at its right or bottom edge, is not actionabl
   expect(await ask(page, () => window.inspector.click("nobody").error)).toBe("not_found");
 });
 
+// A root that is a part of a page: what the page puts over it (a menu the
+// reader opened) is not the root's, and a click asked of the root never
+// goes to it. `under`'s right half is under `over`, which is not in it.
+test("a click on a root that something else covers there is not actionable, and reaches nothing", async ({ page }) => {
+  await opened(page, "inspected");
+  const part = (call, arg) => ask(page, call, arg);
+  expect(await part(() => window.inspect(window.inspector.find("under")).click({ at: [70, 25] }).error)).toBe("not_actionable");
+  expect(await part(() => window.inspector.read("over", ["hits"]))).toEqual({ hits: 0 });
+  expect(await part(() => window.inspect(window.inspector.find("under")).click({ at: [20, 25] }))).toEqual({ at: [20, 25] });
+  expect(await part(() => window.inspector.read("under", ["hits"]))).toEqual({ hits: 1 });
+});
+
 test("the outline is the object tree: types, ids, objectNames, children in order", async ({ page }) => {
   await opened(page, "inspected");
   // What qml6 lists as the root's `data`: the Timer first, then the

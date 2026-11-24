@@ -13,6 +13,7 @@
 // object of such a file is listed and clicked all the same, with no place.
 import { flush, native } from "./object.ts";
 import { drawn as drawnOf } from "./QtQuick/drawn.ts";
+import { receiverOf } from "./QtQuick/pointer.js";
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says
 // `console.log` is a debug message and `console.error` a critical one.
@@ -203,6 +204,22 @@ export function inspect(root) {
     return { box, scale, width: item.width, height: item.height };
   };
   const inside = ({ width, height }, [x, y]) => x >= 0 && y >= 0 && x < width && y < height;
+  // Whether what is on top at a point is the root's: in its item, or in a
+  // popup of its, which stands in its window's overlay. What the page
+  // holds the root in may stand over it (a menu the reader opened, the
+  // root being a part of a page), and a click asked of the root never goes
+  // to that. The item that takes the press decides; its parents are walked
+  // as a popup's item is, through the popup to what it is in.
+  const ours = (element) => {
+    if (item.$node.contains(element)) return true;
+    for (let at = element; at; at = at.parentElement) {
+      const taker = receiverOf(at);
+      if (!taker) continue;
+      for (let up = taker; up; up = up.parent ?? up.$popup?.parent ?? null) if (up === item) return true;
+      return false;
+    }
+    return true;
+  };
   const toPage = ({ box, scale }, [x, y]) => [box.left + x * scale, box.top + y * scale];
 
   // The object each element on the page draws, for what is below the root.
@@ -277,7 +294,7 @@ export function inspect(root) {
         // An object still under what the page lays over it once brought
         // in (a menu over the whole window) is out of a person's reach:
         // the press would go to the page, which is not the app's to press.
-        if (node && !item.$node.contains(element)) return failed("not_actionable", `\`${target}\` is covered by something outside the root`);
+        if (!ours(element)) return failed("not_actionable", node ? `\`${target}\` is covered by something outside the root` : `[${at}] is covered by what is not in the root`);
         const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true };
         const pressed = { ...pointer, button: 0, buttons: 1, detail: 1 };
         const released = { ...pointer, button: 0, buttons: 0, detail: 1 };
