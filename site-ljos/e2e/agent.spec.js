@@ -354,6 +354,39 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     test.describe("with less motion", () => {
       test.use({ reducedMotion: "reduce" });
 
+      test("a replay whose module does not load says so, and is not left starting", async ({ page }) => {
+        test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+        await page.route(/\/assets\/AgentStage-[^/]*\.js$/, (route) => route.abort());
+        await open(page, "/");
+        const run = runButton(page, "Run the agent replay");
+        await expect(run).toBeVisible({ timeout: 30_000 });
+        await page.evaluate(() => {
+          const said = (window.said = []);
+          new MutationObserver((records) => {
+            for (const record of records) for (const node of record.addedNodes) if (node.textContent && record.target.closest?.("[aria-live]")) said.push(node.textContent);
+          }).observe(document.body, { childList: true, subtree: true });
+        });
+        await press(run);
+        await expect.poll(() => page.evaluate(() => window.said), { message: "what a screen reader is told", timeout: 30_000 }).toContain("The agent replay did not compile");
+      });
+
+      test("a pause of the reader's stays one once motion is allowed", async ({ page }) => {
+        test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await open(page, "/");
+        await press(runButton(page, "Run the agent replay"));
+        await press(page.getByRole("button", { name: "Pause the agent replay" }));
+        const resume = page.getByRole("button", { name: "Resume the agent replay" });
+        await expect(resume).toBeVisible();
+        await page.waitForTimeout(500);
+        const answered = await page.getByText("answered", { exact: true }).count();
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        await animationFrames(page, 30);
+        await expect(resume, "still paused").toBeVisible();
+        await page.waitForTimeout(3000);
+        expect(await page.getByText("answered", { exact: true }).count(), "no call after the pause").toBe(answered);
+      });
+
       test("shows the board finished, to change by hand, and waits for Run", async ({ page }) => {
         await page.emulateMedia({ reducedMotion: "reduce" });
         await open(page, "/");
