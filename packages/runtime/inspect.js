@@ -245,24 +245,32 @@ export function inspect(root) {
       let shape = frame();
       let at;
       let node = null;
+      const centre = () => {
+        const box = node.getBoundingClientRect();
+        return [(box.left + box.width / 2 - shape.box.left) / shape.scale, (box.top + box.height / 2 - shape.box.top) / shape.scale];
+      };
       if (target && Array.isArray(target.at)) at = target.at;
       else {
         const object = find(target);
         if (!object) return failed("not_found", `no object is \`${target}\``);
         if (!object.$node) return failed("not_actionable", `\`${target}\` is drawn nowhere`);
         node = object.$node;
-        const box = node.getBoundingClientRect();
-        at = [(box.left + box.width / 2 - shape.box.left) / shape.scale, (box.top + box.height / 2 - shape.box.top) / shape.scale];
+        at = centre();
       }
-      if (!inside(shape, at)) return failed("not_actionable", `[${at}] is outside the root`);
       // The page finds what is on top only in its window. An object out of
       // it, or under what stands over that part of it (a page's sticky
-      // header), is brought in for the click and everything put back where
-      // it stood before the page paints again, so the reader's page does
-      // not move. A bare point names nothing to bring in.
-      const back = node && !onTop(node, toPage(shape, at)) ? bringIn(node) : null;
+      // header), or scrolled out of a view inside the root (a Flickable's),
+      // is brought in for the click and everything put back where it stood
+      // before the page paints again, so the reader's page does not move.
+      // Bringing it in moves it, so it is measured again where it came to.
+      // A bare point names nothing to bring in.
+      const back = node && !(inside(shape, at) && onTop(node, toPage(shape, at))) ? bringIn(node) : null;
       try {
-        if (back) shape = frame();
+        if (back) {
+          shape = frame();
+          at = centre();
+        }
+        if (!inside(shape, at)) return failed("not_actionable", `[${at}] is outside the root`);
         const [clientX, clientY] = toPage(shape, at);
         const element = document.elementFromPoint(clientX, clientY);
         if (!element) return failed("not_actionable", `[${at}] is not on the page`);
