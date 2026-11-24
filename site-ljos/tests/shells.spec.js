@@ -1557,7 +1557,7 @@ test("Cyberpunk's nav rail goes to each part of the site and marks where the rea
     const page = await context.newPage();
     await open(page, "/");
     const rail = region(page, "Sections");
-    for (const name of ["Console", "Demos", "Docs", "Shells"]) await expect(rail.getByRole("link", { name, exact: true }), name).toBeVisible();
+    for (const name of ["Console", "Demos", "Showcase", "Docs", "Shells"]) await expect(rail.getByRole("link", { name, exact: true }), name).toBeVisible();
     await expect(rail.getByRole("button", { name: "Source", exact: true })).toBeVisible();
     // Numbered as a console's channels: 01, 02, …
     await expect(rail.getByText("01", { exact: true })).toBeVisible();
@@ -1566,6 +1566,10 @@ test("Cyberpunk's nav rail goes to each part of the site and marks where the rea
     await expect(shownPage(page, "Live demos")).toBeVisible();
     await expect(rail.getByRole("link", { name: "Demos", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(rail.getByRole("link", { name: "Console", exact: true })).not.toHaveAttribute("aria-current", "page");
+    await press(rail.getByRole("link", { name: "Showcase", exact: true }));
+    await expect(page.getByRole("heading", { name: "Built with Ljós", exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(rail.getByRole("link", { name: "Showcase", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(rail.getByRole("link", { name: "Docs", exact: true })).not.toHaveAttribute("aria-current", "page");
     await press(rail.getByRole("button", { name: "Source", exact: true }));
     await expect(page.getByRole("dialog", { name: "Source of Shells/Cyberpunk.qml" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Edit this shell's QML" })).toContainText("cyberpunkShell");
