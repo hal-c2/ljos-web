@@ -280,7 +280,9 @@ function fileJson(file) {
 
 function desk(given) {
     shell = given;
-    desktop = { stack: [{ route: "/", offset: 0 }], at: 0 };
+    // `at` is the entry shown; `aim` the one last asked for, which is
+    // `at` again once it is shown or could not be.
+    desktop = { stack: [{ route: "/", fragment: "", offset: 0 }], at: 0, aim: 0 };
 }
 
 // What the route's page reads, from the file the build wrote; null for
@@ -291,23 +293,34 @@ function deskReading(route) {
     var file = siteRoot + route.slice(1) + "page.json";
     if (!(file in readings)) {
         readings[file] = fileJson(file);
-        readings[file].catch(function (error) {
-            console.warn("site: " + error.message);
+        readings[file].catch(function () {
             delete readings[file];
         });
     }
     return readings[file];
 }
 
-function deskShow(at, fragment, offset) {
-    var route = desktop.stack[at].route;
+// The route's page shown once its reading is had. Only then does the
+// list move (`commit`), the page left keeping where it was at that
+// moment: a page that cannot be read leaves the list as it was, and
+// says so.
+function deskShow(route, fragment, offset, commit) {
     var mine = ++asked;
-    return deskReading(route).then(function (reading) {
-        if (mine !== asked)
-            return;
-        desktop.at = at;
-        shell.show(route, fragment, offset, reading);
-    });
+    deskReading(route).then(
+        function (reading) {
+            if (mine !== asked)
+                return;
+            keep();
+            commit();
+            desktop.aim = desktop.at;
+            shell.show(route, fragment, offset, reading);
+        },
+        function (error) {
+            console.warn("site: " + error.message);
+            if (mine === asked)
+                desktop.aim = desktop.at;
+        },
+    );
 }
 
 function deskGo(address) {
@@ -326,21 +339,33 @@ function deskGo(address) {
         console.warn("site: no page at " + route);
         return;
     }
-    keep();
-    desktop.stack = desktop.stack.slice(0, desktop.at + 1).concat([{ route: route, offset: 0 }]);
-    deskShow(desktop.stack.length - 1, fragment, null);
+    // A page and fragment already shown is shown again in its entry, as
+    // a browser does with the address it is at.
+    var here = desktop.stack[desktop.at];
+    var same = here.route === route && here.fragment === fragment;
+    deskShow(route, fragment, null, function () {
+        if (same)
+            return;
+        desktop.stack = desktop.stack.slice(0, desktop.at + 1).concat([{ route: route, fragment: fragment, offset: 0 }]);
+        desktop.at = desktop.stack.length - 1;
+    });
 }
 
 // Back or forward one page on the desktop, to where it was left; false
 // where there is none that way (or in a browser, whose own buttons do it).
+// A press while the page before it is still being read goes on from that
+// page, so two quick presses go back two.
 function step(by) {
     if (!desktop)
         return false;
-    var to = desktop.at + by;
+    var to = desktop.aim + by;
     if (to < 0 || to >= desktop.stack.length)
         return false;
-    keep();
-    deskShow(to, "", desktop.stack[to].offset);
+    desktop.aim = to;
+    var entry = desktop.stack[to];
+    deskShow(entry.route, "", entry.offset, function () {
+        desktop.at = to;
+    });
     return true;
 }
 
@@ -404,6 +429,11 @@ function anchor(address, label, underline, colour) {
 // Whether this is a reader's browser, not the build writing the page:
 // what only a reader's browser can run (a GPU view, wasm) is made in
 // the browser, after the page it hydrates is the page the build wrote.
+// Whether the site runs on the desktop (`mise run site:native`).
+function onDesktop() {
+    return desktop !== null;
+}
+
 function inBrowser() {
     var agent = globalThis.navigator ? String(globalThis.navigator.userAgent) : "";
     return agent !== "" && agent.indexOf("ljos-web prerender") < 0;
@@ -463,7 +493,8 @@ function gpuAdapted() {
 var index = null;
 function searchIndex(base) {
     if (index === null) {
-        index = globalThis.fetch(at(base, "/search.json")).then(function (response) {
+        // On the desktop it is the file the build wrote beside the pages.
+        index = desktop ? fileJson(siteRoot + "search.json") : globalThis.fetch(at(base, "/search.json")).then(function (response) {
             if (!response.ok)
                 throw new Error("search.json: " + response.status);
             return response.json();

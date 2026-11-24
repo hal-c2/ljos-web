@@ -44,6 +44,11 @@ Rectangle {
     // every anchor, row and list of it, the shell's and the page's.
     LayoutMirroring.enabled: App.layoutDirection === Qt.RightToLeft
     LayoutMirroring.childrenInherit: true
+    // On the desktop the keys nothing else takes come here (back and
+    // forward, `/`): a click on a link gives nothing the focus there.
+    // A browser has its own keys for those, and its focus starts on the
+    // document.
+    focus: Qt.platform.os !== "wasm"
 
     // What a shell is given as `site`: the state, and what it may ask.
     readonly property var router: siteRouter
