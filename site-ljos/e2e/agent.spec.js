@@ -351,6 +351,43 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       expect(await fill(at), "and the one before is not").toBe(plain);
     });
 
+    test("an Observer row reached by Tab is scrolled to where it can be seen", async ({ page }) => {
+      test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+      await open(page, "/");
+      await press(page.getByRole("button", { name: "Pause the agent replay" }));
+      await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
+      await press(shown(page.getByRole("tab", { name: "Observer", exact: true })));
+      const rows = page.getByRole("button", { name: /^Inspect / }).filter({ visible: true });
+      await expect(rows.first(), "the app's objects").toBeVisible({ timeout: 30_000 });
+      const count = await rows.count();
+      // Seen: what is drawn at the middle of the row is the row's own.
+      const seen = (row) => rows.nth(row).evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return hit !== null && element.contains(hit);
+      });
+      const hidden = [];
+      for (let row = 0; row < count; row += 1) if (!(await seen(row))) hidden.push(row);
+      expect(hidden.length, "more rows than the tree shows at once").toBeGreaterThan(0);
+      const parts = () => rows.evaluateAll((all) => all.map((row) => [...row.querySelectorAll("*")].filter((part) => part.checkVisibility({ visibilityProperty: true, opacityProperty: true })).length));
+      const unfocused = await parts();
+      const ringed = async () => (await parts()).findIndex((n, row) => n > unfocused[row]);
+      let at = -1;
+      for (let tab = 0; tab < 60 && at < 0; tab += 1) {
+        await page.keyboard.press("Tab");
+        await animationFrames(page, 2);
+        at = await ringed();
+      }
+      expect(at, "Tab reaches a row").toBeGreaterThanOrEqual(0);
+      const last = hidden[hidden.length - 1];
+      while (at < last) {
+        await page.keyboard.press("Tab");
+        await expect.poll(ringed, { message: "Tab goes on to the next row" }).toBe(at + 1);
+        at += 1;
+        await expect.poll(() => seen(at), { message: `row ${at} of ${count}, focused, is seen` }).toBe(true);
+      }
+    });
+
     test.describe("with less motion", () => {
       test.use({ reducedMotion: "reduce" });
 
