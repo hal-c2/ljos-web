@@ -34,11 +34,12 @@ ProDemoPage 1.0 ProDemoPage.qml
 ObserverDock 1.0 ObserverDock.qml
 # block Router 1.0 Router.qml Site "Where the reader is on the site and how they move: route, page, sections, follow, show"
 Router 1.0 Router.qml
-# block Preferences 1.0 Preferences.qml Site "What the reader chose: colour scheme, reduced motion and the shell"
+# block Preferences 1.0 Preferences.qml Site "What the reader chose: colour scheme, reduced motion, the shell and the language"
 Preferences 1.0 Preferences.qml
 PageView 1.0 PageView.qml
 GitHubMark 1.0 GitHubMark.qml
 ShellSwitcher 1.0 ShellSwitcher.qml
+LanguageSwitcher 1.0 LanguageSwitcher.qml
 ShellSource 1.0 ShellSource.qml
 Brand 1.0 Brand.qml
 Toc 1.0 Toc.qml

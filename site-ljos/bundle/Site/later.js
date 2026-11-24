@@ -5,6 +5,7 @@
 // each time it is asked for, so a loader is not given a new source on
 // every read.
 function shellChoices() { return import("./ShellChoices.qml"); }
+function languageChoices() { return import("./LanguageChoices.qml"); }
 function shellSource() { return import("./ShellSource.qml"); }
 function controlsLook() { return import("./ControlsLook.qml"); }
 // The front page, which no other page's first load carries. It is chosen
