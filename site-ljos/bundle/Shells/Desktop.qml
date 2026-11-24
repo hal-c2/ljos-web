@@ -1,5 +1,6 @@
-import QtQuick
+import Ljos.Ui
 import Ljos.Core
+import Ljos.Layout
 import Ljos.Blocks
 import Ljos.Controls as C
 
@@ -18,9 +19,9 @@ Rectangle {
     id: shell
     objectName: "desktopShell"
 
-    property var site: null
-    readonly property var router: site ? site.router : null
-    readonly property var preferences: site ? site.preferences : null
+    property unknown site: null
+    readonly property unknown router: site ? site.router : null
+    readonly property unknown preferences: site ? site.preferences : null
     readonly property bool wide: site ? site.preferences.wide : width >= 1000
     readonly property bool menuOpen: site ? site.menuOpen && !wide : false
     readonly property bool calm: site ? site.preferences.calm : false
@@ -28,7 +29,7 @@ Rectangle {
     // A page other than the docs is this wide at most here.
     readonly property int pageWidest: 1040
 
-    readonly property var opened: site ? site.opened : [route]
+    readonly property unknown opened: site ? site.opened : [route]
     readonly property int hydratedMs: site ? site.hydratedIn : -1
     readonly property int alive: site ? site.alive : 0
     readonly property string renderer: site ? site.renderer : ""
@@ -67,9 +68,9 @@ Rectangle {
     onSiteChanged: if (site) site.measureRenderer()
     Component.onCompleted: if (site) site.measureRenderer()
 
-    QtObject {
+    Object {
         id: look
-        readonly property var theme: shell.site ? shell.site.theme : null
+        readonly property unknown theme: shell.site ? shell.site.theme : null
         readonly property color canvas: theme ? theme.canvas : C.Theme.canvas
         readonly property color surface: theme ? theme.surface : C.Theme.surface
         readonly property color raised: theme ? theme.surfaceRaised : C.Theme.surface
@@ -89,13 +90,13 @@ Rectangle {
 
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
-    color: look.canvas
+    fill: look.canvas
 
     // A title of the menu bar, and the menu it opens.
     component MenuTitle: Rectangle {
         id: title
         property string label: ""
-        property var menu: null
+        property unknown menu: null
         readonly property bool open: menu !== null && menu.opened
 
         function toggle() {
@@ -108,7 +109,7 @@ Rectangle {
         width: words.implicitWidth + 20
         height: 26
         radius: 4
-        color: open ? look.pressed : area.containsMouse ? look.hover : "transparent"
+        fill: open ? look.pressed : area.containsMouse ? look.hover : "transparent"
         border.color: activeFocus ? look.focus : "transparent"
         border.width: 1
         activeFocusOnTab: true
@@ -116,11 +117,11 @@ Rectangle {
         Accessible.name: label
         Accessible.onPressAction: () => title.toggle()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space || event.key === Qt.Key_Down) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space || event.key === Key.Down) {
                 title.toggle();
                 event.accepted = true;
-            } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
-                shell.besideTitle(title, event.key === Qt.Key_Right ? 1 : -1);
+            } else if (event.key === Key.Left || event.key === Key.Right) {
+                shell.besideTitle(title, event.key === Key.Right ? 1 : -1);
                 event.accepted = true;
             }
         }
@@ -136,10 +137,10 @@ Rectangle {
             text: title.label
             color: look.text
             font.family: look.sans
-            font.pixelSize: look.ui
+            font.size: look.ui
             Accessible.ignored: true
         }
-        MouseArea {
+        PointerArea {
             id: area
             anchors.fill: parent
             hoverEnabled: true
@@ -162,7 +163,7 @@ Rectangle {
         display: C.Button.IconOnly
         width: 32
         height: 32
-        HoverHandler { id: over }
+        Hover { id: over }
         C.ToolTip {
             visible: over.hovered
             text: tool.tip
@@ -194,7 +195,7 @@ Rectangle {
         Accessible.selected: to !== "" && current
         Accessible.onPressAction: () => entry.press()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 entry.press();
                 event.accepted = true;
             }
@@ -211,7 +212,7 @@ Rectangle {
             width: parent.width - 12
             height: parent.height
             radius: 4
-            color: entry.current ? look.selected : area.containsMouse ? look.hover : "transparent"
+            fill: entry.current ? look.selected : area.containsMouse ? look.hover : "transparent"
             border.color: entry.activeFocus ? look.focus : "transparent"
             border.width: 1
             Accessible.ignored: true
@@ -219,7 +220,7 @@ Rectangle {
         C.Icon {
             x: 16
             // Beside the first line, where a title takes two.
-            y: words.y + (Math.min(words.implicitHeight, words.font.pixelSize * 1.4) - height) / 2
+            y: words.y + (Math.min(words.implicitHeight, words.font.size * 1.4) - height) / 2
             size: 14
             name: entry.icon
             color: entry.current ? look.accent : look.muted
@@ -233,16 +234,16 @@ Rectangle {
             text: entry.label
             color: look.text
             font.family: look.sans
-            font.pixelSize: look.ui
+            font.size: look.ui
             font.weight: entry.current ? Font.DemiBold : Font.Normal
-            wrapMode: Text.WordWrap
+            wrap: Text.WordWrap
             Accessible.ignored: true
         }
-        MouseArea {
+        PointerArea {
             id: area
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.PointingHand
             Accessible.ignored: true
             onClicked: entry.press()
         }
@@ -256,7 +257,7 @@ Rectangle {
         bottomPadding: 4
         color: look.muted
         font.family: look.sans
-        font.pixelSize: 11
+        font.size: 11
         font.weight: Font.DemiBold
         font.letterSpacing: 0.4
         Accessible.role: Accessible.Heading
@@ -274,14 +275,14 @@ Rectangle {
         property bool stacked: false
         signal pressed
 
-        color: current ? look.canvas : area.containsMouse ? look.hover : "transparent"
+        fill: current ? look.canvas : area.containsMouse ? look.hover : "transparent"
         activeFocusOnTab: true
         Accessible.role: Accessible.PageTab
         Accessible.name: label
         Accessible.selected: current
         Accessible.onPressAction: () => tab.pressed()
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 tab.pressed();
                 event.accepted = true;
             }
@@ -291,12 +292,12 @@ Rectangle {
             visible: tab.current
             width: parent.width
             height: 2
-            color: look.accent
+            fill: look.accent
             Accessible.ignored: true
         }
         Rectangle {
             anchors.fill: parent
-            color: "transparent"
+            fill: "transparent"
             border.color: tab.activeFocus ? look.focus : look.divider
             border.width: tab.activeFocus ? 1 : 0
             Accessible.ignored: true
@@ -305,7 +306,7 @@ Rectangle {
             x: parent.width - 1
             width: 1
             height: parent.height
-            color: look.divider
+            fill: look.divider
             Accessible.ignored: true
         }
         C.Icon {
@@ -322,18 +323,18 @@ Rectangle {
             x: tab.stacked ? 4 : mark.visible ? 32 : 12
             y: tab.stacked ? mark.y + mark.height + 4 : (parent.height - height) / 2
             width: tab.stacked ? parent.width - 8 : parent.width - x - (tab.closable ? (shell.wide ? 32 : 56) : 12)
-            horizontalAlignment: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
+            align: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
             text: tab.label
             color: tab.current ? look.text : look.muted
             font.family: look.sans
-            font.pixelSize: look.ui
+            font.size: look.ui
             elide: Text.ElideRight
         }
-        MouseArea {
+        PointerArea {
             id: area
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.PointingHand
             Accessible.ignored: true
             onClicked: tab.pressed()
         }
@@ -358,7 +359,7 @@ Rectangle {
             // As tall as the logo's link, which keeps its size in every
             // shell: the bar makes room for it, not the other way round.
             height: shell.wide ? 40 : 56
-            color: look.surface
+            fill: look.surface
 
             Row {
                 x: shell.wide ? 8 : 16
@@ -366,13 +367,13 @@ Rectangle {
                 spacing: 6
 
                 Row {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     Slot { name: shell.wide ? "site.brand.small" : "site.brand" }
                 }
                 Row {
                     id: menuBar
                     visible: shell.wide
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     spacing: 0
                     Accessible.role: Accessible.MenuBar
                     Accessible.name: t`Menu bar`
@@ -524,7 +525,7 @@ Rectangle {
                                     { label: t`Capability: malleable`, to: "/start/your-own-shell/" }
                                 ]
                                 C.MenuItem {
-                                    required property var modelData
+                                    required property unknown modelData
                                     text: modelData.label
                                     onTriggered: shell.go(modelData.to)
                                 }
@@ -574,9 +575,9 @@ Rectangle {
                 text: t`Ljós — ${shell.router ? shell.router.title : ""}`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: look.ui
+                font.size: look.ui
                 elide: Text.ElideRight
-                horizontalAlignment: Text.AlignHCenter
+                align: Text.AlignHCenter
             }
             // A phone's one control: the menu.
             Row {
@@ -589,7 +590,7 @@ Rectangle {
                 y: parent.height - 1
                 width: parent.width
                 height: 1
-                color: look.divider
+                fill: look.divider
             }
         }
 
@@ -601,7 +602,7 @@ Rectangle {
             y: top.height
             width: parent.width
             height: shell.wide ? 42 : 0
-            color: look.surface
+            fill: look.surface
             Accessible.role: Accessible.ToolBar
             Accessible.name: t`Toolbar`
 
@@ -629,10 +630,10 @@ Rectangle {
                     onClicked: shell.go("/")
                 }
                 Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     width: 1
                     height: 20
-                    color: look.divider
+                    fill: look.divider
                 }
                 Tool {
                     iconName: "play"
@@ -660,7 +661,7 @@ Rectangle {
                     height: 1
                 }
                 Item {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     width: Math.max(200, Math.min(420, toolBar.width - 620))
                     height: 30
                     Slot { name: "site.search" }
@@ -676,7 +677,7 @@ Rectangle {
                 Item {
                     width: switcher.width
                     height: 32
-                    HoverHandler { id: overSwitcher }
+                    Hover { id: overSwitcher }
                     Row {
                         id: switcher
                         anchors.verticalCenter: parent.verticalCenter
@@ -706,7 +707,7 @@ Rectangle {
                 y: parent.height - 1
                 width: parent.width
                 height: 1
-                color: look.divider
+                fill: look.divider
             }
         }
     }
@@ -719,7 +720,7 @@ Rectangle {
         y: toolBar.y + toolBar.height
         width: !shown ? 0 : shell.wide ? 232 : shell.width
         height: (shell.wide ? statusBar.y : views.y) - y
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.ComplementaryContent
         Accessible.name: t`Pages`
 
@@ -764,7 +765,7 @@ Rectangle {
                 Repeater {
                     model: shell.router ? shell.router.demos : []
                     Entry {
-                        required property var modelData
+                        required property unknown modelData
                         icon: "play"
                         label: modelData.title
                         to: modelData.route
@@ -775,7 +776,7 @@ Rectangle {
                 Repeater {
                     model: shell.preferences ? shell.preferences.shells : []
                     Entry {
-                        required property var modelData
+                        required property unknown modelData
                         icon: "image"
                         label: modelData.label
                         current: shell.preferences.shown === modelData.name
@@ -786,14 +787,14 @@ Rectangle {
                     model: shell.router ? shell.router.docs : []
                     Column {
                         id: section
-                        required property var modelData
+                        required property unknown modelData
                         width: pages.width
 
                         Group { text: section.modelData.label }
                         Repeater {
                             model: section.modelData.pages
                             Entry {
-                                required property var modelData
+                                required property unknown modelData
                                 label: modelData.title
                                 to: modelData.route
                                 current: shell.route === modelData.route
@@ -808,7 +809,7 @@ Rectangle {
             x: parent.width - 1
             width: 1
             height: parent.height
-            color: look.divider
+            fill: look.divider
         }
     }
 
@@ -828,7 +829,7 @@ Rectangle {
             visible: shell.wide || documents.listed
             width: parent.width
             height: !visible ? 0 : shell.wide ? 32 : parent.height
-            color: look.surface
+            fill: look.surface
             // A landmark of its own beside the page's main one.
             Accessible.role: Accessible.Section
             Accessible.name: t`Documents`
@@ -852,7 +853,7 @@ Rectangle {
                         Repeater {
                             model: shell.opened
                             Tab {
-                                required property var modelData
+                                required property unknown modelData
                                 width: shell.wide ? 200 : documents.width
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
@@ -869,7 +870,7 @@ Rectangle {
                         model: shell.opened.length > 1 ? shell.opened : []
                         C.Button {
                             required property int index
-                            required property var modelData
+                            required property unknown modelData
                             x: shell.wide ? index * 200 + 200 - width - 4 : documents.width - width - 8
                             y: shell.wide ? (32 - height) / 2 : index * 48 + (48 - height) / 2
                             width: shell.wide ? 26 : 44
@@ -888,7 +889,7 @@ Rectangle {
                 y: parent.height - 1
                 width: parent.width
                 height: 1
-                color: look.divider
+                fill: look.divider
             }
         }
         Item {
@@ -908,12 +909,12 @@ Rectangle {
         y: shell.wide ? shell.height : shell.height - height
         width: parent.width
         height: shell.wide ? 0 : 56
-        color: look.surface
+        fill: look.surface
 
         Rectangle {
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         Row {
             y: 1
@@ -927,7 +928,7 @@ Rectangle {
                     { label: t`Open pages`, icon: "copy" }
                 ]
                 Tab {
-                    required property var modelData
+                    required property unknown modelData
                     required property int index
                     width: Math.floor(views.width / 3)
                     height: 55
@@ -948,14 +949,14 @@ Rectangle {
         y: shell.wide ? shell.height - height : shell.height
         width: parent.width
         height: shell.wide ? 24 : 0
-        color: look.surface
+        fill: look.surface
         Accessible.role: Accessible.StatusBar
         Accessible.name: t`Status bar`
 
         Rectangle {
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         Row {
             x: 12
@@ -966,20 +967,20 @@ Rectangle {
                 text: t`Route: ${shell.route}`
                 color: look.muted
                 font.family: look.mono
-                font.pixelSize: 12
+                font.size: 12
             }
             Text {
                 visible: shell.hydratedMs >= 0
                 text: t`Hydrated in ${shell.hydratedMs} ms`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: 12
+                font.size: 12
             }
             Text {
                 text: t`Objects alive: ${shell.alive}`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: 12
+                font.size: 12
             }
         }
         Row {
@@ -992,13 +993,13 @@ Rectangle {
                 text: t`Renderer: ${shell.renderer}`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: 12
+                font.size: 12
             }
             Text {
                 text: t`Shell: Desktop`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: 12
+                font.size: 12
             }
         }
     }
@@ -1023,7 +1024,7 @@ Rectangle {
                 text: t`About ljos.dev`
                 color: look.text
                 font.family: look.sans
-                font.pixelSize: 15
+                font.size: 15
                 font.weight: Font.DemiBold
                 Accessible.role: Accessible.Heading
             }
@@ -1032,9 +1033,9 @@ Rectangle {
                 text: t`This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading.`
                 color: look.muted
                 font.family: look.sans
-                font.pixelSize: look.ui
+                font.size: look.ui
                 lineHeight: 1.4
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
             }
             Item {
                 width: about.availableWidth
@@ -1062,7 +1063,7 @@ Rectangle {
         height: parent.height - top.height
         visible: !shell.wide && (shell.menuOpen || opacity > 0)
         opacity: shell.menuOpen ? 1 : 0
-        color: look.canvas
+        fill: look.canvas
         Behavior on opacity {
             NumberAnimation {
                 duration: shell.menuOpen ? 250 : 100
@@ -1106,7 +1107,7 @@ Rectangle {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: look.divider
+                    fill: look.divider
                 }
                 Column {
                     width: parent.width
