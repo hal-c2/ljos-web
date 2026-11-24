@@ -41,12 +41,24 @@ Item {
     width: parent ? parent.width : 0
     height: parent ? parent.height : 0
 
-    Component.onCompleted: {
+    // Why the shell's QML did not come, until it does: said in place of
+    // the editor, with a Retry.
+    property string failed: ""
+
+    Component.onCompleted: live.fetch()
+
+    function fetch() {
+        live.failed = "";
         Shells.sources().then((all) => {
             live.source = all.shells[live.name] ?? null;
             if (live.source)
                 editor.text = live.source.text;
-        }, (why) => console.warn(`LiveSource: ${why}`));
+            else
+                live.failed = t`There is no ${live.name}.qml to edit.`;
+        }, (why) => {
+            console.warn(`LiveSource: ${why}`);
+            live.failed = String(why?.message ?? why);
+        });
     }
 
     // Moved into the next shell: the reader is still where they typed.
@@ -129,7 +141,34 @@ Item {
         }
     }
 
+    // The shell's QML did not come: why, and another try.
+    Column {
+        visible: live.failed !== ""
+        x: 12
+        y: head.height + 12
+        width: parent.width - 24
+        spacing: 8
+
+        Text {
+            width: parent.width
+            text: t`The shell's QML could not be loaded: ${live.failed}`
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: 13
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.AlertMessage
+            Accessible.name: text
+        }
+        C.Button {
+            height: live.touch ? 44 : implicitHeight
+            iconName: "refresh-cw"
+            text: t`Retry`
+            onClicked: live.fetch()
+        }
+    }
+
     Rectangle {
+        visible: live.failed === ""
         y: head.height
         width: parent.width
         height: parent.height - y
@@ -168,6 +207,9 @@ Item {
                         }
                         return;
                     }
+                    // An answer to the text before this is not shown
+                    // over it.
+                    ++live.asked;
                     pause.restart();
                 }
             }

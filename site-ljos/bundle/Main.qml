@@ -202,6 +202,23 @@ Rectangle {
     // in place (Site/LiveSource.qml), each `{ file, line, column,
     // message, text }`: a shell's Problems and its count of diagnostics.
     property var problems: []
+    // The calls the front page's recorded agent sent (Site/Running.qml):
+    // a shell's MCP log, and its Clear log.
+    readonly property var calls: Running.calls
+    function clearCalls() {
+        Running.calls = [];
+    }
+    // What a shell's reader has shown and hidden, by the shell's
+    // objectName: a shell made again, from an edit of its QML or on
+    // coming back to it, puts it back. Not bound to: nothing reads it as
+    // it changes.
+    property var shellStates: ({})
+    function keep(name, state) {
+        shellStates[name] = state;
+    }
+    function kept(name) {
+        return shellStates[name] ?? null;
+    }
     // Where the editor of the running shell's QML stands: the item the
     // shown shell's `site.source.live` slot holds, null in a shell with
     // none. The editor is made once and moves between them.
@@ -715,8 +732,23 @@ Rectangle {
             if ("site" in loader.item && loader.item.site !== main)
                 loader.item.site = main;
             main.letGo();
-            if (main.userShell !== null && main.userShell === main.liveShell && loader.error === "")
-                main.liveGood = main.liveShell;
+            if (main.userShell !== null && main.userShell === main.liveShell && loader.error === "") {
+                // An edit that takes away the editor's place would leave
+                // the reader nothing to type in or Reset with: it is a
+                // problem, and the last that ran stays. The new shell's
+                // place, had it one, took the editor as the shell was
+                // made; the old shell, and its place, goes after this.
+                if (main.holds(loader.item, main.liveHost)) {
+                    main.liveGood = main.liveShell;
+                } else {
+                    var file = liveSource.item && liveSource.item.source ? liveSource.item.source.file : "";
+                    var why = t`This edit has no site.source.live, where its editor is shown, so the last edit that ran stays.`;
+                    main.problems = [{ file: file, line: 0, column: 0, message: why, text: why }];
+                    main.liveShell = null;
+                    pageView.hold();
+                    main.userShell = main.liveGood;
+                }
+            }
             Qt.callLater(main.placePage);
             if (fadeIn.armed) {
                 fadeIn.armed = false;
@@ -776,6 +808,13 @@ Rectangle {
     // Moved by a write each time, not bound: a bound `parent` that
     // changes is not among its new parent's children (ljos-web), so the
     // editor stayed in the shell it left and went with it.
+    function holds(shell, item) {
+        for (var at = item; at; at = at.parent) {
+            if (at === shell)
+                return true;
+        }
+        return false;
+    }
     function housed() {
         if (liveSource.item)
             liveSource.item.parent = main.liveHost ?? main;

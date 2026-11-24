@@ -153,8 +153,16 @@ function compiled(file, text) {
 // LiveSource.qml): answers what is wrong with it, each with where and
 // the words to show, or the shell it makes, for a loader to show. Never
 // throws: a broken edit is the reader's to mend, not an error.
+//
+// The site's own test counts the answers given (`liveAnswers`), so one
+// that is to change nothing can be waited for: it opts in by putting
+// `__ljosTest` on the page before it loads, as the Pantry demo's does
+// (Demos/pantry-live.js); a visitor's page records nothing.
 function checked(file, text) {
     return made(file, text).then(function (made) {
+        var probe = globalThis.__ljosTest;
+        if (probe)
+            probe.liveAnswers = (probe.liveAnswers || 0) + 1;
         if (made.diagnostics)
             return {
                 diagnostics: made.diagnostics.map(function (d) {

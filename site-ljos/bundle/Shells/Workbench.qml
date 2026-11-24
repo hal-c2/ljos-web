@@ -31,6 +31,7 @@ Rectangle {
 
     readonly property var opened: site ? site.opened : [route]
     readonly property var problems: site ? site.problems : []
+    readonly property var calls: site ? site.calls : []
     readonly property int alive: site ? site.alive : 0
     readonly property string renderer: site ? site.renderer : ""
     readonly property int hydratedMs: site ? site.hydratedIn : -1
@@ -62,8 +63,41 @@ Rectangle {
 
     // Going to a page on a phone shows it.
     onRouteChanged: if (!shell.wide) shell.view = 1
-    onSiteChanged: if (site) site.measureRenderer()
-    Component.onCompleted: if (site) site.measureRenderer()
+
+    // What the reader has shown and hidden outlives this shell: an edit
+    // of this file makes it again, as coming back to it does. Put back
+    // once the site is had, after the route it brings has moved the
+    // view, and kept from then on.
+    readonly property var arranged: ({ explorerOpen: shell.explorerOpen, inspectorOpen: shell.inspectorOpen, panelShown: shell.panelShown, view: shell.view, folded: shell.folded, route: shell.route })
+    property bool restored: false
+    onArrangedChanged: if (site && restored) site.keep(objectName, arranged)
+    function restore() {
+        if (!site || restored)
+            return;
+        var was = site.kept(objectName);
+        if (was) {
+            shell.explorerOpen = was.explorerOpen;
+            shell.inspectorOpen = was.inspectorOpen;
+            shell.panelShown = was.panelShown;
+            shell.folded = was.folded;
+            // A page gone to elsewhere meanwhile is shown.
+            shell.view = was.route === shell.route ? was.view : 1;
+        }
+        restored = true;
+        site.keep(objectName, arranged);
+    }
+    onSiteChanged: {
+        if (!site)
+            return;
+        site.measureRenderer();
+        Qt.callLater(shell.restore);
+    }
+    Component.onCompleted: {
+        if (!site)
+            return;
+        site.measureRenderer();
+        Qt.callLater(shell.restore);
+    }
 
     QtObject {
         id: look
@@ -140,10 +174,15 @@ Rectangle {
             }
         }
         function press() {
-            if (to !== "" && shell.router)
+            if (to !== "" && shell.router) {
+                // Its page shown already is shown too: the route does
+                // not change, so it is not left to the route to.
+                if (!shell.wide)
+                    shell.view = 1;
                 shell.router.go(to);
-            else
+            } else {
                 entry.pressed();
+            }
         }
 
         Rectangle {
@@ -815,17 +854,49 @@ Rectangle {
                     }
                 }
             }
-            // The agent's calls.
+            // The agent's calls: the front page's recorded agent, stepped.
             Item {
                 anchors.fill: parent
                 visible: shell.panelShown === 1
                 Text {
+                    visible: shell.calls.length === 0
                     width: parent.width - clear.width - 12
                     text: t`Recorded MCP calls appear here as you step the agent replay.`
                     color: look.muted
                     font.family: look.sans
                     font.pixelSize: look.ui
                     wrapMode: Text.Wrap
+                }
+                Flickable {
+                    visible: shell.calls.length > 0
+                    width: parent.width - clear.width - 12
+                    height: parent.height
+                    contentWidth: width
+                    contentHeight: callList.implicitHeight
+                    clip: true
+
+                    Column {
+                        id: callList
+                        width: parent.width
+                        spacing: 2
+                        Accessible.role: Accessible.List
+                        Accessible.name: t`MCP log`
+
+                        Repeater {
+                            model: shell.calls
+                            Text {
+                                required property var modelData
+                                width: callList.width
+                                text: `${modelData.tool}(${modelData.args}) → ${modelData.said}`
+                                color: look.text
+                                font.family: look.mono
+                                font.pixelSize: 12
+                                wrapMode: Text.Wrap
+                                Accessible.role: Accessible.ListItem
+                                Accessible.name: text
+                            }
+                        }
+                    }
                 }
                 C.Button {
                     id: clear
@@ -834,7 +905,8 @@ Rectangle {
                     subtle: true
                     iconName: "trash"
                     text: t`Clear log`
-                    enabled: false
+                    enabled: shell.calls.length > 0
+                    onClicked: if (shell.site) shell.site.clearCalls()
                 }
             }
             // What the page said as it came up.

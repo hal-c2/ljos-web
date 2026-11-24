@@ -42,6 +42,18 @@ Rectangle {
     // The menu bar's title whose menu is open: the pointer over another
     // title then opens that one, as a desktop's menu bar does.
     property Item openTitle: null
+    // The arrows go along the menu bar as along a desktop's, round from
+    // the last title to the first; a menu open moves with them.
+    function besideTitle(from, step) {
+        var titles = Array.from(from.parent.children).filter((one) => one.menu !== undefined && one.visible);
+        var to = titles[(titles.indexOf(from) + step + titles.length) % titles.length];
+        var wasOpen = from.open;
+        if (wasOpen)
+            from.menu.close();
+        to.forceActiveFocus();
+        if (wasOpen)
+            to.menu.open();
+    }
 
     function go(to) {
         if (shell.router)
@@ -103,6 +115,9 @@ Rectangle {
         Keys.onPressed: (event) => {
             if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space || event.key === Qt.Key_Down) {
                 title.toggle();
+                event.accepted = true;
+            } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+                shell.besideTitle(title, event.key === Qt.Key_Right ? 1 : -1);
                 event.accepted = true;
             }
         }
