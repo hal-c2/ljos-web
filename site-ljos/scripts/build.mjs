@@ -612,8 +612,11 @@ if (native) {
   });
   writeShared(native);
   console.log(`site-ljos: ${site.pages.length} docs pages read for the desktop into ${native}`);
-  // The generated QML is the bundle's, which the web build writes too.
-  console.log("site-ljos: the bundle's docs examples are code now; a web build (mise run site:test, or the dev server's next build) makes them live again");
+  // What it wrote into the bundle (Content.qml and the rest above) reads
+  // nothing of the examples, and bundle/Examples is the web build's alone
+  // (removed and made only when not native), so a web build's live
+  // examples are still there afterwards: only page.json says live, and
+  // the desktop's are under the native directory.
   process.exit(0);
 }
 

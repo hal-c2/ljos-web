@@ -53,6 +53,17 @@ const app = spawn(
 );
 let exited = null;
 app.on("exit", (code, signal) => (exited = signal || code));
+// However this script ends (a throw outside the steps, Ctrl+C, a CI
+// cancel), the app it started ends with it.
+process.on("exit", () => {
+  if (exited === null) app.kill("SIGKILL");
+});
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.on(signal, () => {
+    console.error(`site:native: ${signal}; ending ljos`);
+    process.exit(130);
+  });
+}
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 async function until(what, test) {
