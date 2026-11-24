@@ -2232,6 +2232,10 @@ test("an edit still compiling doesn't take over the shell switched to", async ({
 
 test("the editor holds the shell that asked for it", async ({ browser }) => {
   const context = await reader(browser, { kept: "workbench" });
+  // Which shell's QML the editor took is recorded (bundle/shells.js).
+  await context.addInitScript(() => {
+    globalThis.__ljosTest = {};
+  });
   let arrive;
   let asked;
   const held = new Promise((done) => (arrive = done));
@@ -2247,11 +2251,60 @@ test("the editor holds the shell that asked for it", async ({ browser }) => {
     await coming;
     await pick(page, "desktop");
     arrive();
+    // The editor has come, and taken its QML, while Desktop is shown.
+    await expect.poll(() => page.evaluate(() => globalThis.__ljosTest.liveHeld), { message: "the editor came while Desktop was shown, and took Workbench's QML", timeout: 30_000 }).toBe("workbench");
+    expect(await showing(page)).toBe("desktop");
     await pick(page, "workbench");
     const editor = inspectorOf(page).getByRole("textbox", { name: "Edit the running shell's QML" });
     await expect(editor, "Workbench's QML").toContainText("workbenchShell", { timeout: 30_000 });
   } finally {
     arrive();
+    await context.close();
+  }
+});
+
+// An edit that comes up and faults later is not kept as the last that
+// ran: the one before it stands, and coming back to Workbench never
+// brings back the edit that faulted.
+test("an edit that faults after it came up is never the one fallen back to", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const completed = "    Component.onCompleted: {\n        if (!site)\n";
+  expect(shipped).toContain(completed);
+  const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
+  const later = '    Timer {\n        interval: 1000\n        running: true\n        onTriggered: {\n            throw new Error("faulted later");\n        }\n    }\n';
+  const faulting = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, faulting`").replace(completed, later + completed);
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    await inspectorOf(page).getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    const status = statusBar(page);
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the first edit runs").toBeVisible({ timeout: 30_000 });
+    // Whether the edit that faults ever came up, at any moment from here on.
+    await page.evaluate(() => {
+      window.__faultingUp = false;
+      const look = () => {
+        const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        while (walk.nextNode()) if (walk.currentNode.data === "Shell: Workbench, faulting") window.__faultingUp = true;
+      };
+      new MutationObserver(look).observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
+
+    await source.press("ControlOrMeta+a");
+    await page.keyboard.insertText(faulting);
+    const problems = page.getByRole("list", { name: "Problems", exact: true });
+    await expect(problems.getByRole("listitem").first(), "what faulted").toContainText("faulted later", { timeout: 30_000 });
+    expect(await page.evaluate(() => window.__faultingUp), "the edit came up before it faulted").toBe(true);
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the edit that ran before it stands").toBeVisible({ timeout: 30_000 });
+
+    await pick(page, "desktop");
+    await pick(page, "workbench");
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "coming back shows the edit that ran well").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Shell: Workbench, faulting", { exact: true }), "never the edit that faulted").toHaveCount(0);
+  } finally {
     await context.close();
   }
 });
@@ -2264,8 +2317,9 @@ test("an answer to text since changed is not shown over it", async ({ browser })
   const broken = `${shipped}\n}}`;
   const mended = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, mended`");
   const context = await reader(browser, { kept: "workbench" });
+  // What is asked of the compiler, and answered, is counted (bundle/shells.js).
   await context.addInitScript(() => {
-    globalThis.__ljosTest = { liveAnswers: 0 };
+    globalThis.__ljosTest = { liveAnswers: 0, liveAsks: 0 };
   });
   let compile;
   let asked;
@@ -2284,6 +2338,8 @@ test("an answer to text since changed is not shown over it", async ({ browser })
     await expect(source).toBeFocused({ timeout: 30_000 });
     await source.fill(broken);
     await compiling;
+    const asks = () => page.evaluate(() => globalThis.__ljosTest.liveAsks);
+    await expect.poll(asks, { message: "the broken text is asked of the compiler", timeout: 30_000 }).toBe(1);
     await source.press("ControlOrMeta+a");
     await page.keyboard.insertText(mended);
     // Whether what broke is ever drawn, at any moment from here on.
@@ -2305,6 +2361,9 @@ test("an answer to text since changed is not shown over it", async ({ browser })
       await page.keyboard.insertText(" ");
       await page.waitForTimeout(150);
     }
+    // Had a pause asked for newer text first, that ask alone would set the
+    // broken answer aside, and this would not test the typing doing so.
+    expect(await asks(), "nothing newer was asked before the broken text was answered: a pause came between two keys").toBe(1);
     await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
     const status = statusBar(page);
     expect(await page.evaluate(() => window.__brokeShown), "what broke in text since changed is never shown").toBe(false);
@@ -2406,6 +2465,51 @@ test("Workbench on a phone keeps the pane chosen across an edit, and shows the p
     await press(explorerOf(page).getByRole("link", { name: "first-app.md", exact: true }));
     await expect(views.getByRole("tab", { name: "Preview", exact: true }), "the page its row opens").toHaveAttribute("aria-selected", "true");
     await expect(shownPage(page, "Your First App")).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+// On a phone the Problems tab counts them, as the wide panel's tab does.
+test("Workbench's Problems tab on a phone says how many there are", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const context = await reader(browser, { viewport: PHONE, kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const views = page.getByRole("tablist", { name: "Views", exact: true });
+    await expect(views.getByRole("tab", { name: "Problems", exact: true }), "none yet").toBeVisible();
+    await press(views.getByRole("tab", { name: "Inspector", exact: true }));
+    await page.getByRole("textbox", { name: "Edit the running shell's QML" }).filter({ visible: true }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(`${shipped}\n}}`);
+    await expect(views.getByRole("tab", { name: "Problems 1", exact: true }), "the broken edit is counted").toBeVisible({ timeout: 30_000 });
+    await press(views.getByRole("tab", { name: "Problems 1", exact: true }));
+    await expect(page.getByRole("list", { name: "Problems", exact: true }).getByRole("listitem").filter({ visible: true })).toHaveCount(1);
+    await press(views.getByRole("tab", { name: "Inspector", exact: true }));
+    await press(inspectorOf(page).getByRole("button", { name: "Reset", exact: true }));
+    await expect(views.getByRole("tab", { name: "Problems", exact: true }), "none once it is put back").toBeVisible({ timeout: 30_000 });
+  } finally {
+    await context.close();
+  }
+});
+
+// On a phone the sidebar is a pane of its own: a row for the page already
+// shown shows it, though its route does not change.
+test("Desktop on a phone shows the page whose row is pressed, though it is already open", async ({ browser }) => {
+  const context = await reader(browser, { viewport: PHONE, kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/");
+    const views = page.getByRole("tablist", { name: "Views", exact: true });
+    await press(views.getByRole("tab", { name: "Pages", exact: true }));
+    const pages = page.getByRole("complementary", { name: "Pages", exact: true }).filter({ visible: true });
+    await expect(pages).toBeVisible();
+    await press(pages.getByRole("link", { name: "Start in a minute", exact: true }));
+    await expect(views.getByRole("tab", { name: "Page", exact: true }), "the page its row opens").toHaveAttribute("aria-selected", "true");
+    await expect(pages, "the pane gives way to it").toBeHidden();
+    await expect(page.getByRole("main").filter({ visible: true })).toHaveCount(1);
   } finally {
     await context.close();
   }

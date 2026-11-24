@@ -161,16 +161,29 @@ function compiled(file, text) {
     };
 }
 
+// Which shell's QML the editor took, for the site's own test, which opts
+// in as it does for `checked` below: the editor may come while another
+// shell is shown, and is still of the shell that asked for it.
+function editorHeld(name) {
+    var probe = globalThis.__ljosTest;
+    if (probe)
+        probe.liveHeld = name;
+}
+
 // The same, for an editor that runs each edit as it is typed (Site/
 // LiveSource.qml): answers what is wrong with it, each with where and
 // the words to show, or the shell it makes, for a loader to show. Never
 // throws: a broken edit is the reader's to mend, not an error.
 //
-// The site's own test counts the answers given (`liveAnswers`), so one
-// that is to change nothing can be waited for: it opts in by putting
+// The site's own test counts the edits asked of the compiler (`liveAsks`)
+// and the answers given (`liveAnswers`), so one that is to change nothing
+// can be waited for, and one asked again told from one answered: it opts in by putting
 // `__ljosTest` on the page before it loads, as the Pantry demo's does
 // (Demos/pantry-live.js); a visitor's page records nothing.
 function checked(file, text) {
+    var asking = globalThis.__ljosTest;
+    if (asking)
+        asking.liveAsks = (asking.liveAsks || 0) + 1;
     return made(file, text).then(function (made) {
         var probe = globalThis.__ljosTest;
         if (probe)
