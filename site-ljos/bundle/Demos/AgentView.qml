@@ -69,7 +69,9 @@ Rectangle {
     // or "", or nothing where nothing was reloaded.
     function swap(layout: string): Promise<unknown> | undefined {
         wanted = layout;
-        if (shell.module === undefined) {
+        // On the desktop the module is the wanted file's address and the
+        // native ShellLoader has no reload: a new address is the swap.
+        if (shell.module === undefined || App.platform.os !== "wasm") {
             shell.module = Boards.sourceFor(() => view.wanted);
             swaps += 1;
             return undefined;
