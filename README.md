@@ -99,6 +99,7 @@ mise run site           # ljos.dev, live: http://127.0.0.1:4471/ (--port N, --ba
 mise run site:test      # ljos.dev's tests as site.yml runs them before a deploy
 mise run site:astro:test # the Astro site's tests as site.yml runs them
 mise run site:docs      # ljos-ui's docs at the pinned commit, and where they are (LJOS_DOCS_DIR wins)
+mise run site:native    # ljos.dev on Ljós on the desktop, in a window (--check: off-screen, front page → docs → showcase; LJOS_BIN, --release)
 mise run dev [WHAT]     # example (default), site (Astro), site-ljos (= mise run site) or gallery; prints the URL
 mise run build          # build:compiler (qmlc) and build:web (the example's bundle)
 mise run build:compiler # qmlc

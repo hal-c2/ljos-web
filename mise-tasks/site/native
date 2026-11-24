@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+#MISE description="ljos.dev (site-ljos) on Ljós on the desktop, in a window: the whole site, its docs read from files; --check runs it off-screen through the front page, a docs page and the showcase and fails on an error"
+#MISE depends=["packages"]
+#USAGE flag "--check" help="Run it off-screen (headless), follow the front page to a docs page and the showcase, and exit non-zero on an error it logs"
+#USAGE flag "--release" help="Build ljos with --release (slower to build, quicker to run)"
+#USAGE arg "[args]..." var=#true help="More arguments for `ljos run`, before the file (such as --watch)"
+set -euo pipefail
+
+# The site is written in the dialect Ljós runs, so it runs on Ljós itself:
+# the same bundle as ljos.dev, its pages read from files a build writes
+# (build.mjs's LJOS_SITE_NATIVE) instead of from the address bar. The
+# ljos is LJOS_BIN, else built from ljos-ui at the commit site/ljos-ui.sha
+# pins, as the docs are fetched (site:docs), never another commit's.
+root=$PWD
+case ${CARGO_TARGET_DIR:-} in
+  "") target="$root/target" ;;
+  /*) target=$CARGO_TARGET_DIR ;;
+  *) target="$root/$CARGO_TARGET_DIR" ;;
+esac
+profile=debug
+[ "${usage_release:-}" = true ] && profile=release
+
+if [ -n "${LJOS_BIN:-}" ]; then
+  if [ ! -x "$LJOS_BIN" ]; then
+    echo "site:native: LJOS_BIN=$LJOS_BIN is not an executable ljos; unset it to build one" >&2
+    exit 1
+  fi
+  ljos=$LJOS_BIN
+else
+  sha=$(tr -d '[:space:]' <"$root/site/ljos-ui.sha")
+  src="$target/ljos-ui-src/$sha"
+  if [ ! -f "$src/Cargo.lock" ]; then
+    command -v git >/dev/null || { echo "site:native: needs git to fetch ljos-ui" >&2; exit 1; }
+    mkdir -p "$target/ljos-ui-src"
+    scratch=$(mktemp -d "$target/ljos-ui-src/.fetch.XXXXXX")
+    trap 'rm -rf "$scratch"' EXIT
+    echo "site:native: fetching ljos-ui at $sha" >&2
+    git -C "$scratch" init -q
+    git -C "$scratch" remote add origin https://github.com/hal-c2/ljos-ui
+    if ! git -C "$scratch" fetch -q --depth 1 origin "$sha"; then
+      echo "site:native: could not fetch ljos-ui at $sha from https://github.com/hal-c2/ljos-ui; check the network, or set LJOS_BIN to a ljos" >&2
+      exit 1
+    fi
+    git -C "$scratch" -c advice.detachedHead=false checkout -q FETCH_HEAD
+    # The one submodule the ljos binary builds with (its video codecs).
+    git -C "$scratch" submodule update -q --init --depth 1 third_party/filmcraft
+    # shellcheck source=mise-tasks/cache-publish.sh
+    . "$root/mise-tasks/cache-publish.sh"
+    if publish_cache_entry "$target/ljos-ui-src" "$sha" "$scratch" Cargo.lock; then
+      trap - EXIT
+    fi
+  fi
+  flags=(--locked -p ljos_cli --bin ljos)
+  [ "$profile" = release ] && flags+=(--release)
+  # Its own target dir: ljos-ui's crates are not this workspace's.
+  echo "site:native: building ljos at $sha ($profile)" >&2
+  (cd "$src" && CARGO_TARGET_DIR="$target/ljos-ui" cargo build "${flags[@]}")
+  ljos="$target/ljos-ui/$profile/ljos"
+fi
+
+# The pages, search and pictures, as files the site reads on the desktop.
+site="$target/site-native"
+docs=$(mise-tasks/site/docs)
+(cd site-ljos && LJOS_DOCS_DIR="$docs" LJOS_SITE_NATIVE="$site" node scripts/build.mjs)
+
+if [ "${usage_check:-}" = true ]; then
+  exec node site-ljos/scripts/native-check.mjs "$ljos" "$root/site-ljos/bundle" "$site" "$target/site-native-check"
+fi
+# What is not this task's own flag goes to `ljos run`.
+pass=()
+for arg in "$@"; do
+  case $arg in
+    --check | --release) ;;
+    *) pass+=("$arg") ;;
+  esac
+done
+cd site-ljos/bundle
+QML_XHR_ALLOW_FILE_READ=1 exec "$ljos" run ${pass[@]+"${pass[@]}"} Main.qml -- --site="$site"

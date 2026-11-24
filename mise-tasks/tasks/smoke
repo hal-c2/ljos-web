@@ -48,6 +48,7 @@ reference|dry|||needs Qt 6 and sway, and takes Qt's pictures of every example
 site|dry|--build||builds the compilers, the kernel and ljos.dev (minutes); site.yml builds it
 site:test|dry|||site.yml's suites (many minutes); site.yml runs them
 site:astro:test|dry|||site.yml's suites for the Astro site (minutes); site.yml runs them
+site:native|dry|--check||builds ljos from ljos-ui at the pinned commit (minutes); site.yml's site-native job runs it
 types|dry|||needs Qt 6 and cargo-installs the generator, and rewrites crates/ljos_web/types.txt
 test|dry|||every test task (an hour)
 test:compiler|dry|||cargo test (minutes); ci.yml's check job runs the workspace's tests
