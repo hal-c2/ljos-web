@@ -79,6 +79,22 @@ Feature: The site is shown in a shell the reader picks
       | picks  |
       | kept   |
 
+  Scenario: A kept shell's page is never drawn in Elegant's colours while its own come
+    Given a reader who kept the Workbench shell, on a connection where its colours come late
+    When they open "/start/cli/"
+    Then every frame drawn before the page is shown has the Workbench shell's ground
+
+  Scenario Outline: Colours that failed to come are asked for once more
+    Given a reader on "/start/cli/" who <how> the Workbench shell
+    And its colours failed to come the first time they were asked for
+    Then they are asked for once more
+    And the page's ground is the Workbench shell's
+
+    Examples:
+      | how    |
+      | picks  |
+      | kept   |
+
   Scenario: A reload shows the kept shell without a jump in a browser with no view transitions
     Given a reader in a browser with no view transitions, who picked the Desktop shell
     And the Desktop shell is slow to come

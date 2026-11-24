@@ -954,6 +954,60 @@ for (const how of ["picked", "kept"]) {
   });
 }
 
+// A kept shell's colours hold the page's first frame back until they
+// come (the head asks for them with `blocking="render"`), and are the
+// page's from then on, before the page says which shell it shows: no
+// frame is drawn in the default shell's ground and then changes under
+// the reader. Each frame's ground is read where it is drawn: in a
+// requestAnimationFrame, which no render-blocked page runs.
+test("a kept shell's page is never drawn in Elegant's colours while its own come", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await page.route(/\/looks-[0-9a-f]{10}\.css$/, async (route) => {
+      await new Promise((done) => setTimeout(done, 800));
+      await route.continue();
+    });
+    await page.addInitScript(() => {
+      window.__grounds = [];
+      const look = () => {
+        const ground = getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase();
+        if (ground) window.__grounds.push(ground);
+        if (!("ljosShellShown" in document.documentElement.dataset)) requestAnimationFrame(look);
+      };
+      requestAnimationFrame(look);
+    });
+    await open(page, "/start/cli/");
+    const grounds = await page.evaluate(() => window.__grounds);
+    expect(grounds.length, "frames were drawn").toBeGreaterThan(0);
+    expect([...new Set(grounds)], "every frame's ground").toEqual([looks.workbench.light.canvas.toLowerCase()]);
+  } finally {
+    await context.close();
+  }
+});
+
+// A stylesheet of colours that failed to come is not kept: it is asked
+// for once more, whether the page (picked) or the head (kept) asked
+// first, and the page takes the shell's colours from the second.
+for (const how of ["picked", "kept"]) {
+  test(`colours that failed to come for a shell ${how} are asked for once more`, async ({ browser }) => {
+    const context = await reader(browser, { kept: how === "kept" ? "workbench" : "" });
+    try {
+      const page = await context.newPage();
+      let asked = 0;
+      await page.route(/\/looks-[0-9a-f]{10}\.css$/, (route) => (++asked === 1 ? route.abort() : route.continue()));
+      await open(page, "/start/cli/");
+      if (how === "picked") await pick(page, "workbench");
+      expect(await showing(page)).toBe("workbench");
+      const ground = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase());
+      await expect.poll(ground, { message: "the ground is Workbench's" }).toBe(looks.workbench.light.canvas.toLowerCase());
+      expect(asked, "asked once more").toBe(2);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 test("the header's icon takes the text colour of the shell picked", async ({ browser }) => {
   const context = await reader(browser);
   try {
