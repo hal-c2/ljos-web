@@ -36,7 +36,8 @@ const picturesIn = (page) =>
       };
     }),
   );
-const pictureOf = (pictures, name) => pictures.find((picture) => picture.src.endsWith(`/pictures/${name}.png`));
+// The page writes its addresses relative to itself (pictures/…, ../pictures/…).
+const pictureOf = (pictures, name) => pictures.find((picture) => picture.src.replace(/^.*?pictures\//, "pictures/") === `pictures/${name}.png`);
 
 test("the build wrote each capture, as WebP and PNG", () => {
   for (const { picture, dark } of built)
