@@ -254,6 +254,9 @@ Flickable {
     }
     Component {
         id: emptyPage
-        Item {}
+        // Every page the loader makes is handed the view it scrolls in.
+        Item {
+            property var scroller: null
+        }
     }
 }

@@ -77,6 +77,8 @@ function setFiles(id, display) {
 async function needsWasm() {
     // The check alone, not the compiler: it is asked as the page is
     // made, and the compiler comes only with the first edit.
+    if (Qt.platform.os !== "wasm")
+        return "Live editing runs in the browser; on the desktop this is the example as it was built.";
     const made = await import("ljos-web/wasm-check");
     return made.wasmWorks() ? "" : made.NEEDS_WASM;
 }

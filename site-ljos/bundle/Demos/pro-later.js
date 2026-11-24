@@ -3,19 +3,39 @@
 // scripts/pro.mjs); do not edit by hand. Each pro demo's app and its
 // files for the editor, imported when its page asks, so no other page
 // loads them.
+var browser = Qt.platform.os === "wasm";
 
 function app(name) {
     switch (name) {
-        case "cockpit": return import("./CockpitDemo.qml");
-        case "watch": return import("./WatchDemo.qml");
+        case "cockpit": return browser ? import("./CockpitDemo.qml") : Qt.resolvedUrl("CockpitDemo.qml");
+        case "watch": return browser ? import("./WatchDemo.qml") : Qt.resolvedUrl("WatchDemo.qml");
     }
     throw new Error("no pro demo " + name);
 }
 
 function project(name) {
     switch (name) {
-        case "cockpit": return import("./cockpit-project.json");
-        case "watch": return import("./watch-project.json");
+        case "cockpit": return browser ? import("./cockpit-project.json") : read("cockpit-project.json");
+        case "watch": return browser ? import("./watch-project.json") : read("watch-project.json");
     }
     throw new Error("no pro demo " + name);
+}
+
+// A JSON file beside this one, as import() gives it: { default: value }.
+function read(file) {
+    return new Promise(function (resolve, reject) {
+        var address = Qt.resolvedUrl(file);
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function () {
+            if (request.readyState !== XMLHttpRequest.DONE)
+                return;
+            try {
+                resolve({ "default": JSON.parse(request.responseText) });
+            } catch (error) {
+                reject(new Error(address + ": " + error.message));
+            }
+        };
+        request.open("GET", address);
+        request.send();
+    });
 }

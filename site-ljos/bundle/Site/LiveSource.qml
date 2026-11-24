@@ -193,6 +193,7 @@ Item {
         border.width: editor.activeFocus ? 2 : 0
 
         Flickable {
+            id: editorScroll
             anchors.fill: parent
             anchors.margins: 10
             contentWidth: editor.width
@@ -201,7 +202,9 @@ Item {
 
             CodeEditor {
                 id: editor
-                width: Math.max(parent.width, implicitWidth)
+                // The Flickable's own width: its content item's follows
+                // the editor's, so the parent's would go round.
+                width: Math.max(editorScroll.width, implicitWidth)
                 code: live.source.text
                 rich: live.source.rich
                 label: t`Edit the running shell's QML`

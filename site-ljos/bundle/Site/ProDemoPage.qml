@@ -363,6 +363,8 @@ Column {
             border.width: editor.activeFocus ? 2 : 1
 
             Flickable {
+
+                id: editorScroll
                 anchors.fill: parent
                 anchors.margins: Theme.s
                 contentWidth: editor.width
@@ -371,7 +373,9 @@ Column {
 
                 CodeEditor {
                     id: editor
-                    width: Math.max(parent.width, implicitWidth)
+                    // The Flickable's own width: its content item's follows
+                    // the editor's, so the parent's would go round.
+                    width: Math.max(editorScroll.width, implicitWidth)
                     code: page.file ? page.file.code : ""
                     rich: page.file && !Object.hasOwn(page.edits, page.path) ? page.file.rich : ""
                     lang: page.file ? page.file.lang : "qml"
