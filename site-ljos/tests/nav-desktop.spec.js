@@ -8,13 +8,18 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const here = dirname(fileURLToPath(import.meta.url));
-// A QML JavaScript library; its pragma is no JavaScript.
-const source = readFileSync(join(here, "../bundle/nav.js"), "utf8").replace(/^\.pragma library\s*$/m, "");
+// QML JavaScript libraries; their pragma is no JavaScript. nav.js is
+// handed desktop.js's navigation as Site/DesktopNav.qml hands it.
+const library = (name) => readFileSync(join(here, "../bundle", name), "utf8").replace(/^\.pragma library\s*$/m, "");
+const source = library("nav.js");
+const desktopSource = library("desktop.js");
 
 // The site at /site/: each page's reading is a file there, and a page
 // named in `missing` has none. Each read answers when `answer` is called,
 // so a test says in which order reads come back.
-function desktop({ missing = [] } = {}) {
+// With `late`, desktop.js is handed in only by `arrive`, as when the
+// first page reads before Main.qml's loader has it.
+function desktop({ missing = [], late = false } = {}) {
   const waiting = [];
   const warned = [];
   const shown = [];
@@ -49,13 +54,20 @@ function desktop({ missing = [] } = {}) {
     Qt: { application: { arguments: ["ljos", "--site=/site"] }, openUrlExternally() {} },
   });
   vm.runInContext(source, context);
+  vm.runInContext(desktopSource, context);
   context.follow("/", shell);
+  const arrive = () => context.useDesktop(context.navigation());
+  if (!late) arrive();
   const settle = () => new Promise((done) => setTimeout(done, 0));
   return {
     nav: context,
-    list: () => ({ routes: context.desktop.stack.map((entry) => entry.route), at: context.desktop.at, aim: context.desktop.aim }),
+    list: () => {
+      const list = context.desktop.list();
+      return { routes: list.stack.map((entry) => entry.route), at: list.at, aim: list.aim };
+    },
     shown,
     warned,
+    arrive,
     scroll: (to) => (scrolled = to),
     // Answers the reads asked for so far, oldest first, then lets the
     // promises run.
@@ -121,4 +133,15 @@ test("on the desktop the page left keeps where it was, even when Back and Forwar
   await site.answer();
   expect(site.list().at).toBe(1);
   expect(site.shown.at(-1)).toEqual({ route: "/a/", fragment: "", offset: 120 });
+});
+
+test("on the desktop a file read before desktop.js is in is read once it is", async () => {
+  const site = desktop({ late: true });
+  let got = null;
+  site.nav.siteJson("a/page.json").then((value) => (got = value));
+  await site.answer();
+  expect(got).toBeNull();
+  site.arrive();
+  await site.answer();
+  expect(got).toEqual({ route: "/a/" });
 });

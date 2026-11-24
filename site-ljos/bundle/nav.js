@@ -103,7 +103,10 @@ function named() {
 function follow(base, given) {
     root = base;
     if (!globalThis.history || typeof globalThis.addEventListener !== "function") {
-        desk(given);
+        shell = given;
+        onDesk = true;
+        if (desktop)
+            desktop.start(shell, root, siteRoot);
         return;
     }
     shell = given;
@@ -162,9 +165,9 @@ function follow(base, given) {
 // stops, not as the page is left: what a page writes into its history
 // as it is unloaded is not kept by every browser.
 function keep() {
-    if (desktop) {
-        if (shell && desktop.at >= 0)
-            desktop.stack[desktop.at].offset = shell.offset();
+    if (onDesk) {
+        if (desktop)
+            desktop.keep();
         return;
     }
     if (shell && current === entry)
@@ -191,8 +194,9 @@ function titled(own, sidebar, after, route) {
 // its page's reading is had, its entry is pushed first and the page
 // shown after, as on going back.
 function go(address) {
-    if (desktop) {
-        deskGo(address);
+    if (onDesk) {
+        if (desktop)
+            desktop.go(address);
         return;
     }
     var location = globalThis.location;
@@ -231,17 +235,29 @@ function go(address) {
 }
 
 // The site on the desktop (`mise run site:native`), where there is no
-// browser: no address bar, no history and no server. A route is shown
-// in place as in a browser running the shell. What a page names from the
-// site's root (its reading, a picture) is read from the directory the
-// build wrote them into (scripts/build.mjs with LJOS_SITE_NATIVE), named
-// by the application's argument `--site=<dir>`. Back and forward
-// are a list kept here. An address of another site opens in the
-// desktop's browser.
+// browser: its back, forward and reading are desktop.js's, which
+// Site/DesktopNav.qml hands in (`useDesktop`) and nothing here imports,
+// so no browser's first load holds them (tests/payload.spec.js).
+var onDesk = false;
 var desktop = null;
+// Reads asked for before desktop.js is in (shells.js and the search ask
+// as the first page is made, before Main.qml's loader has it), each a
+// function that reads once it is.
+var early = [];
+
+function useDesktop(made) {
+    desktop = made;
+    if (onDesk)
+        made.start(shell, root, siteRoot);
+    var asked = early;
+    early = [];
+    for (var i = 0; i < asked.length; i++)
+        asked[i]();
+}
 
 // The directory the desktop's site stands in, as an address ending in
-// "/"; "" where none was given, or in a browser.
+// "/"; "" where none was given, or in a browser. Here, not in
+// desktop.js: a page's first frame names its pictures by it.
 var siteRoot = (function () {
     if (globalThis.location || typeof Qt === "undefined" || !Qt.application)
         return "";
@@ -258,118 +274,28 @@ var siteRoot = (function () {
     return "";
 })();
 
-// The JSON a file of the desktop's site holds (an address under
-// siteRoot), read as the page's own files are; it rejects with the
-// file's name when the file is missing or not JSON.
-function fileJson(file) {
+// The JSON of a file the build wrote into the desktop's site directory
+// ("search.json"); it rejects for a file that is missing or not JSON.
+function siteJson(name) {
+    return readJson(siteRoot + name);
+}
+
+// The JSON of a file at an address on the desktop, by desktop.js's
+// reader, read once that is in.
+function readJson(address) {
+    if (desktop)
+        return desktop.read(address);
     return new Promise(function (resolve, reject) {
-        var request = new XMLHttpRequest();
-        request.onreadystatechange = function () {
-            if (request.readyState !== XMLHttpRequest.DONE)
-                return;
-            try {
-                resolve(JSON.parse(request.responseText));
-            } catch (error) {
-                reject(new Error(file + ": " + error.message));
-            }
-        };
-        request.open("GET", file);
-        request.send();
-    });
-}
-
-function desk(given) {
-    shell = given;
-    // `at` is the entry shown; `aim` the one last asked for, which is
-    // `at` again once it is shown or could not be.
-    desktop = { stack: [{ route: "/", fragment: "", offset: 0 }], at: 0, aim: 0 };
-}
-
-// What the route's page reads, from the file the build wrote; null for
-// a page that reads nothing.
-function deskReading(route) {
-    if (shell.reading(route) === null)
-        return Promise.resolve(null);
-    var file = siteRoot + route.slice(1) + "page.json";
-    if (!(file in readings)) {
-        readings[file] = fileJson(file);
-        readings[file].catch(function () {
-            delete readings[file];
+        early.push(function () {
+            desktop.read(address).then(resolve, reject);
         });
-    }
-    return readings[file];
-}
-
-// The route's page shown once its reading is had. Only then does the
-// list move (`commit`), the page left keeping where it was at that
-// moment: a page that cannot be read leaves the list as it was, and
-// says so.
-function deskShow(route, fragment, offset, commit) {
-    var mine = ++asked;
-    deskReading(route).then(
-        function (reading) {
-            if (mine !== asked)
-                return;
-            keep();
-            commit();
-            desktop.aim = desktop.at;
-            shell.show(route, fragment, offset, reading);
-        },
-        function (error) {
-            console.warn("site: " + error.message);
-            if (mine === asked)
-                desktop.aim = desktop.at;
-        },
-    );
-}
-
-function deskGo(address) {
-    var said = String(address);
-    if (/^[a-z][a-z0-9+.-]*:/i.test(said) || said.indexOf("//") === 0) {
-        Qt.openUrlExternally(said.indexOf("//") === 0 ? "https:" + said : said);
-        return;
-    }
-    var hash = said.indexOf("#");
-    var fragment = hash >= 0 ? said.slice(hash) : "";
-    var path = hash >= 0 ? said.slice(0, hash) : said;
-    if (path.indexOf(root) !== 0)
-        return;
-    var route = "/" + path.slice(root.length);
-    if (titleOf(route) === null) {
-        console.warn("site: no page at " + route);
-        return;
-    }
-    // A page and fragment already shown is shown again in its entry, as
-    // a browser does with the address it is at.
-    var here = desktop.stack[desktop.at];
-    var same = here.route === route && here.fragment === fragment;
-    deskShow(route, fragment, null, function () {
-        if (same)
-            return;
-        desktop.stack = desktop.stack.slice(0, desktop.at + 1).concat([{ route: route, fragment: fragment, offset: 0 }]);
-        desktop.at = desktop.stack.length - 1;
     });
 }
 
 // Back or forward one page on the desktop, to where it was left; false
 // where there is none that way (or in a browser, whose own buttons do it).
-// A press while the page before it is still being read goes on from that
-// page, so two quick presses go back two.
 function step(by) {
-    if (!desktop)
-        return false;
-    var to = desktop.aim + by;
-    if (to < 0 || to >= desktop.stack.length)
-        return false;
-    desktop.aim = to;
-    // The page shown keeps where it is now: a press that comes before
-    // the last one's read goes to an entry that may be this page.
-    keep();
-    var entry = desktop.stack[to];
-    deskShow(entry.route, "", entry.offset, function () {
-        desktop.at = to;
-    });
-    return true;
+    return desktop ? desktop.step(by) : false;
 }
 
 // A file named from the site's root ("/favicon.svg"), as the page at
@@ -434,7 +360,7 @@ function anchor(address, label, underline, colour) {
 // the browser, after the page it hydrates is the page the build wrote.
 // Whether the site runs on the desktop (`mise run site:native`).
 function onDesktop() {
-    return desktop !== null;
+    return onDesk;
 }
 
 function inBrowser() {
@@ -497,7 +423,7 @@ var index = null;
 function searchIndex(base) {
     if (index === null) {
         // On the desktop it is the file the build wrote beside the pages.
-        index = desktop ? fileJson(siteRoot + "search.json") : globalThis.fetch(at(base, "/search.json")).then(function (response) {
+        index = onDesk ? siteJson("search.json") : globalThis.fetch(at(base, "/search.json")).then(function (response) {
             if (!response.ok)
                 throw new Error("search.json: " + response.status);
             return response.json();
