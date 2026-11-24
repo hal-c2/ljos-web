@@ -86,6 +86,12 @@ Feature: The front page shows software being reshaped while it runs
     Then the app is reloaded from the list's module, with every change made to it kept
     And the code beside it is the list's board.ts again
 
+  Scenario: A layout picked while the agent looks for a button is looked for again
+    Given the replay has asked the app to find Feeder 12's "Assign crew" button
+    When the reader picks the other layout before the app answers, and presses Play
+    Then the replay asks the find again of the app that runs now
+    And it presses the button that find answers with, never a button of the app that is gone
+
   Scenario: A failed edit keeps the last board
     Given the replay's app running a board module, with a crew assigned
     When an edited module throws as it loads
