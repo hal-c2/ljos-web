@@ -52,3 +52,5 @@ The three sets below were taken on 2026-11-23 from local builds of each head (si
 - 173/4b2be4fb: the Workbench (`workbench/`) and Desktop (`desktop/`) shells, picked as a reader would; first screen and one screen down.
 
 - 166/e26f284b: CI's site-ljos-root artifact (14860397882) of site run 45257256661, for head e26f284b77fc1531a2e0f169c7ebb3db437f2692. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. /showcase/ at its top, then scrolled down by most of a screen twice.
+
+- 184/392dcad5: CI's site-ljos-root artifact (14877283834) of site run 45297541365, for head 392dcad5ddb4683b391c61bb09271c72e0688e3b. Headless Chromium, no network, 1440x900 and 390x844, light and dark. The front page, /data/models/ and /language/porting-from-qt/.
