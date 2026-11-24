@@ -450,6 +450,24 @@ test.describe("a site in many languages", () => {
     });
   });
 
+  test.describe(() => {
+    test.use({ told: [/de\.po: the catalogue does not read, so it is left out/] });
+    test("a catalogue that does not read is asked for again once it is mended", async ({ page }) => {
+      let body = 'msgid "Open"\nmsgstr "Öffnen\n';
+      await page.route("**/i18n/de.po", (route) => route.fulfill({ body }));
+      await shown(page, { "Main.qml": qml("property string open: t`Open`") });
+      await page.evaluate(async () => {
+        window.messages.catalogSources({ de: "/i18n/de.po" });
+        await window.messages.loadCatalogs("de");
+      });
+      await language(page, "de");
+      expect(await read(page, "open")).toBe("Open");
+      body = DE_PO;
+      await page.evaluate(() => window.messages.loadCatalogs("de"));
+      expect(await read(page, "open")).toBe("Öffnen");
+    });
+  });
+
   for (const tag of ["zh-CN", "zh-SG", "zh-Hans", "zh"]) {
     test(`${tag} finds a zh-Hans catalogue`, async ({ page }) => {
       await shown(page, { "Main.qml": qml("property string open: t`Open`") });
@@ -490,6 +508,11 @@ test.describe("a site in many languages", () => {
     expect(await check(po("ja", [[files, "{0, plural, one {# ファイル} other {# ファイル}}"]]), "ja.po")).toEqual([
       expect.stringMatching(/the count \{0\} has the form\(s\) one, which ja does not use$/u),
     ]);
+    // An id is not its message: what the message names is not known, so
+    // only how the translation reads is checked.
+    const ided = (id, str) => `msgid ""\nmsgstr ""\n"Language: fr\\n"\n\n#. js-lingui-explicit-id\nmsgid ${JSON.stringify(id)}\nmsgstr ${JSON.stringify(str)}\n`;
+    expect(await check(ided("greeting", "Bonjour {name}"), "fr.po")).toEqual([]);
+    expect(await check(ided("files", "{0, plural, one {# fichier} other {# fichiers}}"), "fr.po")).toEqual([expect.stringMatching(/the count \{0\} needs the form\(s\) many in fr$/u)]);
   });
 
   // A text with letters of the UI's direction is the UI's own and runs its
