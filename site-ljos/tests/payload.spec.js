@@ -8,13 +8,18 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { pageReport } from "../../packages/runtime/size/pages.js";
+import { demos, route } from "../scripts/pro.mjs";
 
 const dist = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "dist");
 const base = process.env.LJOS_SITE_BASE ?? "/";
 // What a page waits for before it is written or taken over is its first
 // load too, though the build imports it dynamically (bundle/Site/later.js,
 // `awaited`).
-const AWAITED = { "/": ["Landing-"], "/showcase/": ["ShowcasePage-"] };
+const AWAITED = {
+  "/": ["Landing-"],
+  "/showcase/": ["ShowcasePage-"],
+  ...Object.fromEntries(demos.map((demo) => [route(demo), ["ProDemoPage-"]])),
+};
 const report = pageReport(dist, { base, awaited: AWAITED });
 const kB = (bytes) => Math.round(bytes / 1024);
 const named = (file, prefix) => file.split("/").pop().startsWith(prefix);
@@ -158,6 +163,18 @@ test("no page but the front page's first load holds the front page", () => {
   // Its words as written, wrapped where the page laid them out.
   const written = readFileSync(join(dist, "index.html"), "utf8").replace(/\s+/g, " ");
   expect(written, "the front page as written").toContain("Software you can reshape while it runs.");
+});
+
+// A pro demo's page is a module of its own, which the page at a pro
+// demo's route waits for: no other page's first load carries it
+// (bundle/Site/later.js).
+test("only a pro demo's page holds the pro demos' page", () => {
+  const routes = demos.map(route);
+  const theirs = report.filter((entry) => routes.includes(entry.route));
+  expect(theirs.map((entry) => entry.route).sort(), "the pro demos' pages built").toEqual([...routes].sort());
+  expect(reaching(["ProDemoPage-"], report.filter((entry) => !routes.includes(entry.route))), "another page's first load holding it").toEqual({});
+  expect(reaching(["ProDemoPage-"], pageReport(dist, { base })), "a page that imports it statically").toEqual({});
+  expect(Object.keys(reaching(["ProDemoPage-"], theirs)).sort(), "counted for each pro demo's page").toEqual([...routes].sort());
 });
 
 // A docs page's reading is its own: in its HTML's props, not in a

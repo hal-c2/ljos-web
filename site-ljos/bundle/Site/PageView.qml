@@ -181,11 +181,13 @@ Flickable {
 
             // Only this route's page is made, so the HTML the build
             // writes for a route holds that page and no other. The
-            // landing, demos and showcase pages load by route, the
-            // landing's and the showcase's each from a module of its own
-            // (later.js); a docs page stands here directly, its page bound
-            // as it is made, so a prerender, which writes the page as it
-            // first stands, holds it whole.
+            // landing, a pro demo and the showcase load by route, each
+            // from a module of its own (later.js), so no other page's
+            // first load carries them, and the demos page, which shares
+            // most of what it is with the landing, is made here; a docs
+            // page stands here directly, its page bound as it is made, so
+            // a prerender, which writes the page as it first stands, holds
+            // it whole.
             Loader {
                 id: pageLoader
                 readonly property string route: view.router ? view.router.route : "/"
@@ -194,10 +196,12 @@ Flickable {
                 active: visible
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
                 x: Math.round((view.width - width) / 2)
-                sourceComponent: route === "/" || route === "/showcase/" ? null : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
-                source: route === "/" ? Later.landing : route === "/showcase/" ? Later.showcase : undefined
-                // What the showcase reads as it is made (ShowcasePage's
-                // `wide`), so it is bound from the start, not once loaded.
+                readonly property var demo: view.router ? view.router.pro : null
+                sourceComponent: route === "/" || route === "/showcase/" || demo ? null : route === "/demos/" ? demosPage : emptyPage
+                source: route === "/" ? Later.landing : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : undefined
+                // What a page it loads reads as it is made (`wide`, and a
+                // pro demo's page its `demo`), so it is bound from the
+                // start, not once loaded.
                 readonly property bool wide: view.wide
                 onLoaded: {
                     item.scroller = view;
@@ -233,14 +237,6 @@ Flickable {
     Component {
         id: demosPage
         DemosPage {
-            scroller: view
-            wide: view.wide
-        }
-    }
-    Component {
-        id: proPage
-        ProDemoPage {
-            demo: view.router.pro
             scroller: view
             wide: view.wide
         }

@@ -4,6 +4,7 @@ import QtQuick
 import Site
 import "../Demos/pro-live.js" as Live
 import "../nav.js" as Nav
+import "logic/place.ts" as Place
 
 // A pro demo's page (Demos/pro.json, `demo` its entry): a whole app
 // running in the page, with its files below it to read, change and
@@ -16,9 +17,13 @@ import "../nav.js" as Nav
 Column {
     id: page
 
-    required property var demo
+    // The demo and whether the page is wide, from what loads it
+    // (PageView's Loader), so both are there as it is made.
+    property var demo: Place.demoIn(parent)
+    // What this page says of it, which no other page carries (ProText).
+    readonly property var words: demo ? ProText.of[demo.name] ?? ({}) : ({})
     property var scroller: null
-    property bool wide: true
+    property bool wide: Place.wideIn(parent)
 
     // The files, once they came: [{ path, lang, code, rich }].
     property var files: []
@@ -150,7 +155,7 @@ Column {
             // Read from the side the page starts on (LayoutMirroring).
             x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
-            text: page.demo.summary
+            text: page.words.summary
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.subtitleSize - 1
@@ -172,7 +177,7 @@ Column {
         // (nav.js proPicture).
         picture: Nav.proPicture(page.demo, Theme.picked, Theme.dark, !page.wide)
         what: page.demo.what
-        description: page.demo.shows
+        description: page.words.shows
         demo: running
     }
     // The app, with the page's edits given to it as they compile.
@@ -201,11 +206,11 @@ Column {
 
     // How to use the app, for a demo whose entry says (`use`).
     Text {
-        visible: (page.demo.use ?? "") !== ""
+        visible: (page.words.use ?? "") !== ""
         // Read from the side the page starts on (LayoutMirroring).
         x: LayoutMirroring.enabled ? parent.width - width : 0
         width: Math.min(parent.width, Theme.measure)
-        text: page.demo.use ?? ""
+        text: page.words.use ?? ""
         color: Theme.textMuted
         font.family: Theme.sans
         font.pixelSize: Theme.bodySize
@@ -234,7 +239,7 @@ Column {
             // Read from the side the page starts on (LayoutMirroring).
             x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
-            text: page.demo.tryThis
+            text: page.words.tryThis
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.bodySize

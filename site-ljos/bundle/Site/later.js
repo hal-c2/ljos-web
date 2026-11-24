@@ -22,4 +22,11 @@ landing.awaited = true;
 // the page as written holds it all the same.
 function showcase() { return import("./ShowcasePage.qml"); }
 showcase.awaited = true;
+
+// A pro demo's page, which no other page's first load carries: it is
+// chosen by the address alone, so the page made at a pro demo's route
+// waits for it, as the showcase's does. It is one module for every pro
+// demo, so the page is kept from one to the next.
+function proDemo() { return import("./ProDemoPage.qml"); }
+proDemo.awaited = true;
 function liveSource() { return import("./LiveSource.qml"); }
