@@ -535,6 +535,16 @@ Rectangle {
                                     event.accepted = true;
                                 }
                             }
+                            // A row Tab reaches past what the list shows is
+                            // scrolled to, as far as it takes to show it whole.
+                            onActiveFocusChanged: {
+                                if (!activeFocus)
+                                    return;
+                                if (y < treeView.contentY)
+                                    treeView.contentY = y;
+                                else if (y + height > treeView.contentY + treeView.height)
+                                    treeView.contentY = y + height - treeView.height;
+                            }
                             Text {
                                 x: 4 + 12 * treeRow.modelData.depth
                                 anchors.verticalCenter: parent.verticalCenter
