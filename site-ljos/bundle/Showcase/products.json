@@ -93,7 +93,7 @@
     "claim": "A terminal whose UI is QML, over Ghostty's libghostty-vt",
     "body": [
       "Hof is a terminal for Linux and macOS. Ghostty's libghostty-vt reads what programs write; everything around it, the tabs, splits, menus and settings, is QML running on Ljós.",
-      "It sees Claude Code, Codex, Gemini, Aider and opencode in its panes, and frames a pane whose agent is waiting for you. `hof ctl` drives it from scripts, and `hof mcp` lets agents drive it.",
+      "It sees Claude Code, Codex, Gemini, Aider and opencode in its panes, and frames a pane whose agent is waiting for you. hof ctl drives it from scripts, and hof mcp lets agents drive it.",
       "Its settings are one TOML file. The settings window writes each change into that file at once and keeps your comments."
     ],
     "recording": {
