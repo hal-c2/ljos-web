@@ -44,6 +44,8 @@ Item {
     readonly property bool runnable: awake && Nav.canRun("")
     readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
 
+    // Whether it has run: it starts itself only if nothing has started it,
+    // the reader's Run included, so a pause of theirs stays one.
     property bool startedItself: false
     readonly property bool startable: runnable && !Theme.calm && runner.onScreen && Running.shown
     onStartableChanged: {
@@ -184,5 +186,10 @@ Item {
         what: frame.what
         can: frame.runnable
         ready: frame.drawn
+        failed: loader.status === Loader.Error
+        onStartedChanged: {
+            if (started)
+                frame.startedItself = true;
+        }
     }
 }
