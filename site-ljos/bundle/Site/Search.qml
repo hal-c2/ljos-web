@@ -30,7 +30,7 @@ Item {
     implicitHeight: 40
 
     function load() {
-        if (pages !== null || !Nav.inBrowser())
+        if (pages !== null || !(Nav.inBrowser() || Nav.onDesktop()))
             return;
         Nav.searchIndex(Content.base).then(function (all) {
             search.trouble = "";

@@ -1,8 +1,9 @@
 // `mise run site:native --check`: ljos.dev on Ljós on the desktop, off-screen.
 // It starts `ljos run --headless` with the inspector, waits for the front
 // page, follows the header's links to a docs page and to the showcase as a
-// reader would, and fails on anything the app logged that is an error,
-// other than the gaps named below, each waiting on Ljós itself.
+// reader would, switches shells, goes back, searches, and fails on anything
+// the app logged that is an error, other than the gaps named below, each
+// waiting on Ljós itself.
 //
 //   node native-check.mjs <ljos> <bundle dir> <site dir> <scratch dir>
 import { spawn } from "node:child_process";
@@ -24,8 +25,9 @@ const KNOWN = [
   // A TypeScript module's import of an ECMAScript module (Demos/logic/
   // stage.ts imports keys.mjs): ljos-ui's feat/ts-imports-mjs. Until then
   // the front page's agent poster shows its board without its log.
-  /keys\.mjs/,
-  /stage\.ts/,
+  /^warning: Demos\/logic\/keys\.mjs: Error: unsupported keyword: export$/,
+  /^warning: Demos\/logic\/stage\.ts: the script "\.\/keys\.mjs" is not available$/,
+  /^warning: Demos\/logic\/stage\.ts: Error: Cannot convert undefined or null to object$/,
   /AgentPoster\.qml:\d+: TypeError: Cannot call method 'argsText'/,
   // Flickable.acceptedButtons (Qt 6.9): the same branch.
   /acceptedButtons/,
@@ -111,6 +113,23 @@ try {
     console.log(`site:native: the ${shell} shell is up`);
     current = shell;
   }
+  // The desktop's own back and forward (nav.js `step`): the list is
+  // front page, docs, showcase. Docs followed twice is one entry, so
+  // Back from it is the showcase; two quick presses after it go back
+  // two, to the front page.
+  for (let i = 0; i < 2; ++i) {
+    await call("app_click", { target: await find("text=Docs >> nth=0") });
+    await until("docs page", () => find("text=What is Ljós?"));
+  }
+  await call("app_press", { keys: "Alt+Left" });
+  await until("the showcase on going back", () => find("text=Built with Ljós"));
+  await call("app_press", { keys: "Alt+Left Alt+Left" });
+  await until("the front page on going back twice", () => find("text=Software you can reshape"));
+  console.log("site:native: back goes where it was");
+  // The search reads the index the build wrote beside the pages.
+  await call("app_type", { target: await find(`role=textbox[name="Search"] >> nth=0`), text: "Item" });
+  await until("a search result", () => find(`role=listitem >> nth=0`));
+  console.log("site:native: the search finds pages");
 } catch (error) {
   console.error(`site:native: ${error.message}`);
   failed = true;
