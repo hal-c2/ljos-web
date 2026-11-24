@@ -654,12 +654,12 @@ Feature: The site is shown in a shell the reader picks
   Scenario: The logo is the same in every shell
     Given a reader has any shell, in light or dark, on a desktop or a phone
     When they look at the header and the footer
-    Then the mark and "Ljós" are drawn as the user's logo
-    And the shell's typeface, colours and capitals don't reach them
-    And the bar that holds the logo is tall enough for it at that size
+    Then each shows the README's logo, the panels and the script "Ljós", from the one brand file, with room above and below it in its bar
+    And the shell's typeface, colours and capitals don't reach it
 
   Scenario: The search field's words stay in its box in every shell
     Given a reader on a desktop has any shell, Cyberpunk's narrow rail among them
     When they open a docs page
     Then the search field's "Search docs and demos" ends inside the field, shortened if it must be
     And where the field shows the "/" key, its words end before it
+

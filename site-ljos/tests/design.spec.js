@@ -308,10 +308,10 @@ for (const [route, demos] of [
               return { file: img.src.split("/").pop(), loaded: img.naturalWidth > 0, width: Math.round(box.width), height: Math.round(box.height) };
             }),
         );
-        const marks = drawn.filter(({ file }) => file === "favicon.svg");
-        expect(marks, `the header's mark and the footer's at ${width}`).toEqual([
-          { file: "favicon.svg", loaded: true, width: 28, height: 28 },
-          { file: "favicon.svg", loaded: true, width: 20, height: 20 },
+        const logos = drawn.filter(({ file }) => file === "ljos.svg");
+        expect(logos, `the header's logo and the footer's at ${width}`).toEqual([
+          { file: "ljos.svg", loaded: true, width: 90, height: 40 },
+          { file: "ljos.svg", loaded: true, width: 72, height: 32 },
         ]);
         const pictures = drawn.filter(({ file }) => /^demo-.*\.webp$/.test(file));
         expect(pictures.length, `the demo pictures at ${width}`).toBe(demos);

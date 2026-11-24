@@ -98,7 +98,7 @@ test("the landing page leads with its claim and the agent replay, and never pitc
   await expect(shown(claim)).toBeInViewport();
   await expect(shown(page.getByText("North district dispatch", { exact: true })), "one replay, the hero's").toHaveCount(1);
   await expect(page.getByRole("heading", { level: 2, name: "Your agent can use the app, too." })).toHaveCount(1);
-  await expect(shown(page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true })).first()).toBeAttached();
+  await expect(shown(page.getByRole("contentinfo").getByText("Malleable software, everywhere.", { exact: true })).first()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
   const words = await page.locator("#app").evaluate((app) => {
@@ -248,7 +248,7 @@ test("on a phone the footer's words wrap inside the page", async ({ browser }) =
     await page.goto("/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     // The footer's own: the hero says the same words.
-    const tagline = page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true });
+    const tagline = page.getByRole("contentinfo").getByText("Malleable software, everywhere.", { exact: true }).filter({ visible: true });
     await tagline.scrollIntoViewIfNeeded();
     const box = await tagline.boundingBox();
     expect(box, "the tagline is laid out").toBeTruthy();

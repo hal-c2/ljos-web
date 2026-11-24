@@ -46,31 +46,25 @@ Rectangle {
                 width: footer.spread ? Math.round(5 * footer.column + 4 * Theme.columnGap) : parent.width
                 spacing: Theme.s
 
-                Row {
+                // The logo, in the page as written, as the header's is
+                // (Nav.picture). Its size is given: a picture has none
+                // until it loads, and the column leaves out what has none.
+                Text {
+                    height: 32
+                    width: Math.round(height * Theme.logoAspect)
+                    textFormat: Text.RichText
+                    text: Nav.picture(footer.route, "/ljos.svg", width, height, t`Ljós`)
+                }
+                Text {
                     width: parent.width
-                    spacing: 8
-                    // In the page as written, as the header's is (Nav.picture).
-                    // Its size is given: a picture has none until it loads, and
-                    // the row leaves out what has none.
-                    Text {
-                        id: mark
-                        width: 20
-                        height: 20
-                        anchors.verticalCenter: parent.verticalCenter
-                        textFormat: Text.RichText
-                        text: Nav.picture(footer.route, "/favicon.svg", 20, 20, "")
-                        Accessible.ignored: true
-                    }
-                    // What is left of the row beside the mark, wrapped where a
-                    // phone has less than its one line.
-                    Wordmark {
-                        width: parent.width - mark.width - parent.spacing
-                        anchors.verticalCenter: parent.verticalCenter
-                        wrapMode: Text.Wrap
-                        text: "Ljós — malleable software, everywhere"
-                        font.pixelSize: 16
-                        font.weight: Font.DemiBold
-                    }
+                    wrapMode: Text.Wrap
+                    text: t`Malleable software, everywhere.`
+                    color: Theme.text
+                    font.family: Theme.sans
+                    font.pixelSize: Theme.bodySize
+                    font.weight: Font.DemiBold
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: Theme.bodyLine
                 }
             }
             Row {

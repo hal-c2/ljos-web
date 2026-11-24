@@ -212,6 +212,9 @@ QtObject {
     readonly property int sidebarWidth: 264
     readonly property int tocWidth: 224
     readonly property int headerHeight: 64
+    // The logo's own shape (assets/ljos.svg's viewBox, 497.88 by 222.4):
+    // it is drawn at a height, its width following, never stretched.
+    readonly property real logoAspect: 497.88 / 222.4
     readonly property int wideFrom: 1000
     // Below it a finger does the pressing (Main.qml says when): what
     // is pressed is then 44 high, a row of links as much as a button.
