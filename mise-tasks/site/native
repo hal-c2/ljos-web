@@ -21,11 +21,16 @@ profile=debug
 [ "${usage_release:-}" = true ] && profile=release
 
 if [ -n "${LJOS_BIN:-}" ]; then
-  if [ ! -x "$LJOS_BIN" ]; then
+  # Named from where mise was run, as the reader wrote it; the site is
+  # run from other directories.
+  case $LJOS_BIN in
+    /*) ljos=$LJOS_BIN ;;
+    *) ljos="${MISE_ORIGINAL_CWD:-$PWD}/$LJOS_BIN" ;;
+  esac
+  if [ ! -x "$ljos" ]; then
     echo "site:native: LJOS_BIN=$LJOS_BIN is not an executable ljos; unset it to build one" >&2
     exit 1
   fi
-  ljos=$LJOS_BIN
 else
   sha=$(tr -d '[:space:]' <"$root/site/ljos-ui.sha")
   src="$target/ljos-ui-src/$sha"
