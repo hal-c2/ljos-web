@@ -45,6 +45,29 @@ test("the build wrote each capture, as WebP and PNG", () => {
       for (const ext of [".webp", ".png"]) expect(existsSync(join(dist, "pictures", `${name}${ext}`)), `${name}${ext}`).toBe(true);
 });
 
+// A literal, as a regular expression matches it.
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// The markup of each footer landmark (a page is written once per width),
+// from its <div role="contentinfo"> to the </div> that closes it.
+function footersIn(html) {
+  const footers = [];
+  for (let at = html.indexOf('role="contentinfo"'); at >= 0; at = html.indexOf('role="contentinfo"', at + 1)) {
+    const start = html.lastIndexOf("<div", at);
+    const tags = /<div\b|<\/div>/g;
+    tags.lastIndex = start;
+    let depth = 0;
+    for (let tag; (tag = tags.exec(html)); ) {
+      depth += tag[0] === "</div>" ? -1 : 1;
+      if (depth === 0) {
+        footers.push(html.slice(start, tags.lastIndex));
+        break;
+      }
+    }
+  }
+  return footers;
+}
+
 test("every page's footer links to what is built with Ljós", () => {
   const pagesUnder = (dir) =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
@@ -54,8 +77,12 @@ test("every page's footer links to what is built with Ljós", () => {
   expect(pages.length).toBeGreaterThan(50);
   const missing = [];
   for (const file of pages) {
-    const html = readFileSync(file, "utf8");
-    for (const { name, href } of built) if (!new RegExp(`<a\\b[^>]*href="${href}"[^>]*>(?:<[^>]*>)*\\s*${name}\\s*<`).test(html)) missing.push(`${file}: ${name}`);
+    // Each footer only, so the front page's cards, which link the same
+    // repositories, can't stand in for one.
+    const footers = footersIn(readFileSync(file, "utf8"));
+    if (footers.length === 0) missing.push(`${file}: no footer`);
+    for (const footer of footers)
+      for (const { name, href } of built) if (!new RegExp(`<a\\b[^>]*href="${escape(href)}"[^>]*>(?:<[^>]*>)*\\s*${escape(name)}\\s*<`).test(footer)) missing.push(`${file}: ${name}`);
   }
   expect(missing).toEqual([]);
 });
