@@ -96,12 +96,24 @@ function alive(root) {
 }
 
 // The source of each shell the site ships, `{ Elegant: { text, rich } … }`,
-// written by the build from bundle/Shells (scripts/build.mjs). Imported
-// when a reader asks to see one, so no page loads them before.
-function sources() {
-    return import("./Shells/sources.json").then(function (made) {
-        return made.default || made;
-    });
+// written by the build beside the pages (scripts/build.mjs), at the
+// site's `base`. Fetched when a reader asks to see one, so no page loads
+// them before. Fetched as data, not imported: a browser may keep a
+// module that failed to come as failed, so a Retry would fail again,
+// where a fetch is made anew. Only an answer that came is kept.
+var catalog = null;
+function sources(base) {
+    if (catalog === null) {
+        catalog = globalThis.fetch(base.slice(0, -1) + "/shell-sources.json").then(function (response) {
+            if (!response.ok)
+                throw new Error("shell-sources.json: " + response.status);
+            return response.json();
+        });
+        catalog.catch(function () {
+            catalog = null;
+        });
+    }
+    return catalog;
 }
 
 // A shell the reader wrote, compiled in the page as the Pantry demo's

@@ -49,7 +49,7 @@ Item {
 
     function fetch() {
         live.failed = "";
-        Shells.sources().then((all) => {
+        Shells.sources(Content.base).then((all) => {
             live.source = all.shells[live.name] ?? null;
             if (live.source)
                 editor.text = live.source.text;

@@ -2355,9 +2355,12 @@ test("an edit without the editor's place leaves the last that ran", async ({ bro
 // in the editor's place, with a Retry, and Reset waits for it.
 test("the editor says when the shell's QML did not come, and tries again", async ({ browser }) => {
   const context = await reader(browser, { kept: "workbench" });
-  let refused = 0;
-  await context.route(/\/sources-[^/]+\.js$/, async (route) => {
-    if (refused++ === 0) return route.abort();
+  // Asked as data, each time anew: a module script that failed may be
+  // kept as failed by the browser, and a Retry would never come.
+  const asked = [];
+  await context.route(/\/shell-sources\.json$/, async (route) => {
+    asked.push(route.request().resourceType());
+    if (asked.length === 1) return route.abort();
     await route.continue();
   });
   try {
@@ -2370,6 +2373,7 @@ test("the editor says when the shell's QML did not come, and tries again", async
     await expect(inspector.getByRole("textbox", { name: "Edit the running shell's QML" })).toContainText("workbenchShell", { timeout: 30_000 });
     await expect(inspector.getByRole("alert")).toHaveCount(0);
     await expect(inspector.getByRole("button", { name: "Reset", exact: true })).toBeEnabled();
+    expect(asked, "the sources fetched, once refused and once again").toEqual(["fetch", "fetch"]);
   } finally {
     await context.close();
   }
