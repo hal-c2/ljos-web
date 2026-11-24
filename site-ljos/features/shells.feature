@@ -201,6 +201,16 @@ Feature: The site is shown in a shell the reader picks
     When they press "Reset"
     Then the status bar says "Shell: Workbench" again, and "Diagnostics: 0"
 
+  Scenario: An edit that compiles but fails as it is made leaves the last that ran
+    Given a reader in the Workbench shell whose edit made the status bar say "Shell: Workbench, edited"
+    When they change it again so that it compiles but throws "made to fail" as it is made
+    Then the panel's "Problems" lists "made to fail", and the status bar says "Diagnostics: 1"
+    And the status bar still says "Shell: Workbench, edited", in the Workbench shell
+    When they change it again to say "Shell: Workbench, mended"
+    Then the status bar says "Shell: Workbench, mended", and "Diagnostics: 0"
+    When they press "Reset"
+    Then the status bar says "Shell: Workbench" again
+
   Scenario: The reader's place is kept when a live edit is put back
     Given a reader whose edit made Workbench's explorer wider, stopped near the top of a docs page
     When they scroll to a heading below the first screen and press "Reset" at once
