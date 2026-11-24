@@ -1,4 +1,5 @@
 import Ljos.Ui
+import Ljos.Core
 import Site
 
 // One of a DeviceFrame's panels: the tab `index` of `frame` names it,
@@ -18,9 +19,9 @@ Item {
     // is written with none chosen, so it carries no panel it hides
     // (tests/payload.spec.js).
     property Component panel
-    property bool made: false
-    onChosenChanged: if (chosen) made = true
-    Component.onCompleted: if (chosen) made = true
+    property bool made: chosen
+    // Chosen now or until now: either way it has been shown.
+    onChosenChanged: made = true
 
     x: column === 1 ? frame.width - frame.side : 0
     width: column >= 0 ? frame.side : parent !== null ? parent.width : 0
