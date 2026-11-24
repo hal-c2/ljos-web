@@ -11,6 +11,9 @@ import { PauseJob } from "./animation/jobs.js";
 import { activate } from "./focus.ts";
 import { frameOf, sceneToItem } from "./geometry.ts";
 import { buttonOf, modifiersOf, NoButton } from "./keycodes.ts";
+import { receivers } from "./receivers.js";
+
+export { drivenRoot, driving, inRoot, receiverOf } from "./receivers.js";
 
 // What waits (a long press, the time a second click may take) waits on the
 // clock everything timed is on, so a test moves it with the same hand.
@@ -141,7 +144,6 @@ class Point {
   }
 }
 
-const receivers = new WeakMap();
 const points = new Map();
 // How many things there are that hover: with none, a move of the mouse that
 // nobody holds is nobody's.
@@ -152,32 +154,6 @@ export const hoverable = (by) => void (hovers += by);
 // An item that takes pointer events: `$press(point)` answers whether it
 // accepts one, and it is then told `$move`, `$release` and `$grab`. One that
 // has `$filter(point, receiver)` is asked before what is inside it.
-// The item an element takes pointer events for, if it takes any.
-export const receiverOf = (node) => receivers.get(node) ?? null;
-
-// Whether `item` is `root` or in it: through its parents, and a popup's
-// item, whose parent is its window's overlay while it is open, through the
-// popup to what it is in.
-export function inRoot(item, root) {
-  for (let up = item; up; up = up.$popup ? up.$popup.parent : up.parent) if (up === root) return true;
-  return false;
-}
-
-// The root a click is asked of while it is made (inspect's `click`), or
-// null for a person's. What that click is outside of but not in that root,
-// a popup the page holds the root in has open, does not hear it.
-let driven = null;
-export const drivenRoot = () => driven;
-export function driving(root, make) {
-  const was = driven;
-  driven = root;
-  try {
-    return make();
-  } finally {
-    driven = was;
-  }
-}
-
 export function receive(item) {
   if (receivers.has(item.$node)) return;
   receivers.set(item.$node, item);
