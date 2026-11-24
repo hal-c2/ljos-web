@@ -55,11 +55,20 @@ function listen(page) {
   return said;
 }
 
-// Opened, taken over, and its kept shell in (shells.js `shown`). Once
-// the head's watchdog has shown the page as written no kept shell comes
-// (Main.qml `late`): that fails here as what it is, with when the page
-// was taken over, and is not waited on until the test times out.
-async function open(page, route) {
+// Opened, taken over, and its kept shell in (shells.js `shown`).
+//
+// A kept shell is put in only if it is in before the head's watchdog
+// shows the page; after that the page stays as the reader sees it
+// (Main.qml `late`). On a busy machine the page itself can be taken
+// over after the watchdog, and then no kept shell can come, however
+// fast it loads. So a test about what a shell is, not about how a kept
+// one arrives, takes the page as it was shown: the shell stayed
+// Elegant, which is what being late must do, and the test then picks
+// the kept shell as a reader would. The report says so.
+//
+// A test about the arrival itself (`arrival`) fails instead, with when
+// the page was taken over, and is not waited on until it times out.
+async function open(page, route, { arrival = false } = {}) {
   await page.goto(at(route));
   await page.waitForSelector(HYDRATED, { timeout: 40_000 });
   const taken = await page.evaluate(() => Math.round(performance.now()));
@@ -68,7 +77,16 @@ async function open(page, route) {
     return "ljosShellLate" in said || ("ljosShellShown" in said && said.ljosShellShowing);
   });
   const late = await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset);
-  expect(late, `${route}: the head's watchdog (2500 ms) showed the page before the kept shell was in; it was taken over by ${taken} ms`).toBe(false);
+  const why = `${route}: the head's watchdog (2500 ms) showed the page before the kept shell was in; it was taken over by ${taken} ms`;
+  if (late && !arrival) {
+    const kept = await page.evaluate((key) => localStorage.getItem(key), KEY);
+    await page.waitForFunction(() => !document.documentElement.dataset.ljosSwap);
+    expect(await showing(page), `${why}, and the page stays in the shell it was shown in`).toBe("elegant");
+    test.info().annotations.push({ type: "late", description: `${why}; ${kept} was then picked` });
+    await pick(page, kept);
+    return;
+  }
+  expect(late, why).toBe(false);
 }
 
 // A press where a finger lands: an item's own press area lies over it.
@@ -388,7 +406,7 @@ test("with no view transitions, a reload still puts the kept shell in before the
       await new Promise((done) => setTimeout(done, 600));
       await route.continue();
     });
-    await open(page, "/start/first-app/");
+    await open(page, "/start/first-app/", { arrival: true });
     expect(await page.evaluate(() => typeof document.startViewTransition)).toBe("undefined");
     expect(await showing(page)).toBe("desktop");
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
@@ -422,6 +440,40 @@ test("a kept shell that comes after the head's watchdog showed the page does not
     const after = await page.evaluate((from) => window.__seen.slice(from).filter(({ shell }) => shell !== "elegant"), sawFrom);
     expect(after, "frames in which another shell came").toEqual([]);
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+  } finally {
+    await context.close();
+  }
+});
+
+// A page taken over only after the head's watchdog showed it, as on a
+// busy machine: no kept shell can be put in by then, however fast its
+// module comes. The page stays in Elegant without a frame of the kept
+// shell, and the kept shell is still the reader's to pick.
+test("a page taken over after the head's watchdog stays in Elegant, and the kept shell comes when picked", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(frames);
+    // The page's start (its `data-ljos-start` module) comes late: that
+    // holds the take-over, as a busy machine's would be.
+    await page.route("**/assets/solid-*.js", async (route) => {
+      await new Promise((done) => setTimeout(done, 3_500));
+      await route.continue().catch(() => {});
+    });
+    // Not to its load, which waits on the module held.
+    await page.goto(at("/start/first-app/"), { waitUntil: "commit" });
+    // The watchdog's: the page shows, as written, before it is taken over.
+    await page.waitForFunction(() => "ljosShellLate" in document.documentElement.dataset, null, { polling: 50, timeout: 10_000 });
+    expect(await page.locator(HYDRATED).count(), "the page is not taken over yet").toBe(0);
+    await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+    await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+    await page.evaluate(() => new Promise((done) => setTimeout(done, 1_000)));
+    expect(await showing(page), "the page stays in the shell the reader sees").toBe("elegant");
+    // Before the take-over the page says no shell; after it, Elegant.
+    const others = await page.evaluate(() => window.__seen.filter(({ shell }) => shell !== "" && shell !== "elegant"));
+    expect(others, "frames in which another shell came").toEqual([]);
+    await pick(page, "desktop");
+    expect(await showing(page)).toBe("desktop");
   } finally {
     await context.close();
   }
@@ -941,7 +993,7 @@ for (const how of ["picked", "kept"]) {
     try {
       const page = await context.newPage();
       const said = listen(page);
-      await open(page, "/start/cli/");
+      await open(page, "/start/cli/", { arrival: true });
       if (how === "picked") await pick(page, "workbench");
       expect(await showing(page)).toBe("workbench");
       const tone = (name) => page.evaluate((name) => getComputedStyle(document.documentElement).getPropertyValue(`--ljos-${name}`).trim().toLowerCase(), name);
@@ -1066,7 +1118,7 @@ for (const how of ["picked", "kept"]) {
       const page = await context.newPage();
       let asked = 0;
       await page.route(/\/looks-[0-9a-f]{10}\.css$/, (route) => (++asked === 1 ? route.abort() : route.continue()));
-      await open(page, "/start/cli/");
+      await open(page, "/start/cli/", { arrival: true });
       if (how === "picked") await pick(page, "workbench");
       expect(await showing(page)).toBe("workbench");
       const ground = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase());
