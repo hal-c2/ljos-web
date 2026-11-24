@@ -2797,10 +2797,19 @@ for (const kept of SHELLS)
           const home = page.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true }).first();
           expect(await home.innerText(), "the header has no word beside the logo").toBe("");
           const header = await drawn(home.locator('img[src$="ljos.svg"]'));
-          // Desktop's menu bar and Workbench's title bar are thin: wide, their
-          // logo is 28. A phone's header, and the others', have 40.
+          // Desktop's menu bar and Workbench's title bar are thin (40 high)
+          // when wide: their logo is 28. A phone's header, and the others',
+          // have 40.
           const tall = (kept === "desktop" || kept === "workbench") && viewport === DESKTOP ? 28 : 40;
           expect(header, "the header's logo").toEqual({ loaded: true, width: Math.round(tall * LOGO_RATIO), height: tall, filter: "none", opacity: "1" });
+          // The link's press box, not only the picture, stays in its bar:
+          // a bar made shorter than the box would let it spill.
+          const landmark = await region(page, "Ljós").first().boundingBox();
+          // Desktop's landmark holds its toolbar too: the bar ends where that starts.
+          const under = kept === "desktop" && viewport === DESKTOP ? (await page.getByRole("toolbar", { name: "Toolbar", exact: true }).boundingBox()).y : landmark.y + landmark.height;
+          const link = await home.boundingBox();
+          expect(link.y + 0.5, "the bar holds it, top").toBeGreaterThanOrEqual(landmark.y);
+          expect(link.y + link.height - 0.5, "the bar holds it, bottom").toBeLessThanOrEqual(under);
 
           const footerLogo = page.getByRole("contentinfo").locator('img[src$="ljos.svg"]').filter({ visible: true }).last();
           await footerLogo.scrollIntoViewIfNeeded();
@@ -2852,7 +2861,9 @@ for (const shell of SHELLS)
       const context = await reader(browser, { kept: shell, viewport });
       try {
         const page = await context.newPage();
-        await open(page, "/start/");
+        // The front page's menu is short: no docs list stands under the
+        // results there, so the menu's own height must reach past them.
+        await open(page, "/");
         const field = () => page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true });
         const menu = page.getByRole("button", { name: "Menu", exact: true }).filter({ visible: true });
         if ((await field().count()) === 0 && (await menu.count()) > 0) await press(menu.first());
@@ -2870,6 +2881,18 @@ for (const shell of SHELLS)
           return out;
         }, viewport.width);
         expect(spilled, "what spills").toEqual([]);
+        // A phone's menu scrolls, and only as far as its content's height:
+        // the list, hung under the field's 44 px place, ends inside it.
+        const past = await list.evaluate((box) => {
+          const content = box.closest("qq-flick")?.firstElementChild;
+          return content ? box.getBoundingClientRect().bottom - content.getBoundingClientRect().bottom : 0;
+        });
+        expect(past, "how far the list runs past what its menu scrolls to").toBeLessThanOrEqual(0);
+        // The last result, wrapped titles above it, is reached and pressed.
+        const last = list.getByRole("link").last();
+        const to = await last.getAttribute("href");
+        await press(last);
+        await expect(page, `the last result, ${to}, was pressed`).toHaveURL(new RegExp(`${to.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
       } finally {
         await context.close();
       }
