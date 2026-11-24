@@ -1180,10 +1180,12 @@ function heard(object: QObject): { role: string | null; name: string } {
   return { role, name: label ?? (typeof text === "string" ? text : "") };
 }
 
+// Drawn, as the native locator's point is: what is hidden, or at opacity
+// 0 itself or under an item that is, is not.
 function shown(object: QObject): boolean {
-  const node = object.$node as (Element & { checkVisibility?: () => boolean }) | undefined;
+  const node = object.$node as (Element & { checkVisibility?: (options?: { opacityProperty?: boolean }) => boolean }) | undefined;
   if (!node) return false;
-  return node.checkVisibility ? node.checkVisibility() : native(object, "visible") !== false;
+  return node.checkVisibility ? node.checkVisibility({ opacityProperty: true }) : native(object, "visible") !== false;
 }
 
 const LOCATORS = "`text=words`, `role=button[name=\"Words\"]`, `name~=regex`, `#objectName`, `id=name`, `@handle` or `at=X,Y`";

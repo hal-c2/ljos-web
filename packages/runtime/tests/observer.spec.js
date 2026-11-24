@@ -318,6 +318,17 @@ test("an object a Flickable has scrolled out of its view is clicked where it is 
   expect(await stood()).toEqual([0, 0, 0]);
 });
 
+test("what is drawn at opacity 0, or under an item that is, is not found by what it shows, and is by its id", async ({ page }) => {
+  await opened(page, "inspectfaded");
+  const count = async (locator) => (await call(page, "app_find", { locator })).result.structuredContent.count;
+  expect(await count("text=plain"), "drawn").toBe(1);
+  expect(await count("text=faded"), "at opacity 0").toBe(0);
+  expect(await count("text=veiled"), "under an item at opacity 0").toBe(0);
+  expect(await count("name~=^veiled$"), "by name").toBe(0);
+  expect(await count('role=button[name="Faded hold"]'), "by role").toBe(0);
+  expect(await count("id=faded"), "an id names it, shown or not").toBe(1);
+});
+
 test("a locator finds what is shown, by text, name, id or role, and its ref is a target", async ({ page }) => {
   await opened(page);
   const byText = (await call(page, "app_find", { locator: "text=N=0" })).result;
