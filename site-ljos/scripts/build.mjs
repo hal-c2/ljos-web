@@ -565,8 +565,12 @@ function tones() {
 // and linked to those lines at that commit. A snippet the file does not
 // have stops the build, so the page never quotes lines that are not there.
 function withEngine(product) {
-  const example = product.engine?.example;
-  if (!example) return product;
+  if (!product.engine) return product;
+  // An engine is shown in its own words or not named at all: an entry
+  // that names one without an example would stand as a heading and a
+  // link over nothing.
+  const example = product.engine.example;
+  if (!example) throw new Error(`bundle/Showcase/products.json: ${product.id}'s engine has no example`);
   const source = readFileSync(join(bundle, example.copy), "utf8");
   const lines = source.split("\n");
   // The whole file is highlighted and its lines cut after: lines cut
@@ -579,9 +583,9 @@ function withEngine(product) {
     const code = lines.slice(from - 1, to).join("\n");
     const html = coloured.slice(from - 1, to).join("\n");
     // A token over a cut (a comment or a string across lines) would
-    // leave its colour open; such a cut is moved, not mended.
-    if ((html.match(/<span\b/g) ?? []).length !== (html.match(/<\/span>/g) ?? []).length || coloured.length !== lines.length)
-      throw new Error(`${where} cuts a token at lines ${from}–${to} of ${example.copy}`);
+    // leave its colour open, or close one the cut never opened; such a
+    // cut is moved, not mended.
+    if (!whole(html) || coloured.length !== lines.length) throw new Error(`${where} cuts a token at lines ${from}–${to} of ${example.copy}`);
     return {
       says,
       code,
@@ -591,6 +595,18 @@ function withEngine(product) {
     };
   });
   return { ...product, engine: { ...product.engine, example: { ...example, snippets, copy: undefined } } };
+}
+
+// Whether highlighted lines close each span they open, after opening
+// it: equal counts alone would pass a cut that starts inside one token
+// and ends inside another.
+function whole(html) {
+  let open = 0;
+  for (const [tag] of html.matchAll(/<span\b|<\/span>/g)) {
+    open += tag === "</span>" ? -1 : 1;
+    if (open < 0) return false;
+  }
+  return open === 0;
 }
 
 // A live block's pictures, addressed from its page: from its route's
