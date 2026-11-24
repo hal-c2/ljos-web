@@ -241,6 +241,41 @@ Feature: The site is shown in a shell the reader picks
     When they pick Desktop before it arrives, and Workbench again after
     Then the Source tab holds Workbench's QML
 
+  Scenario: An answer to text since changed is not shown over it
+    Given a reader in the Workbench shell who broke its QML in the Source tab
+    When they mend it while the broken text is still compiling, and type on
+    Then what broke is never shown
+    And once they pause, the status bar says "Shell: Workbench, mended", and "Diagnostics: 0"
+
+  Scenario: An edit without the editor's place leaves the last that ran
+    Given a reader in the Workbench shell whose edit made the status bar say "Shell: Workbench, edited"
+    When they change it again so that it has no "site.source.live" slot
+    Then the panel's "Problems" says why, naming "site.source.live"
+    And the status bar still says "Shell: Workbench, edited", with the editor in its place
+    When they press "Reset"
+    Then the status bar says "Shell: Workbench" again, and "Diagnostics: 0"
+
+  Scenario: The editor says when the shell's QML did not come, and tries again
+    Given a reader in the Workbench shell whose shells' QML failed to load
+    Then the Source tab says "The shell's QML could not be loaded", and "Reset" is off
+    When they press "Retry" and it loads
+    Then the Source tab holds Workbench's QML, and "Reset" is on
+
+  Scenario: Workbench on a phone keeps the pane chosen across an edit
+    Given a reader on a phone in the Workbench shell, on "/start/first-app/"
+    When they press the tab "Inspector" and edit its name in the Source tab
+    Then the renamed tab is still the one chosen, with the editor in it
+    When they press the tab "Explorer" and the row "first-app.md"
+    Then the tab "Preview" is chosen, showing "Your First App"
+
+  Scenario: Workbench's MCP log lists the calls the front page's agent sends
+    Given a reader in the Workbench shell on the front page, with the panel's "MCP log" chosen
+    Then it says "Recorded MCP calls appear here as you step the agent replay.", and "Clear log" is off
+    When they press the live app's "Agent" tab and "Next step" twice
+    Then the "MCP log" lists two calls, "app_find" then "app_click", each with what it answered
+    When they press "Clear log"
+    Then the list is gone and the hint is back
+
   Scenario: Workbench names the site's files without fetching them
     Given a reader whose kept shell is Workbench
     When they open "/start/first-app/"
@@ -278,6 +313,15 @@ Feature: The site is shown in a shell the reader picks
     Then they see "Source of Shells/Desktop.qml"
     When they pick "Switch to Workbench shell" from the "View" menu
     Then the page is framed by the Workbench shell
+
+  Scenario: The arrows go along Desktop's menu bar
+    Given a reader in the Desktop shell whose focus is on the "File" menu title
+    When they press the right arrow
+    Then the focus is on "View"
+    When they press the left arrow twice
+    Then the focus is on "Help", the last
+    When they press the right arrow
+    Then the focus is on "File" again, and the down arrow opens its menu
 
   Scenario: Desktop's toolbar says what each button does, and its status bar what runs
     Given a reader with script at a desktop's width, in the Desktop shell, on "/start/first-app/"

@@ -180,6 +180,7 @@ for (const shell of SHELLS) {
     try {
       const page = await context.newPage();
       await open(page, "/start/first-app/");
+      expect(await showing(page), "the shell read is the one asked for").toBe(shell);
       await expect(shownPage(page, "Your First App")).toBeVisible();
       const { incomplete } = await new AxeBuilder({ page }).include("#app").withRules(["color-contrast"]).analyze();
       const unread = incomplete.flatMap(({ nodes }) => nodes.filter((node) => node.any.some(({ data }) => data?.messageKey === "pseudoContent")).map((node) => node.target.join(" ")));
@@ -2089,10 +2090,10 @@ test("editing Workbench's Source tab changes the running page in place", async (
 // stays, not the shell every page falls back to.
 test("an edit that compiles but fails as it is made leaves the last that ran", async ({ browser }) => {
   const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
-  const completed = "Component.onCompleted: if (site) site.measureRenderer()";
+  const completed = "    Component.onCompleted: {\n        if (!site)\n";
   expect(shipped).toContain(completed);
   const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
-  const failing = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, failing`").replace(completed, 'Component.onCompleted: { throw new Error("made to fail"); }');
+  const failing = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, failing`").replace(completed, '    Component.onCompleted: {\n        throw new Error("made to fail");\n        if (!site)\n');
   const context = await reader(browser, { kept: "workbench" });
   try {
     const page = await context.newPage();
@@ -2180,6 +2181,10 @@ test("an edit still compiling doesn't take over the shell switched to", async ({
   const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
   const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
   const context = await reader(browser, { kept: "workbench" });
+  // The edit's answer is counted as it is given (bundle/shells.js).
+  await context.addInitScript(() => {
+    globalThis.__ljosTest = { liveAnswers: 0 };
+  });
   let compile;
   let asked;
   const held = new Promise((done) => (compile = done));
@@ -2198,10 +2203,24 @@ test("an edit still compiling doesn't take over the shell switched to", async ({
     await source.fill(edited);
     await compiling;
     await pick(page, "desktop");
+    // Every shell shown from here on: the edit's, drawn, says so in its
+    // status bar.
+    await page.evaluate(() => {
+      window.__tookOver = false;
+      const look = () => {
+        const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        while (walk.nextNode()) if (walk.currentNode.data === "Shell: Workbench, edited") window.__tookOver = true;
+      };
+      new MutationObserver(look).observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
     compile();
-    // Nothing is to happen, so there is nothing to wait for but time.
-    await page.waitForTimeout(3000);
+    // The edit is answered, and what its answer sets off has had its
+    // frames.
+    await expect.poll(() => page.evaluate(() => globalThis.__ljosTest.liveAnswers), { message: "the edit is answered", timeout: 30_000 }).toBe(1);
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
     const ran = page.getByText("Shell: Workbench, edited", { exact: true }).filter({ visible: true });
+    expect(await page.evaluate(() => window.__tookOver), "the edit never took Desktop's place").toBe(false);
+    expect(await showing(page)).toBe("desktop");
     await expect(ran, "Desktop stays").toHaveCount(0);
     await pick(page, "workbench");
     await expect(ran, "the edit waited").toBeVisible({ timeout: 30_000 });
@@ -2233,6 +2252,192 @@ test("the editor holds the shell that asked for it", async ({ browser }) => {
     await expect(editor, "Workbench's QML").toContainText("workbenchShell", { timeout: 30_000 });
   } finally {
     arrive();
+    await context.close();
+  }
+});
+
+// An answer to text the reader has since changed is not shown: here the
+// broken text is answered while they are still typing what mends it, so
+// what broke never shows, and what they typed runs once they pause.
+test("an answer to text since changed is not shown over it", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const broken = `${shipped}\n}}`;
+  const mended = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, mended`");
+  const context = await reader(browser, { kept: "workbench" });
+  await context.addInitScript(() => {
+    globalThis.__ljosTest = { liveAnswers: 0 };
+  });
+  let compile;
+  let asked;
+  const held = new Promise((done) => (compile = done));
+  const compiling = new Promise((done) => (asked = done));
+  await context.route(/ljos_web_compiler[^/]*\.wasm/, async (route) => {
+    asked();
+    await held;
+    await route.continue();
+  });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    await inspectorOf(page).getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(broken);
+    await compiling;
+    await source.press("ControlOrMeta+a");
+    await page.keyboard.insertText(mended);
+    // Whether what broke is ever drawn, at any moment from here on.
+    await page.evaluate(() => {
+      window.__brokeShown = false;
+      const look = () => {
+        const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        while (walk.nextNode()) if (walk.currentNode.data === "Diagnostics: 1") window.__brokeShown = true;
+      };
+      new MutationObserver(look).observe(document.body, { childList: true, subtree: true, characterData: true });
+    });
+    compile();
+    // Typing on, a space at a time, so the pause that asks for the
+    // mended text never comes before the broken text is answered.
+    await source.press("ControlOrMeta+End");
+    const answered = () => page.evaluate(() => globalThis.__ljosTest.liveAnswers);
+    for (let typed = 0; (await answered()) < 1; typed++) {
+      expect(typed, "the broken text is answered while the reader types").toBeLessThan(200);
+      await page.keyboard.insertText(" ");
+      await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    const status = statusBar(page);
+    expect(await page.evaluate(() => window.__brokeShown), "what broke in text since changed is never shown").toBe(false);
+    await expect(status.getByText("Shell: Workbench, mended", { exact: true }), "what they typed runs").toBeVisible({ timeout: 30_000 });
+    await expect(status.getByText("Diagnostics: 0", { exact: true })).toBeVisible();
+  } finally {
+    compile();
+    await context.close();
+  }
+});
+
+// An edit that takes away the editor's place would leave nothing to
+// type in or Reset with: it is a problem, and the last edit that ran
+// stays, with its editor.
+test("an edit without the editor's place leaves the last that ran", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const place = 'Slot { name: "site.source.live" }';
+  expect(shipped).toContain(place);
+  const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
+  const placeless = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, placeless`").replace(place, "");
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const inspector = inspectorOf(page);
+    await inspector.getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    const status = statusBar(page);
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the first edit runs").toBeVisible({ timeout: 30_000 });
+
+    await source.press("ControlOrMeta+a");
+    await page.keyboard.insertText(placeless);
+    const problems = page.getByRole("list", { name: "Problems", exact: true });
+    await expect(problems.getByRole("listitem").first(), "why it did not stay").toContainText("site.source.live", { timeout: 30_000 });
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the last edit that ran").toBeVisible();
+    await expect(source, "the editor, still in its place").toBeVisible();
+    await press(inspector.getByRole("button", { name: "Reset", exact: true }));
+    await expect(status.getByText("Shell: Workbench", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(status.getByText("Diagnostics: 0", { exact: true })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+// The shells' QML comes in its own file: one that did not come says so
+// in the editor's place, with a Retry, and Reset waits for it.
+test("the editor says when the shell's QML did not come, and tries again", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  let refused = 0;
+  await context.route(/\/sources-[^/]+\.js$/, async (route) => {
+    if (refused++ === 0) return route.abort();
+    await route.continue();
+  });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const inspector = inspectorOf(page);
+    await expect(inspector.getByRole("alert").filter({ hasText: /^The shell's QML could not be loaded/ }), "why there is nothing to edit").toBeVisible({ timeout: 30_000 });
+    await expect(inspector.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
+    await press(inspector.getByRole("button", { name: "Retry", exact: true }));
+    await expect(inspector.getByRole("textbox", { name: "Edit the running shell's QML" })).toContainText("workbenchShell", { timeout: 30_000 });
+    await expect(inspector.getByRole("alert")).toHaveCount(0);
+    await expect(inspector.getByRole("button", { name: "Reset", exact: true })).toBeEnabled();
+  } finally {
+    await context.close();
+  }
+});
+
+// On a phone one pane is shown: the one the reader chose stays chosen as
+// their edit makes the shell again, and an explorer row of the page
+// already shown shows it.
+test("Workbench on a phone keeps the pane chosen across an edit, and shows the page its row opens", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const tab = "{ label: t`Inspector`, icon: \"code\" }";
+  expect(shipped).toContain(tab);
+  const edited = shipped.replace(tab, "{ label: t`Inspector, edited`, icon: \"code\" }");
+  const context = await reader(browser, { viewport: PHONE, kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const views = page.getByRole("tablist", { name: "Views", exact: true });
+    await press(views.getByRole("tab", { name: "Inspector", exact: true }));
+    await page.getByRole("textbox", { name: "Edit the running shell's QML" }).filter({ visible: true }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    const renamed = views.getByRole("tab", { name: "Inspector, edited", exact: true });
+    await expect(renamed, "the edit runs").toBeVisible({ timeout: 30_000 });
+    await expect(renamed, "its pane is still the one chosen").toHaveAttribute("aria-selected", "true");
+    await expect(source, "and the editor is in it").toBeVisible();
+
+    await press(views.getByRole("tab", { name: "Explorer", exact: true }));
+    await press(explorerOf(page).getByRole("link", { name: "first-app.md", exact: true }));
+    await expect(views.getByRole("tab", { name: "Preview", exact: true }), "the page its row opens").toHaveAttribute("aria-selected", "true");
+    await expect(shownPage(page, "Your First App")).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+// The MCP log is the front page's recorded agent, as it is stepped: each
+// call it sent and what the app answered, until cleared.
+test("Workbench's MCP log lists the calls the front page's agent sends", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    const panel = page.getByRole("tablist", { name: "Panel", exact: true });
+    await press(panel.getByRole("tab", { name: "MCP log", exact: true }));
+    const hint = page.getByText("Recorded MCP calls appear here as you step the agent replay.", { exact: true });
+    await expect(hint).toBeVisible();
+    const clear = page.getByRole("button", { name: "Clear log", exact: true });
+    await expect(clear, "nothing to clear").toBeDisabled();
+
+    const main = shownPage(page, "Home");
+    const device = main.getByRole("tablist", { name: "Live app" }).filter({ visible: true });
+    await press(device.getByRole("tab", { name: "Agent", exact: true }));
+    const next = main.getByRole("button", { name: "Next step", exact: true }).filter({ visible: true });
+    await press(next);
+    await press(next);
+    const log = page.getByRole("list", { name: "MCP log", exact: true });
+    await expect(log.getByRole("listitem")).toHaveCount(2);
+    await expect(log.getByRole("listitem").nth(0)).toContainText("app_find(");
+    await expect(log.getByRole("listitem").nth(0)).toContainText("→ 1 match");
+    await expect(log.getByRole("listitem").nth(1)).toContainText("app_click(");
+    await expect(hint).toBeHidden();
+
+    await press(clear);
+    await expect(log).toHaveCount(0);
+    await expect(hint).toBeVisible();
+  } finally {
     await context.close();
   }
 });
@@ -2361,6 +2566,36 @@ test("Desktop's menus do what they say", async ({ browser }) => {
     await menu(page, "View", "Switch to Workbench shell");
     await expect.poll(() => showing(page), { message: "the Workbench shell frames the page", timeout: 30_000 }).toBe("workbench");
     expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+// The arrows go along Desktop's menu bar, round from the last title to
+// the first. A title shows the focus by its ring (its inset shadow).
+test("the arrows go along Desktop's menu bar", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const titles = page.getByRole("menubar", { name: "Menu bar", exact: true }).getByRole("menuitem");
+    await expect(titles).toHaveText(["File", "View", "Go", "Help"]);
+    const ringed = () => titles.evaluateAll((all) => all.filter((title) => !/^(transparent|rgba\(0, 0, 0, 0\))/.test(title.style.boxShadow)).map((title) => title.getAttribute("aria-label")));
+    for (let tabs = 0; (await ringed()).length === 0; tabs++) {
+      expect(tabs, "Tab comes to the menu bar").toBeLessThan(40);
+      await page.keyboard.press("Tab");
+    }
+    expect(await ringed()).toEqual(["File"]);
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(ringed).toEqual(["View"]);
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await expect.poll(ringed, { message: "round to the last" }).toEqual(["Help"]);
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(ringed, { message: "round to the first" }).toEqual(["File"]);
+    // Down opens the title's menu, as before.
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitem", { name: "Open demos", exact: true }).filter({ visible: true })).toBeVisible();
   } finally {
     await context.close();
   }

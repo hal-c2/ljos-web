@@ -37,6 +37,10 @@ QtObject {
     // one keeps its place.
     property var held: []
 
+    // The calls the front page's recorded agent sent, in order, each
+    // `{ tool, args, said }`: a shell's MCP log lists them until cleared.
+    property var calls: []
+
     // `runner` starts: one over the budget stops another, the one that
     // started first among those out of view, else the one that started
     // first.

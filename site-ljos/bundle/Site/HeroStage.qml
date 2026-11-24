@@ -54,8 +54,10 @@ DeviceFrame {
     function step() {
         if (answers.length >= steps.length)
             return;
-        var said = steps[answers.length].act();
+        var call = steps[answers.length];
+        var said = call.act();
         answers = answers.concat([said]);
+        Running.calls = Running.calls.concat([{ tool: call.tool, args: call.args, said: said }]);
     }
     function replay() {
         answers = [];
