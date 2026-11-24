@@ -25,7 +25,7 @@ import {
 } from "./font.ts";
 import { Item } from "./Item.js";
 import { LeftButton } from "./keycodes.ts";
-import { rightToLeft, uiLanguage } from "../QtQml/uiLanguage.ts";
+import { uiRightToLeft } from "../QtQml/uiLanguage.ts";
 import { alignment } from "./LayoutMirroring.ts";
 import { CancelGrabExclusive, receive } from "./pointer.js";
 import { arrive, clothe, elements, mightBeRichText, survey } from "./richtext.js";
@@ -347,7 +347,7 @@ const LEFT_LETTER = new RegExp(`(?![${FROM_RIGHT}])\\p{L}`, "u");
 // a text from its content, so an English name keeps its full stop on the
 // right on a right-to-left page.
 function direction(text) {
-  const fromRight = rightToLeft(uiLanguage());
+  const fromRight = uiRightToLeft();
   if (!(fromRight ? RIGHT_LETTER : LEFT_LETTER).test(text)) return "auto";
   return fromRight ? "rtl" : "ltr";
 }

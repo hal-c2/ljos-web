@@ -536,3 +536,33 @@ test.describe("a site in many languages", () => {
     expect(await read(page, "direction")).toBe(0);
   });
 });
+
+// An app no one chose a language for is written in whatever it is written
+// in: its reader's browser being in Arabic does not lay it out from the
+// right (Qt takes the direction from the translation installed). The page
+// it is in says, until the app chooses.
+test.describe("an app whose language no one chose", () => {
+  test.use({ locale: "ar-EG" });
+  const MAIN = 'import QtQuick\nColumn {\n  property int direction: Qt.application.layoutDirection\n  Text { text: "ملف واحد. Katrín" }\n}\n';
+  const runs = (page) => page.evaluate(() => document.querySelector(".qq-text").getAttribute("dir"));
+
+  test("is laid out from the left in a browser that reads from the right", async ({ page }) => {
+    await page.goto("/compiler.html");
+    await page.waitForFunction(() => window.ready);
+    expect(await page.evaluate(() => navigator.language)).toBe("ar-EG");
+    expect(await page.evaluate((files) => window.show({ files, entry: "Main.qml" }), { "Main.qml": MAIN })).toMatchObject({ mounted: true });
+    expect(await read(page, "direction")).toBe(0);
+    expect(await runs(page)).not.toBe("rtl");
+    await language(page, "ar");
+    expect(await read(page, "direction")).toBe(1);
+  });
+
+  test("is laid out the way its page says", async ({ page }) => {
+    await page.goto("/compiler.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => (document.documentElement.dir = "rtl"));
+    expect(await page.evaluate((files) => window.show({ files, entry: "Main.qml" }), { "Main.qml": MAIN })).toMatchObject({ mounted: true });
+    expect(await read(page, "direction")).toBe(1);
+    expect(await runs(page)).toBe("rtl");
+  });
+});

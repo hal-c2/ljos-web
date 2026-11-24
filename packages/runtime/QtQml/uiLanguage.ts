@@ -10,7 +10,21 @@ export const uiLanguage = language;
 // language's catalogue the first time it is asked for.
 const told = new Set<(language: string) => void>();
 
+// Whether the UI's language was chosen: by the app (`Qt.uiLanguage`,
+// `App.language`) or by a site with catalogues. Until it is, the
+// browser's language says nothing of the language the app is written in,
+// so an app no one translated is not laid out from the right because its
+// reader's browser is in Arabic (Qt takes the direction from the
+// translation installed, not the system's language).
+const [chosen, setChosen] = signal(false);
+
+/** Says the UI is in its language from now on, though it was not set: a site that is written in it. */
+export function chooseUiLanguage(): void {
+  setChosen(true);
+}
+
 export function setUiLanguage(next: string): void {
+  setChosen(true);
   setLanguage(next);
   for (const tell of [...told]) tell(next);
 }
@@ -44,4 +58,12 @@ export function rightToLeft(language: string): boolean {
   const script = locale.maximize().script;
   if (script) return ["Arab", "Hebr", "Thaa", "Syrc", "Nkoo", "Adlm", "Rohg"].includes(script);
   return RIGHT_TO_LEFT.has(locale.language);
+}
+
+/**
+ * Whether the UI is laid out from the right: as its language is written,
+ * once one is chosen, else as the page it is in says (`<html dir>`).
+ */
+export function uiRightToLeft(): boolean {
+  return chosen() ? rightToLeft(language()) : globalThis.document?.documentElement?.dir === "rtl";
 }
