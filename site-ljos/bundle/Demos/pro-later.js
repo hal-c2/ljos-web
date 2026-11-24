@@ -7,8 +7,8 @@ var browser = Qt.platform.os === "wasm";
 
 function app(name) {
     switch (name) {
-        case "cockpit": return browser ? import("./CockpitDemo.qml") : Qt.resolvedUrl("CockpitDemo.qml");
-        case "watch": return browser ? import("./WatchDemo.qml") : Qt.resolvedUrl("WatchDemo.qml");
+        case "cockpit": return browser ? import("./CockpitDemo.qml") : fileAt("CockpitDemo");
+        case "watch": return browser ? import("./WatchDemo.qml") : fileAt("WatchDemo");
     }
     throw new Error("no pro demo " + name);
 }
@@ -20,6 +20,13 @@ function project(name) {
     }
     throw new Error("no pro demo " + name);
 }
+
+// The address of a QML file beside this one, for the desktop, from its
+// name without ".qml". The web compiler makes any QML file's name
+// written out whole into an import of that file, which would put it in
+// the first load of every page that imports this one.
+var QML = ".qml";
+function fileAt(name) { return Qt.resolvedUrl(name + QML); }
 
 // A JSON file beside this one, as import() gives it: { default: value }.
 function read(file) {

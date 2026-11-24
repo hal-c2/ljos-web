@@ -8,9 +8,21 @@
 //
 // Ljós on the desktop has no import() of a QML file yet: there it is the
 // wanted module's address as the loader is given it.
+// The address of a QML file beside this one, for the desktop, from its
+// name without ".qml". The web compiler makes any QML file's name
+// written out whole into an import of that file, which would put it in
+// the first load of every page that imports this one.
+var QML = ".qml";
+function fileAt(name) { return Qt.resolvedUrl(name + QML); }
+
+// The board alone, as a still poster draws it on the desktop.
+function boardAt() {
+    return fileAt("DispatchBoard");
+}
+
 function sourceFor(wanted) {
     if (Qt.platform.os !== "wasm")
-        return Qt.resolvedUrl(wanted() === "board" ? "DispatchBoard.qml" : "DispatchList.qml");
+        return fileAt(wanted() === "board" ? "DispatchBoard" : "DispatchList");
     return function () {
         return wanted() === "board" ? import("./DispatchBoard.qml") : import("./DispatchList.qml");
     };

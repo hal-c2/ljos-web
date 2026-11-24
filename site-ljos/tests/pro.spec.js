@@ -29,9 +29,11 @@ test("a second demo is its entry: its route, title, page, loaders and served fil
   expect(pages(two, " — Ljós").at(-1)).toEqual({ route: "/demos/harbour/", title: "Harbour board — Ljós", description: "Ships coming in.", props: { route: "/demos/harbour/" } });
   expect(sourceAt(second)).toBe("demos/harbour/source");
   const made = loaders(two);
-  expect(made).toContain('case "harbour": return import("./HarbourDemo.qml");');
-  expect(made).toContain('case "harbour": return import("./harbour-project.json");');
-  for (const demo of demos) expect(made).toContain(`case ${JSON.stringify(demo.name)}: return import(${JSON.stringify(`./${demo.app}`)});`);
+  // In the browser an import(); on the desktop the file's address, and
+  // the project read as a file.
+  expect(made).toContain('case "harbour": return browser ? import("./HarbourDemo.qml") : fileAt("HarbourDemo");');
+  expect(made).toContain('case "harbour": return browser ? import("./harbour-project.json") : read("harbour-project.json");');
+  for (const demo of demos) expect(made).toContain(`case ${JSON.stringify(demo.name)}: return browser ? import(${JSON.stringify(`./${demo.app}`)}) : fileAt(${JSON.stringify(demo.app.replace(/\.qml$/, ""))});`);
 });
 
 // pro-later.js is committed, so a checkout that has not been built is

@@ -174,7 +174,7 @@ Column {
                     // Scaled from its top left, it takes width × fit.
                     x: LayoutMirroring.enabled ? parent.width - width * stageBox.fit - startX : startX
                     // Ljós on the desktop takes a shell by its address alone.
-                    fallback: Qt.platform.os === "wasm" ? appShell : Qt.resolvedUrl("PantryShell.qml")
+                    fallback: Qt.platform.os === "wasm" ? appShell : LivePantry.shellAt()
                 }
                 Component {
                     id: appShell
