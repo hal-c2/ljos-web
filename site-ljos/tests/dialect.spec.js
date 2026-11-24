@@ -50,6 +50,10 @@ const qtQuick = {
   // By name only (`import QtQuick as Q`), for the one type Ljos.Ui lacks.
   ...site(["Demos/Orbit", "Shells/Cyberpunk"], "Ljos.Ui has no FrameAnimation"),
   ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
+  // It loads the recording it shows when a reader asks (Loader.source given
+  // an import) and sets what it shows on the item loaded; Ljos.Ui's Loader
+  // takes a url only and its item is a QtObject with none of those.
+  ...site(["Site/ShowcaseApp"], "Ljos.Ui's Loader takes a url, not a lazy import, and its item is untyped"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   // A visitor's edit to it is compiled in the page and run by
   // Ljos/Blocks/shell.js, which makes QtQuick's types only.
