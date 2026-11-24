@@ -1433,6 +1433,63 @@ test("the arrow keys walk the live app's tabs one after another", async ({ brows
   }
 });
 
+// Tab goes from the live app's chosen tab into that tab's panel: the
+// panels follow the tabs in the order Tab takes. A console has no tabs:
+// there Tab goes through the app first, then the regions beside it. The
+// keys go to the item with QML's focus, not the page's, so a button shows
+// its focus by its ring, and a task by what Space does to it.
+test("Tab goes from the live app's chosen tab into its panel, and in a console from the app on to the regions beside it", async ({ browser }) => {
+  const ringed = (button) =>
+    button.evaluate((node) => {
+      const own = node.getBoundingClientRect();
+      return [...node.querySelectorAll("*")].some((part) => {
+        const box = part.getBoundingClientRect();
+        return box.width > own.width + 2 && box.height > own.height + 2 && getComputedStyle(part).visibility !== "hidden";
+      });
+    });
+  for (const kept of ["elegant", "cyberpunk"]) {
+    const context = await reader(browser, { kept });
+    try {
+      const page = await context.newPage();
+      await open(page, "/");
+      const main = shownPage(page, "Home");
+      if (kept === "elegant") {
+        const device = main.getByRole("tablist", { name: "Live app" }).filter({ visible: true });
+        await press(device.getByRole("tab", { name: "Agent", exact: true }));
+        await page.keyboard.press("Tab");
+        const panel = main.getByRole("tabpanel", { name: "Agent", exact: true }).filter({ visible: true });
+        await expect.poll(async () => (await Promise.all((await panel.getByRole("button").all()).map(ringed))).some(Boolean), "Tab from the chosen tab goes into its panel").toBe(true);
+      } else {
+        const stage = main.getByRole("region", { name: "Live stage", exact: true });
+        const stream = main.getByRole("region", { name: "Agent MCP stream", exact: true });
+        // The panels come after the app but stand at its sides: a press
+        // on the app is still the app's.
+        const first = stage.getByRole("checkbox").first();
+        const was = await first.getAttribute("aria-checked");
+        await press(first);
+        await expect(first, "a press on the app reaches it").not.toHaveAttribute("aria-checked", was);
+        // Back from the agent's first control ("Reset demo" is off until a
+        // step is taken) is the app's last task. A press does not give a
+        // button the focus, so Tab walks to it from where the press left
+        // the keys.
+        const next = stream.getByRole("button", { name: "Next step", exact: true });
+        let steps = 0;
+        while (!(await ringed(next))) {
+          expect(++steps, "Tab reaches the agent's first control").toBeLessThan(40);
+          await page.keyboard.press("Tab");
+        }
+        const last = stage.getByRole("checkbox").last();
+        const before = await last.getAttribute("aria-checked");
+        await page.keyboard.press("Shift+Tab");
+        await page.keyboard.press("Space");
+        await expect(last, "Shift+Tab from the agent's calls goes back into the app").not.toHaveAttribute("aria-checked", before);
+      }
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 // A capability section is a region named for its headline that holds a
 // group named "Example": its words are on one side, the example on the
 // other, and the sides swap from one section to the next.

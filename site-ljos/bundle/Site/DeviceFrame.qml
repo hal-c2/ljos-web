@@ -151,16 +151,6 @@ Panel {
             }
         }
 
-        // The panels, one over another; DevicePage shows the current one. In
-        // a console they stand at the sides, and the app between them.
-        Item {
-            id: pageArea
-            y: frame.consoleLayout ? bar.height + frame.heading : tabRow.y + tabRow.height
-            width: frame.width
-            height: frame.consoleLayout ? frame.bodyHeight : frame.pageHeight
-            clip: true
-        }
-
         // The app itself.
         Item {
             id: stageArea
@@ -169,6 +159,9 @@ Panel {
             width: frame.stageWidth
             height: frame.bodyHeight
             clip: true
+            // Over the panels' empty middle in a console, so that never
+            // takes the app's presses.
+            z: frame.consoleLayout ? 1 : 0
             Accessible.role: frame.consoleLayout ? Accessible.Section : Accessible.NoRole
             Accessible.name: frame.consoleLayout ? frame.columnNames[1] : ""
         }
@@ -264,6 +257,19 @@ Panel {
                     }
                 }
             }
+        }
+
+        // The panels, one over another; DevicePage shows the current one. In
+        // a console they stand at the sides, and the app between them.
+        // They come after the tabs, so Tab goes from the chosen tab into its
+        // panel; a console, with no tabs, is taken app first, then the
+        // regions beside it, left before right.
+        Item {
+            id: pageArea
+            y: frame.consoleLayout ? bar.height + frame.heading : tabRow.y + tabRow.height
+            width: frame.width
+            height: frame.consoleLayout ? frame.bodyHeight : frame.pageHeight
+            clip: true
         }
     }
 }
