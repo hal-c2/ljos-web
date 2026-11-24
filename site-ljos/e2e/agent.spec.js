@@ -137,6 +137,12 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         // Over the app, the lines of the running file the edit changes.
         await expect(shown(page.getByText(/^(return \[\{ )?title: "/)), "the code strip").toBeInViewport({ ratio: 1 });
       }
+      // The poster, the board and its code, stays under the demo while it
+      // fades in and is hidden as the fade ends (ReplayFrame.qml). Found
+      // first until then, the poster's code could be hidden between being
+      // found and being read, when innerText runs its lines together. What
+      // is measured is the running app's code, once it is the only one.
+      await expect(page.getByText(/export function lanes\(/).filter({ visible: true }), "the poster's code gone").toHaveCount(1);
       const drawn = await code.evaluate((element) => {
         const text = element.closest(".qq-text") ?? element;
         const range = document.createRange();
