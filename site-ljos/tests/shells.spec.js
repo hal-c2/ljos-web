@@ -1649,9 +1649,13 @@ test("Cyberpunk's front page is a mission console: the Observer tree, the live a
     const page = await context.newPage();
     await open(page, "/");
     const main = shownPage(page, "Home");
-    const tree = main.getByRole("region", { name: "Observer tree", exact: true });
-    const stage = main.getByRole("region", { name: "Live stage", exact: true });
-    const stream = main.getByRole("region", { name: "Agent MCP stream", exact: true });
+    // The live app is shown under "Built for agents": seen there, all of
+    // the console is in view at once.
+    const agentic = main.getByRole("region", { name: "Your agent can use the app, too.", exact: true });
+    const tree = agentic.getByRole("region", { name: "Observer tree", exact: true });
+    const stage = agentic.getByRole("region", { name: "Live stage", exact: true });
+    const stream = agentic.getByRole("region", { name: "Agent MCP stream", exact: true });
+    await stage.scrollIntoViewIfNeeded();
     for (const part of [tree, stage, stream]) await expect(part).toBeInViewport();
     // Each line of the tree reads as a node and its value, never one
     // run over the other: a long name ends in an ellipsis instead.
@@ -1668,7 +1672,7 @@ test("Cyberpunk's front page is a mission console: the Observer tree, the live a
     expect(left.x + left.width, "the tree is left of the app").toBeLessThanOrEqual(centre.x + 1);
     expect(centre.x + centre.width, "the calls are right of the app").toBeLessThanOrEqual(right.x + 1);
     // The tabs give way to the console: nothing to pick, all is shown.
-    await expect(main.getByRole("tablist").filter({ visible: true })).toHaveCount(0);
+    await expect(agentic.getByRole("tablist").filter({ visible: true })).toHaveCount(0);
     // Sentence case: the headline is written, and drawn, as it is said.
     const headline = main.getByRole("heading", { level: 1 }).first();
     const drawn = await headline.evaluate((node) => getComputedStyle(node.querySelector("*") ?? node).textTransform);
