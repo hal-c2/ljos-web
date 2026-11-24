@@ -335,8 +335,6 @@ for (const [shell, route] of [["elegant", "/"], ["elegant", "/demos/"], ["cyberp
   });
 }
 
-// A catalogue is fetched only when its language is: the first load of a
-// page in English holds none.
 // On a mirrored menu bar the arrows go the way they point: Left to the
 // title on the left, which is the next one in Arabic.
 test("the arrows go along Desktop's menu bar the way they point in Arabic", async ({ browser }) => {
@@ -369,6 +367,8 @@ test("the arrows go along Desktop's menu bar the way they point in Arabic", asyn
   }
 });
 
+// A catalogue is fetched only when its language is: the first load of a
+// page in English holds none.
 test("no catalogue is in an English page's first load", async ({ page }) => {
   const asked = [];
   page.on("request", (request) => asked.push(new URL(request.url()).pathname));
