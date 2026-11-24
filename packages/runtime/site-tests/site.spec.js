@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, join, relative, resolve } from "node:path";
 import { build } from "vite";
-import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
+import { buildSite, builtWith, mendOf, replaceSite, STAMP } from "../site.js";
 import qml from "../vite.js";
 import { bundle, compilerFile, design, qmlc } from "./bundle.js";
 import { runnable } from "./compiler-check.js";
@@ -85,6 +85,74 @@ test.describe("a site built from a bundle", () => {
   test("carries the bundle's theme as it is, and says it built the site", () => {
     expect(readFileSync(join(made.out, "theme.json"), "utf8")).toBe(readFileSync(join(made.dir, "theme.json"), "utf8"));
     expect(readFileSync(join(made.out, STAMP), "utf8").trim()).toMatch(/^[0-9a-f]{40}$/);
+  });
+});
+
+// A client build's files as rolldown gives them, with only what is read
+// of them: what the order they run in turns on is too rare a cut to
+// make a site for each.
+const chunk = (fileName, { isEntry = false, imports = [], moduleIds = [`/${fileName.replace(/-.*/, "")}.ts`] } = {}) => ({ type: "chunk", fileName, name: fileName.replace(/-.*/, ""), isEntry, imports, moduleIds, facadeModuleId: isEntry ? moduleIds[0] : null });
+const files = (...chunks) => [{ output: [...chunks, { type: "asset", fileName: "site-a.css" }] }];
+
+test.describe("a build's files that import `site-*` back", () => {
+  test("are none: the build is kept as it was made", () => {
+    expect(mendOf(files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js", "page-c.js"], moduleIds: ["/entry.js"] }),
+      chunk("site-b.js"),
+      chunk("page-c.js", { imports: ["site-b.js"] }),
+    ))).toEqual([]);
+  });
+
+  test("are the entry's: what tree shaking left there beside the entry is given back, to be moved into `site-*`", () => {
+    expect(mendOf(files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js"], moduleIds: ["/entry.js", "/drawn.ts", "/scene.ts"] }),
+      chunk("site-b.js", { imports: ["index-a.js"] }),
+    ))).toEqual(["/drawn.ts", "/scene.ts"]);
+  });
+
+  test("are another's, however far down: the build fails and names it", () => {
+    const made = files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js"], moduleIds: ["/entry.js"] }),
+      chunk("site-b.js", { imports: ["runtime-c.js"] }),
+      chunk("runtime-c.js", { imports: ["shared-d.js"] }),
+      chunk("shared-d.js", { imports: ["site-b.js"] }),
+    );
+    expect(() => mendOf(made)).toThrow("the site's files import `site-*` back through shared-d.js (/shared.ts)");
+  });
+
+  test("are the entry's and another's: the build fails and names both, as the entry's alone would not mend it", () => {
+    const made = files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js"], moduleIds: ["/entry.js", "/drawn.ts"] }),
+      chunk("site-b.js", { imports: ["index-a.js", "runtime-c.js"] }),
+      chunk("runtime-c.js", { imports: ["site-b.js"] }),
+    );
+    expect(() => mendOf(made)).toThrow("index-a.js (/entry.js, /drawn.ts)");
+    expect(() => mendOf(made)).toThrow("runtime-c.js (/runtime.ts)");
+  });
+
+  test("are the entry's, holding the entry alone: nothing would mend it, and the build fails", () => {
+    const made = files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js"], moduleIds: ["/entry.js"] }),
+      chunk("site-b.js", { imports: ["index-a.js"] }),
+    );
+    expect(() => mendOf(made)).toThrow("the site's files import `site-*` back through index-a.js (/entry.js)");
+  });
+
+  test("are still the entry's in the build made once more: it fails rather than build a third time", () => {
+    const made = files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js"], moduleIds: ["/entry.js", "/drawn.ts"] }),
+      chunk("site-b.js", { imports: ["index-a.js"] }),
+    );
+    expect(() => mendOf(made, { again: true })).toThrow("index-a.js (/entry.js, /drawn.ts)");
+  });
+
+  test("are named with their first modules, not all of a runtime", () => {
+    const moduleIds = ["/entry.js", ...Array.from({ length: 29 }, (_, at) => `/m${at}.ts`)];
+    const made = files(
+      chunk("index-a.js", { isEntry: true, imports: ["site-b.js"], moduleIds }),
+      chunk("site-b.js", { imports: ["index-a.js"] }),
+    );
+    expect(() => mendOf(made, { again: true })).toThrow("index-a.js (/entry.js, /m0.ts, /m1.ts, /m2.ts, /m3.ts, and 25 more)");
   });
 });
 

@@ -655,6 +655,51 @@ function rendering(args, input, signal) {
   });
 }
 
+// The files of a client build that something a `site-*` file imports,
+// however far down, imports it back through. The entry's file imports
+// `site-*`, so any of them makes a cycle, and its files run out of order.
+function backTo(made) {
+  const chunks = [made].flat().flatMap((output) => output.output ?? []).filter((file) => file.type === "chunk");
+  const named = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+  const back = new Set();
+  for (const site of chunks.filter((chunk) => chunk.name === "site")) {
+    const seen = new Set();
+    const stack = [...site.imports];
+    while (stack.length) {
+      const chunk = named.get(stack.pop());
+      if (!chunk || seen.has(chunk)) continue;
+      seen.add(chunk);
+      if (chunk.imports.includes(site.fileName)) back.add(chunk);
+      stack.push(...chunk.imports);
+    }
+  }
+  return [...back];
+}
+
+// A file is named with its first few modules: the entry's file in a
+// small site holds all of the runtime.
+const NAMED_MODULES = 5;
+
+// What a client build's files ask of it before they can be served: the
+// modules tree shaking left in the entry's file beside the entry, for
+// the group to take in a build made once more, when the entry's file is
+// the only one that imports `site-*` back; none when no file does. Any
+// other file that does is a cut the build does not expect, and the
+// build made once more (`again`) mends nothing further: both fail, and
+// say which files.
+export function mendOf(made, { again = false } = {}) {
+  const back = backTo(made);
+  if (!back.length) return [];
+  const left = back.flatMap((chunk) => (chunk.isEntry ? chunk.moduleIds.filter((id) => id !== chunk.facadeModuleId) : []));
+  if (!again && left.length && back.every((chunk) => chunk.isEntry)) return left;
+  const told = (chunk) => {
+    const shown = chunk.moduleIds.slice(0, NAMED_MODULES);
+    const more = chunk.moduleIds.length - shown.length;
+    return `${chunk.fileName} (${shown.join(", ")}${more ? `, and ${more} more` : ""})`;
+  };
+  throw new Error(`the site's files import \`site-*\` back through ${back.map(told).join("; ")}`);
+}
+
 export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs, inspect, timings = {} } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
@@ -810,40 +855,15 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     // of the compiler, or is asking, the other is told (`answers`).
     // What tree shaking leaves in the entry's file beyond the entry itself,
     // which the graph does not tell (`firstOnly`): read from the files a
-    // build made, when one of them imports `site-*` back.
+    // build made, when the entry's imports `site-*` back (`mendOf`).
     const leftOver = new Set();
-    // The files that something a `site-*` file imports, however far down,
-    // imports it back through: a cycle, whose files run out of order.
-    const backTo = (made) => {
-      const chunks = [made].flat().flatMap((output) => output.output ?? []).filter((file) => file.type === "chunk");
-      const named = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
-      const back = new Set();
-      for (const site of chunks.filter((chunk) => chunk.name === "site")) {
-        const seen = new Set();
-        const stack = [...site.imports];
-        while (stack.length) {
-          const chunk = named.get(stack.pop());
-          if (!chunk || seen.has(chunk)) continue;
-          seen.add(chunk);
-          if (chunk.imports.includes(site.fileName)) back.add(chunk);
-          stack.push(...chunk.imports);
-        }
-      }
-      return [...back];
-    };
-    const cyclic = (back) => new Error(`the site's files import \`site-*\` back through ${back.map((chunk) => `${chunk.fileName} (${chunk.moduleIds.join(", ")})`).join("; ")}`);
     const client = timed("client", async () => {
       const made = await clientBuild();
-      const back = backTo(made);
-      if (!back.length) return made;
-      // Only the entry's file is mended, by moving what it holds into
-      // the group; any other file that imports `site-*` back is a cut
-      // this build does not expect, and it says which.
-      if (back.some((chunk) => !chunk.isEntry)) throw cyclic(back);
-      for (const chunk of back) for (const id of chunk.moduleIds) if (id !== chunk.facadeModuleId) leftOver.add(id);
+      const left = mendOf(made);
+      if (!left.length) return made;
+      for (const id of left) leftOver.add(id);
       const again = await timed("client again", clientBuild);
-      const still = backTo(again);
-      if (still.length) throw cyclic(still);
+      mendOf(again, { again: true });
       return again;
     });
     function clientBuild() {
@@ -875,7 +895,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // there, `leftOver`, built once more); what later modules reach is
         // in their chunks, which never import the bundle's files, and a
         // build whose files still import `site-*` back fails and says
-        // which (`backTo`). That holds only while
+        // which (`mendOf`). That holds only while
         // rolldown cuts files by which entries reach a module: its merging
         // would move what later modules share into the entry's file too.
         // A top-level await turns the merging off in any site that has
