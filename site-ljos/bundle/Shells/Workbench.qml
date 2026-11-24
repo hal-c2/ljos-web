@@ -159,9 +159,11 @@ Rectangle {
     // that does something (a button).
     component Entry: Item {
         id: entry
-        // The shell's, given: a component sees no id outside it.
-        required property L.Bench shell
-        required property Look look
+        // The shell's, given: a component sees no id outside it. Named
+        // for no id in the shell, as Ljós on the desktop reads `look:
+        // look` in a Repeater's delegate as the delegate's own.
+        required property L.Bench host
+        required property Look colours
         property string label: ""
         property string icon: "file"
         property int depth: 0
@@ -169,12 +171,12 @@ Rectangle {
         property bool folder: false
         property bool open: false
         property bool current: false
-        readonly property string href: to !== "" && shell.router !== undefined && L.given(shell.router) ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && host.router !== undefined && L.given(host.router) ? host.router.address(to) : ""
         signal pressed
 
         width: parent !== null ? parent.width : 240
         // Dense where there's a pointer, a finger's size on a phone.
-        height: shell.wide ? 24 : 44
+        height: host.wide ? 24 : 44
         activeFocusOnTab: true
         Accessible.role: to !== "" ? Accessible.Link : Accessible.Button
         Accessible.name: label
@@ -189,12 +191,12 @@ Rectangle {
             }
         }
         function press() {
-            if (to !== "" && shell.router !== undefined && L.given(shell.router)) {
+            if (to !== "" && host.router !== undefined && L.given(host.router)) {
                 // Its page shown already is shown too: the route does
                 // not change, so it is not left to the route to.
-                if (!shell.wide)
-                    shell.view = 1;
-                shell.router.go(to);
+                if (!host.wide)
+                    host.view = 1;
+                host.router.go(to);
             } else {
                 entry.pressed();
             }
@@ -202,8 +204,8 @@ Rectangle {
 
         Rectangle {
             anchors.fill: parent
-            fill: entry.current ? look.selected : area.containsMouse ? look.hover : "transparent"
-            border.color: entry.activeFocus ? look.focus : "transparent"
+            fill: entry.current ? colours.selected : area.containsMouse ? colours.hover : "transparent"
+            border.color: entry.activeFocus ? colours.focus : "transparent"
             border.width: 1
             Accessible.ignored: true
         }
@@ -215,7 +217,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             size: 16
             name: entry.folder ? (entry.open ? "chevron-down" : "chevron-right") : entry.icon
-            color: entry.current ? look.accent : look.muted
+            color: entry.current ? colours.accent : colours.muted
             Accessible.ignored: true
         }
         Text {
@@ -226,9 +228,9 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - startX - 8
             text: entry.label
-            color: look.text
-            font.family: entry.folder ? look.sans : look.mono
-            font.size: look.ui
+            color: colours.text
+            font.family: entry.folder ? colours.sans : colours.mono
+            font.size: colours.ui
             font.weight: entry.folder ? Font.DemiBold : Font.Normal
             elide: Text.ElideRight
             Accessible.ignored: true
@@ -246,7 +248,7 @@ Rectangle {
     // A tab of a strip: the open files' and the panel's.
     component Tab: Rectangle {
         id: tab
-        required property Look look
+        required property Look colours
         property string label: ""
         property string icon: ""
         property bool current: false
@@ -260,7 +262,7 @@ Rectangle {
         signal pressed
 
         height: 35
-        fill: current ? look.canvas : "transparent"
+        fill: current ? colours.canvas : "transparent"
         activeFocusOnTab: true
         Accessible.role: Accessible.PageTab
         Accessible.name: label
@@ -277,13 +279,13 @@ Rectangle {
             visible: tab.current
             width: parent.width
             height: 2
-            fill: look.accent
+            fill: colours.accent
             Accessible.ignored: true
         }
         Rectangle {
             anchors.fill: parent
             fill: "transparent"
-            border.color: tab.activeFocus ? look.focus : "transparent"
+            border.color: tab.activeFocus ? colours.focus : "transparent"
             border.width: 1
             Accessible.ignored: true
         }
@@ -297,7 +299,7 @@ Rectangle {
             y: tab.stacked ? 9 : (parent.height - height) / 2
             size: tab.stacked ? 18 : 14
             name: tab.icon
-            color: tab.current ? look.accent : look.muted
+            color: tab.current ? colours.accent : colours.muted
             Accessible.ignored: true
         }
         Text {
@@ -310,9 +312,9 @@ Rectangle {
             width: tab.stacked ? parent.width - 8 : parent.width - startX - (tab.closable ? 32 : 12)
             align: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
             text: tab.label
-            color: tab.current ? look.text : look.muted
-            font.family: tab.mono ? look.mono : look.sans
-            font.size: look.ui
+            color: tab.current ? colours.text : colours.muted
+            font.family: tab.mono ? colours.mono : colours.sans
+            font.size: colours.ui
             elide: Text.ElideMiddle
         }
         PointerArea {
@@ -543,8 +545,8 @@ Rectangle {
 
                 Entry {
                     id: shellsFolder
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     folder: true
                     label: t`Shells/`
                     open: shell.isOpen("Shells/", true)
@@ -562,8 +564,8 @@ Rectangle {
                     ] : []
                     Entry {
                         required property L.ShellFile modelData
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         depth: 1
                         icon: "code"
                         label: [modelData.file, "qml"].join(".")
@@ -574,8 +576,8 @@ Rectangle {
                 }
                 Entry {
                     id: siteFolder
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     folder: true
                     label: t`Site/`
                     open: shell.isOpen("Site/", true)
@@ -585,8 +587,8 @@ Rectangle {
                     model: siteFolder.open ? ["/", "/demos/", "/showcase/"] : []
                     Entry {
                         required property string modelData
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         depth: 1
                         icon: "code"
                         label: shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(modelData) : ""
@@ -596,8 +598,8 @@ Rectangle {
                 }
                 Entry {
                     id: demosFolder
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     folder: true
                     label: t`Demos/`
                     open: shell.isOpen("Demos/", true)
@@ -607,8 +609,8 @@ Rectangle {
                     model: demosFolder.open && shell.router !== undefined && L.given(shell.router) ? shell.router.demos : []
                     Entry {
                         required property L.Demo modelData
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         depth: 1
                         icon: "code"
                         label: modelData.app
@@ -627,8 +629,8 @@ Rectangle {
                         width: tree.width
 
                         Entry {
-                            shell: shell
-                            look: look
+                            host: shell
+                            colours: look
                             folder: true
                             label: section.folderName
                             open: section.open
@@ -638,8 +640,8 @@ Rectangle {
                             model: section.open ? section.modelData.pages : []
                             Entry {
                                 required property L.Page modelData
-                                shell: shell
-                                look: look
+                                host: shell
+                                colours: look
                                 depth: 1
                                 icon: "file-text"
                                 label: shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(modelData.route) : ""
@@ -712,7 +714,7 @@ Rectangle {
                             model: shell.opened
                             Tab {
                                 required property string modelData
-                                look: look
+                                colours: look
                                 width: 176
                                 mono: true
                                 closable: shell.opened.length > 1
@@ -897,7 +899,7 @@ Rectangle {
                 Tab {
                     required property string modelData
                     required property int index
-                    look: look
+                    colours: look
                     // Its width as its words are, so each sits snug.
                     width: wordsWidth + 24
                     height: shell.wide ? 35 : 44
@@ -1105,7 +1107,7 @@ Rectangle {
                 Tab {
                     required property L.Pane modelData
                     required property int index
-                    look: look
+                    colours: look
                     width: Math.floor(views.width / 4)
                     height: 55
                     stacked: true
