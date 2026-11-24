@@ -274,6 +274,10 @@ export function inspect(root) {
         const [clientX, clientY] = toPage(shape, at);
         const element = document.elementFromPoint(clientX, clientY);
         if (!element) return failed("not_actionable", `[${at}] is not on the page`);
+        // An object still under what the page lays over it once brought
+        // in (a menu over the whole window) is out of a person's reach:
+        // the press would go to the page, which is not the app's to press.
+        if (node && !item.$node.contains(element)) return failed("not_actionable", `\`${target}\` is covered by something outside the root`);
         const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true };
         const pressed = { ...pointer, button: 0, buttons: 1, detail: 1 };
         const released = { ...pointer, button: 0, buttons: 0, detail: 1 };

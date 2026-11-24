@@ -329,6 +329,26 @@ test("what is drawn at opacity 0, or under an item that is, is not found by what
   expect(await count("id=faded"), "an id names it, shown or not").toBe(1);
 });
 
+test("an object the page covers wherever it is scrolled is not clicked, nor what covers it", async ({ page }) => {
+  await opened(page);
+  // A page's menu laid over the whole window, as a phone's is: no scroll
+  // brings the MouseArea out from under it, so a person's press there
+  // would go to the menu, which is the page's, not the app's.
+  await page.evaluate(() => {
+    const menu = document.createElement("a");
+    menu.href = "#elsewhere";
+    menu.style.cssText = "position:fixed;inset:0;z-index:10;background:white";
+    menu.addEventListener("click", (event) => {
+      event.preventDefault();
+      window.menuClicks = (window.menuClicks ?? 0) + 1;
+    });
+    document.body.append(menu);
+  });
+  const clicked = (await call(page, "app_click", { target: "id=area" })).result;
+  expect(clicked.error.code).toBe("not_actionable");
+  expect(await page.evaluate(() => [window.objects.app.count, window.menuClicks ?? 0])).toEqual([0, 0]);
+});
+
 test("a locator finds what is shown, by text, name, id or role, and its ref is a target", async ({ page }) => {
   await opened(page);
   const byText = (await call(page, "app_find", { locator: "text=N=0" })).result;
