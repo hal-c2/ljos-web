@@ -6,6 +6,7 @@ import { defineType, derived, flush, inside, QtObject, slot } from "../object.ts
 import { locale } from "./locale.ts";
 import type { LocaleValue } from "./locale.ts";
 import { enums } from "./namespace.ts";
+import { rightToLeft, uiLanguage } from "./uiLanguage.ts";
 import { Rect } from "./values.ts";
 import { untrack } from "#kernel";
 import type { QObject, QmlType } from "../object.ts";
@@ -271,7 +272,11 @@ export const Application = defineType("Application", QtObject, {
     arguments: derived(() => []),
     state: ApplicationState.ApplicationActive,
     active: derived((self) => self.state === ApplicationState.ApplicationActive),
-    layoutDirection: derived(() => (document.documentElement.dir === "rtl" ? 1 : 0)),
+    // The direction of the UI language at every moment, as in native Ljós
+    // (Qt works it out once, at start): an application with a language
+    // menu mirrors when Arabic is picked, where it binds LayoutMirroring
+    // to this.
+    layoutDirection: derived(() => (rightToLeft(uiLanguage()) ? 1 : 0)),
     font: derived(() => DEFAULT_FONT),
     styleHints: derived(() => styleHints()),
     supportsMultipleWindows: false,

@@ -15,6 +15,7 @@
 // message gives the same key and the same text in both.
 import { signal } from "#kernel";
 import { Qt } from "../../QtQml/Qt.ts";
+import { onUiLanguage } from "../../QtQml/uiLanguage.ts";
 
 // ---------------------------------------------------------------------------
 // ICU MessageFormat 1, the part Ljós writes: text, `{arg}`,
@@ -369,15 +370,19 @@ const canonical = (name: string): string => parsed(name)?.toString() ?? name.toL
 
 // The names a UI language is looked for under, most specific first: the
 // name itself, without its script, with the region the language is most
-// likely spoken in, and the language alone.
+// likely spoken in, with its script alone (`zh-CN` is written in Hans, so
+// it finds a `zh-Hans` catalogue and `zh-TW` a `zh-Hant` one), and the
+// language alone.
 function fallbacks(language: string): string[] {
   const locale = parsed(language);
   if (!locale) return [canonical(language)];
   const out = [locale.toString()];
   const lang = locale.language;
   if (locale.region) out.push(`${lang}-${locale.region}`);
-  const likely = locale.maximize().region;
-  if (likely) out.push(`${lang}-${likely}`);
+  const maximized = locale.maximize();
+  if (maximized.region) out.push(`${lang}-${maximized.region}`);
+  const script = locale.script ?? maximized.script;
+  if (script) out.push(`${lang}-${script}`);
   out.push(lang);
   return [...new Set(out)];
 }
@@ -595,6 +600,8 @@ export function installCatalog(catalog: Catalog | string, file?: string): Catalo
 /** Takes a catalogue {@link installCatalog} gave out again. */
 export function removeCatalog(catalog: Catalog): void {
   installed = installed.filter((it) => it.catalog !== catalog);
+  // Fetched again if its language is asked for again.
+  loading.delete(canonical(catalog.language));
   setRevision(revision() + 1);
 }
 
@@ -668,17 +675,128 @@ function lookup(message: string, context: string, key: string, values: Map<strin
   const known = source(message);
   const format = numbers(language);
   const chain = installed.length ? fallbacks(language) : [];
+  let catalogued: string | undefined;
   for (const name of chain) {
     for (let i = installed.length - 1; i >= 0; i -= 1) {
       const it = installed[i];
       if (!it || it.name !== name) continue;
+      catalogued ??= name;
       const entry = it.catalog.messages.get(entryKey(context, key));
       if (!entry) continue;
       const translated = translation(it, entry, key, known);
       if (translated) return translated.format(values, it.plurals, format);
     }
   }
+  if (catalogued !== undefined) missing(catalogued, context, key);
   return known ? known.format(values, sourcePlurals, format) : message;
+}
+
+// ---------------------------------------------------------------------------
+// What the UI language's catalogues do not have.
+
+/** A message shown as written because the UI language's catalogues have no translation of it. */
+export interface Untranslated {
+  /** The catalogue's language that was looked in first. */
+  readonly language: string;
+  readonly context: string;
+  /** What a catalogue holds it by: its id, or the message. */
+  readonly key: string;
+}
+
+const untranslatedSeen = new Map<string, Untranslated>();
+
+// A language with catalogues installed that has no translation of a
+// message: the message is shown as written, and said once, so a
+// translation that is missing is found rather than read past.
+function missing(language: string, context: string, key: string): void {
+  const at = `${language}\u0004${entryKey(context, key)}`;
+  if (untranslatedSeen.has(at)) return;
+  const found: Untranslated = Object.freeze({ language, context, key });
+  untranslatedSeen.set(at, found);
+  // A debug line, not a warning: a catalogue that is behind its sources is
+  // the ordinary state of a project being translated, and native Ljós
+  // shows the source text silently too. `untranslated()` is the report.
+  console.debug(`${language}: ${JSON.stringify(key)}${context ? ` (context ${JSON.stringify(context)})` : ""}: no translation, so it is shown as written`);
+}
+
+/**
+ * Every message shown so far as written although catalogues of the UI
+ * language were installed: the translations a catalogue is missing. A
+ * language with no catalogue at all, such as the source's own, has
+ * nothing missing.
+ */
+export function untranslated(): readonly Untranslated[] {
+  return [...untranslatedSeen.values()];
+}
+
+// ---------------------------------------------------------------------------
+// Catalogues fetched when their language is first asked for.
+
+/** Where a language's catalogue is: an address to fetch, or a function that gives its text. */
+export type CatalogSource = string | URL | (() => Promise<string>);
+
+const sourcesOf = new Map<string, { source: CatalogSource; file: string }>();
+const loading = new Map<string, Promise<void>>();
+let listening: (() => void) | undefined;
+
+async function textOf(source: CatalogSource): Promise<string> {
+  if (typeof source === "function") return source();
+  const response = await fetch(source);
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim());
+  return response.text();
+}
+
+function load(name: string): Promise<void> {
+  const given = sourcesOf.get(name);
+  if (!given) return Promise.resolve();
+  let pending = loading.get(name);
+  if (!pending) {
+    pending = textOf(given.source).then(
+      (text) => {
+        try {
+          installCatalog(text, given.file);
+        } catch (error) {
+          warn(`${given.file}: the catalogue does not read, so it is left out: ${reason(error)}`);
+        }
+      },
+      (error: unknown) => {
+        // Asked for again next time the language is: the network may be back.
+        loading.delete(name);
+        warn(`${given.file}: the catalogue could not be fetched: ${reason(error)}`);
+      },
+    );
+    loading.set(name, pending);
+  }
+  return pending;
+}
+
+/**
+ * Fetches and installs the catalogues `language` is looked up in (its
+ * fallback chain, `pt-BR` then `pt`) that {@link catalogSources} named and
+ * that are not in yet. Resolves when each is in, or has failed and been said.
+ */
+export function loadCatalogs(language: string = Qt.uiLanguage): Promise<void> {
+  return Promise.all(fallbacks(language).map(load)).then(() => undefined);
+}
+
+/**
+ * Names where each language's catalogue is, so that none is fetched until
+ * the UI language needs it: setting `App.language` fetches the new
+ * language's (a message is shown as written until it is in, then again in
+ * the language), and {@link loadCatalogs} fetches one before it is set, so
+ * the page changes language at once.
+ *
+ * ```js
+ * catalogSources({ is: "i18n/is.po", "pt-BR": "i18n/pt-BR.po" });
+ * ```
+ */
+export function catalogSources(sources: Readonly<Record<string, CatalogSource>>): void {
+  for (const [language, source] of Object.entries(sources)) {
+    const file = typeof source === "function" ? `${language}.po` : String(source).split(/[?#]/u)[0]!.split("/").pop() || `${language}.po`;
+    sourcesOf.set(canonical(language), { source, file });
+  }
+  listening ??= onUiLanguage((language) => void loadCatalogs(language));
+  void loadCatalogs();
 }
 
 const valuesOf = (names: string, values: readonly unknown[]): Map<string, Value> => {
