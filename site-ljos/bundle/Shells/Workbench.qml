@@ -149,7 +149,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: tool.beside ? tool.width + 6 : (tool.width - implicitWidth) / 2
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? tool.width - width - startX : startX
             y: tool.beside ? (tool.height - implicitHeight) / 2 : -implicitHeight - 3
         }
     }
@@ -449,6 +449,7 @@ Rectangle {
                 spacing: 4
 
                 Item {
+                    id: switcherSpot
                     width: 40
                     height: 40
                     Hover { id: overSwitcher }
@@ -462,7 +463,7 @@ Rectangle {
                         // Where it starts, read from the left; a right-to-left page
                         // sets it as far from the right (LayoutMirroring).
                         readonly property real startX: 46
-                        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: Q.LayoutMirroring.enabled ? switcherSpot.width - width - startX : startX
                         y: (40 - implicitHeight) / 2
                     }
                 }
