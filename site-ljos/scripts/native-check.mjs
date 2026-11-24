@@ -75,13 +75,15 @@ async function call(name, args) {
     const init = await fetch(url, {
       method: "POST",
       headers,
+      // A request that is never answered fails its step, not the run.
+      signal: AbortSignal.timeout(STEP_MS),
       body: JSON.stringify({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "site-native-check", version: "1" } } }),
     });
     session = init.headers.get("mcp-session-id") || "";
     await init.text();
   }
   if (session) headers["Mcp-Session-Id"] = session;
-  const answer = await fetch(url, { method: "POST", headers, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }) });
+  const answer = await fetch(url, { method: "POST", headers, signal: AbortSignal.timeout(STEP_MS), body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }) });
   const body = await answer.json();
   return body.result?.content?.[0]?.text ?? JSON.stringify(body);
 }
