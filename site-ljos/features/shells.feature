@@ -668,6 +668,7 @@ Feature: The site is shown in a shell the reader picks
     When they search for "h"
     Then every result, "How a Rust and QML App Fits Together" among them, ends inside the list, wrapped if it must be
     And the list ends inside the window
+    And the last result can be reached and pressed, in a phone's menu too
 
     Examples:
       | device  |
