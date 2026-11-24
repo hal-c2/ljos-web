@@ -8,10 +8,10 @@ import Demos
 import "../Demos/later.js" as Later
 import "../nav.js" as Nav
 
-// The front page. It opens with typed, observable and drivable apps,
-// proves shell replacement live with the Pantry, then covers
-// TypeScript first, the Observer and MCP, stability and memory at rest,
-// the 3D showcase, community principles and where to read next.
+// The front page, read top to bottom: what Ljós is and a replay that
+// shows it, what that means for agents with a live app to drive, a shell
+// the reader changes here, TypeScript and the rest in a card each, a 3D
+// demo, how the project works, and where to go next.
 // Existing QML is named once, as the way in; the porting page tells
 // that story. The words are the page's; how they stand (the hero beside
 // its live app, the sections on the grid, rising in as they are first
@@ -37,60 +37,85 @@ Column {
         Nav.go(link);
     }
 
-    // What Ljós is, and where to go first, beside a live app.
+    // What Ljós is, and beside it (under it, on a narrower page) the
+    // replay that shows it: an app reshaped while it runs, the TypeScript
+    // that does it and the controls to do it by hand, in the first screen.
+    // The words take four of the grid's columns, so the replay has room
+    // for its code beside the app.
     Hero {
         width: parent.width
         wide: landing.wide
-        title: t`Ljós — malleable software, everywhere`
-        subtitle: t`Ljós is a UI toolkit for typed apps you can see inside and drive while they run: strict TypeScript under declarative pages, open to the Observer and to agents over MCP, with a shell people reshape as it runs.`
+        beside: landing.wide && landing.width >= 1112
+        wordsColumns: 4
+        title: LandingCopy.headline
+        subtitle: LandingCopy.subhead
+        caption: LandingCopy.heroCaption
         onFollowed: (link) => landing.follow(link)
 
         LinkButton {
             primary: true
-            label: t`What is Ljós?`
-            href: "/start/"
-        }
-        // The second way in has its outline; the third is a link.
-        LinkButton {
-            label: t`Your first app`
+            label: LandingCopy.start
             href: "/start/first-app/"
         }
         LinkButton {
-            quiet: true
-            label: t`See the demos`
+            label: LandingCopy.tryDemo
             href: "/demos/"
+        }
+
+        // The replay, the page's first demo. Its poster is the session's
+        // end, the board, drawn by the page: the hero is whole before
+        // anything is fetched and for a reader who wants less motion. For
+        // everyone else it starts itself, as the list, and is reshaped.
+        stage: ReplayFrame {
+            width: parent.width
+            scroller: landing.scroller
+            aspect: 0.1
+            // As high as it says (AgentView): the board at its fullest, and,
+            // stacked, its code after that.
+            note: LandingCopy.heroNote
+            what: LandingCopy.heroWhat
+            poster: Component {
+                AgentPoster {}
+            }
+            source: Later.agent
         }
     }
 
-    // Your own shell: the point, said, shown in code, and run.
+    // Built for agents: what the replay shows, said, beside an app to
+    // drive by hand, its source, the Observer and an agent's steps.
+    Rise {
+        Capability {
+            id: agentic
+            wide: landing.wide
+            eyebrow: LandingCopy.agenticEyebrow
+            title: LandingCopy.agenticHeadline
+            body: LandingCopy.agenticBody
+            onFollowed: (link) => landing.follow(link)
+
+            HeroStage {
+                width: agentic.exampleWidth
+            }
+        }
+    }
+
+    // Make it your own: the point, said, shown in code, and run, the
+    // words on the right this time.
     Rise {
         Capability {
             id: ownShell
             wide: landing.wide
+            flip: true
             eyebrow: t`Malleable`
-            title: t`Your own shell`
-            body: t`A Ljós app keeps its own data and logic, while its interface is a shell: menus, sidebars and panels filled by blocks placed into named <code>Slot</code>s. Ship a default shell, and let people or their agents replace it with a <code>shell.qml</code> of their own through <code>ShellLoader</code> from <code>Ljos.Blocks</code>.`
+            title: t`Make it your own`
+            body: t`An app’s layout doesn’t have to be fixed. Let people, or their agents, replace it live, without losing their work. If an edit won’t compile, the last working layout stays.`
             onFollowed: (link) => landing.follow(link)
-            after: Text {
-                width: ownShell.wordsWidth
-                textFormat: Text.RichText
-                color: Theme.textMuted
-                linkColor: Theme.link
-                font.family: Theme.sans
-                font.pixelSize: Theme.bodySize
-                lineHeightMode: Text.FixedHeight
-                lineHeight: Theme.bodyLine
-                wrapMode: Text.Wrap
-                text: t`When the shell changes, the app keeps running and keeps its state. The same compiler and lints check each edit before it loads; if an edit fails to compile, <code>ShellLoader</code> keeps the last shell that compiled and <code>reload()</code> says what broke and where. A shell that cannot run at all gives way to the app's own, with the reason in <code>error</code>.`
-                onLinkActivated: (link) => landing.follow(link)
-            }
 
             CodeBlock {
                 width: ownShell.exampleWidth
                 scroller: landing.scroller
                 lang: "qml"
-                code: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's own, where the app looks\n    fallback: \"AppShell.qml\"  // the app's, standing when theirs does not\n}\n"
-                rich: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's own, where the app looks\n    fallback: \"AppShell.qml\"  // the app's, standing when theirs does not\n}\n"
+                code: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's layout\n    fallback: \"AppShell.qml\"  // used if theirs won't compile\n}\n"
+                rich: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's layout\n    fallback: \"AppShell.qml\"  // used if theirs won't compile\n}\n"
             }
             // What to do with the playground under the section.
             Text {
@@ -104,7 +129,7 @@ Column {
                 lineHeight: Theme.bodyLine
                 wrapMode: Text.Wrap
                 topPadding: Theme.m
-                text: t`<b>Try rewriting this app's shell live.</b> Add an item to the basket below, then edit the <code>Shell.qml</code> source under it: move a <code>Slot</code> and the running app rearranges while the basket keeps its items. Introduce a typo and the last shell that compiled keeps running, with the compiler error shown beside the editor; fix it, or press Reset to go back to the app's own shell.`
+                text: t`<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it.`
             }
         }
         Item {
@@ -121,6 +146,7 @@ Column {
             delegate: Component {
                 PantryDemo {
                     width: landing.width
+                    observerWhenIdle: false
                 }
             }
         }
@@ -146,7 +172,7 @@ Column {
                 height: landing.wide ? points.tallest : contentHeight
                 mark: "01"
                 title: t`TypeScript first`
-                body: t`Write logic in strict TypeScript modules, with declarative pages over them. Handlers, functions and bindings are type-checked in Rust before anything runs, while heavy logic and native models can stay in Rust. Existing QML runs as the way in — <a href="/language/porting-from-qt/">bringing an app along</a> covers <code>ljos check --port</code> and <code>ljos migrate</code>.`
+                body: t`Write app logic in TypeScript and catch mistakes with <code>ljos check</code>. Use Rust where you need it. Already have QML? <a href="/language/porting-from-qt/">Bring it along</a>.`
                 onFollowed: (link) => landing.follow(link)
             }
             FeatureCard {
@@ -154,8 +180,8 @@ Column {
                 width: points.cardWidth
                 height: landing.wide ? points.tallest : contentHeight
                 mark: "02"
-                title: t`See inside and drive a running app`
-                body: t`Start a native build with <code>ljos run --mcp</code> and open the Observer with <code>ljos observe</code> to inspect live objects, properties, bindings, memory, frames and wakes. An agent gets the same view over <a href="/start/mcp/">MCP</a>, clicking buttons, typing text and reading results through the same input path a person uses.`
+                title: t`See inside a running app`
+                body: t`Open the Observer to see every part of your app, where its values come from, and what’s using time and memory. Your agent gets the same view.`
                 onFollowed: (link) => landing.follow(link)
             }
             FeatureCard {
@@ -163,22 +189,21 @@ Column {
                 width: points.cardWidth
                 height: landing.wide ? points.tallest : contentHeight
                 mark: "03"
-                title: t`Stable, light, and 0 % CPU at rest`
-                body: t`A failing part restarts or shows a fallback instead of closing the window, and an app at rest uses 0 % CPU. In the project's own benchmark (2026-11-10, a mail window of 1 000 rows, native builds on Linux, not this web page), Ljós drew its first frame in 59–88 ms against qml6's 558–820 ms, held 23 MiB of private memory against 130 MiB, and scrolled at the same frame rate on a third of the CPU. One engine targets Linux, macOS, Windows, Android, iOS and the web.`
+                title: t`Fast, and quiet when idle`
+                body: t`Our benchmark mail app shows its first frame in under 90 ms, uses under 24 MiB of private memory, and takes 0 % CPU when idle.<br><br>These are <a href="https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md">native numbers</a> from Linux on 10\u00a0Nov\u00a02026. They don’t measure this web page.`
                 onFollowed: (link) => landing.follow(link)
             }
         }
     }
 
-    // A demo of what the engine draws, the example on the left this time.
+    // A demo of what the engine draws, the words on the left again.
     Rise {
         Capability {
             id: seeItRun
             wide: landing.wide
-            flip: true
             eyebrow: t`Live in the page`
             title: t`See it run`
-            body: t`Once this 3D scene runs, drag to orbit it, and switch between light and dark themes in the header to watch it follow. The <a href="/demos/">live demos</a> add a car cockpit and a smartwatch whose files you can edit, plus a shader effect, a bird field guide and a motion study — each a complete Ljós app that keeps a picture and its description where the browser lacks the WebAssembly or WebGL 2 it needs.`
+            body: t`Once this 3D scene runs, drag to look around, and scroll or pinch to zoom. The <a href="/demos/">live demos</a> have more, including a car cockpit and a smartwatch you can edit. Each keeps a picture and its description where the browser lacks the WebAssembly or WebGL 2 it needs.`
             onFollowed: (link) => landing.follow(link)
 
             // The showcase mounts here: a 3D scene to orbit, made once the
@@ -194,7 +219,7 @@ Column {
                         picture: "/pictures/demo-orbit.webp"
                         pictureDark: "/pictures/demo-orbit-dark.webp"
                         what: t`the 3D demo`
-                        description: t`A lit 3D scene of shapes on a floor, which a drag turns.`
+                        description: t`A lit 3D scene of shapes on a floor. Drag to turn it.`
                         source: Later.orbit
                     }
                 }
@@ -293,7 +318,7 @@ Column {
                     height: reading.columns > 1 ? reading.tallestTop : contentHeight
                     title: t`What is Ljós?`
                     href: "/start/"
-                    body: t`An overview of the toolkit and a map of the docs.`
+                    body: t`The big picture, in plain words.`
                     onFollowed: (link) => landing.follow(link)
                 }
                 FeatureCard {
@@ -302,7 +327,7 @@ Column {
                     height: reading.columns > 1 ? reading.tallestTop : contentHeight
                     title: t`Your first app`
                     href: "/start/first-app/"
-                    body: t`Write a file, open a window, and watch live edits apply without losing state.`
+                    body: t`Open a window, then change it while it runs.`
                     onFollowed: (link) => landing.follow(link)
                 }
                 FeatureCard {
@@ -311,7 +336,7 @@ Column {
                     height: reading.columns > 1 ? reading.tallestBottom : contentHeight
                     title: t`Live demos`
                     href: "/demos/"
-                    body: t`Run every embedded app in the browser, and edit the shell and multi-file demos.`
+                    body: t`Try Ljós in your browser, with nothing to install.`
                     onFollowed: (link) => landing.follow(link)
                 }
                 FeatureCard {
@@ -320,7 +345,7 @@ Column {
                     height: reading.columns > 1 ? reading.tallestBottom : contentHeight
                     title: t`Goals and principles`
                     href: "/quality/principles/"
-                    body: t`What Ljós builds, what it leaves out, and why agents are first-class users.`
+                    body: t`What we care about, and what we leave out on purpose.`
                     onFollowed: (link) => landing.follow(link)
                 }
             }
