@@ -59,6 +59,29 @@ test.describe("a site built from a bundle", () => {
     expect(built.bytes).toBeGreaterThan(0);
   });
 
+  // Modules run in order across files only while no file imports one
+  // that imports it back; a small site's runtime is all in its first
+  // load, so that is where a cycle would be (packages/runtime/site.js).
+  test("is files none of which imports one that imports it back", () => {
+    const scripts = readdirSync(made.out, { recursive: true }).filter((file) => file.endsWith(".js")).map((file) => join(made.out, file));
+    expect(scripts.length).toBeGreaterThan(0);
+    const imports = (file) => [...readFileSync(file, "utf8").matchAll(/(?:\bimport|\bfrom)\s*["'](\.{1,2}\/[^"']+\.js)["']/g)].map(([, spec]) => join(dirname(file), spec));
+    const back = {};
+    for (const script of scripts) {
+      const seen = new Set();
+      const stack = imports(script);
+      while (stack.length) {
+        const file = stack.pop();
+        if (seen.has(file)) continue;
+        seen.add(file);
+        const next = existsSync(file) ? imports(file) : [];
+        if (next.includes(script)) (back[relative(made.out, script)] ??= []).push(relative(made.out, file));
+        stack.push(...next);
+      }
+    }
+    expect(back, "files that import the file they are imported by").toEqual({});
+  });
+
   test("carries the bundle's theme as it is, and says it built the site", () => {
     expect(readFileSync(join(made.out, "theme.json"), "utf8")).toBe(readFileSync(join(made.dir, "theme.json"), "utf8"));
     expect(readFileSync(join(made.out, STAMP), "utf8").trim()).toMatch(/^[0-9a-f]{40}$/);
