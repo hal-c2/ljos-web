@@ -166,8 +166,21 @@ Feature: The site is shown in a shell the reader picks
     Given a reader in the Desktop shell on "/start/first-app/"
     When they go to another docs page
     Then both pages are open as tabs
-    When they press "Close document tab" on the first
+    And each tab's close is named after its page, as "Close Editor Setup"
+    When they press "Close Your First App"
     Then only the page they are on is open
+
+  Scenario Outline: Closing the page shown goes to the one beside it
+    Given a reader in the <shell> shell who opened "/start/first-app/" and then "/start/editors/"
+    When they press "Close <second>" while on it
+    Then they are on "/start/first-app/", the one before it, and no tab has a close
+    When they open "/start/editors/" again, go back to the first tab and press "Close <first>"
+    Then they are on "/start/editors/", the one that took its place
+
+    Examples:
+      | shell     | first          | second       |
+      | Workbench | first-app.md   | editors.md   |
+      | Desktop   | Your First App | Editor Setup |
 
   Scenario: The pages a reader opened stay open across a swap
     Given a reader in the Workbench shell who opened "first-app.md" and then "Landing.qml" from the explorer

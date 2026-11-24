@@ -601,6 +601,7 @@ Rectangle {
                         model: shell.opened.length > 1 ? shell.opened : []
                         C.Button {
                             required property int index
+                            required property var modelData
                             x: index * 176 + 176 - width - 4
                             y: (35 - height) / 2
                             width: 26
@@ -608,7 +609,7 @@ Rectangle {
                             subtle: true
                             iconName: "x"
                             display: C.Button.IconOnly
-                            text: t`Close tab`
+                            text: t`Close ${shell.router ? shell.router.fileOf(modelData) : modelData}`
                             onClicked: shell.site.close(index)
                         }
                     }

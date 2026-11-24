@@ -674,7 +674,9 @@ test("the Desktop shell keeps every page the reader opened as a tab", async ({ b
     await expect(tabs.nth(0)).toHaveAccessibleName(/Your First App/);
     await expect(tabs.nth(1)).toHaveAccessibleName(/Editor Setup/);
     await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    await press(page.getByRole("button", { name: "Close document tab", exact: true }).filter({ visible: true }).first());
+    const close = (name) => page.getByRole("button", { name: `Close ${name}`, exact: true }).filter({ visible: true });
+    await expect(close("Editor Setup"), "each close names its page").toHaveCount(1);
+    await press(close("Your First App"));
     await expect(tabs, "only the page the reader is on").toHaveCount(1);
     await expect(tabs.first()).toHaveAccessibleName(/Editor Setup/);
     expect(new URL(page.url()).pathname).toBe(at("/start/editors/"));
@@ -682,6 +684,42 @@ test("the Desktop shell keeps every page the reader opened as a tab", async ({ b
     await context.close();
   }
 });
+
+// Closing the page that is shown goes to the one that takes its place
+// in the row, the next, or to the one before when it was the last.
+for (const kept of ["workbench", "desktop"]) {
+  test(`closing the page shown in ${kept === "desktop" ? "Desktop" : "Workbench"} goes to the one beside it`, async ({ browser }) => {
+    const context = await reader(browser, { kept });
+    try {
+      const page = await context.newPage();
+      await open(page, "/start/first-app/");
+      const desktop = kept === "desktop";
+      // Workbench's explorer names its pages by their files.
+      const editors = () => page.getByRole("link", { name: desktop ? "Editor Setup" : "editors.md", exact: true }).filter({ visible: true }).first().click();
+      const tabs = page.getByRole("tablist", { name: desktop ? "Open pages" : "Open files" }).getByRole("tab");
+      const close = (name) => page.getByRole("button", { name: `Close ${name}`, exact: true }).filter({ visible: true });
+      const [first, second] = desktop ? ["Your First App", "Editor Setup"] : ["first-app.md", "editors.md"];
+
+      await editors();
+      await page.waitForURL("**/start/editors/");
+      await expect(close(first), "each close names its page").toHaveCount(1);
+      await press(close(second));
+      await page.waitForURL("**/start/first-app/");
+      await expect(tabs).toHaveCount(1);
+      await expect(close(first), "the last open has no close").toHaveCount(0);
+
+      await editors();
+      await page.waitForURL("**/start/editors/");
+      await press(tabs.first());
+      await page.waitForURL("**/start/first-app/");
+      await press(close(first));
+      await page.waitForURL("**/start/editors/");
+      await expect(tabs).toHaveCount(1);
+    } finally {
+      await context.close();
+    }
+  });
+}
 
 test("the shell choices come on a later press when the first could not load them", async ({ browser }) => {
   const context = await reader(browser);
@@ -856,11 +894,11 @@ for (const [shell, pane] of [
         await measure(page.getByRole("button", { name: "Clear log", exact: true }).filter({ visible: true }));
       } else {
         await measure(page.getByRole("tablist", { name: pane, exact: true }).getByRole("tab"));
-        const closes = page.getByRole("button", { name: "Close document tab", exact: true }).filter({ visible: true });
+        const closes = page.getByRole("button", { name: /^Close / }).filter({ visible: true });
         await measure(closes);
         for (const close of await closes.all()) {
           const { width } = await close.boundingBox();
-          if (width < 44) found.push(`Close document tab: ${Math.round(width)} wide`);
+          if (width < 44) found.push(`${await close.getAttribute("aria-label")}: ${Math.round(width)} wide`);
         }
       }
       expect(found, "under 44 pixels").toEqual([]);
