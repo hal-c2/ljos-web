@@ -135,6 +135,8 @@ Rectangle {
         visible: shell.sidebarShown
         y: header.height
         width: 264
+        // Beside the page, it changes sides with it on a right-to-left page.
+        x: LayoutMirroring.enabled ? parent.width - width : 0
         height: parent.height - y
         // Made where it shows: a narrow page would carry the docs' whole
         // list, hidden, in its first load.

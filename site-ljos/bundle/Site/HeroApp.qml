@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Site
@@ -52,7 +53,7 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: Theme.l
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Theme.l
         width: app.width - 2 * Theme.l
         spacing: Theme.s
@@ -147,7 +148,7 @@ Item {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: Theme.xs
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     width: 20
                     height: 20
@@ -175,7 +176,7 @@ Item {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: box.startX + box.width + Theme.s
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - startX - Theme.xs
                     elide: Text.ElideRight

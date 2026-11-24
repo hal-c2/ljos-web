@@ -389,6 +389,9 @@ Rectangle {
     // then takes it for content outside every landmark.
     Item {
         z: 10
+        // As wide as the page, so the link is set from its right on a
+        // right-to-left page.
+        width: parent.width
         Accessible.role: Accessible.Section
         Accessible.name: t`Skip to content`
 

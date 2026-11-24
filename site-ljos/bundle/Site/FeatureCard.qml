@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Layout
 import QtQuick.Effects
 import Site
@@ -63,7 +64,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: atRight ? card.width - width : 0
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: atBottom ? card.height - height : 0
             width: 14
             height: 14
@@ -78,7 +79,7 @@ Item {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: corner.atRight ? corner.width - 2 : 0
-                x: LayoutMirroring.enabled ? corner.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? corner.width - width - startX : startX
                 width: 2
                 height: parent.height
                 fill: Theme.accent
@@ -101,7 +102,7 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: card.padding
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: card.padding
         width: parent.width - 2 * card.padding
         spacing: Theme.s
@@ -128,7 +129,7 @@ Item {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: markWords.implicitWidth + Theme.s
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: markWords.verticalCenter
                 width: parent.width - startX
                 height: 1

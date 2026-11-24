@@ -1,4 +1,5 @@
 import Ljos.Ui
+import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Ljos.Controls
@@ -108,6 +109,8 @@ Rectangle {
             ListView {
                 id: list
                 width: root.narrow ? body.width : root.listWidth
+                // Beside the detail, it changes sides with it on a right-to-left page.
+                x: Q.LayoutMirroring.enabled ? parent.width - width : 0
                 height: root.narrow ? Math.round(root.rowHeight * 2.5 + spacing * 2) : body.height
                 clip: true
                 spacing: 6
@@ -125,7 +128,7 @@ Rectangle {
                         // Where it starts, read from the left; a right-to-left page
                         // sets it as far from the right (LayoutMirroring).
                         readonly property real startX: 12
-                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: 7
                         spacing: 1
                         Text {
@@ -156,7 +159,7 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: root.narrow ? 0 : root.listWidth + 14
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: root.narrow ? list.height + 12 : 0
                 width: root.narrow ? body.width : body.width - root.listWidth - 14
                 height: body.height - y
