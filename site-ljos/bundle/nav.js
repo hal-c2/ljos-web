@@ -1,4 +1,5 @@
 .pragma library
+.import "host.js" as Host
 // Going to another page of the site. Each route is its own
 // prerendered page, and each link of the shell is an `a` with the
 // page's address (the runtime makes an item whose role is a link
@@ -16,6 +17,8 @@
 // addresses a browser does.
 
 var root = "/";
+// The desktop's own navigation (host.native.js); null in a browser.
+var desk = Host.desktop;
 var shell = null;
 
 // The address of what the site names from its root, at the base the
@@ -102,14 +105,11 @@ function named() {
 
 function follow(base, given) {
     root = base;
-    if (!globalThis.history || typeof globalThis.addEventListener !== "function") {
-        shell = given;
-        onDesk = true;
-        if (desktop)
-            desktop.start(shell, root, siteRoot);
-        return;
-    }
     shell = given;
+    if (desk)
+        desk.start(given, base);
+    if (!globalThis.history || typeof globalThis.addEventListener !== "function")
+        return;
     var history = globalThis.history;
     history.scrollRestoration = "manual";
     var state = history.state;
@@ -165,11 +165,8 @@ function follow(base, given) {
 // stops, not as the page is left: what a page writes into its history
 // as it is unloaded is not kept by every browser.
 function keep() {
-    if (onDesk) {
-        if (desktop)
-            desktop.keep();
-        return;
-    }
+    if (desk)
+        return desk.keep();
     if (shell && current === entry)
         globalThis.history.replaceState({ entry: entry, offset: shell.offset() }, "");
 }
@@ -194,11 +191,8 @@ function titled(own, sidebar, after, route) {
 // its page's reading is had, its entry is pushed first and the page
 // shown after, as on going back.
 function go(address) {
-    if (onDesk) {
-        if (desktop)
-            desktop.go(address);
-        return;
-    }
+    if (desk)
+        return desk.go(address);
     var location = globalThis.location;
     var url = new URL(address, location.href);
     var route = shell ? routeOf(url) : null;
@@ -234,78 +228,14 @@ function go(address) {
     );
 }
 
-// The site on the desktop (`mise run site:native`), where there is no
-// browser: its back, forward and reading are desktop.js's, which
-// Site/DesktopNav.qml hands in (`useDesktop`) and nothing here imports,
-// so no browser's first load holds them (tests/payload.spec.js).
-var onDesk = false;
-var desktop = null;
-// Reads asked for before desktop.js is in (shells.js and the search ask
-// as the first page is made, before Main.qml's loader has it), each a
-// function that reads once it is.
-var early = [];
-
-function useDesktop(made) {
-    desktop = made;
-    if (onDesk)
-        made.start(shell, root, siteRoot);
-    var asked = early;
-    early = [];
-    for (var i = 0; i < asked.length; i++)
-        asked[i]();
-}
-
-// The directory the desktop's site stands in, as an address ending in
-// "/"; "" where none was given, or in a browser. Here, not in
-// desktop.js: a page's first frame names its pictures by it.
-var siteRoot = (function () {
-    if (globalThis.location || typeof Qt === "undefined" || !Qt.application)
-        return "";
-    var args = Qt.application.arguments;
-    for (var i = 0; i < args.length; i++) {
-        var said = String(args[i]);
-        if (said.indexOf("--site=") === 0) {
-            var dir = said.slice("--site=".length);
-            if (dir.charAt(dir.length - 1) !== "/")
-                dir += "/";
-            return dir.indexOf("://") < 0 ? "file://" + dir : dir;
-        }
-    }
-    return "";
-})();
-
-// The JSON of a file the build wrote into the desktop's site directory
-// ("search.json"); it rejects for a file that is missing or not JSON.
-function siteJson(name) {
-    return readJson(siteRoot + name);
-}
-
-// The JSON of a file at an address on the desktop, by desktop.js's
-// reader, read once that is in.
-function readJson(address) {
-    if (desktop)
-        return desktop.read(address);
-    return new Promise(function (resolve, reject) {
-        early.push(function () {
-            desktop.read(address).then(resolve, reject);
-        });
-    });
-}
-
-// Back or forward one page on the desktop, to where it was left; false
-// where there is none that way (or in a browser, whose own buttons do it).
-function step(by) {
-    return desktop ? desktop.step(by) : false;
-}
-
 // A file named from the site's root ("/favicon.svg"), as the page at
 // `route` reaches it: back up the route's depth, then down. Written so
 // in the HTML the build makes, it stands below any base the site is
 // put at, though the build names the base only once it has written the
 // page.
 function fromPage(route, href) {
-    if (siteRoot !== "")
-        return siteRoot + href.slice(1);
+    if (desk)
+        return desk.root + href.slice(1);
     var depth = String(route).split("/").filter(function (part) { return part !== ""; }).length;
     var up = "";
     for (var i = 0; i < depth; ++i)
@@ -355,14 +285,14 @@ function anchor(address, label, underline, colour) {
     return "<a href=\"" + escape(address) + "\" style=\"text-decoration:" + (underline ? "underline" : "none") + tint + "\">" + escape(label) + "</a>";
 }
 
+// Whether the site runs on the desktop (`mise run site:native`).
+function onDesktop() {
+    return desk !== undefined;
+}
+
 // Whether this is a reader's browser, not the build writing the page:
 // what only a reader's browser can run (a GPU view, wasm) is made in
 // the browser, after the page it hydrates is the page the build wrote.
-// Whether the site runs on the desktop (`mise run site:native`).
-function onDesktop() {
-    return onDesk;
-}
-
 function inBrowser() {
     var agent = globalThis.navigator ? String(globalThis.navigator.userAgent) : "";
     return agent !== "" && agent.indexOf("ljos-web prerender") < 0;
@@ -394,10 +324,8 @@ function canRun(needs) {
 // which keeps the answer). A check that did not arrive refuses nothing.
 var wasm = null;
 function wasmRuns() {
-    if (wasm === null && Qt.platform.os !== "wasm")
-        wasm = Promise.resolve(false);
     if (wasm === null)
-        wasm = import("ljos-web/wasm-check").then(function (check) { return check.wasmWorks(); }, function () { return true; });
+        wasm = desk ? Promise.resolve(false) : import("ljos-web/wasm-check").then(function (check) { return check.wasmWorks(); }, function () { return true; });
     return wasm;
 }
 
@@ -423,7 +351,7 @@ var index = null;
 function searchIndex(base) {
     if (index === null) {
         // On the desktop it is the file the build wrote beside the pages.
-        index = onDesk ? siteJson("search.json") : globalThis.fetch(at(base, "/search.json")).then(function (response) {
+        index = desk ? desk.site("search.json") : globalThis.fetch(at(base, "/search.json")).then(function (response) {
             if (!response.ok)
                 throw new Error("search.json: " + response.status);
             return response.json();

@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { expect, test } from "@playwright/test";
-import { changedIn, demos, listedIn, loaders, pages, picturesOf, projectOf, route, sha256, shippedBy, sourceAt, targetOf, titles } from "../scripts/pro.mjs";
+import { changedIn, demos, listedIn, loaders, nativeLoaders, pages, picturesOf, projectOf, route, sha256, shippedBy, sourceAt, targetOf, titles } from "../scripts/pro.mjs";
 import { execFileSync } from "node:child_process";
 
 const walk = (root, directory = root) =>
@@ -29,11 +29,13 @@ test("a second demo is its entry: its route, title, page, loaders and served fil
   expect(pages(two, " — Ljós").at(-1)).toEqual({ route: "/demos/harbour/", title: "Harbour board — Ljós", description: "Ships coming in.", props: { route: "/demos/harbour/" } });
   expect(sourceAt(second)).toBe("demos/harbour/source");
   const made = loaders(two);
-  // In the browser an import(); on the desktop the file's address, and
-  // the project read as a file.
-  expect(made).toContain('case "harbour": return browser ? import("./HarbourDemo.qml") : fileAt("HarbourDemo");');
-  expect(made).toContain('case "harbour": return browser ? import("./harbour-project.json") : read("harbour-project.json");');
-  for (const demo of demos) expect(made).toContain(`case ${JSON.stringify(demo.name)}: return browser ? import(${JSON.stringify(`./${demo.app}`)}) : fileAt(${JSON.stringify(demo.app.replace(/\.qml$/, ""))});`);
+  expect(made).toContain('case "harbour": return import("./HarbourDemo.qml");');
+  expect(made).toContain('case "harbour": return import("./harbour-project.json");');
+  for (const demo of demos) expect(made).toContain(`case ${JSON.stringify(demo.name)}: return import(${JSON.stringify(`./${demo.app}`)});`);
+  // On the desktop the file's address, and the project read as a file.
+  const native = nativeLoaders(two);
+  expect(native).toContain('case "harbour": return Qt.resolvedUrl("HarbourDemo.qml");');
+  expect(native).toContain('case "harbour": return read("harbour-project.json");');
 });
 
 // pro-later.js is committed, so a checkout that has not been built is
@@ -41,6 +43,7 @@ test("a second demo is its entry: its route, title, page, loaders and served fil
 // writes it again, and this keeps the two the same.
 test("the committed loaders are the ones the table makes", () => {
   expect(readFileSync(new URL("../bundle/Demos/pro-later.js", import.meta.url), "utf8")).toBe(loaders(demos));
+  expect(readFileSync(new URL("../bundle/Demos/pro-later.native.js", import.meta.url), "utf8")).toBe(nativeLoaders(demos));
 });
 
 test("a demo's editor holds its QML and TypeScript, as the pin names them", () => {

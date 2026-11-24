@@ -3,37 +3,19 @@
 // scripts/pro.mjs); do not edit by hand. Each pro demo's app and its
 // files for the editor, imported when its page asks, so no other page
 // loads them.
-.import "../nav.js" as Nav
-var browser = Qt.platform.os === "wasm";
 
 function app(name) {
     switch (name) {
-        case "cockpit": return browser ? import("./CockpitDemo.qml") : fileAt("CockpitDemo");
-        case "watch": return browser ? import("./WatchDemo.qml") : fileAt("WatchDemo");
+        case "cockpit": return import("./CockpitDemo.qml");
+        case "watch": return import("./WatchDemo.qml");
     }
     throw new Error("no pro demo " + name);
 }
 
 function project(name) {
     switch (name) {
-        case "cockpit": return browser ? import("./cockpit-project.json") : read("cockpit-project.json");
-        case "watch": return browser ? import("./watch-project.json") : read("watch-project.json");
+        case "cockpit": return import("./cockpit-project.json");
+        case "watch": return import("./watch-project.json");
     }
     throw new Error("no pro demo " + name);
-}
-
-// The address of a QML file beside this one, for the desktop, from its
-// name without ".qml". The web compiler makes any QML file's name
-// written out whole into an import of that file, which would put it in
-// the first load of every page that imports this one.
-var QML = ".qml";
-function fileAt(name) { return Qt.resolvedUrl(name + QML); }
-
-// A JSON file beside this one, as import() gives it: { default: value }.
-// Read by the desktop's own reader (nav.js `readJson`), so no browser's
-// first load holds one.
-function read(file) {
-    return Nav.readJson(Qt.resolvedUrl(file)).then(function (value) {
-        return { "default": value };
-    });
 }

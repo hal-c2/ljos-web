@@ -1,4 +1,5 @@
 .pragma library
+.import "../host.js" as Host
 // What the Pantry demo's visitor shell compiles with: the compiler
 // in the page (`ljos-web/compiler`, A15), given the page's own
 // modules, as bundle/live.js gives a code block's. The project a
@@ -37,23 +38,11 @@ function setShell(text) {
 
 // "" where the compiler can run; else the sentence the demo shows
 // instead of compiling (`ljos-web/wasm-check.js`).
-// The address of a QML file beside this one, for the desktop, from its
-// name without ".qml". The web compiler makes any QML file's name
-// written out whole into an import of that file, which would put it in
-// the first load of every page that imports this one.
-var QML = ".qml";
-function fileAt(name) { return Qt.resolvedUrl(name + QML); }
-
-// The Pantry's shell, as the desktop's loader takes it.
-function shellAt() {
-    return fileAt("PantryShell");
-}
-
 async function needsWasm() {
     // The check alone, not the compiler: it is asked as the page is
     // made, and the compiler comes only with the first edit.
-    if (Qt.platform.os !== "wasm")
-        return "Live editing runs in the browser; on the desktop this is the example as it was built.";
+    if (Host.desktop)
+        return Host.desktop.noLive;
     const made = await import("ljos-web/wasm-check");
     return made.wasmWorks() ? "" : made.NEEDS_WASM;
 }

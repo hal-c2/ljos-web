@@ -44,11 +44,6 @@ Rectangle {
     // every anchor, row and list of it, the shell's and the page's.
     LayoutMirroring.enabled: App.layoutDirection === Qt.RightToLeft
     LayoutMirroring.childrenInherit: true
-    // On the desktop the keys nothing else takes come here (back and
-    // forward, `/`): a click on a link gives nothing the focus there.
-    // A browser has its own keys for those, and its focus starts on the
-    // document.
-    focus: Qt.platform.os !== "wasm"
 
     // What a shell is given as `site`: the state, and what it may ask.
     readonly property var router: siteRouter
@@ -69,11 +64,6 @@ Rectangle {
     function measureRenderer() {
         if (main.renderer !== "")
             return;
-        // On the desktop (`mise run site:native`) Ljós draws it all.
-        if (Qt.platform.os !== "wasm") {
-            main.renderer = "Ljós";
-            return;
-        }
         main.renderer = Nav.canRun(["webgl2"]) ? "WebGL2" : "Solid DOM";
         Nav.gpuAdapted().then((ok) => {
             if (ok)
@@ -386,12 +376,6 @@ Rectangle {
         active: main.controlsShown
         source: SiteLater.controlsLook
     }
-    // The desktop's own back, forward and reading (Site/DesktopNav.qml);
-    // none in a browser, which has its own.
-    Loader {
-        active: SiteLater.desktopNav !== ""
-        source: SiteLater.desktopNav
-    }
 
     // Named, never made: this page is built with Qt Quick Controls,
     // so a live block's compiler may be given them (A15).
@@ -401,14 +385,6 @@ Rectangle {
 
     Keys.onEscapePressed: main.menuOpen = false
     Keys.onPressed: (event) => {
-        // Back and forward on the desktop, which has no browser to do it
-        // (nav.js `step`); in a browser the browser's own keys do.
-        var by = event.key === Qt.Key_Back || (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier)) ? -1
-            : event.key === Qt.Key_Forward || (event.key === Qt.Key_Right && (event.modifiers & Qt.AltModifier)) ? 1 : 0;
-        if (by !== 0 && Nav.step(by)) {
-            event.accepted = true;
-            return;
-        }
         if (event.text === "/" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
             main.find();
             event.accepted = true;
@@ -747,8 +723,9 @@ Rectangle {
     // written in, is given the site here; the others come when first
     // picked (Shells/later.js) and, as a shell the reader wrote, are
     // given it once they are in.
-    // Ljós on the desktop takes a shell by its address alone.
-    readonly property var elegant: Qt.platform.os === "wasm" ? elegantShell : Qt.resolvedUrl("Shells/Elegant.qml")
+    // The shell every page is written in, as the loader takes it
+    // (Native.qml gives it by its address).
+    property var elegant: elegantShell
     Component {
         id: elegantShell
         Elegant {

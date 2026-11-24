@@ -6,6 +6,7 @@
 // waiting on Ljós itself.
 //
 //   node native-check.mjs <ljos> <bundle dir> <site dir> <scratch dir>
+// The bundle dir is the desktop's copy (mise-tasks/site/native).
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, openSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -48,7 +49,7 @@ const logPath = join(scratch, "ljos.log");
 const log = openSync(logPath, "w");
 const app = spawn(
   ljos,
-  ["run", "--headless", "--size", "1280x800", "--mcp=inspect,input", "--mcp-rate", "200", join(bundle, "Main.qml"), "--", `--site=${site}`],
+  ["run", "--headless", "--size", "1280x800", "--mcp=inspect,input", "--mcp-rate", "200", join(bundle, "Native.qml"), "--", `--site=${site}`],
   { cwd: scratch, stdio: ["ignore", log, log], env: { ...process.env, QML_XHR_ALLOW_FILE_READ: "1" } },
 );
 let exited = null;
@@ -148,7 +149,7 @@ try {
     console.log(`site:native: the ${shell} shell is up`);
     current = shell;
   }
-  // The desktop's own back and forward (nav.js `step`): the list is
+  // The desktop's own back and forward (host.native.js `step`): the list is
   // front page, docs, showcase. Docs followed twice is one entry, so
   // Back from it is the showcase; two quick presses after it go back
   // two, to the front page.

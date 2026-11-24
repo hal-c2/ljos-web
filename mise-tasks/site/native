@@ -3,7 +3,7 @@
 #MISE depends=["packages"]
 #USAGE flag "--check" help="Run it off-screen (headless), follow the front page to a docs page and the showcase, and exit non-zero on an error it logs"
 #USAGE flag "--release" help="Build ljos with --release (slower to build, quicker to run)"
-#USAGE arg "[args]..." var=#true help="More arguments for `ljos run`, before the file (such as --watch)"
+#USAGE arg "[args]..." var=#true help="More arguments for `ljos run`, before the file (--watch watches the desktop's copy of the bundle, made again on each run)"
 set -euo pipefail
 
 # The site is written in the dialect Ljós runs, so it runs on Ljós itself:
@@ -68,8 +68,20 @@ site="$target/site-native"
 docs=$(mise-tasks/site/docs)
 (cd site-ljos && LJOS_DOCS_DIR="$docs" LJOS_SITE_NATIVE="$site" node scripts/build.mjs)
 
+# The bundle as the desktop runs it: a copy in which each `X.native.js`
+# stands in the place of `X.js` (bundle/host.js), so what only the
+# desktop does is in no browser's load. Made again on every run, from
+# the bundle as it is now.
+bundle="$target/site-native-bundle"
+rm -rf "$bundle"
+mkdir -p "$bundle"
+tar -C site-ljos/bundle --exclude=./target -cf - . | tar -C "$bundle" -xf -
+while IFS= read -r -d '' file; do
+  mv "$file" "${file%.native.js}.js"
+done < <(find "$bundle" -name '*.native.js' -print0)
+
 if [ "${usage_check:-}" = true ]; then
-  exec node site-ljos/scripts/native-check.mjs "$ljos" "$root/site-ljos/bundle" "$site" "$target/site-native-check"
+  exec node site-ljos/scripts/native-check.mjs "$ljos" "$bundle" "$site" "$target/site-native-check"
 fi
 # What is not this task's own flag goes to `ljos run`.
 pass=()
@@ -79,5 +91,5 @@ for arg in "$@"; do
     *) pass+=("$arg") ;;
   esac
 done
-cd site-ljos/bundle
-QML_XHR_ALLOW_FILE_READ=1 exec "$ljos" run ${pass[@]+"${pass[@]}"} Main.qml -- --site="$site"
+cd "$bundle"
+QML_XHR_ALLOW_FILE_READ=1 exec "$ljos" run ${pass[@]+"${pass[@]}"} Native.qml -- --site="$site"

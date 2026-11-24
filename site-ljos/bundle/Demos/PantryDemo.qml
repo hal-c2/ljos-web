@@ -7,6 +7,7 @@ import Site
 import Demos
 import "pantry-live.js" as LivePantry
 import "../observing.js" as Observing
+import "../host.js" as Host
 
 // The flagship: a small app whose shell the visitor rewrites here.
 // The app is its blocks (Pantry/Basket — what was bought; Pantry/Note
@@ -174,7 +175,7 @@ Column {
                     // Scaled from its top left, it takes width × fit.
                     x: LayoutMirroring.enabled ? parent.width - width * stageBox.fit - startX : startX
                     // Ljós on the desktop takes a shell by its address alone.
-                    fallback: Qt.platform.os === "wasm" ? appShell : LivePantry.shellAt()
+                    fallback: Host.desktop ? Host.desktop.qml("Demos/PantryShell") : appShell
                 }
                 Component {
                     id: appShell
