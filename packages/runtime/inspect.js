@@ -313,9 +313,11 @@ export function inspect(root) {
           // What the press took is where the release goes, as a real one is;
           // but when the press closed what was over the point and left the
           // page there, the release stays with the pressed element, so a
-          // driven click never lands outside the root.
+          // driven click never lands outside the root. A pressed element
+          // the press took off the page could not pass the release on to
+          // the runtime, which would hold the press; the root takes it then.
           const hit = document.elementFromPoint(clientX, clientY);
-          const up = ours(hit) ? hit : element;
+          const up = ours(hit) ? hit : element.isConnected ? element : item.$node;
           up.dispatchEvent(new PointerEvent("pointerup", released));
           up.dispatchEvent(new MouseEvent("mouseup", released));
           up.dispatchEvent(new MouseEvent("click", released));

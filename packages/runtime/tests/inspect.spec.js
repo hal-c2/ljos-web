@@ -178,6 +178,11 @@ test("a click whose press closes a popup releases on what it pressed, never on t
   await expect.poll(() => ask(page, () => window.inspector.read("closer", ["visible"]).visible)).toBe(false);
   expect(await hitAt(), "the page's part is under the point once the popup is closed").toBe(true);
   expect(await ask(page, () => document.getElementById("beneath").dataset.clicks)).toBe("0");
+  // The press it took is let go of too: the next click is pressed and
+  // counted, not passed over as a press still held.
+  const before = await ask(page, () => window.inspector.read("hit", ["hits"]).hits);
+  expect(await ask(page, () => window.inspect(window.inspector.find("app")).click({ at: [20, 180] }))).toEqual({ at: [20, 180] });
+  await expect.poll(() => ask(page, () => window.inspector.read("hit", ["hits"]).hits)).toBe(before + 1);
 });
 
 test("the outline is the object tree: types, ids, objectNames, children in order", async ({ page }) => {
