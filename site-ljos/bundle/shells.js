@@ -147,8 +147,12 @@ function made(file, text) {
         compiler = made[0].createCompiler({ modules: modules });
         return compiler;
     });
-    return compile.then(function (run) {
-        var files = {};
+    // The scripts a shell imports (Shells/logic) come with the shells'
+    // sources, which the editor that asks for this has already fetched.
+    var scripts = catalog ? catalog.then(function (all) { return all.scripts || {}; }, function () { return {}; }) : Promise.resolve({});
+    return Promise.all([compile, scripts]).then(function (both) {
+        var run = both[0];
+        var files = Object.assign({}, both[1]);
         files[file] = text;
         return run.compile({ files: files, entry: file });
     });

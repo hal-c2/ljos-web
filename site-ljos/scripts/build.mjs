@@ -952,6 +952,13 @@ writeFileSync(
     `${JSON.stringify({
       shells: Object.fromEntries(["Elegant", "Cyberpunk", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
       pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
+      // The typed scripts the shells import (Shells/logic), by their file:
+      // a reader's edit of a shell is compiled with them beside it.
+      scripts: Object.fromEntries(
+        readdirSync(join(bundle, "Shells/logic"))
+          .filter((name) => /\.(ts|js)$/.test(name))
+          .map((name) => [`Shells/logic/${name}`, readFileSync(join(bundle, "Shells/logic", name), "utf8")]),
+      ),
     })}\n`,
   );
 }
