@@ -37,6 +37,18 @@ function setShell(text) {
 
 // "" where the compiler can run; else the sentence the demo shows
 // instead of compiling (`ljos-web/wasm-check.js`).
+// The address of a QML file beside this one, for the desktop, from its
+// name without ".qml". The web compiler makes any QML file's name
+// written out whole into an import of that file, which would put it in
+// the first load of every page that imports this one.
+var QML = ".qml";
+function fileAt(name) { return Qt.resolvedUrl(name + QML); }
+
+// The Pantry's shell, as the desktop's loader takes it.
+function shellAt() {
+    return fileAt("PantryShell");
+}
+
 async function needsWasm() {
     // The check alone, not the compiler: it is asked as the page is
     // made, and the compiler comes only with the first edit.
