@@ -25,6 +25,7 @@ import {
 } from "./font.ts";
 import { Item } from "./Item.js";
 import { LeftButton } from "./keycodes.ts";
+import { rightToLeft, uiLanguage } from "../QtQml/uiLanguage.ts";
 import { alignment } from "./LayoutMirroring.ts";
 import { CancelGrabExclusive, receive } from "./pointer.js";
 import { arrive, clothe, elements, mightBeRichText, survey } from "./richtext.js";
@@ -334,6 +335,23 @@ function shadow(style, color) {
 
 const ALIGNS = { 1: "left", 2: "right", 4: "center", 8: "justify" };
 
+// The letters written from right to left: Hebrew, Arabic, Syriac, Thaana,
+// N'Ko and their presentation forms.
+const FROM_RIGHT = "\\u0590-\\u08FF\\uFB1D-\\uFDFF\\uFE70-\\uFEFF";
+const RIGHT_LETTER = new RegExp(`[${FROM_RIGHT}]`, "u");
+const LEFT_LETTER = new RegExp(`(?![${FROM_RIGHT}])\\p{L}`, "u");
+
+// The way a text runs. One with letters of the UI language's direction is
+// the UI's own (a translation, which may start with a name: "Ljós هي…"),
+// and runs the UI's way; one with none runs the way it starts, as Qt sets
+// a text from its content, so an English name keeps its full stop on the
+// right on a right-to-left page.
+function direction(text) {
+  const fromRight = rightToLeft(uiLanguage());
+  if (!(fromRight ? RIGHT_LETTER : LEFT_LETTER).test(text)) return "auto";
+  return fromRight ? "rtl" : "ltr";
+}
+
 // Plain text, with the letters at `marks` underlined: a label's mnemonics.
 function write(content, text, marks) {
   if (!marks) {
@@ -520,9 +538,7 @@ export const Text = defineType("Text", Item, {
   setup(self) {
     const content = document.createElement("div");
     content.className = "qq-text";
-    // A text runs the way what it says is written, as Qt sets a text from
-    // its content, not the way the page around it does: an English name
-    // keeps its full stop on the right on a right-to-left page.
+    // Until its text is in (see `direction`).
     content.dir = "auto";
     self.$node.append(content);
     self.$markup = content;
@@ -622,11 +638,13 @@ export const Text = defineType("Text", Item, {
           color: css(self.color),
           link: css(self.linkColor),
           shadow: shadow(self.style, css(self.styleColor)),
+          dir: direction(made.kind ? self.text.replace(/<[^>]*>/gu, "") : self.text),
         };
       },
       (next) => {
         const { made } = next;
         const style = content.style;
+        if (content.dir !== next.dir) content.dir = next.dir;
         if (made.kind) {
           if (shown.kind !== made.kind || shown.text !== made.text || shown.inert !== made.inert) {
             const fresh = elements(made.text);

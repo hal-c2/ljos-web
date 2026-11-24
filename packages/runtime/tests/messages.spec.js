@@ -492,10 +492,14 @@ test.describe("a site in many languages", () => {
     ]);
   });
 
-  test("a text runs the way it is written, whichever way the page runs", async ({ page }) => {
+  // A text with letters of the UI's direction is the UI's own and runs its
+  // way, though it starts with a name written the other way; one with
+  // none runs the way it is written.
+  test("a text runs the way it is written, or the UI's way where it is the UI's", async ({ page }) => {
     await shown(page, {
-      "Main.qml": 'import QtQuick\nColumn {\n  Text { text: "Katrín S." }\n  Text { text: "ملف واحد." }\n}\n',
+      "Main.qml": 'import QtQuick\nColumn {\n  Text { text: "Katrín S." }\n  Text { text: "ملف واحد." }\n  Text { text: "Ljós هي حزمة." }\n}\n',
     });
+    await language(page, "ar");
     await page.evaluate(() => (document.documentElement.dir = "rtl"));
     // Where the text's last letter is set against its first: right of it
     // in a text read from the left, left of it in one read from the right.
@@ -512,6 +516,11 @@ test.describe("a site in many languages", () => {
         return Math.sign(at(wanted.length - 1) - at(0));
       }, text);
     expect(await ends("Katrín S.")).toBe(1);
+    expect(await ends("ملف واحد.")).toBe(-1);
+    expect(await ends("Ljós هي حزمة.")).toBe(-1);
+    await language(page, "en");
+    await page.evaluate(() => (document.documentElement.dir = "ltr"));
+    expect(await ends("Ljós هي حزمة.")).toBe(1);
     expect(await ends("ملف واحد.")).toBe(-1);
   });
 
