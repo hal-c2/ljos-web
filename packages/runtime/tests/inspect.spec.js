@@ -125,6 +125,27 @@ test("a click asked of a root closes its own popups, never one the page has open
   await expect.poll(shown).toBe("false/false");
 });
 
+// What the page draws over the root itself, taking no press of the
+// runtime's, is not the root's: a click asked of the root there presses
+// nothing. A popup of the root's, whose content takes no press either,
+// is the root's own.
+test("a click asked of a root never goes to what the page draws over it", async ({ page }) => {
+  await opened(page, "inspectdriven");
+  await ask(page, () => window.inspector.find("own").open());
+  await expect.poll(() => ask(page, () => window.inspector.read("own", ["visible"]).visible)).toBe(true);
+  expect(await ask(page, () => window.inspect(window.inspector.find("app")).click({ at: [30, 30] }))).toEqual({ at: [30, 30] });
+  expect(await ask(page, () => window.inspector.read("hit", ["hits"]))).toEqual({ hits: 0 });
+  await ask(page, () => {
+    const box = window.inspector.find("app").$node.getBoundingClientRect();
+    const cover = document.createElement("div");
+    Object.assign(cover.style, { position: "fixed", left: `${box.left + 100}px`, top: `${box.top + 100}px`, width: "80px", height: "80px", zIndex: "99999", background: "red" });
+    document.body.append(cover);
+  });
+  const clicked = await ask(page, () => window.inspect(window.inspector.find("app")).click({ at: [150, 150] }));
+  expect(clicked.error).toBe("not_actionable");
+  expect(await ask(page, () => window.inspector.read("hit", ["hits"]))).toEqual({ hits: 0 });
+});
+
 test("the outline is the object tree: types, ids, objectNames, children in order", async ({ page }) => {
   await opened(page, "inspected");
   // What qml6 lists as the root's `data`: the Timer first, then the

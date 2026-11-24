@@ -209,15 +209,23 @@ export function inspect(root) {
   // holds the root in may stand over it (a menu the reader opened, the
   // root being a part of a page), and a click asked of the root never goes
   // to that. The item that takes the press decides; its parents are walked
-  // as a popup's item is, through the popup to what it is in.
+  // as a popup's item is, through the popup to what it is in. What takes
+  // no press (a popup's plain content, or what the page draws itself) is
+  // the root's only where it stands in one of the root's popups.
+  const popupsOf = (object, found = []) => {
+    for (const child of below(object)) {
+      if (child.$item?.$node) found.push(child);
+      popupsOf(child, found);
+    }
+    return found;
+  };
   const ours = (element) => {
     if (item.$node.contains(element)) return true;
     for (let at = element; at; at = at.parentElement) {
       const taker = receiverOf(at);
-      if (!taker) continue;
-      return inRoot(taker, item);
+      if (taker) return inRoot(taker, item);
     }
-    return true;
+    return popupsOf(item).some((popup) => popup.$item.$node.contains(element));
   };
   const toPage = ({ box, scale }, [x, y]) => [box.left + x * scale, box.top + y * scale];
 
