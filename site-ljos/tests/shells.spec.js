@@ -1710,7 +1710,8 @@ test("a reader who comes back to Cyberpunk sees it glitch in, unless they asked 
   const context = await reader(browser, { kept: "cyberpunk" });
   try {
     const page = await context.newPage();
-    await open(page, "/");
+    // How a kept Cyberpunk comes in is what is tested: a late page fails.
+    await open(page, "/", { arrival: true });
     const entry = await page.evaluate(() => getComputedStyle(document.getElementById("app")).animationName);
     expect(entry).toContain("ljos-glitch");
     await page.emulateMedia({ reducedMotion: "reduce" });
