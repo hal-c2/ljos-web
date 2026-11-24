@@ -220,6 +220,44 @@ jobs:
           path: packages/runtime/QtQuick3D/wgpu/
           if-no-files-found: error
           retention-days: 1
+  # ljos.dev on Ljós on the desktop (mise run site:native --check): the
+  # same bundle, its pages read from files, run off-screen through the
+  # front page, a docs page and the showcase, failing on an error it
+  # logs. Its ljos is built from ljos-ui at site/ljos-ui.sha and kept by
+  # that commit, so it is built again only when the pin moves.
+  site-native:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          rust: "true"
+          docs: "true"
+      # What ljos-ui's own CI gives a ljos: a software Vulkan to draw
+      # off-screen with, and the libraries its fonts and sound link to.
+      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers libfontconfig1-dev libasound2-dev pkg-config
+      - id: pin
+        run: echo "sha=$(tr -d '[:space:]' < site/ljos-ui.sha)" >> "$GITHUB_OUTPUT"
+      - id: ljos
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/ljos-ui/debug/ljos
+          key: site-native-ljos-${{ steps.pin.outputs.sha }}
+      - if: steps.ljos.outputs.cache-hit == 'true'
+        run: echo "LJOS_BIN=$GITHUB_WORKSPACE/target/ljos-ui/debug/ljos" >> "$GITHUB_ENV"
+      - run: mise run site:native --check
+      - if: steps.ljos.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/ljos-ui/debug/ljos
+          key: ${{ steps.ljos.outputs.cache-primary-key }}
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-native-log
+          path: target/site-native-check/ljos.log
+          if-no-files-found: ignore
+          retention-days: 7
   # The same site as Ljós pages, beside the Astro one: built and held
   # to parity with it, and what Pages deploys (the Astro site/dist is
   # the reference, never deployed). Its blocks are its own, not the
