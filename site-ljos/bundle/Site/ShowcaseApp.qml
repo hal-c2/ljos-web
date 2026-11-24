@@ -311,7 +311,14 @@ Column {
         ShowcaseEngine {
             required property var modelData
             width: app.width
-            engine: modelData
+            heading: modelData.heading
+            line: modelData.line
+            label: modelData.label
+            href: modelData.href
+            about: modelData.example.about
+            path: modelData.example.path
+            snippets: modelData.example.snippets
+            capture: modelData.example.capture
             route: app.route
             wide: app.wide
             scroller: app.scroller

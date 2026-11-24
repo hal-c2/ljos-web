@@ -4,19 +4,28 @@ import Ljos.Core
 import Site
 
 // The engine an app is built on, as its entry in Showcase/products.json
-// names it: a line that says so and links to it, then the engine in its
-// own words. Those are lines of one of its examples, cut by the build
-// from a copy of the file at the commit the entry names, each linked to
-// those lines there; beside them, that example running, drawn off-screen.
+// names it (ShowcaseApp hands its fields in): a line that says so and
+// links to it, then the engine in its own words. Those are lines of one
+// of its examples, cut by the build from a copy of the file at the
+// commit the entry names, each linked to those lines there; beside
+// them, that example running, drawn off-screen.
 Column {
     id: section
 
-    required property var engine
+    required property string heading
+    required property string line
+    required property string label
+    required property string href
+    // The example: what it is, its file, and the snippets cut from it
+    // ({ says, code, rich, link, href } each) and its capture, as
+    // ShowcaseCapture reads one.
+    required property string about
+    required property string path
+    required property unknown snippets
+    required property unknown capture
     property string route: "/showcase/"
     property bool wide: true
-    property var scroller: null
-
-    readonly property var example: section.engine.example
+    property Flickable scroller
 
     spacing: Theme.l
 
@@ -26,7 +35,7 @@ Column {
 
         Text {
             width: parent.width
-            text: section.engine.heading
+            text: section.heading
             color: Theme.text
             font.family: Theme.sans
             font.size: Theme.titleSize
@@ -39,7 +48,7 @@ Column {
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
-            text: section.engine.line
+            text: section.line
             color: Theme.text
             font.family: Theme.sans
             font.size: Theme.bodySize + 1
@@ -49,12 +58,12 @@ Column {
         }
     }
     LinkButton {
-        label: section.engine.label
-        href: section.engine.href
+        label: section.label
+        href: section.href
     }
     Text {
         width: Math.min(parent.width, Theme.measure)
-        text: section.example.about
+        text: section.about
         color: Theme.textMuted
         font.family: Theme.sans
         font.size: Theme.bodySize
@@ -78,16 +87,20 @@ Column {
             spacing: Theme.l
 
             Repeater {
-                model: section.example.snippets
+                model: section.snippets
                 Column {
                     id: snippet
-                    required property var modelData
+                    required property string says
+                    required property string code
+                    required property string rich
+                    required property string link
+                    required property string href
                     width: parent.width
                     spacing: Theme.xs
 
                     Text {
                         width: parent.width
-                        text: snippet.modelData.says
+                        text: snippet.says
                         color: Theme.text
                         font.family: Theme.sans
                         font.size: Theme.bodySize
@@ -99,21 +112,21 @@ Column {
                         width: parent.width
                         scroller: section.scroller
                         lang: "qml"
-                        file: section.example.path
-                        code: snippet.modelData.code
-                        rich: snippet.modelData.rich
+                        file: section.path
+                        code: snippet.code
+                        rich: snippet.rich
                     }
                     LinkButton {
                         quiet: true
-                        label: snippet.modelData.link
-                        href: snippet.modelData.href
+                        label: snippet.link
+                        href: snippet.href
                     }
                 }
             }
         }
         ShowcaseCapture {
             width: pair.side
-            capture: section.example.capture
+            capture: section.capture
             route: section.route
         }
     }
