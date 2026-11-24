@@ -26,6 +26,7 @@ Footer 1.0 Footer.qml
 LinkButton 1.0 LinkButton.qml
 MotionToggle 1.0 MotionToggle.qml
 FeatureCard 1.0 FeatureCard.qml
+BuiltWith 1.0 BuiltWith.qml
 Runner 1.0 Runner.qml
 StageButton 1.0 StageButton.qml
 ObserverButton 1.0 ObserverButton.qml
