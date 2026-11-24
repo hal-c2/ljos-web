@@ -59,6 +59,6 @@ Object {
     // The edit of board.ts from one module's file to the other's, as a
     // diff's lines: what was taken out, then what was put in.
     function editText(from: string, to: string): string {
-        return DispatchSource[from].said.map((line: string) => "- " + line).concat(DispatchSource[to].said.map((line: string) => "+ " + line)).join("\n");
+        return DispatchBuilt.boards[from].said.map((line: string) => "- " + line).concat(DispatchBuilt.boards[to].said.map((line: string) => "+ " + line)).join("\n");
     }
 }

@@ -50,7 +50,7 @@ Column {
     }
 
     Repeater {
-        model: ShowcaseApps.apps
+        model: Built.apps
         ShowcaseApp {
             required property unknown modelData
             product: modelData

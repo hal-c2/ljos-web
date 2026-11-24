@@ -126,7 +126,7 @@ Item {
         Text {
             width: parent.width
             format: card.href !== "" ? Text.RichText : Text.PlainText
-            text: card.href !== "" ? Nav.anchor(Nav.at(Content.base, card.href), card.title, area.containsMouse) : card.title
+            text: card.href !== "" ? Nav.anchor(Nav.at(Built.base, card.href), card.title, area.containsMouse) : card.title
             color: card.href !== "" ? Theme.link : Theme.onCanvasStrong
             linkColor: color
             font.family: Theme.sans
@@ -144,7 +144,7 @@ Item {
         Text {
             width: parent.width
             format: Text.RichText
-            text: Nav.linked(Content.base, card.body)
+            text: Nav.linked(Built.base, card.body)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans
