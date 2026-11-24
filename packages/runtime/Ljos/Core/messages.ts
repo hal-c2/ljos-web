@@ -692,6 +692,80 @@ function lookup(message: string, context: string, key: string, values: Map<strin
 }
 
 // ---------------------------------------------------------------------------
+// A catalogue held to its messages, as a translator's work is checked.
+
+/**
+ * What is wrong with a catalogue's translations, read as they will be
+ * shown: each that does not parse, names a value its message does not
+ * have or leaves one out, has a choice's forms other than the message's,
+ * or a count whose forms are not the language's plural categories (all of
+ * them, and no others; a number form such as `=0` is always allowed). A
+ * message with an id rather than its text is checked for parsing only.
+ * Each problem is a line: the file and line, the message, and why.
+ */
+export function checkCatalog(catalog: Catalog | string, file?: string): string[] {
+  const read = typeof catalog === "string" ? readPo(catalog, file) : catalog;
+  const language = canonical(read.language);
+  const problems: string[] = [];
+  const categories = (ordinal: boolean): Set<string> =>
+    new Set(new Intl.PluralRules(language, { type: ordinal ? "ordinal" : "cardinal" }).resolvedOptions().pluralCategories);
+  const choices = (parts: Part[], out = new Map<string, Part[]>()): Map<string, Part[]> => {
+    for (const part of parts) {
+      if (part.kind !== "plural" && part.kind !== "select") continue;
+      out.set(`${part.kind}:${part.arg}`, [...(out.get(`${part.kind}:${part.arg}`) ?? []), part]);
+      for (const [, form] of part.forms) choices(form, out);
+    }
+    return out;
+  };
+  for (const [at, entry] of read.messages) {
+    const key = at.slice(at.indexOf("\u0004") + 1);
+    const where = `${read.file ?? read.language}:${entry.line}: ${JSON.stringify(key)}`;
+    let translated: Message;
+    try {
+      translated = Message.parse(entry.translation);
+    } catch (error) {
+      problems.push(`${where}: the translation does not parse: ${reason(error)}`);
+      continue;
+    }
+    let message: Message | undefined;
+    try {
+      message = Message.parse(key);
+    } catch {
+      message = undefined;
+    }
+    for (const [, parts] of choices(translated.parts)) {
+      for (const part of parts) {
+        if (part.kind !== "plural") continue;
+        const wanted = categories(part.ordinal);
+        const given = new Set<string>(part.forms.flatMap(([selector]) => ("category" in selector ? [selector.category] : [])));
+        const missing = [...wanted].filter((c) => !given.has(c));
+        const extra = [...given].filter((c) => !wanted.has(c));
+        if (missing.length) problems.push(`${where}: the count {${part.arg}} needs the form(s) ${missing.join(", ")} in ${language}`);
+        if (extra.length) problems.push(`${where}: the count {${part.arg}} has the form(s) ${extra.join(", ")}, which ${language} does not use`);
+      }
+    }
+    if (!message || key === entry.translation) continue;
+    const names = message.names();
+    const named = translated.names();
+    const unknown = [...named].filter((name) => !names.has(name));
+    const dropped = [...names].filter((name) => !named.has(name));
+    if (unknown.length) problems.push(`${where}: the translation names ${unknown.map((n) => `{${n}}`).join(", ")}, which the message does not have`);
+    if (dropped.length) problems.push(`${where}: the translation leaves out ${dropped.map((n) => `{${n}}`).join(", ")}`);
+    const own = choices(message.parts);
+    for (const [name, parts] of choices(translated.parts)) {
+      if (!name.startsWith("select:")) continue;
+      const keys = new Set((own.get(name) ?? []).flatMap((part) => (part.kind === "select" ? part.forms.map(([k]) => k) : [])));
+      for (const part of parts) {
+        if (part.kind !== "select") continue;
+        const other = part.forms.map(([k]) => k).filter((k) => !keys.has(k));
+        if (other.length) problems.push(`${where}: the choice {${part.arg}} has the form(s) ${other.join(", ")}, which the message does not`);
+      }
+    }
+  }
+  return problems;
+}
+
+// ---------------------------------------------------------------------------
 // What the UI language's catalogues do not have.
 
 /** A message shown as written because the UI language's catalogues have no translation of it. */
@@ -781,10 +855,11 @@ export function loadCatalogs(language: string = Qt.uiLanguage): Promise<void> {
 
 /**
  * Names where each language's catalogue is, so that none is fetched until
- * the UI language needs it: setting `App.language` fetches the new
+ * it is asked for: setting `App.language` afterwards fetches the new
  * language's (a message is shown as written until it is in, then again in
  * the language), and {@link loadCatalogs} fetches one before it is set, so
- * the page changes language at once.
+ * the page changes language at once. The UI language already set is not
+ * fetched for until one of the two asks.
  *
  * ```js
  * catalogSources({ is: "i18n/is.po", "pt-BR": "i18n/pt-BR.po" });
@@ -796,7 +871,6 @@ export function catalogSources(sources: Readonly<Record<string, CatalogSource>>)
     sourcesOf.set(canonical(language), { source, file });
   }
   listening ??= onUiLanguage((language) => void loadCatalogs(language));
-  void loadCatalogs();
 }
 
 const valuesOf = (names: string, values: readonly unknown[]): Map<string, Value> => {

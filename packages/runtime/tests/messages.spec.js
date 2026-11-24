@@ -466,6 +466,55 @@ test.describe("a site in many languages", () => {
     expect(await read(page, "open")).toBe("Open");
   });
 
+  test("a catalogue is checked against its messages with the parser that reads it", async ({ page }) => {
+    await shown(page, { "Main.qml": "import QtQuick\nItem {}\n" });
+    const po = (language, entries) =>
+      `msgid ""\nmsgstr ""\n"Language: ${language}\\n"\n` + entries.map(([id, str]) => `\nmsgid ${JSON.stringify(id)}\nmsgstr ${JSON.stringify(str)}\n`).join("");
+    const check = (text, file) => page.evaluate(([t, f]) => window.messages.checkCatalog(t, f), [text, file]);
+    const files = "{0, plural, one {# file} other {# files}}";
+    expect(await check(po("ru", [[files, "{0, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"], ["Hi {name}", "Привет, {name}"]]), "ru.po")).toEqual([]);
+    const problems = await check(
+      po("ru", [
+        [files, "{0, plural, one {# файл} other {# файлов}}"],
+        ["Hi {name}", "Привет, {nom}"],
+        ["Open {0}", "Открыть {0"],
+      ]),
+      "ru.po",
+    );
+    expect(problems).toEqual([
+      expect.stringMatching(/^ru\.po:\d+: .*: the count \{0\} needs the form\(s\) few, many in ru$/u),
+      expect.stringMatching(/^ru\.po:\d+: "Hi \{name\}": the translation names \{nom\}, which the message does not have$/u),
+      expect.stringMatching(/^ru\.po:\d+: "Hi \{name\}": the translation leaves out \{name\}$/u),
+      expect.stringMatching(/^ru\.po:\d+: "Open \{0\}": the translation does not parse: /u),
+    ]);
+    expect(await check(po("ja", [[files, "{0, plural, one {# ファイル} other {# ファイル}}"]]), "ja.po")).toEqual([
+      expect.stringMatching(/the count \{0\} has the form\(s\) one, which ja does not use$/u),
+    ]);
+  });
+
+  test("a text runs the way it is written, whichever way the page runs", async ({ page }) => {
+    await shown(page, {
+      "Main.qml": 'import QtQuick\nColumn {\n  Text { text: "Katrín S." }\n  Text { text: "ملف واحد." }\n}\n',
+    });
+    await page.evaluate(() => (document.documentElement.dir = "rtl"));
+    // Where the text's last letter is set against its first: right of it
+    // in a text read from the left, left of it in one read from the right.
+    const ends = (text) =>
+      page.evaluate((wanted) => {
+        const node = [...document.querySelectorAll(".qq-text")].find((it) => it.textContent === wanted);
+        const at = (n) => {
+          const range = document.createRange();
+          const text = node.firstChild.nodeType === 3 ? node.firstChild : node.querySelector("*").firstChild;
+          range.setStart(text, n);
+          range.setEnd(text, n + 1);
+          return range.getBoundingClientRect().x;
+        };
+        return Math.sign(at(wanted.length - 1) - at(0));
+      }, text);
+    expect(await ends("Katrín S.")).toBe(1);
+    expect(await ends("ملف واحد.")).toBe(-1);
+  });
+
   test("the layout direction follows the UI language", async ({ page }) => {
     await shown(page, { "Main.qml": "import QtQuick\nItem {\n  property int direction: Qt.application.layoutDirection\n}\n" });
     await language(page, "en");

@@ -700,8 +700,11 @@ export function mendOf(made, { again = false } = {}) {
   throw new Error(`the site's files import \`site-*\` back through ${back.map(told).join("; ")}`);
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs, inspect, timings = {} } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs, inspect, timings = {}, languages = {} } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
+  if (languages === null || typeof languages !== "object" || Object.entries(languages).some(([name, value]) => !["source", "key"].includes(name) || typeof value !== "string" || !value)) {
+    throw new SiteError(`languages is { source, key }: the language the bundle is written in and where a reader's pick is kept, not ${JSON.stringify(languages)}`);
+  }
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
     throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
   }
@@ -781,7 +784,22 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     writeFileSync(join(stage, "index.html"), PAGE);
     const sheets = css.map((_, at) => `import "ljos-site:sheet-${at}";\n`).join("");
     // After the runtime's sheet, so a site's rules win over its defaults.
-    writeFileSync(join(stage, "main.js"), (liveShell ? LIVE : prerender ? PRERENDERED : MAIN).replace('import "ljos-site:css";\n', (own) => own + sheets));
+    let main = (liveShell ? LIVE : prerender ? PRERENDERED : MAIN).replace('import "ljos-site:css";\n', (own) => own + sheets);
+    // A bundle's catalogues (`i18n/<language>.po`, as a native project
+    // keeps them), each its own module that the page asks for when its
+    // language is first wanted, so none is in a page's first load.
+    const catalogs = manifest.files.map(({ path }) => /^i18n\/([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*)\.po$/u.exec(path)?.[1]).filter(Boolean).sort();
+    if (catalogs.length) {
+      const source = languages.source ?? "en";
+      if (catalogs.includes(source)) throw new SiteError(`i18n/${source}.po is a catalogue of the language the bundle is written in (languages.source); a source has no translations`);
+      const loaders = catalogs.map((tag) => `    ${JSON.stringify(tag)}: () => import(${JSON.stringify(`${join(dir, "i18n", `${tag}.po`)}?raw`)}).then((it) => it.default),`).join("\n");
+      writeFileSync(
+        join(stage, "languages.js"),
+        `import { startLanguages } from "ljos-site:languages";\n\nexport const startPageLanguages = (after) =>\n  startLanguages({\n    source: ${JSON.stringify(source)},\n    key: ${JSON.stringify(languages.key ?? "ljos-site:language")},\n    after,\n    catalogs: {\n${loaders}\n    },\n  });\n`,
+      );
+      main = `${main.replace('import "ljos-site:css";\n', (own) => `${own}import { startPageLanguages } from "./languages.js";\n`)}${STARTS_LANGUAGES[liveShell ? "live" : prerender ? "prerendered" : "main"]}`;
+    }
+    writeFileSync(join(stage, "main.js"), main);
     // The kernel the page's graph is: Solid's own, or Ljós's compiled
     // to wasm where `LJOS_KERNEL=wasm` (behind the page's WebAssembly
     // check, `kernel/checked.js`), as everywhere else in this
@@ -802,6 +820,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           "ljos-site:css": join(runtime, "style.css"),
           ...Object.fromEntries(css.map((path, at) => [`ljos-site:sheet-${at}`, resolve(path)])),
           "ljos-site:live": join(runtime, "Ljos/Blocks/live.js"),
+          "ljos-site:languages": join(runtime, "site-languages.js"),
           "#kernel": kernel,
         },
         dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
@@ -1121,6 +1140,14 @@ for (const element of (shown ?? app).querySelectorAll("[data-ljos-dark]")) {
 const { hydrated } = hydrate(Entry, shown ?? app, carried ? JSON.parse(carried.textContent) : {});
 if (shown) hydrated.finally(() => app.setAttribute("data-ljos-hydrated", "true"));
 `;
+
+// How each page starts its languages, after what it does already: a
+// prerendered page once it has been taken over, as it was written.
+const STARTS_LANGUAGES = {
+  main: "startPageLanguages();\n",
+  prerendered: "startPageLanguages(hydrated);\n",
+  live: "startPageLanguages();\n",
+};
 
 // What the prerender renders: the entry, made by the runtime's server
 // renderer (one runtime in the bundle, the entry's and the renderer's
