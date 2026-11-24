@@ -10,8 +10,8 @@ import "../nav.js" as Nav
 
 // The front page, read top to bottom: what Ljós is and a replay that
 // shows it, what that means for agents with a live app to drive, a shell
-// the reader changes here, TypeScript and the rest in a card each, a 3D
-// demo, how the project works, and where to go next.
+// the reader changes here, TypeScript and the rest in a card each, a
+// smartwatch in 3D, how the project works, and where to go next.
 // Existing QML is named once, as the way in; the porting page tells
 // that story. The words are the page's; how they stand (the hero beside
 // its live app, the sections on the grid, rising in as they are first
@@ -209,12 +209,14 @@ Column {
             wide: landing.wide
             eyebrow: t`Live in the page`
             title: t`See it run`
-            body: t`Once this 3D scene runs, drag to look around, and scroll or pinch to zoom. The <a href="/demos/">live demos</a> have more, including a car cockpit and a smartwatch you can edit. Each keeps a picture and its description where the browser lacks the WebAssembly or WebGL 2 it needs.`
+            body: t`A smartwatch's software beside the watch in 3D. Once it runs, swipe or tap the face, and drag the watch to turn it. The <a href="/demos/">live demos</a> have more, and the <a href="/demos/watch/">watch's own page</a> lets you edit every file. Where the browser lacks the WebAssembly or WebGL 2 it needs, a picture stands in.`
             onFollowed: (link) => landing.follow(link)
 
-            // The showcase mounts here: a 3D scene to orbit, made once the
-            // reader presses its Run, its picture standing until then — and
-            // for good where the browser cannot run it.
+            // The showcase mounts here: Kestrel, the watch of the demos
+            // page, made once the reader presses its Run, its picture
+            // standing until then, and for good where the browser cannot
+            // run it. Its pictures are the watch page's (Demos/pro.json),
+            // the compact ones where the watch stacks on a narrow page.
             Slot {
                 name: "showcase"
                 delegate: Component {
@@ -222,11 +224,12 @@ Column {
                         width: seeItRun.exampleWidth
                         scroller: landing.scroller
                         needs: "webgl2"
-                        picture: "/pictures/demo-orbit.webp"
-                        pictureDark: "/pictures/demo-orbit-dark.webp"
-                        what: t`the 3D demo`
-                        description: t`A lit 3D scene of shapes on a floor. Drag to turn it.`
-                        source: Later.orbit
+                        aspect: landing.wide ? 640 / 1120 : 992 / 640
+                        picture: landing.wide ? "/pictures/demo-watch.webp" : "/pictures/demo-watch-compact.webp"
+                        pictureDark: landing.wide ? "/pictures/demo-watch-dark.webp" : "/pictures/demo-watch-compact-dark.webp"
+                        what: t`the watch`
+                        description: t`A round smartwatch face with neon rings beside the same watch in 3D, in its case on a linked band, its screen's ring glowing.`
+                        source: Later.watch
                     }
                 }
             }

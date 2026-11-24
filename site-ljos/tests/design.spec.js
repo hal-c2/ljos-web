@@ -320,9 +320,10 @@ for (const [route, demos] of [
           // Its frame's shape, inside the frame's edge: 420 by 720 for a
           // demo framed in the page; a pro demo's own (Demos/pro.json,
           // its compact shape for a -compact picture), on its card with
-          // no edge.
+          // no edge, or framed with one where the front page shows it.
           const pro = proDemos.flatMap(picturesOf).find(({ file }) => file === picture.file);
-          const [tall, wide, edge] = pro ? [pro.height, pro.width, 0] : [420, 720, 2];
+          const [tall, wide] = pro ? [pro.height, pro.width] : [420, 720];
+          const edge = pro && route !== "/" ? 0 : 2;
           expect(Math.abs(picture.height - Math.round(((picture.width + edge) * tall) / wide) + edge), picture.file).toBeLessThanOrEqual(1);
           expect(picture.width, picture.file).toBeGreaterThan(300);
         }
