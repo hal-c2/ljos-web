@@ -4,16 +4,16 @@ import Pantry
 // The shop's layout, yours to edit. Its basket, note and status
 // keep what they hold while you change everything around them.
 Rectangle {
+    id: shell
     objectName: "appShell"
     width: 480
     height: 400
-    color: look.canvas
+    color: Application.styleHints.colorScheme === Qt.ColorScheme.Dark ? "#171a23" : "#f6f4ee"
 
-    // Colours for light and dark.
+    // Colours for a dark background or a light one, whatever you set.
     QtObject {
         id: look
-        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
-        readonly property color canvas: dark ? "#171a23" : "#f6f4ee"
+        readonly property bool dark: shell.color.hslLightness < 0.5
         readonly property color ink1: dark ? "#f0ead8" : "#1b1f2a"
         readonly property color ink2: dark ? "#e8eaf0" : "#1b1f2a"
         readonly property color muted1: dark ? "#9aa3b2" : "#4d5566"
