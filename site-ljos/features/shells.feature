@@ -339,6 +339,16 @@ Feature: The site is shown in a shell the reader picks
     Then "Agent" is chosen and has the focus
     And the right arrow stays on "Agent", and the left arrow walks back to "Source"
 
+  Scenario: Tab goes from the live app's tabs into the panel chosen, and through a console's app first
+    Given a reader on the front page who pressed the live app's "Agent" tab
+    When they press Tab
+    Then the focus is in the "Agent" panel
+    Given a reader in the Cyberpunk shell at a desktop's width
+    When they press the live app's first task
+    Then it changes, so the panels beside the app never take its presses
+    When they Tab to "Next step" in the "Agent MCP stream", then press Shift+Tab and Space
+    Then the live app's last task changes, so the app comes before the agent's calls
+
   Scenario: Elegant lays a wide page out on a wide grid
     When a reader opens the front page at 1440 wide in the Elegant shell
     Then its content is at most 1280 pixels wide, centred
