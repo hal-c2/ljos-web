@@ -106,6 +106,25 @@ test("a click on a root that something else covers there is not actionable, and 
   expect(await part(() => window.inspector.read("under", ["hits"]))).toEqual({ hits: 1 });
 });
 
+// A click asked of that root is the root's alone: a popup of its own
+// closes as a person's press would close it, and a menu the page has open
+// beside it stays open (a person's press there closes both).
+test("a click asked of a root closes its own popups, never one the page has open beside it", async ({ page }) => {
+  await opened(page, "inspectdriven");
+  const shown = () => ask(page, () => window.inspector.read("own", ["visible"]).visible + "/" + window.inspector.read("menu", ["visible"]).visible);
+  const openBoth = () => ask(page, () => (window.inspector.find("own").open(), window.inspector.find("menu").open()));
+  await openBoth();
+  await expect.poll(shown).toBe("true/true");
+  expect(await ask(page, () => window.inspect(window.inspector.find("app")).click({ at: [150, 150] }))).toEqual({ at: [150, 150] });
+  expect(await ask(page, () => window.inspector.read("hit", ["hits"]))).toEqual({ hits: 1 });
+  await expect.poll(shown).toBe("false/true");
+  await openBoth();
+  await expect.poll(shown).toBe("true/true");
+  const box = await ask(page, () => window.inspector.find("app").$node.getBoundingClientRect().toJSON());
+  await page.mouse.click(box.left + 150, box.top + 150);
+  await expect.poll(shown).toBe("false/false");
+});
+
 test("the outline is the object tree: types, ids, objectNames, children in order", async ({ page }) => {
   await opened(page, "inspected");
   // What qml6 lists as the root's `data`: the Timer first, then the

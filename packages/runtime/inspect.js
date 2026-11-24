@@ -13,7 +13,7 @@
 // object of such a file is listed and clicked all the same, with no place.
 import { flush, native } from "./object.ts";
 import { drawn as drawnOf } from "./QtQuick/drawn.ts";
-import { receiverOf } from "./QtQuick/pointer.js";
+import { driving, inRoot, receiverOf } from "./QtQuick/pointer.js";
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says
 // `console.log` is a debug message and `console.error` a critical one.
@@ -215,8 +215,7 @@ export function inspect(root) {
     for (let at = element; at; at = at.parentElement) {
       const taker = receiverOf(at);
       if (!taker) continue;
-      for (let up = taker; up; up = up.parent ?? up.$popup?.parent ?? null) if (up === item) return true;
-      return false;
+      return inRoot(taker, item);
     }
     return true;
   };
@@ -298,15 +297,17 @@ export function inspect(root) {
         const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true };
         const pressed = { ...pointer, button: 0, buttons: 1, detail: 1 };
         const released = { ...pointer, button: 0, buttons: 0, detail: 1 };
-        element.dispatchEvent(new PointerEvent("pointermove", { ...pointer, buttons: 0 }));
-        element.dispatchEvent(new MouseEvent("mousemove", { ...pointer, buttons: 0 }));
-        element.dispatchEvent(new PointerEvent("pointerdown", pressed));
-        element.dispatchEvent(new MouseEvent("mousedown", pressed));
-        // What the press took is where the release goes, as a real one is.
-        const up = document.elementFromPoint(clientX, clientY) ?? element;
-        up.dispatchEvent(new PointerEvent("pointerup", released));
-        up.dispatchEvent(new MouseEvent("mouseup", released));
-        up.dispatchEvent(new MouseEvent("click", released));
+        driving(item, () => {
+          element.dispatchEvent(new PointerEvent("pointermove", { ...pointer, buttons: 0 }));
+          element.dispatchEvent(new MouseEvent("mousemove", { ...pointer, buttons: 0 }));
+          element.dispatchEvent(new PointerEvent("pointerdown", pressed));
+          element.dispatchEvent(new MouseEvent("mousedown", pressed));
+          // What the press took is where the release goes, as a real one is.
+          const up = document.elementFromPoint(clientX, clientY) ?? element;
+          up.dispatchEvent(new PointerEvent("pointerup", released));
+          up.dispatchEvent(new MouseEvent("mouseup", released));
+          up.dispatchEvent(new MouseEvent("click", released));
+        });
         flush();
       } finally {
         back?.();
