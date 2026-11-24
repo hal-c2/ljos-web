@@ -1,9 +1,11 @@
 // The Ljós mark is the user's: interlocking violet and amber panels
 // with a yellow overlap (ljos-ui PR #274, f57084e3, "User decision
-// superseding the dark variants"). The Astro site keeps the party copy
-// in site/src/assets; this site serves the same bytes as its favicon,
-// header and footer mark, and the touch and social pictures drawn from
-// it. Any other mark is a design change that needs the user's word,
+// superseding the dark variants"). The logo is the mark with the script
+// word beside it, the file the READMEs show (ljos-ui docs/brand/ljos.svg,
+// this repository's site/src/assets/ljos.svg). The Astro site keeps the
+// party copies in site/src/assets; this site serves the mark's bytes as
+// its favicon, the logo's in its header and footer, and the touch and
+// social pictures drawn from the mark. Any other mark is a design change that needs the user's word,
 // so these tests fail on one.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -25,6 +27,35 @@ test("the mark is the user's three panels, byte for byte the party copy", () => 
   const mark = readFileSync(join(here, "bundle/assets/ljos-mark.svg"), "utf8");
   expect(mark).toBe(readFileSync(join(party, "src/assets/ljos-mark.svg"), "utf8"));
   expect([...mark.matchAll(/fill="(#[0-9a-f]{6})"/g)].map(([, fill]) => fill)).toEqual([VIOLET, AMBER, YELLOW]);
+});
+
+test("the logo is the README's, byte for byte, with the script word", () => {
+  const logo = readFileSync(join(here, "bundle/assets/ljos.svg"), "utf8");
+  expect(logo).toBe(readFileSync(join(party, "src/assets/ljos.svg"), "utf8"));
+  expect(logo).toContain("Birthstone script wordmark");
+  expect(new Set([...logo.matchAll(/fill="(#[0-9a-f]{6})"/g)].map(([, fill]) => fill))).toEqual(new Set([VIOLET, AMBER, YELLOW]));
+  expect(digest(join(dist, "ljos.svg"))).toBe(digest(join(party, "src/assets/ljos.svg")));
+});
+
+// The header's link home is the logo file itself, served as SVG and
+// drawn at its own shape, never a word set in the page's type beside it.
+test("the header serves the brand SVG", async ({ page }) => {
+  await page.goto(base);
+  const home = page.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true }).first();
+  const logo = home.locator("img");
+  await expect(logo).toHaveCount(1);
+  // The page names it from where it stands; it resolves to the site's one copy.
+  expect(await logo.evaluate((img) => new URL(img.src).pathname)).toBe(`${base}ljos.svg`);
+  const drawn = await logo.evaluate(async (img) => {
+    await img.decode();
+    const box = img.getBoundingClientRect();
+    return { natural: img.naturalWidth > 0, ratio: box.width / box.height };
+  });
+  expect(drawn.natural, "the logo loaded").toBe(true);
+  expect(Math.abs(drawn.ratio - 497.88 / 222.4), `its shape, ${drawn.ratio}`).toBeLessThan(0.05);
+  expect(await home.innerText(), "no word set beside the logo").toBe("");
+  const served = await page.request.get(`${base}ljos.svg`);
+  expect(served.headers()["content-type"]).toContain("image/svg+xml");
 });
 
 test("the built favicon, touch icon and social picture are the mark's", () => {

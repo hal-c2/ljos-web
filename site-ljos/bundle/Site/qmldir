@@ -37,7 +37,6 @@ GitHubMark 1.0 GitHubMark.qml
 ShellSwitcher 1.0 ShellSwitcher.qml
 ShellSource 1.0 ShellSource.qml
 Brand 1.0 Brand.qml
-Wordmark 1.0 Wordmark.qml
 Toc 1.0 Toc.qml
 PageTree 1.0 PageTree.qml
 PageSource 1.0 PageSource.qml

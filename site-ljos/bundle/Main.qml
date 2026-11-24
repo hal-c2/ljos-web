@@ -472,9 +472,12 @@ Rectangle {
         slot: "site.brand.small"
         delegate: Component {
             // The link's press box; the logo's own file keeps its size.
+            // Desktop's menu bar is 36 high: a 28 px logo leaves it 4 above
+            // and below.
             Brand {
                 route: siteRouter.route
                 height: Theme.target
+                logoHeight: 28
             }
         }
     }

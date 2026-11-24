@@ -2773,9 +2773,11 @@ test("Desktop's toolbar says what each button does, and its status bar what runs
   }
 });
 
-// The logo is the user's: the mark and the word are main's in every
-// shell, whatever that shell's type and colours are (Site/Wordmark.qml).
-const LOGO_FACE = "system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica Neue, Arial, sans-serif";
+// The logo is the user's: the README's file, the panels and the script
+// word, drawn at its own shape in every shell, whatever that shell's
+// type and colours are (Site/Brand.qml). No word in a shell's type
+// stands beside it.
+const LOGO_RATIO = 497.88 / 222.4;
 for (const kept of SHELLS)
   for (const colorScheme of ["light", "dark"])
     for (const viewport of [DESKTOP, PHONE]) {
@@ -2785,54 +2787,23 @@ for (const kept of SHELLS)
           const page = await context.newPage();
           await page.emulateMedia({ colorScheme });
           await open(page, "/");
-          const ink = colorScheme === "dark" ? "rgb(239, 236, 233)" : "rgb(40, 38, 36)";
-          const styled = (word) =>
-            word.evaluate((node) => {
+          const drawn = (img) =>
+            img.evaluate(async (node) => {
+              await node.decode();
+              const box = node.getBoundingClientRect();
               const style = getComputedStyle(node);
-              return {
-                face: style.fontFamily.replaceAll('"', ""),
-                size: style.fontSize,
-                weight: style.fontWeight,
-                spacing: parseFloat(style.letterSpacing) || 0,
-                upper: style.textTransform,
-                ink: style.color,
-              };
+              return { loaded: node.naturalWidth > 0, width: Math.round(box.width), height: Math.round(box.height), filter: style.filter, opacity: style.opacity };
             });
-          const same = { face: LOGO_FACE, spacing: 0, upper: "none", ink };
-          // The mark's size and the space to its word, read in one go: two
-          // reads apart could see the page between two layouts.
-          const apart = async (mark, word) =>
-            page.evaluate(
-              ([mark, word]) => {
-                const a = mark.getBoundingClientRect();
-                const b = word.getBoundingClientRect();
-                return { mark: [Math.round(a.width), Math.round(a.height)], gap: b.left - a.right, at: `mark ${a.left}–${a.right}, word from ${b.left}` };
-              },
-              [await mark.elementHandle(), await word.elementHandle()],
-            );
-
           const home = page.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true }).first();
-          const word = home.getByText("Ljós", { exact: true });
-          expect(await styled(word), "the header's word").toEqual({ ...same, size: "22px", weight: "700" });
-          const logo = await apart(home.locator('img[src$="favicon.svg"]'), word);
-          expect(logo.mark, "the header's mark").toEqual([28, 28]);
-          expect(Math.round(logo.gap), `its gap (${logo.at})`).toBe(8);
-          if (kept === "desktop") {
-            const header = await region(page, "Ljós").first().boundingBox();
-            // The landmark holds the toolbar too: the bar ends where that starts.
-            const under = viewport === DESKTOP ? (await page.getByRole("toolbar", { name: "Toolbar", exact: true }).boundingBox()).y : header.y + header.height;
-            const bar = { y: header.y, height: under - header.y };
-            const link = await home.boundingBox();
-            expect(link.y + 0.5, "the bar holds it, top").toBeGreaterThanOrEqual(bar.y);
-            expect(link.y + link.height - 0.5, "the bar holds it, bottom").toBeLessThanOrEqual(bar.y + bar.height);
-          }
+          expect(await home.innerText(), "the header has no word beside the logo").toBe("");
+          const header = await drawn(home.locator('img[src$="ljos.svg"]'));
+          // Desktop's menu bar is 36 high: its logo is 28. A phone's header, and the others', have 40.
+          const tall = kept === "desktop" && viewport === DESKTOP ? 28 : 40;
+          expect(header, "the header's logo").toEqual({ loaded: true, width: Math.round(tall * LOGO_RATIO), height: tall, filter: "none", opacity: "1" });
 
-          const line = page.getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true }).last();
-          await line.scrollIntoViewIfNeeded();
-          expect(await styled(line), "the footer's line").toEqual({ ...same, size: "16px", weight: "600" });
-          const footer = await apart(page.locator('img[src$="favicon.svg"]').filter({ visible: true }).last(), line);
-          expect(footer.mark, "the footer's mark").toEqual([20, 20]);
-          expect(Math.round(footer.gap), `its gap (${footer.at})`).toBe(8);
+          const footerLogo = page.getByRole("contentinfo").locator('img[src$="ljos.svg"]').filter({ visible: true }).last();
+          await footerLogo.scrollIntoViewIfNeeded();
+          expect(await drawn(footerLogo), "the footer's logo").toEqual({ loaded: true, width: Math.round(32 * LOGO_RATIO), height: 32, filter: "none", opacity: "1" });
         } finally {
           await context.close();
         }

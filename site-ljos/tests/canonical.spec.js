@@ -86,7 +86,7 @@ test(`the sitemap and robots.txt are served below ${base}`, async ({ request }) 
 for (const route of ["/", "/start/", "/demos/"]) {
   test(`${base}${route.slice(1)} keeps its canonical address once it runs`, async ({ page }) => {
     await page.goto(`${base}${route.slice(1)}`);
-    await expect(page.getByText("Ljós", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ljós, home", exact: true }).first()).toBeVisible();
     const head = await page.evaluate(() => ({
       canonical: [...document.querySelectorAll('link[rel="canonical"]')].map((link) => link.getAttribute("href")),
       ogUrl: [...document.querySelectorAll('meta[property="og:url"]')].map((meta) => meta.getAttribute("content")),
