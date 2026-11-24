@@ -93,11 +93,26 @@ function tell() {
 // (`prefetch`) or the page having nothing else to do (`prefetchWhenIdle`).
 var chunk = null;
 var idleAsked = false;
+// The dock it stands in (Site/ObserverDock.qml), a chunk of its own too:
+// reading a page does not need it. It is fetched with the Observer, and
+// the shell makes it once an Observer is first opened.
+var dockChunk = null;
+
+function dockSource() {
+    if (dockChunk === null) {
+        dockChunk = import("./Site/ObserverDock.qml");
+        dockChunk.catch(function () {
+            dockChunk = null;
+        });
+    }
+    return dockChunk;
+}
 
 // Fetches the Observer ahead of the press, so that it opens at once: an
 // Observer button calls it when a pointer comes onto it, focus is brought
 // to it or a finger lands on it.
 function prefetch() {
+    dockSource();
     if (chunk === null) {
         chunk = import("ljos-web/observer/ObserverPanel.qml");
         // One that failed (the network went) is asked for again next time.
