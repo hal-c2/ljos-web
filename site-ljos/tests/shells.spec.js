@@ -2170,7 +2170,7 @@ test("Workbench names the site's files without fetching them", async ({ browser 
     const explorer = explorerOf(page);
     for (const name of ["Elegant.qml", "Cyberpunk.qml", "Workbench.qml", "Desktop.qml"])
       await expect.soft(explorer.getByRole("button", { name, exact: true }), name).toBeVisible();
-    for (const name of ["Landing.qml", "DemosPage.qml"])
+    for (const name of ["Landing.qml", "DemosPage.qml", "ShowcasePage.qml"])
       await expect.soft(explorer.getByRole("link", { name, exact: true }), name).toBeVisible();
     const code = (shell) => scripts.filter((path) => new RegExp(`/${shell}-[^/]+\\.js$`).test(path));
     expect(code("Workbench"), "Workbench's own code, so the pattern finds a shell's").not.toEqual([]);
@@ -2247,6 +2247,10 @@ test("Desktop's menus do what they say", async ({ browser }) => {
     await menu(page, "File", "Open demos");
     await expect(shownPage(page, "Live demos")).toBeVisible();
     await expect(page.getByText("Ljós — Demos", { exact: true })).toBeVisible();
+
+    await menu(page, "File", "Open showcase");
+    await expect(page.getByRole("heading", { name: "Built with Ljós", exact: true }).filter({ visible: true }), "the showcase").toBeVisible();
+    await expect(page.getByText("Ljós — Showcase", { exact: true })).toBeVisible();
 
     await menu(page, "View", "Dark colour scheme");
     await expect.poll(() => page.evaluate(() => document.documentElement.style.colorScheme), { message: "the site is dark" }).toBe("dark");
