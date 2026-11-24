@@ -929,22 +929,30 @@ test("the landing's showcase demo stands in its slot", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-  // The landing's showcase is made once the reader presses its Run:
-  // its scene where the browser can draw it, its picture where it
-  // cannot, and its picture, with the button on it, until then.
+  // The landing's showcase is the watch, made once the reader presses
+  // its Run: drawn where the browser can draw it, its picture where it
+  // cannot, and its picture, with the button under it, until then.
   const run = shown(page.getByText("See it run", { exact: true }));
   await run.scrollIntoViewIfNeeded();
   // Its slot is in the section the heading names: beside the words on a
   // wide page, so level with them, and under them on a phone.
   const section = shown(page.getByRole("region", { name: "See it run", exact: true }));
-  const stands = shown(section.locator('canvas, img[src$="demo-orbit.webp"]')).first();
-  await expect(stands).toBeVisible({ timeout: 30_000 });
+  const picture = shown(section.locator('img[src*="pictures/demo-watch"]')).first();
+  await expect(picture, "the watch's picture stands in the slot before Run").toBeVisible({ timeout: 30_000 });
+  const stands = shown(section.locator('canvas, img[src*="pictures/demo-watch"]')).first();
   // Asked as the page asks (Nav.canRun "webgl2"), not by what stands:
   // the picture stands before the frame may run as well as after.
   const runs = await page.evaluate(() => typeof WebGL2RenderingContext === "function" && typeof OffscreenCanvas === "function");
-  if (runs) await runDemo(page, "Run the 3D demo");
-  else await expect(page.getByRole("button", { name: "Run the 3D demo" }), "where it cannot run, there is no Run").toHaveCount(0);
-  await expect(stands, "Orbit stands in its slot").toBeVisible({ timeout: 30_000 });
+  if (runs) await runDemo(page, "Run the watch");
+  else await expect(page.getByRole("button", { name: "Run the watch" }), "where it cannot run, there is no Run").toHaveCount(0);
+  await expect(stands, "the watch stands in its slot").toBeVisible({ timeout: 30_000 });
+  // Made, it is the watch: its software's keys, and its view in 3D.
+  if (runs) {
+    await expect(section.getByRole("button", { name: "Side button" }), "the watch's software runs in the slot").toBeVisible({ timeout: 30_000 });
+    // Its first frames may be the JS renderer's, handing over to wgpu's
+    // canvas: for that moment there are two.
+    await expect(section.locator("canvas.qq-view3d").first(), "the watch in 3D stands beside it").toBeVisible({ timeout: 30_000 });
+  }
 });
 
 // A page of its own, apart from the landing. Each demo is paused once

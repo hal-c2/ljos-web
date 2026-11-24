@@ -1,4 +1,5 @@
-// The watch and the cockpit draw their models in 3D where WebGPU is not
+// The watch (on its page and on the front page's "See it run") and the
+// cockpit draw their models in 3D where WebGPU is not
 // to be had: off in the browser, or offered with no adapter for the
 // page. Their View3D is on the wgpu renderer there too, on its WebGL 2
 // backend, which reads the glTF files their case, band and car are, where
@@ -31,17 +32,20 @@ const WAYS = [
   },
 ];
 
+// The watch turns while it runs: paused, it holds still to be read.
+const pauseWatch = async (page) => {
+  await page.getByRole("button", { name: "Pause the watch" }).click();
+  await expect(page.getByRole("button", { name: "Resume the watch" })).toBeVisible();
+};
+
+// Each demo by its name, where it stands and what its Run calls it.
 const DEMOS = [
-  {
-    name: "watch",
-    // The watch turns while it runs: paused, it holds still to be read.
-    open: async (page) => {
-      await page.getByRole("button", { name: "Pause the watch" }).click();
-      await expect(page.getByRole("button", { name: "Resume the watch" })).toBeVisible();
-    },
-  },
+  { name: "watch", route: "/demos/watch/", what: "the watch", open: pauseWatch },
+  { name: "watch on the front page", route: "/", what: "the watch", open: pauseWatch },
   {
     name: "cockpit",
+    route: "/demos/cockpit/",
+    what: "the cockpit",
     open: async (page) => {
       const car = page.getByRole("button", { name: "Car", exact: true });
       await car.click();
@@ -136,16 +140,16 @@ async function drawn(playwright, baseURL, testInfo, demo, { name, args, init, qu
     page = await context.newPage();
     page.on("console", (message) => said.push(`${message.type()}: ${message.text()}`));
     page.on("pageerror", (error) => said.push(`pageerror: ${error.stack || error.message}`));
-    await page.goto(`/demos/${demo.name}/${query}`);
+    await page.goto(`${demo.route}${query}`);
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    const run = page.getByRole("button", { name: `Run the ${demo.name}` });
+    const run = page.getByRole("button", { name: `Run ${demo.what}` });
     await expect(run, "the demo offers to run").toBeVisible({ timeout: 30_000 });
     await run.scrollIntoViewIfNeeded();
     // Held from here, time moves only a frame at a time while the demo
     // loads, and as far on every run that loads in as many frames.
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
     await run.click();
-    const pause = page.getByRole("button", { name: `Pause the ${demo.name}` });
+    const pause = page.getByRole("button", { name: `Pause ${demo.what}` });
     await expect
       .poll(
         async () => {

@@ -1,8 +1,8 @@
 // The demos' motion policy. Rich motion is the default; a reader who
 // asks for less (prefers-reduced-motion: reduce) gets less movement,
-// slower, and never a frozen scene or a snap. Orbit (the front page's
-// 3D scene) and the shader effect (on /demos/) each run on a clock of
-// their own, read here from the page: asked for less motion, the clock
+// slower, and never a frozen scene or a snap. The watch (the front
+// page's 3D scene), Orbit and the shader effect (on /demos/) each run on
+// a clock of their own, read here from the page: asked for less motion, the clock
 // still goes on, and more slowly than with no preference. Hidden and
 // shown again, the clock goes on from where it held, never back to its
 // start.
@@ -14,9 +14,24 @@ const STEPS = 30;
 
 const DEMOS = [
   {
-    name: "Orbit",
+    name: "the watch",
     route: "/",
     heading: "See it run",
+    run: "Run the watch",
+    canvas: "canvas.qq-view3d",
+    // The turntable's `spin`, from the View3D the canvas draws: from 0,
+    // round and round.
+    clock: (canvas) => canvas.$view3d.view.parent.spin,
+    frames: (canvas) => canvas.$view3d.frames,
+    start: 0,
+    period: 360,
+    // One turn in 24 s with no preference (WatchDemo's `turnSeconds`).
+    fastest: 360 / 24,
+  },
+  {
+    name: "Orbit",
+    route: "/demos/",
+    heading: "3D you can orbit",
     run: "Run the 3D demo",
     canvas: "canvas.qq-view3d",
     // Orbit's `turn`, from the View3D the canvas draws: 55 to 415.

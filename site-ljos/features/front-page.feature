@@ -12,6 +12,10 @@ Feature: The front page shows software being reshaped while it runs
   Covered by site-ljos/e2e/agent.spec.js, the page as written by
   site-ljos/tests/site-ljos.spec.js, and the reload, a failed one too,
   by site-ljos/tests/board-reload.spec.js (features/board-reload.feature).
+  The watch under "See it run" by site-ljos/e2e/scenes.spec.js and
+  e2e/calm.spec.js (its frames and its pace), tests/webgl2.spec.js (drawn
+  without WebGPU), and tests/site-ljos.spec.js and tests/design.spec.js
+  (its picture, from the first paint).
 
   Background:
     Given the built site's front page, in the shell it is written in
@@ -100,3 +104,35 @@ Feature: The front page shows software being reshaped while it runs
   Scenario: The Observer waits until it is wanted
     When the page opens and the reader presses nothing
     Then nothing of the whole Observer's is fetched
+
+  Scenario Outline: The front page's 3D example is the watch
+    Given a window <width> wide
+    When the page opens
+    Then under "See it run" stands the watch's picture, in the reader's scheme, in a frame its shape from the first paint
+    And its Run is "Run the watch"
+    And pressed, Run makes the watch: its software, worn with the pointer, beside the watch in 3D on its turntable
+    And nothing on the page moves as it comes
+
+    Examples:
+      | width |
+      | 1440  |
+      | 390   |
+
+  Scenario: The watch draws without WebGPU
+    Given a browser with WebGPU off, or with WebGPU that gives the page no adapter
+    When the reader runs the watch on the front page
+    Then every View3D is drawn by wgpu on WebGL 2
+    And the watch's case and band, from their glTF files, are in its picture
+
+  Scenario: The watch keeps drawing frames
+    Given the watch running on the front page, on screen
+    When nobody touches the page
+    Then its view draws frame after frame and its turntable turns
+    And scrolled away, or in a hidden tab, it draws nothing
+    And back on screen it turns on from where it held, never from where its turn began
+
+  Scenario: Under reduced motion the watch still moves
+    Given a reader who asked for less motion
+    When the watch runs on the front page
+    Then its turntable still turns and its view still draws, more slowly than with no preference
+    And a change of preference while it runs is taken at once, from the angle it is at
