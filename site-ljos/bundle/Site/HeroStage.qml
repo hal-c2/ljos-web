@@ -3,6 +3,7 @@ import Ljos.Core
 import Ljos.Layout
 import Site
 import "hero.js" as Hero
+import "logic/tasks.ts" as Tasks
 
 // The front page's device: a small live app, and under it what a person
 // or an agent sees of it while it runs: its source, its objects with
@@ -11,6 +12,14 @@ import "hero.js" as Hero
 // shown is the running app's own, read as it changes.
 DeviceFrame {
     id: hero
+
+    // The app's tree as the Observer shows it, above its tasks.
+    readonly property list<Tasks.Line> lines: [
+        { depth: 0, type: "Column", name: "#app", key: "done", value: String(app.done), point: "" },
+        { depth: 1, type: "Text", name: "#title", key: "text", value: "\"" + app.heading + "\"", point: "title" },
+        { depth: 1, type: "Rectangle", name: "#progress", key: "value", value: app.progress.toFixed(2), point: "progress" },
+        { depth: 1, type: "Repeater", name: "#list", key: "count", value: String(app.tasks.length), point: "" }
+    ]
 
     title: "TaskList.qml"
     tabs: [t`Source`, t`Observer`, t`Agent`]
@@ -26,17 +35,17 @@ DeviceFrame {
     readonly property string locator: "role=checkbox[name=\"" + aimed + "\"]"
     // The recorded session: each call as the agent sent it, and what it
     // does to the running app, which answers with what it now holds.
-    readonly property unknown steps: [
+    readonly property list<Tasks.Step> steps: [
         { tool: "app_find", args: "{ locator: '" + locator + "' }", act: () => {
-            var at = app.find(hero.aimed);
+            const at = app.find(hero.aimed);
             app.pointing = at;
             return at >= 0 ? t`1 match` : t`no match`;
         } },
         { tool: "app_click", args: "{ target: '" + locator + "' }", act: () => {
-            var at = app.find(hero.aimed);
+            const at = app.find(hero.aimed);
             app.pointing = at;
             app.toggle(at);
-            return "checked: " + app.tasks[at].done;
+            return "checked: " + app.tasks[at]?.done;
         } },
         { tool: "app_set_property", args: "{ target: \"#title\", property: \"text\", value: \"" + renamed + "\" }", act: () => {
             app.pointing = "title";
@@ -49,17 +58,17 @@ DeviceFrame {
         } }
     ]
     // What each call answered, in order.
-    property unknown answers: []
+    property list<string> answers: []
 
-    function step() {
-        if (answers.length >= steps.length)
+    function step(): void {
+        const call = steps[answers.length];
+        if (call === undefined)
             return;
-        var call = steps[answers.length];
-        var said = call.act();
+        const said = call.act();
         answers = answers.concat([said]);
-        Running.calls = Running.calls.concat([{ tool: call.tool, args: call.args, said: said }]);
+        Running.calls = Tasks.withCall(Running.calls, { tool: call.tool, args: call.args, said: said });
     }
-    function replay() {
+    function replay(): void {
         answers = [];
         app.reset();
     }
@@ -111,16 +120,11 @@ DeviceFrame {
                 width: parent.width - 2 * Theme.m
 
                 Repeater {
-                    model: [
-                        { depth: 0, type: "Column", name: "#app", key: "done", value: String(app.done), point: "" },
-                        { depth: 1, type: "Text", name: "#title", key: "text", value: "\"" + app.heading + "\"", point: "title" },
-                        { depth: 1, type: "Rectangle", name: "#progress", key: "value", value: app.progress.toFixed(2), point: "progress" },
-                        { depth: 1, type: "Repeater", name: "#list", key: "count", value: String(app.tasks.length), point: "" }
-                    ].concat(app.tasks.map((task, at) => ({ depth: 2, type: "Task", name: "\"" + task.title + "\"", key: "checked", value: String(task.done), point: at })))
+                    model: hero.lines.concat(app.tasks.map((task: Tasks.Task, at: number): Tasks.Line => ({ depth: 2, type: "Task", name: "\"" + task.title + "\"", key: "checked", value: String(task.done), point: at })))
 
                     Item {
                         id: line
-                        required property unknown modelData
+                        required property Tasks.Line modelData
                         width: parent.width
                         height: 26
 
@@ -241,7 +245,7 @@ DeviceFrame {
 
                     Column {
                         id: call
-                        required property unknown modelData
+                        required property Tasks.Step modelData
                         required property int index
                         readonly property bool sent: index < hero.answers.length
                         readonly property bool next: index === hero.answers.length

@@ -56,6 +56,7 @@ Item {
     Repeater {
         model: Theme.brackets ? 4 : 0
         Item {
+            id: corner
             required property int index
             readonly property bool atRight: index % 2 === 1
             readonly property bool atBottom: index > 1
@@ -65,13 +66,13 @@ Item {
             height: 14
             Accessible.ignored: true
             Rectangle {
-                y: parent.atBottom ? parent.height - 2 : 0
+                y: corner.atBottom ? corner.height - 2 : 0
                 width: parent.width
                 height: 2
                 fill: Theme.accent
             }
             Rectangle {
-                x: parent.atRight ? parent.width - 2 : 0
+                x: corner.atRight ? corner.width - 2 : 0
                 width: 2
                 height: parent.height
                 fill: Theme.accent

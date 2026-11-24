@@ -21,7 +21,7 @@ Panel {
 
     property string name: t`Live app`
     property string title: ""
-    property unknown tabs: []
+    property list<string> tabs: []
     property int current: 0
     // How tall the stage and the panels are. A frame that opens with no
     // tab chosen may give the panels no height until one is.
@@ -34,9 +34,9 @@ Panel {
 
     // The console's two side panels, by their tab's index, and the names
     // its three regions go by.
-    property unknown columns: [1, 2]
-    property unknown columnNames: [t`Observer tree`, t`Live stage`, t`Agent MCP stream`]
-    readonly property bool consoleLayout: Theme.consoleAt(width)
+    property list<int> columns: [1, 2]
+    property list<string> columnNames: [t`Observer tree`, t`Live stage`, t`Agent MCP stream`]
+    readonly property bool consoleLayout: Theme.consoleAt(width) === true
     readonly property int side: Math.min(400, Math.round(width * 0.3))
     readonly property int heading: consoleLayout ? 32 : 0
     readonly property int bodyHeight: consoleLayout ? Math.max(stageHeight, pageHeight) : stageHeight
@@ -46,14 +46,17 @@ Panel {
     padding: 0
     color: Theme.surfaceRaised
 
-    function pick(at) {
+    // Said when an arrow chose a tab, for that tab to take the focus.
+    signal walked(int at)
+
+    function pick(at: number): void {
         frame.current = Math.max(0, Math.min(frame.tabs.length - 1, at));
     }
     // An arrow takes the focus along to the tab it chose, so the next
     // press goes on from there.
-    function walk(at) {
+    function walk(at: number): void {
         frame.pick(at);
-        tabs.itemAt(frame.current)?.forceActiveFocus(FocusReason.Tab);
+        frame.walked(frame.current);
     }
 
     // The parts, each placed: under one another, or as a console.
@@ -163,7 +166,7 @@ Panel {
             // takes the app's presses.
             z: frame.consoleLayout ? 1 : 0
             Accessible.role: frame.consoleLayout ? Accessible.Section : Accessible.NoRole
-            Accessible.name: frame.consoleLayout ? frame.columnNames[1] : ""
+            Accessible.name: frame.consoleLayout ? frame.columnNames[1] ?? "" : ""
         }
 
         // The tabs.
@@ -197,7 +200,7 @@ Panel {
 
                     Item {
                         id: tab
-                        required property unknown modelData
+                        required property string modelData
                         required property int index
                         readonly property bool chosen: index === frame.current
 
@@ -208,7 +211,14 @@ Panel {
                         Accessible.name: modelData
                         Accessible.selected: chosen
                         Accessible.onPressAction: () => frame.pick(index)
-                        Keys.onPressed: (event) => {
+                        Connections {
+                            target: frame
+                            function onWalked(at: number) {
+                                if (at === tab.index)
+                                    tab.forceActiveFocus(FocusReason.Tab);
+                            }
+                        }
+                        Keys.onPressed: (event: KeyEvent) => {
                             if (event.key === Key.Right || event.key === Key.Left) {
                                 frame.walk(index + (event.key === Key.Right ? 1 : -1));
                                 event.accepted = true;

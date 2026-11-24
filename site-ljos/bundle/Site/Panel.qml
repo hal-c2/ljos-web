@@ -50,6 +50,7 @@ Item {
     Repeater {
         model: Theme.brackets ? 4 : 0
         Item {
+            id: corner
             required property int index
             readonly property bool atRight: index === 1 || index === 2
             readonly property bool atBottom: index >= 2
@@ -58,13 +59,13 @@ Item {
             width: 14
             height: 14
             Rectangle {
-                y: parent.atBottom ? parent.height - 2 : 0
+                y: corner.atBottom ? corner.height - 2 : 0
                 width: parent.width
                 height: 2
                 fill: Theme.accent
             }
             Rectangle {
-                x: parent.atRight ? parent.width - 2 : 0
+                x: corner.atRight ? corner.width - 2 : 0
                 width: 2
                 height: parent.height
                 fill: Theme.accent

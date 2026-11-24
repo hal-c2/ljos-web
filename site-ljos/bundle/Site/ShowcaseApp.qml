@@ -1,6 +1,5 @@
-import Ljos.Ui
 import Ljos.Core
-import Ljos.Layout
+import QtQuick
 import Site
 import "../Showcase/later.js" as Later
 import "../nav.js" as Nav
@@ -19,7 +18,7 @@ import "../Showcase/media.js" as Media
 Column {
     id: app
 
-    required property unknown product
+    required property var product
     property string route: "/showcase/"
     property bool wide: true
     // What the page scrolls in, for the engine's code (CodeBlock's).
@@ -29,7 +28,7 @@ Column {
 
     // The reader's own Play or Pause; null until they press one, when
     // the motion they asked the browser or the site for decides.
-    property unknown chosen: null
+    property var chosen: null
     readonly property bool wanted: chosen !== null ? chosen : !Theme.calm
     property bool onScreen: false
     // Set once the page this was written into is the reader's: the
@@ -69,7 +68,7 @@ Column {
             text: app.product.maker
             color: Theme.textMuted
             font.family: Theme.sans
-            font.size: Theme.captionSize
+            font.pixelSize: Theme.captionSize
             font.weight: Font.DemiBold
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.captionLine
@@ -79,11 +78,11 @@ Column {
             text: app.product.name
             color: Theme.text
             font.family: Theme.sans
-            font.size: app.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.pixelSize: app.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: app.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
-            wrap: Text.Wrap
+            wrapMode: Text.Wrap
             readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
@@ -92,10 +91,10 @@ Column {
             text: app.product.claim
             color: Theme.text
             font.family: Theme.sans
-            font.size: Theme.subtitleSize
+            font.pixelSize: Theme.subtitleSize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine
-            wrap: Text.Wrap
+            wrapMode: Text.Wrap
         }
     }
 
@@ -106,7 +105,7 @@ Column {
         width: parent.width
         height: screen.height + bar.height
         radius: Theme.radiusLarge
-        fill: Theme.surface
+        color: Theme.surface
         border.color: Theme.divider
         border.width: 1
         clip: true
@@ -122,7 +121,7 @@ Column {
 
             Text {
                 anchors.fill: parent
-                format: Text.RichText
+                textFormat: Text.RichText
                 text: Media.pictureSet(app.route, "/showcase/media/" + app.product.recording.name + "-poster", parent.width, parent.height, app.product.recording.label, true)
             }
             Loader {
@@ -141,7 +140,7 @@ Column {
                 }
                 onLoaded: {
                     item.source = Nav.at(Content.base, "/showcase/media/" + app.product.recording.name) + Media.recordingFormat();
-                    item.wanted = bind(() => app.wanted && app.onScreen && Running.shown);
+                    item.wanted = Qt.binding(() => app.wanted && app.onScreen && Running.shown);
                 }
             }
         }
@@ -151,14 +150,14 @@ Column {
             y: screen.y + screen.height
             width: parent.width
             height: 48
-            fill: Theme.surfaceRaised
+            color: Theme.surfaceRaised
             border.color: Theme.divider
             border.width: 0
 
             Rectangle {
                 width: parent.width
                 height: 1
-                fill: Theme.divider
+                color: Theme.divider
             }
             Row {
                 anchors.left: parent.left
@@ -167,23 +166,23 @@ Column {
                 spacing: Theme.xs
 
                 Rectangle {
-                    Layout.alignment: Align.VCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     width: 8
                     height: 8
                     radius: 4
-                    fill: app.wanted && app.awake ? Theme.accent : Theme.textMuted
-                    Behavior on fill {
+                    color: app.wanted && app.awake ? Theme.accent : Theme.textMuted
+                    Behavior on color {
                         ColorAnimation {
                             duration: Theme.moveSmall
                         }
                     }
                 }
                 Text {
-                    Layout.alignment: Align.VCenter
+                    anchors.verticalCenter: parent.verticalCenter
                     text: t`Recorded running`
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.size: Theme.captionSize
+                    font.pixelSize: Theme.captionSize
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.captionLine
                 }
@@ -221,10 +220,10 @@ Column {
                     text: modelData
                     color: Theme.text
                     font.family: Theme.sans
-                    font.size: Theme.bodySize + 1
+                    font.pixelSize: Theme.bodySize + 1
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.bodyLine + 4
-                    wrap: Text.Wrap
+                    wrapMode: Text.Wrap
                 }
             }
         }
@@ -237,10 +236,10 @@ Column {
                 text: app.product.note
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.size: Theme.captionSize
+                font.pixelSize: Theme.captionSize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.captionLine
-                wrap: Text.Wrap
+                wrapMode: Text.Wrap
             }
             Flow {
                 width: parent.width
@@ -279,7 +278,7 @@ Column {
             Repeater {
                 model: app.wide ? app.product.captures : []
                 ShowcaseCapture {
-                    required property unknown modelData
+                    required property var modelData
                     capture: modelData
                     route: app.route
                     width: Math.floor(captures.rowHeight * modelData.width / modelData.height)
@@ -295,7 +294,7 @@ Column {
             Repeater {
                 model: app.wide ? [] : app.product.captures
                 ShowcaseCapture {
-                    required property unknown modelData
+                    required property var modelData
                     capture: modelData
                     route: app.route
                     width: column.width

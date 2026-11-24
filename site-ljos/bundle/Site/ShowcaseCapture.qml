@@ -3,6 +3,7 @@ import Ljos.Layout
 import Site
 import "../nav.js" as Nav
 import "../Showcase/media.js" as Media
+import "../Showcase/products.ts" as Products
 
 // A capture of an app built with Ljós (Showcase/products.json): the
 // picture at its own shape, what it shows, and what that says about
@@ -11,7 +12,7 @@ import "../Showcase/media.js" as Media
 Column {
     id: card
 
-    required property unknown capture
+    required property Products.Capture capture
     property string route: "/showcase/"
 
     spacing: Theme.s

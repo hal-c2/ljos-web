@@ -20,19 +20,19 @@ Column {
 
     // The flickable the page scrolls in, for the demos to know when
     // they are on screen; and whether the window is a wide one.
-    property unknown scroller: null
+    property unknown scroller
     property bool wide: true
     // Prose reads at a measure, whatever the page's width.
     readonly property int prose: Math.min(width, Theme.measure)
     readonly property int textWidth: width
 
-    width: parent ? parent.width : 680
+    width: parent !== null ? parent.width : 680
     // Sections stand well apart: each is one thing, said and shown.
     spacing: wide ? 2 * Theme.xxxl : Theme.xxxl + Theme.m
     // The grid's column and gap, for the sections that lay out on it.
     readonly property int gap: wide ? Theme.columnGap : Theme.compactColumnGap
 
-    function follow(link) {
+    function follow(link: string): void {
         Nav.go(link);
     }
 
@@ -91,7 +91,7 @@ Column {
             wide: landing.wide
             // Cyberpunk shows the live app as a console, under the words,
             // where the section is wide enough for one (DeviceFrame).
-            stacked: Theme.consoleAt(width)
+            stacked: Theme.consoleAt(width) === true
             eyebrow: LandingCopy.agenticEyebrow
             title: LandingCopy.agenticHeadline
             body: LandingCopy.agenticBody

@@ -4,6 +4,7 @@ import Ljos.Core
 import Ljos.Layout
 import Ljos.Controls as C
 import "../shells.js" as Shells
+import "logic/shells.ts" as Sources
 
 // A shell's own QML, the very file the site ships (Shells/), to read and
 // to change: Apply compiles the edit in the page and shows the site in
@@ -18,32 +19,34 @@ C.Popup {
     property string name: "elegant"
     // Why the shell shown is not the one asked for, as ShellLoader says.
     property string error: ""
-    property unknown source: null
+    // Its source; `Sources.none` (no file) until it comes.
+    property Sources.Source source: Sources.none
+    readonly property bool has: source.file !== ""
     // What the reader has written in each shell's QML and not reset, by
     // its file: the editor holds one shell's at a time.
-    property unknown drafts: ({})
+    property Sources.Drafts drafts: ({})
 
     signal applied(string file, string text)
     signal reset
 
-    function show(wanted) {
-        if (panel.source)
+    function show(wanted: string): void {
+        if (panel.has)
             panel.drafts[panel.source.file] = editor.text;
         panel.name = wanted;
         panel.open();
-        Shells.sources(Content.base).then((all) => {
+        Shells.sources(Content.base).then((all: unknown) => {
             // Asked for another meanwhile: that one's comes.
             if (panel.name !== wanted)
                 return;
-            var source = all.shells[wanted] ?? null;
+            const source = Sources.sourceOf(all, wanted);
             panel.source = source;
             // The editor's text is written once the reader edits, and
             // the next shell's `code` would not show over it: it is that
             // shell's own, as last left.
-            editor.text = source ? panel.drafts[source.file] ?? source.text : "";
-        }, (why) => {
-            panel.source = null;
-            console.warn(`ShellSource: ${why}`);
+            editor.text = source.file !== "" ? panel.drafts[source.file] ?? source.text : "";
+        }, (why: unknown) => {
+            panel.source = Sources.none;
+            console.warn(`ShellSource: ${Sources.whyOf(why)}`);
         });
     }
 
@@ -53,11 +56,11 @@ C.Popup {
     // parent, or the page where it is loaded into a place of no size (a
     // place the page's size would stand over the page and take its
     // presses while the panel is shut).
-    property Item room: parent
-    width: room ? Math.min(room.width - 2 * Theme.m, 860) : 860
-    height: room ? Math.min(room.height - 2 * Theme.xl, 720) : 720
-    x: room ? Math.round((room.width - width) / 2) : 0
-    y: room ? Math.round((room.height - height) / 2) : 0
+    property unknown room: parent
+    width: Sources.isBox(room) ? Math.min(room.width - 2 * Theme.m, 860) : 860
+    height: Sources.isBox(room) ? Math.min(room.height - 2 * Theme.xl, 720) : 720
+    x: Sources.isBox(room) ? Math.round((room.width - width) / 2) : 0
+    y: Sources.isBox(room) ? Math.round((room.height - height) / 2) : 0
     padding: Theme.m
 
     contentItem: Item {
@@ -76,7 +79,7 @@ C.Popup {
                 Text {
                     id: heading
                     width: parent.width
-                    text: panel.source ? t`Source of ${panel.source.file}` : t`Shell`
+                    text: panel.has ? t`Source of ${panel.source.file}` : t`Shell`
                     color: Theme.text
                     font.family: Theme.mono
                     font.size: Theme.bodySize
@@ -123,8 +126,8 @@ C.Popup {
                 CodeEditor {
                     id: editor
                     width: Math.max(parent.width, implicitWidth)
-                    code: panel.source ? panel.source.text : ""
-                    rich: panel.source ? panel.source.rich : ""
+                    code: panel.source.text
+                    rich: panel.source.rich
                     label: t`Edit this shell's QML`
                     errors: told
                     color: Theme.codeFg
@@ -156,14 +159,14 @@ C.Popup {
                     iconName: "play"
                     font.family: Theme.sans
                     text: t`Apply`
-                    enabled: panel.source !== null
+                    enabled: panel.has
                     onClicked: panel.applied(panel.source.file, editor.text)
                 }
                 C.Button {
                     iconName: "refresh-cw"
                     font.family: Theme.sans
                     text: t`Reset`
-                    enabled: panel.source !== null
+                    enabled: panel.has
                     onClicked: {
                         editor.text = panel.source.text;
                         panel.reset();

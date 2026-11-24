@@ -57,7 +57,7 @@ Item {
     readonly property int deviceWidth: beside ? width - wordsWidth - Theme.columnGap : width
     readonly property real content: beside ? Math.max(words.implicitHeight, caption.y + caption.height) : words.implicitHeight + Theme.xl + caption.y + caption.height
 
-    width: parent ? parent.width : 1280
+    width: parent !== null ? parent.width : 1280
     // Below it, the page's own gap between sections, as under any other.
     height: content + (beside ? 0 : Theme.l)
 

@@ -1,4 +1,5 @@
 import Ljos.Ui
+import Ljos.Core
 import QtMultimedia
 
 // A recording of an app built with Ljós, played over its poster

@@ -32,7 +32,7 @@ Item {
     readonly property int exampleWidth: across ? Math.round(7 * column + 6 * Theme.columnGap) : width
     signal followed(string link)
 
-    width: parent ? parent.width : 1280
+    width: parent !== null ? parent.width : 1280
     height: across ? Math.max(words.implicitHeight, exampleArea.implicitHeight) : words.implicitHeight + Theme.l + exampleArea.implicitHeight
     Accessible.role: Accessible.Section
     Accessible.name: title

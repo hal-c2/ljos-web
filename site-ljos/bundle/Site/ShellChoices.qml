@@ -3,6 +3,7 @@ import Site
 import Ljos.Core
 import Ljos.Layout
 import Ljos.Controls as C
+import "logic/shells.ts" as Sources
 
 // The switcher's popover (Site/ShellSwitcher.qml): the three shells and
 // what each is, the note a narrow window needs, and the way to the
@@ -12,12 +13,13 @@ import Ljos.Controls as C
 Item {
     id: choices
 
-    property unknown preferences: null
+    // The site's Preferences, given by the switcher once it is made.
+    property Preferences preferences
     property string shown: "elegant"
     readonly property bool opened: popover.opened
     signal sourceAsked(string name)
 
-    function toggle() {
+    function toggle(): void {
         popover.opened ? popover.close() : popover.open();
     }
 
@@ -54,12 +56,12 @@ Item {
                 wrap: Text.Wrap
             }
             Repeater {
-                model: choices.preferences ? choices.preferences.shells : []
+                model: choices.preferences !== null ? Sources.choicesIn(choices.preferences.shells) : []
 
                 Rectangle {
                     id: row
-                    required property unknown modelData
-                    readonly property bool picked: choices.preferences.shell === modelData.name
+                    required property Sources.Choice modelData
+                    readonly property bool picked: choices.preferences !== null && choices.preferences.shell === modelData.name
 
                     width: 304
                     height: words.implicitHeight + 2 * Theme.xs
@@ -72,15 +74,16 @@ Item {
                     Accessible.checkable: true
                     Accessible.checked: row.picked
                     Accessible.onPressAction: () => row.pick()
-                    Keys.onPressed: (event) => {
+                    Keys.onPressed: (event: KeyEvent) => {
                         if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                             row.pick();
                             event.accepted = true;
                         }
                     }
 
-                    function pick() {
-                        choices.preferences.setShell(modelData.name);
+                    function pick(): void {
+                        if (choices.preferences !== null)
+                            choices.preferences.setShell(modelData.name);
                         popover.close();
                     }
 
