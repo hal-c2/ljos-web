@@ -469,9 +469,20 @@ test("the front page's replay is asked for only once the kept shell is in", asyn
     await page.goto(at("/"));
     await page.waitForSelector(HYDRATED, { timeout: 40_000 });
     const taken = await page.evaluate(() => Math.round(performance.now()));
-    // With the watchdog held, nothing but the shell coming ends the wait.
-    await page.waitForFunction(() => "ljosShellShown" in document.documentElement.dataset, null, { timeout: 30_000 });
-    expect(await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset), "nothing said the page is late").toBe(false);
+    // With the watchdog held, only the shell coming ends the wait, unless
+    // the page was parsed so late that its fade started before
+    // `watchdog` could pause it (on DOMContentLoaded): then the wait ends
+    // on that, and the failure says when each came.
+    await page.waitForFunction(() => {
+      const set = document.documentElement.dataset;
+      return "ljosShellShown" in set || "ljosShellLate" in set;
+    }, null, { timeout: 30_000 });
+    const fadeAt = await page.evaluate(() => (window.__fadeAt === undefined ? "never" : `${Math.round(window.__fadeAt)} ms`));
+    const parsedAt = await page.evaluate(() => Math.round(performance.getEntriesByType("navigation")[0]?.domContentLoadedEventStart ?? -1));
+    expect(
+      await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset),
+      `nothing said the page is late: parsed by ${parsedAt} ms, the head's fade started ${fadeAt}, taken over by ${taken} ms`,
+    ).toBe(false);
     const shownAt = await page.evaluate(() => Math.round(window.__shownAt));
     expect(await showing(page), `taken over by ${taken} ms, the kept shell in at ${shownAt} ms`).toBe("desktop");
     await expect(page.getByRole("button", { name: "Pause the agent replay" }), "the replay started itself").toBeVisible({ timeout: 30_000 });
