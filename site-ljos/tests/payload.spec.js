@@ -178,6 +178,10 @@ test("no page but the front page's first load holds the front page", () => {
   // Its words as written, wrapped where the page laid them out.
   const written = readFileSync(join(dist, "index.html"), "utf8").replace(/\s+/g, " ");
   expect(written, "the front page as written").toContain("Software you can reshape while it runs.");
+  // The hero's panels are made as their tabs are first chosen
+  // (Site/DevicePage.qml), and it is written with none chosen.
+  // Its Observer reads the app's `#progress`, its Agent sends `app_find`.
+  for (const shown of ["#progress", "app_find {"]) expect(written, "the front page as written, with no hero panel").not.toContain(shown);
 });
 
 // A pro demo's page is a module of its own, which the page at a pro
