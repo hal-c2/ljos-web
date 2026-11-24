@@ -271,6 +271,12 @@ Feature: The site is shown in a shell the reader picks
     When they press "Retry" and it loads
     Then the Source tab holds Workbench's QML, and "Reset" is on
 
+  Scenario: The editor says when the shells' QML came with no shells in it, and tries again
+    Given a reader in the Workbench shell whose shells' QML came as JSON with no shells
+    Then the Source tab says "The shell's QML could not be loaded", and "Reset" is off
+    When they press "Retry" and it loads
+    Then the Source tab holds Workbench's QML, asked for a second time
+
   Scenario: Workbench on a phone keeps the pane chosen across an edit
     Given a reader on a phone in the Workbench shell, on "/start/first-app/"
     When they press the tab "Inspector" and edit its name in the Source tab
@@ -280,6 +286,7 @@ Feature: The site is shown in a shell the reader picks
 
   Scenario: Workbench's Problems tab on a phone says how many there are
     Given a reader on a phone in the Workbench shell, on "/start/first-app/"
+    And the tab "Problems", its panel left on "MCP log"
     When they press the tab "Inspector" and break its QML in the Source tab
     Then the tab bar's "Problems" reads "Problems 1", and lists one problem when pressed
     When they press "Reset" in the tab "Inspector"

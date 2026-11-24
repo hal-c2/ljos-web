@@ -100,7 +100,9 @@ function alive(root) {
 // site's `base`. Fetched when a reader asks to see one, so no page loads
 // them before. Fetched as data, not imported: a browser may keep a
 // module that failed to come as failed, so a Retry would fail again,
-// where a fetch is made anew. Only an answer that came is kept.
+// where a fetch is made anew. Only an answer that came, and holds the
+// shells and pages, is kept: anything else is thrown, so it is asked for
+// again and the editor offers its Retry.
 var catalog = null;
 function sources(base) {
     if (catalog === null) {
@@ -108,6 +110,10 @@ function sources(base) {
             if (!response.ok)
                 throw new Error("shell-sources.json: " + response.status);
             return response.json();
+        }).then(function (all) {
+            if (!all || typeof all.shells !== "object" || all.shells === null || typeof all.pages !== "object" || all.pages === null)
+                throw new Error("shell-sources.json holds no shells");
+            return all;
         });
         catalog.catch(function () {
             catalog = null;
