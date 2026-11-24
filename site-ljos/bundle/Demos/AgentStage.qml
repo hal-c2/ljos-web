@@ -75,8 +75,11 @@ AgentView {
     property int logsSerial: -1
     property int treeSerial: -1
     property int inspectSerial: -1
-    // A swap of the app's module on its way.
+    // A swap of the app's module on its way, and how many have started:
+    // a find answered after one started was found in the app it replaces.
     property bool swapping: false
+    property int swapsStarted: 0
+    property int stepSwaps: 0
     readonly property bool busy: stepSerial >= 0 || swapping
     readonly property string inspectedAs: t`Dispatch`
     // The card's inspector's, empty until it is fetched and serves.
@@ -109,6 +112,7 @@ AgentView {
         }
         const args = Stage.withFound(next.args, found);
         stepRow = row({ kind: "call", tool: next.tool, args: Stage.argsText(args), answer: "pending" });
+        stepSwaps = swapsStarted;
         stepSerial = ask(next.tool, JSON.stringify(args));
     }
 
@@ -117,6 +121,7 @@ AgentView {
     function edit(layout) {
         stepRow = row({ kind: "edit", tool: "board.ts", args: AgentReplay.editText(running, layout), answer: "pending" });
         swapping = true;
+        swapsStarted += 1;
         swap(layout).then((why) => {
             stage.swapping = false;
             log.setProperty(stage.stepRow, "answer", why ? "error" : "ok");
@@ -140,6 +145,7 @@ AgentView {
             seed();
         if (running !== "list") {
             swapping = true;
+        swapsStarted += 1;
             swap("list").then(() => {
                 stage.swapping = false;
                 stage.pickLater();
@@ -172,6 +178,7 @@ AgentView {
         playing = false;
         edited = true;
         swapping = true;
+        swapsStarted += 1;
         // The app the ref was found in is gone once the other one runs.
         found = "";
         swap(picked).then((why) => {
@@ -272,8 +279,7 @@ AgentView {
         log.setProperty(stepRow, "summary", Stage.summary(tool, ok, answer));
         if (answer.image !== "")
             log.setProperty(stepRow, "image", answer.image);
-        if (tool === "app_find" && ok)
-            found = Stage.refOf(answer);
+        found = Stage.foundAfter(found, tool, ok, answer, stepSwaps, swapsStarted);
         advance();
     }
 
