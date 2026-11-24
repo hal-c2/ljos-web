@@ -3,6 +3,7 @@ singleton PantryProject 1.0 PantryProject.qml
 PantryDemo 1.0 PantryDemo.qml
 PantryShell 1.0 PantryShell.qml
 singleton DispatchSource 1.0 DispatchSource.qml
+singleton DispatchBuilt 1.0 DispatchBuilt.qml
 singleton AgentReplay 1.0 AgentReplay.qml
 DispatchCard 1.0 DispatchCard.qml
 DispatchList 1.0 DispatchList.qml

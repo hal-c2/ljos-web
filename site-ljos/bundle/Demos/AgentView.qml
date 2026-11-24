@@ -73,7 +73,7 @@ Rectangle {
             swaps += 1;
             return undefined;
         }
-        return Promise.resolve(shell.reload()).then((why: unknown) => {
+        return Promise.resolve(shell.reloadModule()).then((why: unknown) => {
             if (Replay.swapped(why))
                 view.swaps += 1;
             return why;
@@ -200,7 +200,7 @@ Rectangle {
             width: parent.width - 2 * Theme.xs
 
             Repeater {
-                model: view.wide ? [] : DispatchSource[view.running].strip
+                model: view.wide ? [] : DispatchBuilt.boards[view.running].strip
                 Row {
                     id: stripRow
                     required property Replay.StripLine modelData
@@ -472,7 +472,7 @@ Rectangle {
                     // as any tint that shows takes the light scheme's green
                     // strings under 4.5:1 (4.79 on the code's own ground).
                     Repeater {
-                        model: view.running === "board" || view.swaps > 0 ? DispatchSource[view.running].changed : []
+                        model: view.running === "board" || view.swaps > 0 ? DispatchBuilt.boards[view.running].changed : []
                         Rectangle {
                             required property int modelData
                             objectName: "editedLine"
@@ -497,7 +497,7 @@ Rectangle {
                         format: Text.RichText
                         wrap: Text.NoWrap
                         // Markup keeps no run of spaces: each line's own indent stays.
-                        text: Editor.richOf(DispatchSource[view.running].rich).split("\n").map((line) => {
+                        text: Editor.richOf(DispatchBuilt.boards[view.running].rich).split("\n").map((line) => {
                             const indent = /^ */.exec(line)[0];
                             return "&nbsp;".repeat(indent.length) + line.slice(indent.length);
                         }).join("<br/>")

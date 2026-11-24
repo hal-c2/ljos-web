@@ -66,7 +66,7 @@ Item {
             visible: capability.body !== ""
             width: parent.width
             format: Text.RichText
-            text: Nav.linked(Content.base, capability.body)
+            text: Nav.linked(Built.base, capability.body)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans

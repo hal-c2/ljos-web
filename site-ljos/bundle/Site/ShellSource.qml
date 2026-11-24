@@ -34,7 +34,7 @@ C.Popup {
             panel.drafts[panel.source.file] = editor.text;
         panel.name = wanted;
         panel.open();
-        Shells.sources(Content.base).then((all: unknown) => {
+        Shells.sources(Built.base).then((all: unknown) => {
             // Asked for another meanwhile: that one's comes.
             if (panel.name !== wanted)
                 return;

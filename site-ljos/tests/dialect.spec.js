@@ -60,6 +60,10 @@ const qtQuick = {
   ...site(["Demos/ModuleLoader"], "Ljos.Ui's Loader takes a url, not a lazy import or a live module, and a component that is never missing"),
   ...site(["Demos/HeldBinding"], "Ljos.Core's Binding takes a QtObject target, not an object a loaded app names"),
   ...site(["Demos/DispatchShell"], "Ljos.Blocks' ShellLoader takes a url source and fallback, not a lazy import or a component, and its item is untyped"),
+  // What the build writes (Content, ShowcaseApps, DispatchSource) is not in
+  // a checkout until it runs, and CI's ljos check runs before it: these two
+  // read those singletons by name for the typed files that use them.
+  ...site(["Site/Built", "Demos/DispatchBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   // A visitor's edit to it is compiled in the page and run by
   // Ljos/Blocks/shell.js, which makes QtQuick's types only.

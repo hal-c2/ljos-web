@@ -53,7 +53,7 @@ Item {
 
     function fetch(): void {
         live.failed = "";
-        Shells.sources(Content.base).then((all: unknown) => {
+        Shells.sources(Built.base).then((all: unknown) => {
             live.source = Sources.sourceOf(all, live.name);
             if (live.has) {
                 editor.text = live.source.text;

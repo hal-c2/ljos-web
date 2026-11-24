@@ -105,7 +105,7 @@ Item {
         Text {
             width: Math.min(parent.width - (hero.roomy ? Theme.xl : 0), Theme.measure)
             format: Text.RichText
-            text: Nav.linked(Content.base, hero.subtitle)
+            text: Nav.linked(Built.base, hero.subtitle)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans
