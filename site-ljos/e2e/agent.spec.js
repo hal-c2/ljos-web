@@ -28,6 +28,11 @@ const shown = (locator) => locator.filter({ visible: true }).first();
 const codeOf = (page) => shown(page.getByText(/export function lanes\(/)).evaluate((element) => (element.closest(".qq-text") ?? element).innerText);
 const nextStep = "Done. Try Assign crew or List / Board.";
 const replayLabel = (page) => shown(page.getByText("Replay · no live agent", { exact: true }));
+// The poster, the page as written, has the replay's tabs too, and is
+// hidden once the replay is drawn and faded in: a tab found before then
+// can be the poster's, gone by the time it is pressed.
+const takenOver = (page) =>
+  expect(page.getByRole("tab", { name: "Agent", exact: true }).filter({ visible: true }), "the poster gave way to the replay").toHaveCount(1);
 
 test("the agent replay drives the app over MCP, its edit reloads it with the crew kept, and what the app does streams back", async ({ page }) => {
   test.skip(test.info().project.name === "no-webassembly", "the replay's poster stands where nothing runs; site-ljos.spec.js reads it");
@@ -295,6 +300,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     test("a layout the reader picks between a find and its click is found in again, and clicked", async ({ page }) => {
       test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
       await open(page, "/");
+      await expect(page.getByRole("button", { name: "Pause the agent replay" })).toBeVisible({ timeout: 30_000 });
+      await takenOver(page);
       await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
       const answered = page.getByText("answered", { exact: true });
       // The find has answered; its click is a second away.
@@ -321,6 +328,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // The replay's own clicks would take the focus the reader gives.
       await press(page.getByRole("button", { name: "Pause the agent replay" }));
       await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
+      await takenOver(page);
       await press(shown(page.getByRole("tab", { name: "Observer", exact: true })));
       const rows = page.getByRole("button", { name: /^Inspect / }).filter({ visible: true });
       await expect(rows.first(), "the app's objects").toBeVisible({ timeout: 30_000 });
@@ -356,6 +364,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await open(page, "/");
       await press(page.getByRole("button", { name: "Pause the agent replay" }));
       await expect(page.getByRole("button", { name: "Resume the agent replay" })).toBeVisible();
+      await takenOver(page);
       await press(shown(page.getByRole("tab", { name: "Observer", exact: true })));
       const rows = page.getByRole("button", { name: /^Inspect / }).filter({ visible: true });
       await expect(rows.first(), "the app's objects").toBeVisible({ timeout: 30_000 });
