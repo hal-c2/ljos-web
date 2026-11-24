@@ -41,8 +41,9 @@ const placed = (asked) => {
   // From the page's root (`/act.json`, not a `//host`) is from the
   // document's, which stands where the example's files do. It is not
   // resolved against the page itself: that clamps a `/../` at the root
-  // and would name the example's own file for one that climbs out.
-  if (asked.startsWith("/") && !asked.startsWith("//")) return new URL(asked.slice(1), served).href;
+  // and would name the example's own file for one that climbs out. The
+  // `./` keeps a name with a colon (`data:x.json`) a name, not a scheme.
+  if (asked.startsWith("/") && !asked.startsWith("//")) return new URL(`./${asked.slice(1)}`, served).href;
   return URL.canParse(asked) ? asked : new URL(asked, served).href;
 };
 globalThis.fetch = async (url, init) => {
