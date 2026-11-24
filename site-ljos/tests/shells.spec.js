@@ -104,6 +104,9 @@ const switcher = (page) => page.getByRole("button", { name: SWITCHER }).filter({
 // Picks `name` in the shell switcher and waits until it frames the page
 // and the swap's transition is over.
 async function pick(page, name) {
+  // On a phone, Elegant keeps the switcher in its menu.
+  const menu = page.getByRole("button", { name: "Menu", exact: true }).filter({ visible: true });
+  if ((await switcher(page).count()) === 0 && (await menu.count()) > 0) await press(menu.first());
   await press(switcher(page));
   await press(page.getByRole("radio", { name: LABEL[name], exact: true }));
   // Workbench and Desktop come the first time one is picked
