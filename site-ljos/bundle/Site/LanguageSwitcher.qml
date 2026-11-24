@@ -49,10 +49,13 @@ Rectangle {
 
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
-    // The language's own name, so a reader who does not read the one
-    // shown still hears theirs among the choices; "Language" in the
-    // language shown, so one who does hears what the button is for.
-    Accessible.name: t`Language: ${preferences ? preferences.languageName : "English"}`
+    readonly property string shortName: switcher.language.split("-")[0].toUpperCase()
+    // What it shows first (EN, AR), so a reader who speaks to the page
+    // can say what they see (WCAG's label in name); then the language's
+    // own name, so a reader who does not read the one shown still hears
+    // theirs among the choices; "Language" in the language shown, so one
+    // who does hears what the button is for.
+    Accessible.name: shortName + " · " + t`Language: ${preferences ? preferences.languageName : "English"}`
     Accessible.onPressAction: () => switcher.toggle(true)
     Keys.onPressed: (event) => {
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
@@ -99,7 +102,7 @@ Rectangle {
         // The language's short name, as its tag starts: EN, AR, ZH.
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: switcher.language.split("-")[0].toUpperCase()
+            text: switcher.shortName
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: Theme.captionSize
