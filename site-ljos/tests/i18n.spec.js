@@ -23,7 +23,7 @@ const HEADLINE = "Software you can reshape while it runs.";
 // the browser's scheme as it loads, which Node has none of.
 globalThis.matchMedia ??= () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
 const { readPo } = await import("ljos-web/Ljos/Core");
-const { checkCatalog } = await import("ljos-web/Ljos/Core/catalogCheck");
+const { checkCatalog } = await import("ljos-web/catalog-check");
 
 const catalogues = readdirSync(i18n)
   .filter((name) => name.endsWith(".po"))
@@ -262,8 +262,23 @@ async function parts(browser, shell, route, lang) {
   try {
     await open(page, `${route}?lang=${lang}`);
     await expect.poll(() => language(page)).toEqual({ lang, dir: lang === "ar" ? "rtl" : "ltr" });
-    // The shell kept is the one compared: one the head's watchdog gave up
-    // on shows Elegant instead (Main.qml's late()), which has other parts.
+    // The shell kept is the one compared. One the head's watchdog gave up
+    // on (a busy machine took the page over after 2500 ms) leaves the page
+    // in Elegant (Main.qml's late()), which has other parts: the reader
+    // then picks it, as tests/shells.spec.js's open() does.
+    await page.waitForFunction(() => {
+      const said = document.documentElement.dataset;
+      return "ljosShellLate" in said || ("ljosShellShown" in said && said.ljosShellShowing);
+    });
+    if (shell !== "elegant" && (await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset))) {
+      test.info().annotations.push({ type: "late", description: `${route} in ${lang}: the head's watchdog showed Elegant; ${shell} was then picked` });
+      const say = (message) => (lang === "en" ? message : translated(lang, message));
+      const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+      const [now] = say("Current shell: {label}").split("{label}");
+      await visible(page.getByRole("button", { name: new RegExp(`^(${escape(say("Switch shell"))}|${escape(now)}.+)$`, "u") })).click();
+      const label = shell[0].toUpperCase() + shell.slice(1);
+      await page.getByRole("radio", { name: say(label), exact: true }).click();
+    }
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.ljosShellShowing ?? "elegant"), { message: `${shell} is shown, not given up on by the head's watchdog`, timeout: 30_000 })
       .toBe(shell);
