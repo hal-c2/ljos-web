@@ -67,14 +67,23 @@ for (const [signal, number] of [["SIGINT", 2], ["SIGTERM", 15], ["SIGHUP", 1]]) 
 }
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+// The waiting step's end, which each inspector request in it is bounded
+// by too: a request started near it cannot run on past it. A request
+// outside a wait (a click) is a step of its own.
+let end = null;
+const left = () => AbortSignal.timeout(end === null ? STEP_MS : Math.max(1, end - Date.now()));
 async function until(what, test) {
-  const end = Date.now() + STEP_MS;
-  for (;;) {
-    if (exited !== null) throw new Error(`ljos ended (${exited}) while waiting for ${what}; its log is ${logPath}`);
-    const got = await test();
-    if (got) return got;
-    if (Date.now() > end) throw new Error(`no ${what} after ${STEP_MS} ms; its log is ${logPath}`);
-    await sleep(500);
+  end = Date.now() + STEP_MS;
+  try {
+    for (;;) {
+      if (exited !== null) throw new Error(`ljos ended (${exited}) while waiting for ${what}; its log is ${logPath}`);
+      const got = await test();
+      if (got) return got;
+      if (Date.now() > end) throw new Error(`no ${what} after ${STEP_MS} ms; its log is ${logPath}`);
+      await sleep(500);
+    }
+  } finally {
+    end = null;
   }
 }
 
@@ -88,14 +97,14 @@ async function call(name, args) {
       method: "POST",
       headers,
       // A request that is never answered fails its step, not the run.
-      signal: AbortSignal.timeout(STEP_MS),
+      signal: left(),
       body: JSON.stringify({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "site-native-check", version: "1" } } }),
     });
     session = init.headers.get("mcp-session-id") || "";
     await init.text();
   }
   if (session) headers["Mcp-Session-Id"] = session;
-  const answer = await fetch(url, { method: "POST", headers, signal: AbortSignal.timeout(STEP_MS), body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }) });
+  const answer = await fetch(url, { method: "POST", headers, signal: left(), body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }) });
   const body = await answer.json();
   return body.result?.content?.[0]?.text ?? JSON.stringify(body);
 }
