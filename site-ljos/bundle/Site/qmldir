@@ -44,6 +44,7 @@ PageSource 1.0 PageSource.qml
 ShowcasePage 1.0 ShowcasePage.qml
 ShowcaseApp 1.0 ShowcaseApp.qml
 ShowcaseCapture 1.0 ShowcaseCapture.qml
+ShowcaseEngine 1.0 ShowcaseEngine.qml
 Heading 1.0 Heading.qml
 Panel 1.0 Panel.qml
 DeviceFrame 1.0 DeviceFrame.qml

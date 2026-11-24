@@ -200,9 +200,9 @@ Flickable {
                 // `wide`), so it is bound from the start, not once loaded.
                 readonly property bool wide: view.wide
                 onLoaded: {
+                    item.scroller = view;
                     if (route !== "/")
                         return;
-                    item.scroller = view;
                     item.wide = Qt.binding(() => view.wide);
                 }
             }
