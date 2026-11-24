@@ -115,9 +115,11 @@ Rectangle {
     // A title of the menu bar, and the menu it opens.
     component MenuTitle: Rectangle {
         id: title
-        // The shell's, given: a component sees no id outside it.
-        required property L.Desk shell
-        required property Look look
+        // The shell's, given: a component sees no id outside it. Named
+        // for no id in the shell, as Ljós on the desktop reads `look:
+        // look` in a Repeater's delegate as the delegate's own.
+        required property L.Desk host
+        required property Look colours
         property string label: ""
         property C.Menu menu
         readonly property bool open: L.given(menu) && menu.opened
@@ -132,8 +134,8 @@ Rectangle {
         width: words.implicitWidth + 20
         height: 26
         radius: 4
-        fill: open ? look.pressed : area.containsMouse ? look.hover : "transparent"
-        border.color: activeFocus ? look.focus : "transparent"
+        fill: open ? colours.pressed : area.containsMouse ? colours.hover : "transparent"
+        border.color: activeFocus ? colours.focus : "transparent"
         border.width: 1
         activeFocusOnTab: true
         Accessible.role: Accessible.MenuItem
@@ -146,23 +148,23 @@ Rectangle {
             } else if (event.key === Key.Left || event.key === Key.Right) {
                 // Right is the next title on the screen: on a mirrored bar,
                 // the one before it.
-                title.shell.besideTitle(title.label, (event.key === Key.Right) !== Q.LayoutMirroring.enabled ? 1 : -1);
+                title.host.besideTitle(title.label, (event.key === Key.Right) !== Q.LayoutMirroring.enabled ? 1 : -1);
                 event.accepted = true;
             }
         }
         Connections {
             target: title.menu
-            function onOpened() { title.shell.openTitle = title.label; }
-            function onClosed() { if (title.shell.openTitle === title.label) title.shell.openTitle = ""; }
+            function onOpened() { title.host.openTitle = title.label; }
+            function onClosed() { if (title.host.openTitle === title.label) title.host.openTitle = ""; }
         }
 
         Text {
             id: words
             anchors.centerIn: parent
             text: title.label
-            color: look.text
-            font.family: look.sans
-            font.size: look.ui
+            color: colours.text
+            font.family: colours.sans
+            font.size: colours.ui
             Accessible.ignored: true
         }
         PointerArea {
@@ -172,8 +174,8 @@ Rectangle {
             Accessible.ignored: true
             onClicked: title.toggle()
             onEntered: {
-                if (title.shell.openTitle !== "" && title.shell.openTitle !== title.label) {
-                    title.shell.closeMenu(title.shell.openTitle);
+                if (title.host.openTitle !== "" && title.host.openTitle !== title.label) {
+                    title.host.closeMenu(title.host.openTitle);
                     title.menu.open();
                 }
             }
@@ -204,19 +206,19 @@ Rectangle {
     // or a shell to show (a button, pressed while it is shown).
     component Entry: Item {
         id: entry
-        required property L.Desk shell
-        required property Look look
+        required property L.Desk host
+        required property Look colours
         property string label: ""
         property string icon: "file-text"
         property string to: ""
         property bool current: false
-        readonly property string href: to !== "" && shell.router !== undefined && L.given(shell.router) ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && host.router !== undefined && L.given(host.router) ? host.router.address(to) : ""
         signal pressed
 
         width: parent !== null ? parent.width : 232
         // Native density where there's a pointer, a finger's size on a phone;
         // a long title takes a second line rather than losing its end.
-        height: Math.max(shell.wide ? 26 : 44, words.implicitHeight + 10)
+        height: Math.max(host.wide ? 26 : 44, words.implicitHeight + 10)
         activeFocusOnTab: true
         Accessible.role: to !== "" ? Accessible.Link : Accessible.Button
         Accessible.name: label
@@ -232,7 +234,7 @@ Rectangle {
         }
         function press() {
             if (to !== "")
-                shell.go(to);
+                host.go(to);
             else
                 entry.pressed();
         }
@@ -245,8 +247,8 @@ Rectangle {
             width: parent.width - 12
             height: parent.height
             radius: 4
-            fill: entry.current ? look.selected : area.containsMouse ? look.hover : "transparent"
-            border.color: entry.activeFocus ? look.focus : "transparent"
+            fill: entry.current ? colours.selected : area.containsMouse ? colours.hover : "transparent"
+            border.color: entry.activeFocus ? colours.focus : "transparent"
             border.width: 1
             Accessible.ignored: true
         }
@@ -259,7 +261,7 @@ Rectangle {
             y: words.y + (Math.min(words.implicitHeight, words.font.size * 1.4) - height) / 2
             size: 14
             name: entry.icon
-            color: entry.current ? look.accent : look.muted
+            color: entry.current ? colours.accent : colours.muted
             Accessible.ignored: true
         }
         Text {
@@ -271,9 +273,9 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - startX - 12
             text: entry.label
-            color: look.text
-            font.family: look.sans
-            font.size: look.ui
+            color: colours.text
+            font.family: colours.sans
+            font.size: colours.ui
             font.weight: entry.current ? Font.DemiBold : Font.Normal
             wrap: Text.WordWrap
             Accessible.ignored: true
@@ -290,13 +292,13 @@ Rectangle {
 
     // A heading of the sidebar's groups.
     component Group: Text {
-        required property Look look
+        required property Look colours
         width: parent !== null ? parent.width : 232
         leftPadding: 16
         topPadding: 12
         bottomPadding: 4
-        color: look.muted
-        font.family: look.sans
+        color: colours.muted
+        font.family: colours.sans
         font.size: 11
         font.weight: Font.DemiBold
         font.letterSpacing: 0.4
@@ -306,8 +308,8 @@ Rectangle {
     // A document tab, a phone's view, or a page open in the list of them.
     component Tab: Rectangle {
         id: tab
-        required property L.Desk shell
-        required property Look look
+        required property L.Desk host
+        required property Look colours
         property string label: ""
         property string icon: ""
         property bool current: false
@@ -317,7 +319,7 @@ Rectangle {
         property bool stacked: false
         signal pressed
 
-        fill: current ? look.canvas : area.containsMouse ? look.hover : "transparent"
+        fill: current ? colours.canvas : area.containsMouse ? colours.hover : "transparent"
         activeFocusOnTab: true
         Accessible.role: Accessible.PageTab
         Accessible.name: label
@@ -334,13 +336,13 @@ Rectangle {
             visible: tab.current
             width: parent.width
             height: 2
-            fill: look.accent
+            fill: colours.accent
             Accessible.ignored: true
         }
         Rectangle {
             anchors.fill: parent
             fill: "transparent"
-            border.color: tab.activeFocus ? look.focus : look.divider
+            border.color: tab.activeFocus ? colours.focus : colours.divider
             border.width: tab.activeFocus ? 1 : 0
             Accessible.ignored: true
         }
@@ -351,7 +353,7 @@ Rectangle {
             x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             width: 1
             height: parent.height
-            fill: look.divider
+            fill: colours.divider
             Accessible.ignored: true
         }
         C.Icon {
@@ -364,7 +366,7 @@ Rectangle {
             y: tab.stacked ? 9 : (parent.height - height) / 2
             size: tab.stacked ? 18 : 14
             name: tab.icon
-            color: tab.current ? look.accent : look.muted
+            color: tab.current ? colours.accent : colours.muted
             Accessible.ignored: true
         }
         Text {
@@ -373,12 +375,12 @@ Rectangle {
             readonly property real startX: tab.stacked ? 4 : mark.visible ? 32 : 12
             x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: tab.stacked ? mark.y + mark.height + 4 : (parent.height - height) / 2
-            width: tab.stacked ? parent.width - 8 : parent.width - startX - (tab.closable ? (shell.wide ? 32 : 56) : 12)
+            width: tab.stacked ? parent.width - 8 : parent.width - startX - (tab.closable ? (host.wide ? 32 : 56) : 12)
             align: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
             text: tab.label
-            color: tab.current ? look.text : look.muted
-            font.family: look.sans
-            font.size: look.ui
+            color: tab.current ? colours.text : colours.muted
+            font.family: colours.sans
+            font.size: colours.ui
             elide: Text.ElideRight
         }
         PointerArea {
@@ -434,8 +436,8 @@ Rectangle {
 
                     MenuTitle {
                         id: fileTitle
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         label: t({ message: "File", context: "menu bar" })
                         menu: fileMenu
 
@@ -485,8 +487,8 @@ Rectangle {
                     }
                     MenuTitle {
                         id: viewTitle
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         label: t({ message: "View", context: "menu bar" })
                         menu: viewMenu
 
@@ -552,8 +554,8 @@ Rectangle {
                     }
                     MenuTitle {
                         id: goTitle
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         label: t({ message: "Go", context: "menu bar" })
                         menu: goMenu
 
@@ -597,8 +599,8 @@ Rectangle {
                     }
                     MenuTitle {
                         id: helpTitle
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         label: t({ message: "Help", context: "menu bar" })
                         menu: helpMenu
 
@@ -817,26 +819,26 @@ Rectangle {
                 id: pages
                 width: parent.width
 
-                Group { look: look; text: t`Overview` }
+                Group { colours: look; text: t`Overview` }
                 Entry {
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     icon: "house"
                     label: t`Home`
                     to: "/"
                     current: shell.route === "/"
                 }
                 Entry {
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     icon: "zap"
                     label: t`Start in a minute`
                     to: "/start/"
                     current: shell.route === "/start/"
                 }
                 Entry {
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     visible: shell.hasMetrics
                     height: !visible ? 0 : shell.wide ? 26 : 44
                     icon: "clock"
@@ -844,10 +846,10 @@ Rectangle {
                     to: shell.metricsRoute
                     current: shell.route === shell.metricsRoute
                 }
-                Group { look: look; text: t`Demos` }
+                Group { colours: look; text: t`Demos` }
                 Entry {
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     icon: "play"
                     label: t`All demos`
                     to: "/demos/"
@@ -857,21 +859,21 @@ Rectangle {
                     model: shell.router !== undefined && L.given(shell.router) ? shell.router.demos : []
                     Entry {
                         required property L.Demo modelData
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         icon: "play"
                         label: modelData.title
                         to: modelData.route
                         current: shell.route === modelData.route
                     }
                 }
-                Group { look: look; text: t`Shells` }
+                Group { colours: look; text: t`Shells` }
                 Repeater {
                     model: shell.preferences !== undefined && L.given(shell.preferences) ? shell.preferences.shells : []
                     Entry {
                         required property L.ShellChoice modelData
-                        shell: shell
-                        look: look
+                        host: shell
+                        colours: look
                         icon: "image"
                         label: modelData.label
                         current: shell.site.preferences.shown === modelData.name
@@ -885,13 +887,13 @@ Rectangle {
                         required property L.Section modelData
                         width: pages.width
 
-                        Group { look: look; text: section.modelData.label }
+                        Group { colours: look; text: section.modelData.label }
                         Repeater {
                             model: section.modelData.pages
                             Entry {
                                 required property L.Page modelData
-                                shell: shell
-                                look: look
+                                host: shell
+                                colours: look
                                 label: modelData.title
                                 to: modelData.route
                                 current: shell.route === modelData.route
@@ -960,8 +962,8 @@ Rectangle {
                             model: shell.opened
                             Tab {
                                 required property string modelData
-                                shell: shell
-                                look: look
+                                host: shell
+                                colours: look
                                 width: shell.wide ? 200 : documents.width
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
@@ -1044,8 +1046,8 @@ Rectangle {
                 Tab {
                     required property L.Pane modelData
                     required property int index
-                    shell: shell
-                    look: look
+                    host: shell
+                    colours: look
                     width: Math.floor(views.width / 3)
                     height: 55
                     stacked: true

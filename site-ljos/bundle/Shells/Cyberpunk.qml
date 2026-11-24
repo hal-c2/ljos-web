@@ -137,7 +137,7 @@ Rectangle {
     // accent, said to a reader as one line.
     component Reading: Item {
         id: reading
-        required property Look look
+        required property Look colours
         property string label: ""
         property string value: ""
         property string said: ""
@@ -153,8 +153,8 @@ Rectangle {
             // Before its value, it changes sides with it on a right-to-left page.
             x: Q.LayoutMirroring.enabled ? parent.width - width : 0
             text: reading.label
-            color: reading.look.muted
-            font.family: reading.look.mono
+            color: reading.colours.muted
+            font.family: reading.colours.mono
             font.size: 12
             lineHeightMode: Text.FixedHeight
             lineHeight: reading.stacked ? 16 : 20
@@ -170,8 +170,8 @@ Rectangle {
             width: reading.stacked ? reading.width : implicitWidth
             text: reading.value
             elide: Text.ElideMiddle
-            color: reading.look.link
-            font.family: reading.look.mono
+            color: reading.colours.link
+            font.family: reading.colours.mono
             font.size: 12
             font.weight: Font.DemiBold
             lineHeightMode: Text.FixedHeight
@@ -188,7 +188,7 @@ Rectangle {
     // second colour and the first, as a misaligned screen's does.
     component Channel: Item {
         id: channel
-        required property Look look
+        required property Look colours
         // The shell's, given.
         required property P.MaybePunkRouter router
         required property bool wide
@@ -228,7 +228,7 @@ Rectangle {
             width: parent.width
             height: parent.height
             fill: "transparent"
-            border.color: channel.look.accent2
+            border.color: channel.colours.accent2
             border.width: 1
             opacity: area.containsMouse ? 0.9 : 0
             Accessible.ignored: true
@@ -241,15 +241,15 @@ Rectangle {
             width: parent.width
             height: parent.height
             fill: "transparent"
-            border.color: channel.look.accent
+            border.color: channel.colours.accent
             border.width: 1
             opacity: area.containsMouse ? 0.9 : 0
             Accessible.ignored: true
         }
         Rectangle {
             anchors.fill: parent
-            fill: channel.current ? channel.look.hover : "transparent"
-            border.color: channel.activeFocus ? channel.look.accent : "transparent"
+            fill: channel.current ? channel.colours.hover : "transparent"
+            border.color: channel.activeFocus ? channel.colours.accent : "transparent"
             border.width: 2
             Accessible.ignored: true
         }
@@ -257,7 +257,7 @@ Rectangle {
             visible: channel.current
             width: 2
             height: parent.height
-            fill: channel.look.accent
+            fill: channel.colours.accent
             Accessible.ignored: true
         }
         Text {
@@ -267,8 +267,8 @@ Rectangle {
             x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             text: String(channel.number).padStart(2, "0")
-            color: channel.current ? channel.look.link : channel.look.muted
-            font.family: channel.look.mono
+            color: channel.current ? channel.colours.link : channel.colours.muted
+            font.family: channel.colours.mono
             font.size: 12
             Accessible.ignored: true
         }
@@ -279,8 +279,8 @@ Rectangle {
             x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             text: channel.label
-            color: channel.current ? channel.look.link : channel.look.text
-            font.family: channel.look.sans
+            color: channel.current ? channel.colours.link : channel.colours.text
+            font.family: channel.colours.sans
             font.size: 15
             font.weight: channel.current ? Font.DemiBold : Font.Normal
             Accessible.ignored: true
@@ -343,32 +343,32 @@ Rectangle {
                 spacing: 24
 
                 Reading {
-                    look: look
+                    colours: look
                     label: t`Route`
                     value: shell.route
                     said: t`Route ${shell.route}`
                 }
                 Reading {
-                    look: look
+                    colours: look
                     visible: shell.width >= 1180
                     label: t`Clock`
                     value: shell.clock
                     said: t`Clock ${shell.clock}`
                 }
                 Reading {
-                    look: look
+                    colours: look
                     label: t`Objects alive`
                     value: String(shell.alive)
                     said: t`Objects alive ${shell.alive}`
                 }
                 Reading {
-                    look: look
+                    colours: look
                     label: t`Frame rate`
                     value: shell.fps > 0 ? t`${shell.fps} fps` : "--"
                     said: shell.fps > 0 ? t`Frame rate ${shell.fps} fps` : t`Frame rate not measured yet`
                 }
                 Reading {
-                    look: look
+                    colours: look
                     visible: shell.width >= 1300 && shell.renderer !== ""
                     label: t`Renderer`
                     value: shell.renderer
@@ -459,7 +459,7 @@ Rectangle {
                 Channel {
                     required property P.Channel modelData
                     required property int index
-                    look: look
+                    colours: look
                     router: shell.router
                     wide: shell.wide
                     number: index + 1
@@ -482,7 +482,7 @@ Rectangle {
                 height: 12
             }
             Channel {
-                look: look
+                colours: look
                 router: shell.router
                 wide: shell.wide
                 number: shell.channels.length + 1
@@ -585,7 +585,7 @@ Rectangle {
             spacing: 12
 
             Reading {
-                look: look
+                colours: look
                 stacked: true
                 width: Math.max(64, bar.width - 2 * shell.gutter - 3 * readings.spacing - aliveReading.width - fpsReading.width - clockReading.width)
                 label: t`Route`
@@ -594,7 +594,7 @@ Rectangle {
             }
             Reading {
                 id: aliveReading
-                look: look
+                colours: look
                 stacked: true
                 width: implicitWidth
                 label: t`Objects`
@@ -603,7 +603,7 @@ Rectangle {
             }
             Reading {
                 id: fpsReading
-                look: look
+                colours: look
                 stacked: true
                 width: implicitWidth
                 label: t`Frame rate`
@@ -612,7 +612,7 @@ Rectangle {
             }
             Reading {
                 id: clockReading
-                look: look
+                colours: look
                 stacked: true
                 width: implicitWidth
                 label: t`Clock`
@@ -680,7 +680,7 @@ Rectangle {
                         Channel {
                             required property P.Channel modelData
                             required property int index
-                            look: look
+                            colours: look
                             router: shell.router
                             wide: shell.wide
                             number: index + 1
