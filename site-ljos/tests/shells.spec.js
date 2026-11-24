@@ -1020,6 +1020,42 @@ test("colours that never come hold the page back no longer than the watchdog", a
   }
 });
 
+// A kept shell shown in time while its colours are still on their way:
+// at the watchdog's deadline their hold on the page ends all the same,
+// and they still come to the shell shown. In Chromium hydration itself
+// waits behind the render block, so the page can't show the shell in
+// time on its own; the test marks it shown, as a browser that runs the
+// page under the block would.
+test("colours still on their way once the kept shell is shown hold the page back no longer than the watchdog", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  let release = () => {};
+  const held = new Promise((done) => (release = done));
+  try {
+    const page = await context.newPage();
+    let asked = 0;
+    await page.route(/\/looks-[0-9a-f]{10}\.css$/, async (route) => {
+      asked++;
+      await held;
+      await route.continue().catch(() => {});
+    });
+    await page.addInitScript(() => {
+      setTimeout(() => (document.documentElement.dataset.ljosShellShown = ""), 1000);
+      requestAnimationFrame(() => (window.__drawnAt = performance.now()));
+    });
+    await page.goto(at("/start/cli/"), { waitUntil: "commit" });
+    const drawnAt = await page.waitForFunction(() => window.__drawnAt, null, { polling: 100, timeout: 10_000 }).then((at) => at.jsonValue()).catch(() => null);
+    expect(drawnAt, "a frame was drawn while the colours were still held").not.toBeNull();
+    expect("ljosShellLate" in (await page.evaluate(() => ({ ...document.documentElement.dataset }))), "a shell shown in time is not late").toBe(false);
+    release();
+    const ground = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--ljos-canvas").trim().toLowerCase());
+    await expect.poll(ground, { message: "the shown shell's colours came" }).toBe(looks.workbench.light.canvas.toLowerCase());
+    expect(asked, "asked once").toBe(1);
+  } finally {
+    release();
+    await context.close();
+  }
+});
+
 // A stylesheet of colours that failed to come is not kept: it is asked
 // for once more, whether the page (picked) or the head (kept) asked
 // first, and the page takes the shell's colours from the second.

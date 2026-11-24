@@ -91,6 +91,14 @@ Feature: The site is shown in a shell the reader picks
     And the colours still on their way are dropped
     And the page stays in the Elegant shell's colours
 
+  Scenario: Colours still on their way once the kept shell is shown hold the page back no longer than the watchdog
+    Given a reader who kept the Workbench shell
+    And its colours are still on their way when the Workbench shell is shown
+    When they open "/start/cli/"
+    Then the page is drawn once the head's watchdog's time is up
+    And the page is not marked late
+    And the page's ground is the Workbench shell's once its colours come
+
   Scenario Outline: Colours that failed to come are asked for once more
     Given a reader on "/start/cli/" who <how> the Workbench shell
     And its colours failed to come the first time they were asked for
