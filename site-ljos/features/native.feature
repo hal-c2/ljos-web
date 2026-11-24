@@ -9,7 +9,8 @@ Feature: ljos.dev runs on Ljós on the desktop
   Covered by `mise run site:native --check`, which runs the site
   off-screen and follows it as a reader would (site-ljos/scripts/
   native-check.mjs), and by the site-native job in
-  .github/workflows/site.yml.
+  .github/workflows/site.yml. The check never takes a page's reading
+  away, so the scenario of a page that cannot be read is not run by it.
 
   Scenario: The front page, a docs page and the showcase open
     Given the site runs on Ljós off-screen at 1280 by 800
@@ -40,6 +41,25 @@ Feature: ljos.dev runs on Ljós on the desktop
       | Workbench |
       | Desktop   |
       | Elegant   |
+
+  Scenario: Back and forward are the desktop's own
+    Given the reader went from the front page to a docs page and to the showcase
+    When the reader follows the header's Docs link twice
+    And presses Alt+Left
+    Then the showcase is shown, as the second Docs made no entry of its own
+    When the reader presses Alt+Left twice quickly
+    Then the front page is shown
+
+  Scenario: A page that cannot be read leaves the list as it was
+    Given the site runs on the desktop
+    When the reader follows a link to a page whose reading is missing
+    Then the page shown stays, a warning names the file
+    And Back and forward go where they went before
+
+  Scenario: The search works on the desktop
+    Given the site runs on Ljós
+    When the reader types "Item" into the search field
+    Then results come from the search.json the build wrote beside the pages
 
   Scenario: What the desktop can't do yet shows a placeholder
     Given the site runs on Ljós
