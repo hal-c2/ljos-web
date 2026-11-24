@@ -84,5 +84,58 @@
         }
       }
     }
+  },
+  {
+    "id": "hof",
+    "name": "Ljós Hof",
+    "what": "Hof",
+    "maker": "Ljós",
+    "claim": "A terminal whose UI is QML, over Ghostty's libghostty-vt",
+    "body": [
+      "Hof is a terminal for Linux and macOS. Ghostty's libghostty-vt reads what programs write; everything around it, the tabs, splits, menus and settings, is QML running on Ljós.",
+      "It sees Claude Code, Codex, Gemini, Aider and opencode in its panes, and frames a pane whose agent is waiting for you. `hof ctl` drives it from scripts, and `hof mcp` lets agents drive it.",
+      "Its settings are one TOML file. The settings window writes each change into that file at once and keeps your comments."
+    ],
+    "recording": {
+      "name": "hof",
+      "width": 1280,
+      "height": 800,
+      "label": "Recording of Hof: at a shell prompt, git log --oneline -8 runs in the ljos-hof checkout, a split opens with ls in the new pane, focus moves between the panes, a new tab opens and closes, and the window returns to its first prompt."
+    },
+    "captures": [
+      {
+        "name": "hof-splits",
+        "width": 900,
+        "height": 600,
+        "alt": "Hof with two panes side by side: git log --oneline -6 on the left inside a blue focus frame, ls -F crates listing the hof crates on the right.",
+        "shows": "Split panes with the focused one framed",
+        "about": "Hof's tabs and splits are a QML UI over Ghostty's libghostty-vt, with the focused pane framed in a highlight colour."
+      },
+      {
+        "name": "hof-settings",
+        "width": 800,
+        "height": 600,
+        "alt": "Hof's Settings panel on the Appearance page: theme hof-dark, background opacity 100%, font System monospace at size 12, bold text in bright colours off, padding 6, and 'Saved in hof.toml' beside a Done button.",
+        "shows": "Settings for theme, opacity, font and padding",
+        "about": "Each change is written into the TOML config at once, keeping its comments, and the settings are held to the Ljós design audit."
+      },
+      {
+        "name": "hof-menu",
+        "width": 560,
+        "height": 480,
+        "alt": "The menu from the button at the right of Hof's tab bar: New Tab, New Tab on Host, Split Right, Split Down, Find, Bigger, Smaller and Actual Size text, Zoom Pane, Full Screen, Settings, Open Config File, Close Tab and Quit, each with its Ctrl+Shift key.",
+        "shows": "The tab-bar menu with its keys",
+        "about": "Off macOS, Hof's actions sit behind a tab-bar button in a menu that shows each key."
+      }
+    ],
+    "note": "Recorded off-screen on Linux on 2026-11-24, from ljos-hof at commit 0fa78e3. The shell, the checkout and the commands in it are real; the window is Hof's own, unchanged.",
+    "source": {
+      "label": "Hof's source",
+      "href": "https://github.com/hal-c2/ljos-hof/tree/0fa78e3"
+    },
+    "repo": {
+      "label": "Ljós Hof on GitHub",
+      "href": "https://github.com/hal-c2/ljos-hof"
+    }
   }
 ]
