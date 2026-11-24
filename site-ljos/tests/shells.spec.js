@@ -1662,7 +1662,8 @@ test("a phone never scrolls sideways while Cyberpunk glitches in", async ({ brow
       };
       requestAnimationFrame(frame);
     });
-    await open(page, "/");
+    // The glitch a kept Cyberpunk comes in with is what is tested: a late page fails.
+    await open(page, "/", { arrival: true });
     expect(await page.evaluate(() => window.__glitched), "the page glitched in").toBe(true);
     await expect
       .poll(() => page.evaluate(() => document.getElementById("app").getAnimations().filter((animation) => animation.animationName === "ljos-glitch-in").map((animation) => animation.playState)), { message: "the glitch ends" })
