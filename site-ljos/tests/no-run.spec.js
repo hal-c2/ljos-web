@@ -12,8 +12,11 @@ const FRAMED = {
 };
 // What each page has next under a demo's frame, words in its text: a demo's
 // own page says what it is above the frame, and how to use it below.
+// The words that come after each demo's frame. On the front page the
+// 3D demo's own words stand before it (Elegant's Capability), so the
+// next words after it are the section below's headline.
 const FOLLOWS = {
-  "/": { "the 3D demo": "Once this 3D scene runs" },
+  "/": { "the 3D demo": "Built together" },
   "/demos/": { "the 3D demo": "A shader effect", "the shader demo": "A whole app", "the field guide": "Motion", "the motion demo": null },
   "/demos/cockpit/": { "the cockpit": "Its files" },
   "/demos/watch/": { "the watch": "Wear it with the pointer" },
