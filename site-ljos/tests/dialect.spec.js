@@ -74,7 +74,9 @@ const qtQuickModules = {
   },
 };
 
-const imports = (text, module) => new RegExp(`^import ${module.replace(".", "\\.")}(\\s+as\\s+\\w+)?\\s*$`, "m").test(text);
+// `import QtQuick`, with a version, a qualifier or a comment after it.
+const imports = (text, module) =>
+  new RegExp(`^import ${module.replaceAll(".", "\\.")}(\\s+\\d+(\\.\\d+)*)?(\\s+as\\s+\\w+)?\\s*(//.*)?$`, "m").test(text);
 
 test("no QML file imports QtQuick but those named with what keeps them there", () => {
   expect(files.length).toBeGreaterThan(100);
@@ -88,6 +90,19 @@ for (const [module, allowed] of Object.entries(qtQuickModules)) {
     expect(on).toEqual(Object.keys(allowed).sort());
   });
 }
+
+// QtQuick3D stays (the 3D demos have no Ljós module to move to); any other
+// module of QtQuick's is one of those above, each named with its reason.
+test("no QML file imports a module of QtQuick's the lists above do not name", () => {
+  const named = new Set(["QtQuick", ...Object.keys(qtQuickModules)]);
+  const other = files.flatMap(({ file, text }) =>
+    [...text.matchAll(/^import (QtQuick[\w.]*)/gm)]
+      .map(([, module]) => module)
+      .filter((module) => !named.has(module) && module !== "QtQuick3D" && !module.startsWith("QtQuick3D."))
+      .map((module) => `${file}: ${module}`),
+  );
+  expect(other).toEqual([]);
+});
 
 test("no QML file imports QtQuick.Layouts, QtQuick.Shapes or QtQml", () => {
   const on = files.filter(({ text }) => /^import (QtQuick\.Layouts|QtQuick\.Shapes|QtQml)\b/m.test(text)).map(({ file }) => file);
