@@ -42,7 +42,8 @@ test.describe("a site with a catalogue", () => {
   let server;
   test.beforeAll(shared("build the site and serve it", async () => {
     made = translated();
-    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] });
+    // Not prerendered: the start's only wait is the catalogue's.
+    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], prerender: false });
     server = await serve(made.out);
   }));
   test.afterAll(shared("stop serving it and remove the bundle", async () => {
@@ -66,7 +67,11 @@ test.describe("a site with a catalogue", () => {
     await page.route(/\/ar(?:\.po)?-[\w-]+\.js$/u, (route) => route.abort());
     await page.goto(`${server.origin}/?lang=ar`);
     await expect.poll(() => warned.some((text) => /ar\.po: the catalogue could not be fetched/u.test(text)), "the failure is said").toBe(true);
-    // The start settles in the tasks after the failure is said.
+    // This site is not prerendered, so the start waits on nothing but the
+    // catalogue (`after` is undefined): it settles in the microtasks right
+    // after the failure is said, before the warning reaches this test. The
+    // frames are only a margin. The start before the fix set "ar" through
+    // this same wait, and this test caught it.
     await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
     await expect(page.getByText("Stopped", { exact: true })).toBeVisible();
     expect(await marked(page)).toEqual({ lang: "en", dir: "ltr" });
