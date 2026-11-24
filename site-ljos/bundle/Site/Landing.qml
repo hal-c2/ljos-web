@@ -92,7 +92,7 @@ Column {
             wide: landing.wide
             // Cyberpunk shows the live app as a console, under the words,
             // where the section is wide enough for one (DeviceFrame).
-            stacked: Theme.consoleLayout && width >= Theme.consoleFrom
+            stacked: Theme.consoleAt(width)
             eyebrow: LandingCopy.agenticEyebrow
             title: LandingCopy.agenticHeadline
             body: LandingCopy.agenticBody
