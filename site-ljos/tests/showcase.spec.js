@@ -137,7 +137,10 @@ const cut = (example, [from, to]) => quoted(example).split("\n").slice(from - 1,
 test("the Office names ljos-play, and the copy of its example is the file at the commit named", () => {
   const office = products.find((product) => product.id === "office");
   expect(office?.engine?.href).toBe("https://github.com/hal-c2/ljos-play");
-  for (const { example } of engines) {
+  for (const { name, example } of engines) {
+    // An engine named is shown in its own words: the build stops on one
+    // without an example.
+    expect(example, name).toBeTruthy();
     // Git's own name for the file's bytes: the copy is byte for byte
     // what the repository holds at that commit.
     const bytes = readFileSync(join(here, "bundle", example.copy));
