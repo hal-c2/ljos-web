@@ -31,6 +31,13 @@ const KNOWN = [
   /AgentPoster\.qml:\d+: TypeError: Cannot call method 'argsText'/,
   // Flickable.acceptedButtons (Qt 6.9): the same branch.
   /acceptedButtons/,
+  // Ljos.Blocks' ShellLoader takes a url `source`, where DispatchShell
+  // hands it a module that is undefined until the view wants one (its
+  // own comment says so); an empty url is what it gets.
+  /DispatchShell\.qml:\d+:\d+: Unable to assign \[undefined\] to QUrl$/,
+  // A list<> of a TypeScript type (Sources.Diagnostic) reads undefined
+  // before it is first set, where the web runtime has an empty list.
+  /LiveSource\.qml:\d+: TypeError: Cannot call method 'filter' of undefined$/,
   // A debug build's turns are slow; the budget is a release build's.
   /a turn of the UI thread took/,
 ];
