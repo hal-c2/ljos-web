@@ -53,7 +53,8 @@ plain("compiled QML may import every module the runtime package exports", () => 
   // compiler itself, the faces' seam, the prerender's server side, the
   // Markdown content source a site's build reads, and what a page's own
   // script asks before any QML runs (whether WebAssembly runs, and the
-  // early fetch of View3D's renderer). The code blocks' halves are an
+  // early fetch of View3D's renderer), and the check of a translator's
+  // catalogue, which tooling asks for. The code blocks' halves are an
   // editor a page mounts, not a QML module.
   const host = [
     "./vite.js",
@@ -66,6 +67,7 @@ plain("compiled QML may import every module the runtime package exports", () => 
     "./wasm-check.js",
     "./QtQuick3D/early-at-once.js",
     "./QtQuick3D/early-held.js",
+    "./Ljos/Core/catalogCheck.ts",
   ];
   const kept = Object.entries(exports)
     .filter(([name, file]) => /\.[jt]s$/.test(file) && !host.includes(file) && !file.startsWith("./codeblocks/"))

@@ -2,7 +2,8 @@
 // `ljos-web/compiler` and compiles only when a test asks.
 import { compile, createCompiler, translate } from "ljos-web/compiler";
 import { flush, mount } from "ljos-web/object";
-import { App, catalogSources, checkCatalog, installCatalog, loadCatalogs, removeCatalog, untranslated } from "ljos-web/Ljos/Core";
+import { App, catalogSources, installCatalog, loadCatalogs, removeCatalog, untranslated } from "ljos-web/Ljos/Core";
+import { checkCatalog } from "ljos-web/Ljos/Core/catalogCheck";
 
 // Compiles `request` and mounts what it made, as the harness mounts a
 // scene: `window.scene` is the object, `window.objects` what its root has

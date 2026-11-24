@@ -19,7 +19,6 @@ export {
   __ljos_message,
   __ljos_msg,
   catalogSources,
-  checkCatalog,
   installCatalog,
   loadCatalogs,
   msg,
