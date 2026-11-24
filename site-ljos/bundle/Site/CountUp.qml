@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
 import Site
 import "../nav.js" as Nav
 
@@ -24,7 +25,7 @@ Text {
     color: Theme.onCanvasStrong
     font.family: Theme.display
     font.weight: Theme.displayWeight
-    font.pixelSize: Theme.displaySize
+    font.size: Theme.displaySize
     font.letterSpacing: Theme.displayTracking * Theme.displaySize / Theme.heroSize
     font.features: { "tnum": 1 }
     lineHeightMode: Text.FixedHeight
@@ -48,7 +49,7 @@ Text {
     Component.onCompleted: {
         if (!Nav.inBrowser() || Theme.calm)
             return;
-        Qt.callLater(() => {
+        later(() => {
             var at = number.mapToItem(null, 0, 0);
             armed = Running.viewBottom > 0 && at.y >= Running.viewBottom;
         });

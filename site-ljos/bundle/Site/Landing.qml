@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
-// both have stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Ljos.Blocks
 import Site
 import Demos
@@ -21,7 +20,7 @@ Column {
 
     // The flickable the page scrolls in, for the demos to know when
     // they are on screen; and whether the window is a wide one.
-    property var scroller: null
+    property unknown scroller: null
     property bool wide: true
     // Prose reads at a measure, whatever the page's width.
     readonly property int prose: Math.min(width, Theme.measure)
@@ -126,14 +125,14 @@ Column {
             // What to do with the playground under the section.
             Text {
                 width: ownShell.exampleWidth
-                textFormat: Text.RichText
+                format: Text.RichText
                 color: Theme.text
                 linkColor: Theme.link
                 font.family: Theme.sans
-                font.pixelSize: Theme.bodySize
+                font.size: Theme.bodySize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.bodyLine
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
                 topPadding: Theme.m
                 text: t`<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it.`
             }
@@ -249,7 +248,7 @@ Column {
             width: parent.width
             height: together.height + 2 * pad
             radius: Theme.radiusLarge
-            color: Theme.surface
+            fill: Theme.surface
             border.color: Theme.divider
             border.width: 1
             clip: true
@@ -282,14 +281,14 @@ Column {
                     x: together.wordsX
                     y: landing.wide ? Theme.xs : togetherHeading.height + Theme.m
                     width: Math.min(parent.width - x, Theme.measure)
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     color: Theme.textMuted
                     linkColor: Theme.link
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize
+                    font.size: Theme.bodySize
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.bodyLine
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                     text: t`Ljós strives to follow the <a href="https://community-software.org/">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome.`
                     onLinkActivated: (link) => landing.follow(link)
                 }

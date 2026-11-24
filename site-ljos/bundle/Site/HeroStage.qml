@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 import "hero.js" as Hero
 
@@ -26,7 +26,7 @@ DeviceFrame {
     readonly property string locator: "role=checkbox[name=\"" + aimed + "\"]"
     // The recorded session: each call as the agent sent it, and what it
     // does to the running app, which answers with what it now holds.
-    readonly property var steps: [
+    readonly property unknown steps: [
         { tool: "app_find", args: "{ locator: '" + locator + "' }", act: () => {
             var at = app.find(hero.aimed);
             app.pointing = at;
@@ -49,7 +49,7 @@ DeviceFrame {
         } }
     ]
     // What each call answered, in order.
-    property var answers: []
+    property unknown answers: []
 
     function step() {
         if (answers.length >= steps.length)
@@ -77,7 +77,7 @@ DeviceFrame {
             index: 0
             Rectangle {
                 anchors.fill: parent
-                color: Theme.codeBg
+                fill: Theme.codeBg
             }
             Flickable {
                 anchors.fill: parent
@@ -89,14 +89,14 @@ DeviceFrame {
                     x: Theme.m
                     y: Theme.m
                     width: parent.width - 2 * Theme.m
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     text: Hero.rich()
                     color: Theme.codeFg
                     font.family: Theme.mono
-                    font.pixelSize: 12
+                    font.size: 12
                     lineHeightMode: Text.FixedHeight
                     lineHeight: 18
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                 }
             }
         },
@@ -120,14 +120,14 @@ DeviceFrame {
 
                     Item {
                         id: line
-                        required property var modelData
+                        required property unknown modelData
                         width: parent.width
                         height: 26
 
                         Rectangle {
                             anchors.fill: parent
                             radius: 4
-                            color: Theme.surfaceHover
+                            fill: Theme.surfaceHover
                             opacity: hover.containsMouse ? 1 : 0
                         }
                         Row {
@@ -140,7 +140,7 @@ DeviceFrame {
                                 text: line.modelData.type
                                 color: Theme.text
                                 font.family: Theme.mono
-                                font.pixelSize: 12
+                                font.size: 12
                                 font.weight: Font.Medium
                             }
                             // A long name gives way to its reading on the
@@ -151,7 +151,7 @@ DeviceFrame {
                                 elide: Text.ElideRight
                                 color: Theme.accent2Text
                                 font.family: Theme.mono
-                                font.pixelSize: 12
+                                font.size: 12
                             }
                         }
                         Row {
@@ -163,17 +163,17 @@ DeviceFrame {
                                 text: line.modelData.key
                                 color: Theme.textMuted
                                 font.family: Theme.mono
-                                font.pixelSize: 12
+                                font.size: 12
                             }
                             Text {
                                 text: line.modelData.value
                                 color: Theme.link
                                 font.family: Theme.mono
-                                font.pixelSize: 12
+                                font.size: 12
                                 font.weight: Font.DemiBold
                             }
                         }
-                        MouseArea {
+                        PointerArea {
                             id: hover
                             anchors.fill: parent
                             hoverEnabled: true
@@ -200,7 +200,7 @@ DeviceFrame {
                     width: badge.implicitWidth + 2 * Theme.xs
                     height: 22
                     radius: 11
-                    color: "transparent"
+                    fill: "transparent"
                     border.color: Theme.accent2
                     border.width: 1
                     Text {
@@ -209,7 +209,7 @@ DeviceFrame {
                         text: t`Recorded replay`
                         color: Theme.accent2Text
                         font.family: Theme.sans
-                        font.pixelSize: 12
+                        font.size: 12
                         font.weight: Font.DemiBold
                     }
                 }
@@ -241,7 +241,7 @@ DeviceFrame {
 
                     Column {
                         id: call
-                        required property var modelData
+                        required property unknown modelData
                         required property int index
                         readonly property bool sent: index < hero.answers.length
                         readonly property bool next: index === hero.answers.length
@@ -256,21 +256,21 @@ DeviceFrame {
                         Text {
                             width: parent.width
                             elide: Text.ElideRight
-                            textFormat: Text.StyledText
+                            format: Text.StyledText
                             text: "<b>" + call.modelData.tool + "</b> " + call.modelData.args.replace(/&/g, "&amp;").replace(/</g, "&lt;")
                             color: Theme.text
                             font.family: Theme.mono
-                            font.pixelSize: 12
+                            font.size: 12
                             lineHeightMode: Text.FixedHeight
                             lineHeight: 18
                         }
                         Text {
                             visible: call.sent
-                            x: Theme.m
+                            Layout.leftMargin: Theme.m
                             text: "→ " + (call.sent ? hero.answers[call.index] : "")
                             color: Theme.link
                             font.family: Theme.mono
-                            font.pixelSize: 12
+                            font.size: 12
                             lineHeightMode: Text.FixedHeight
                             lineHeight: 18
                         }

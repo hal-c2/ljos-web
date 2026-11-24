@@ -1,11 +1,10 @@
 pragma Singleton
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
 
 // The words of the front page's first two sections, in one place, read
 // in this order. Each string is t``, so a translation finds it here too.
-QtObject {
+Object {
     // The hero.
     readonly property string headline: t`Software you can reshape while it runs.`
     readonly property string subhead: t`Ljós is a Rust UI toolkit for apps that people and their agents can change live, with declarative interfaces and typed TypeScript.`

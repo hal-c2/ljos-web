@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 import "../nav.js" as Nav
 
@@ -49,7 +49,7 @@ Item {
             text: capability.eyebrow
             color: Theme.accent2Text
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: Font.DemiBold
             font.letterSpacing: 1.2
             font.capitalization: Font.AllUppercase
@@ -65,15 +65,15 @@ Item {
         Text {
             visible: capability.body !== ""
             width: parent.width
-            textFormat: Text.RichText
+            format: Text.RichText
             text: Nav.linked(Content.base, capability.body)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
+            font.size: Theme.bodySize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             onLinkActivated: (link) => capability.followed(link)
         }
         Column {

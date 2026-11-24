@@ -1,4 +1,5 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Layout
 import QtQuick.Effects
 import Site
 
@@ -41,7 +42,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Theme.brackets ? 0 : panel.radius
-        color: panel.color
+        fill: panel.color
         border.color: Theme.brackets ? "transparent" : Theme.divider
         border.width: 1
     }
@@ -60,13 +61,13 @@ Item {
                 y: parent.atBottom ? parent.height - 2 : 0
                 width: parent.width
                 height: 2
-                color: Theme.accent
+                fill: Theme.accent
             }
             Rectangle {
                 x: parent.atRight ? parent.width - 2 : 0
                 width: 2
                 height: parent.height
-                color: Theme.accent
+                fill: Theme.accent
             }
         }
     }

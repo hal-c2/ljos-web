@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
-// both have stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
 
 // The showcase: apps built with Ljós, each recorded as it runs. The
@@ -29,11 +28,11 @@ Column {
             text: t`Built with Ljós`
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: showcase.wide ? Theme.displaySize : Theme.compactDisplaySize
+            font.size: showcase.wide ? Theme.displaySize : Theme.compactDisplaySize
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: showcase.wide ? Theme.displayLine : Theme.compactDisplayLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             readonly property int headingLevel: 1
             Accessible.role: Accessible.Heading
         }
@@ -42,17 +41,17 @@ Column {
             text: t`Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source.`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.subtitleSize - 1
+            font.size: Theme.subtitleSize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine - 2
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
     Repeater {
         model: ShowcaseApps.apps
         ShowcaseApp {
-            required property var modelData
+            required property unknown modelData
             product: modelData
             width: showcase.width
             wide: showcase.wide

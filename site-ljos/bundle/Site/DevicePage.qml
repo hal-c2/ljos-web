@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import Site
 
 // One of a DeviceFrame's panels: the tab `index` of `frame` names it,
@@ -9,7 +9,7 @@ import Site
 Item {
     id: page
 
-    required property var frame
+    required property unknown frame
     required property int index
     // Where it stands in a console: 0 on the left, 1 on the right, -1 not.
     readonly property int column: frame.consoleLayout ? frame.columns.indexOf(index) : -1
