@@ -4,6 +4,7 @@ singleton Content 1.0 Content.qml
 singleton Running 1.0 Running.qml
 singleton ShowcaseApps 1.0 ShowcaseApps.qml
 singleton Built 1.0 Built.qml
+singleton ShowcaseBuilt 1.0 ShowcaseBuilt.qml
 singleton LandingCopy 1.0 LandingCopy.qml
 singleton LandingCode 1.0 LandingCode.qml
 DocPage 1.0 DocPage.qml
