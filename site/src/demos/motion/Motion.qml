@@ -1,6 +1,10 @@
 import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
+// Its animations are QtQuick's: the demo calms its own motion (a softer
+// spring, shorter glides) when asked for less, where Ljos.Ui's would put
+// what moves at its end at once.
+import QtQuick as Q
 
 // Motion with a job to do: a puck that springs after your pointer
 // (feedback that feels physical), a row of tiles that glide to their
@@ -53,7 +57,7 @@ Rectangle {
             // in the same place.
             Behavior on x {
                 enabled: root.active
-                SpringAnimation {
+                Q.SpringAnimation {
                     spring: root.calm ? 4 : 3.2
                     damping: root.calm ? 1.0 : 0.28
                     epsilon: 0.4
@@ -61,7 +65,7 @@ Rectangle {
             }
             Behavior on y {
                 enabled: root.active
-                SpringAnimation {
+                Q.SpringAnimation {
                     spring: root.calm ? 4 : 3.2
                     damping: root.calm ? 1.0 : 0.28
                     epsilon: 0.4
@@ -69,7 +73,7 @@ Rectangle {
             }
             scale: chase.pressed ? 0.92 : 1.0
             Behavior on scale {
-                NumberAnimation {
+                Q.NumberAnimation {
                     duration: root.calm ? 150 : 140
                     easing.type: Easing.OutCubic
                 }
@@ -133,14 +137,14 @@ Rectangle {
             }
         }
         moveDisplaced: Transition {
-            NumberAnimation {
+            Q.NumberAnimation {
                 properties: "x,y"
                 duration: root.calm ? 300 : 520
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
             }
         }
         move: Transition {
-            NumberAnimation {
+            Q.NumberAnimation {
                 properties: "x,y"
                 duration: root.calm ? 300 : 520
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
@@ -173,7 +177,7 @@ Rectangle {
                 }
             }
             Behavior on scale {
-                NumberAnimation {
+                Q.NumberAnimation {
                     duration: root.calm ? 150 : 120
                     easing.type: Easing.OutCubic
                 }
@@ -220,7 +224,7 @@ Rectangle {
                 }
             }
             Behavior on height {
-                NumberAnimation {
+                Q.NumberAnimation {
                     duration: root.calm ? 200 : 320
                     easing.type: Easing.InOutCubic
                 }
@@ -241,7 +245,7 @@ Rectangle {
                 font.size: 13
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
-                    NumberAnimation {
+                    Q.NumberAnimation {
                         duration: root.calm ? 180 : 220
                         easing.type: Easing.OutCubic
                     }
