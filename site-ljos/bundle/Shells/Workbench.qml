@@ -3,6 +3,7 @@ import Ljos.Core
 import Ljos.Layout
 import Ljos.Blocks
 import Ljos.Controls as C
+import "logic/shell-site.ts" as L
 
 // The site as an editor's workspace: the site's own QML and pages as a
 // tree of files on the left, the pages opened as tabs over the page, and
@@ -21,21 +22,22 @@ Rectangle {
     id: shell
     objectName: "workbenchShell"
 
-    property unknown site: null
-    readonly property unknown router: site ? site.router : null
-    readonly property bool wide: site ? site.preferences.wide : width >= 1000
-    readonly property bool menuOpen: site ? site.menuOpen && !wide : false
-    readonly property bool calm: site ? site.preferences.calm : false
-    readonly property string route: router ? router.route : "/"
+    // Missing until the site puts itself in.
+    property L.Site site
+    readonly property L.MaybeRouter router: site !== undefined ? site.router : undefined
+    readonly property bool wide: site !== undefined ? site.preferences.wide : width >= 1000
+    readonly property bool menuOpen: site !== undefined ? site.menuOpen && !wide : false
+    readonly property bool calm: site !== undefined ? site.preferences.calm : false
+    readonly property string route: router !== undefined ? router.route : "/"
     // A page other than the docs is this wide at most here.
     readonly property int pageWidest: 960
 
-    readonly property unknown opened: site ? site.opened : [route]
-    readonly property unknown problems: site ? site.problems : []
-    readonly property unknown calls: site ? site.calls : []
-    readonly property int alive: site ? site.alive : 0
-    readonly property string renderer: site ? site.renderer : ""
-    readonly property int hydratedMs: site ? site.hydratedIn : -1
+    readonly property list<string> opened: site !== undefined ? site.opened : [route]
+    readonly property list<L.Problem> problems: site !== undefined ? site.problems : []
+    readonly property list<L.Call> calls: site !== undefined ? site.calls : []
+    readonly property int alive: site !== undefined ? site.alive : 0
+    readonly property string renderer: site !== undefined ? site.renderer : ""
+    readonly property int hydratedMs: site !== undefined ? site.hydratedIn : -1
 
     // What the reader has shown and hidden.
     property bool explorerOpen: true
@@ -46,15 +48,14 @@ Rectangle {
     property int view: 1
     // The folders the reader opened or shut, by name; the others are as
     // they start (`opens`).
-    property unknown folded: ({})
+    property L.Folded folded: ({})
 
-    function isOpen(folder, start) {
-        return shell.folded[folder] !== undefined ? !shell.folded[folder] : start;
+    function isOpen(folder: string, start: boolean): boolean {
+        const was = shell.folded[folder];
+        return was !== undefined ? !was : start;
     }
-    function fold(folder, open) {
-        var next = Object.assign({}, shell.folded);
-        next[folder] = !open;
-        shell.folded = next;
+    function fold(folder: string, open: boolean) {
+        shell.folded = L.folding(shell.folded, folder, open);
     }
     function inspect() {
         shell.inspectorOpen = true;
@@ -69,14 +70,15 @@ Rectangle {
     // of this file makes it again, as coming back to it does. Put back
     // once the site is had, after the route it brings has moved the
     // view, and kept from then on.
-    readonly property unknown arranged: ({ explorerOpen: shell.explorerOpen, inspectorOpen: shell.inspectorOpen, panelShown: shell.panelShown, view: shell.view, folded: shell.folded, route: shell.route })
+    readonly property L.Arrangement arranged: ({ explorerOpen: shell.explorerOpen, inspectorOpen: shell.inspectorOpen, panelShown: shell.panelShown, view: shell.view, folded: shell.folded, route: shell.route })
     property bool restored: false
-    onArrangedChanged: if (site && restored) site.keep(objectName, arranged)
+    onArrangedChanged: if (site !== undefined && restored) site.keep(objectName, arranged)
     function restore() {
-        if (!site || restored)
+        if (site === undefined || restored)
             return;
-        var was = site.kept(objectName);
-        if (was) {
+        // Only what this shell gave it to keep is kept.
+        const was = L.arrangementOf(site.kept(objectName));
+        if (was !== undefined) {
             shell.explorerOpen = was.explorerOpen;
             shell.inspectorOpen = was.inspectorOpen;
             shell.panelShown = was.panelShown;
@@ -88,40 +90,45 @@ Rectangle {
         site.keep(objectName, arranged);
     }
     onSiteChanged: {
-        if (!site)
+        if (site === undefined)
             return;
         site.measureRenderer();
         later(shell.restore);
     }
     Component.onCompleted: {
-        if (!site)
+        if (site === undefined)
             return;
         site.measureRenderer();
         later(shell.restore);
     }
 
-    Object {
-        id: look
-        readonly property unknown theme: shell.site ? shell.site.theme : null
-        readonly property color canvas: theme ? theme.canvas : C.Theme.canvas
-        readonly property color surface: theme ? theme.surface : C.Theme.surface
-        readonly property color raised: theme ? theme.surfaceRaised : C.Theme.surface
-        readonly property color hover: theme ? theme.surfaceHover : C.Theme.surface
-        readonly property color selected: theme ? theme.surfaceSelected : C.Theme.surface
-        readonly property color divider: theme ? theme.divider : C.Theme.border
-        readonly property color accent: theme ? theme.accent : C.Theme.text
-        readonly property color focus: theme ? theme.focusRing : C.Theme.text
-        readonly property color text: theme ? theme.text : C.Theme.text
-        readonly property color muted: theme ? theme.textMuted : C.Theme.textMuted
-        readonly property color danger: theme ? theme.danger : C.Theme.text
-        readonly property string sans: theme ? theme.sans : ""
-        readonly property string mono: theme ? theme.mono : "monospace"
+    // The site's colours, or the controls' own until it is had. A
+    // component of its own so the shell's parts below can be given it.
+    component Look: Object {
+        property L.MaybeTheme theme
+        readonly property color canvas: theme !== undefined ? theme.canvas : C.Theme.canvas
+        readonly property color surface: theme !== undefined ? theme.surface : C.Theme.surface
+        readonly property color raised: theme !== undefined ? theme.surfaceRaised : C.Theme.surface
+        readonly property color hover: theme !== undefined ? theme.surfaceHover : C.Theme.surface
+        readonly property color selected: theme !== undefined ? theme.surfaceSelected : C.Theme.surface
+        readonly property color divider: theme !== undefined ? theme.divider : C.Theme.border
+        readonly property color accent: theme !== undefined ? theme.accent : C.Theme.text
+        readonly property color focus: theme !== undefined ? theme.focusRing : C.Theme.text
+        readonly property color text: theme !== undefined ? theme.text : C.Theme.text
+        readonly property color muted: theme !== undefined ? theme.textMuted : C.Theme.textMuted
+        readonly property color danger: theme !== undefined ? theme.danger : C.Theme.text
+        readonly property string sans: theme !== undefined ? theme.sans : ""
+        readonly property string mono: theme !== undefined ? theme.mono : "monospace"
         // A tool's words: 13 px, as an editor's are.
         readonly property int ui: 13
     }
+    Look {
+        id: look
+        theme: shell.site !== undefined ? shell.site.theme : undefined
+    }
 
-    width: parent ? parent.width : 1440
-    height: parent ? parent.height : 900
+    width: parent !== null ? parent.width : 1440
+    height: parent !== null ? parent.height : 900
     fill: look.canvas
 
     // A button of the activity bar or a pane's header: its icon, and what
@@ -148,6 +155,9 @@ Rectangle {
     // that does something (a button).
     component Entry: Item {
         id: entry
+        // The shell's, given: a component sees no id outside it.
+        required property L.Bench shell
+        required property Look look
         property string label: ""
         property string icon: "file"
         property int depth: 0
@@ -155,10 +165,10 @@ Rectangle {
         property bool folder: false
         property bool open: false
         property bool current: false
-        readonly property string href: to !== "" && shell.router ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && shell.router !== undefined ? shell.router.address(to) : ""
         signal pressed
 
-        width: parent ? parent.width : 240
+        width: parent !== null ? parent.width : 240
         // Dense where there's a pointer, a finger's size on a phone.
         height: shell.wide ? 24 : 44
         activeFocusOnTab: true
@@ -168,14 +178,14 @@ Rectangle {
         Accessible.checked: folder && open
         Accessible.selected: current
         Accessible.onPressAction: () => entry.press()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 entry.press();
                 event.accepted = true;
             }
         }
         function press() {
-            if (to !== "" && shell.router) {
+            if (to !== "" && shell.router !== undefined) {
                 // Its page shown already is shown too: the route does
                 // not change, so it is not left to the route to.
                 if (!shell.wide)
@@ -226,6 +236,7 @@ Rectangle {
     // A tab of a strip: the open files' and the panel's.
     component Tab: Rectangle {
         id: tab
+        required property Look look
         property string label: ""
         property string icon: ""
         property bool current: false
@@ -245,7 +256,7 @@ Rectangle {
         Accessible.name: label
         Accessible.selected: current
         Accessible.onPressAction: () => tab.pressed()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 tab.pressed();
                 event.accepted = true;
@@ -325,7 +336,7 @@ Rectangle {
                 visible: shell.wide
                 Layout.alignment: Align.VCenter
                 width: Math.max(0, titleBar.width - 620)
-                text: shell.router ? shell.router.fileOf(shell.route) : ""
+                text: shell.router !== undefined ? shell.router.fileOf(shell.route) : ""
                 color: look.muted
                 font.family: look.mono
                 font.size: look.ui
@@ -395,8 +406,8 @@ Rectangle {
                     iconName: "eye"
                     text: t`Observer`
                     checkable: true
-                    checked: shell.site ? shell.site.observing : false
-                    onClicked: if (shell.site) shell.site.observe()
+                    checked: shell.site !== undefined ? shell.site.observing : false
+                    onClicked: if (shell.site !== undefined) shell.site.observe()
                 }
             }
             Column {
@@ -483,6 +494,8 @@ Rectangle {
 
                 Entry {
                     id: shellsFolder
+                    shell: shell
+                    look: look
                     folder: true
                     label: t`Shells/`
                     open: shell.isOpen("Shells/", true)
@@ -499,7 +512,9 @@ Rectangle {
                         { file: "Desktop", name: "desktop" }
                     ] : []
                     Entry {
-                        required property unknown modelData
+                        required property L.ShellFile modelData
+                        shell: shell
+                        look: look
                         depth: 1
                         icon: "code"
                         label: [modelData.file, "qml"].join(".")
@@ -510,6 +525,8 @@ Rectangle {
                 }
                 Entry {
                     id: siteFolder
+                    shell: shell
+                    look: look
                     folder: true
                     label: t`Site/`
                     open: shell.isOpen("Site/", true)
@@ -518,25 +535,31 @@ Rectangle {
                 Repeater {
                     model: siteFolder.open ? ["/", "/demos/", "/showcase/"] : []
                     Entry {
-                        required property unknown modelData
+                        required property string modelData
+                        shell: shell
+                        look: look
                         depth: 1
                         icon: "code"
-                        label: shell.router ? shell.router.fileOf(modelData) : ""
+                        label: shell.router !== undefined ? shell.router.fileOf(modelData) : ""
                         to: modelData
                         current: shell.route === modelData
                     }
                 }
                 Entry {
                     id: demosFolder
+                    shell: shell
+                    look: look
                     folder: true
                     label: t`Demos/`
                     open: shell.isOpen("Demos/", true)
                     onPressed: shell.fold("Demos/", !open)
                 }
                 Repeater {
-                    model: demosFolder.open && shell.router ? shell.router.demos : []
+                    model: demosFolder.open && shell.router !== undefined ? shell.router.demos : []
                     Entry {
-                        required property unknown modelData
+                        required property L.Demo modelData
+                        shell: shell
+                        look: look
                         depth: 1
                         icon: "code"
                         label: modelData.app
@@ -545,16 +568,18 @@ Rectangle {
                     }
                 }
                 Repeater {
-                    model: shell.router ? shell.router.docs : []
+                    model: shell.router !== undefined ? shell.router.docs : []
                     Column {
                         id: section
-                        required property unknown modelData
+                        required property L.Section modelData
                         readonly property string folderName: modelData.label + "/"
                         // A section starts shut unless the page shown is in it.
                         readonly property bool open: shell.isOpen(folderName, modelData.pages.some((one) => one.route === shell.route))
                         width: tree.width
 
                         Entry {
+                            shell: shell
+                            look: look
                             folder: true
                             label: section.folderName
                             open: section.open
@@ -563,10 +588,12 @@ Rectangle {
                         Repeater {
                             model: section.open ? section.modelData.pages : []
                             Entry {
-                                required property unknown modelData
+                                required property L.Page modelData
+                                shell: shell
+                                look: look
                                 depth: 1
                                 icon: "file-text"
-                                label: shell.router ? shell.router.fileOf(modelData.route) : ""
+                                label: shell.router !== undefined ? shell.router.fileOf(modelData.route) : ""
                                 to: modelData.route
                                 current: shell.route === modelData.route
                             }
@@ -624,14 +651,15 @@ Rectangle {
                         Repeater {
                             model: shell.opened
                             Tab {
-                                required property unknown modelData
+                                required property string modelData
+                                look: look
                                 width: 176
                                 mono: true
                                 closable: shell.opened.length > 1
-                                icon: modelData.startsWith("/start/") || shell.router && shell.router.docsRoute && modelData === shell.route ? "file-text" : "code"
-                                label: shell.router ? shell.router.fileOf(modelData) : modelData
+                                icon: modelData.startsWith("/start/") || shell.router !== undefined && shell.router.docsRoute && modelData === shell.route ? "file-text" : "code"
+                                label: shell.router !== undefined ? shell.router.fileOf(modelData) : modelData
                                 current: modelData === shell.route
-                                onPressed: if (modelData !== shell.route) shell.router.go(modelData)
+                                onPressed: if (modelData !== shell.route) shell.site.router.go(modelData)
                             }
                         }
                     }
@@ -641,7 +669,7 @@ Rectangle {
                         model: shell.opened.length > 1 ? shell.opened : []
                         C.Button {
                             required property int index
-                            required property unknown modelData
+                            required property string modelData
                             x: index * 176 + 176 - width - 4
                             y: (35 - height) / 2
                             width: 26
@@ -649,7 +677,7 @@ Rectangle {
                             subtle: true
                             iconName: "x"
                             display: C.Button.IconOnly
-                            text: t`Close ${shell.router ? shell.router.fileOf(modelData) : modelData}`
+                            text: t`Close ${shell.router !== undefined ? shell.router.fileOf(modelData) : modelData}`
                             onClicked: shell.site.close(index)
                         }
                     }
@@ -777,8 +805,9 @@ Rectangle {
             Repeater {
                 model: [t`Problems`, t`MCP log`, t`Output`]
                 Tab {
-                    required property unknown modelData
+                    required property string modelData
                     required property int index
+                    look: look
                     // Its width as its words are, so each sits snug.
                     width: wordsWidth + 24
                     height: shell.wide ? 35 : 44
@@ -825,7 +854,7 @@ Rectangle {
                         Repeater {
                             model: shell.problems
                             Item {
-                                required property unknown modelData
+                                required property L.Problem modelData
                                 width: problemList.width
                                 height: Math.max(22, said.implicitHeight + 4)
                                 Accessible.role: Accessible.ListItem
@@ -886,7 +915,7 @@ Rectangle {
                         Repeater {
                             model: shell.calls
                             Text {
-                                required property unknown modelData
+                                required property L.Call modelData
                                 width: callList.width
                                 text: `${modelData.tool}(${modelData.args}) → ${modelData.said}`
                                 color: look.text
@@ -907,7 +936,7 @@ Rectangle {
                     iconName: "trash"
                     text: t`Clear log`
                     enabled: shell.calls.length > 0
-                    onClicked: if (shell.site) shell.site.clearCalls()
+                    onClicked: if (shell.site !== undefined) shell.site.clearCalls()
                 }
             }
             // What the page said as it came up.
@@ -966,8 +995,9 @@ Rectangle {
                     { label: t`Problems`, icon: "circle-alert" }
                 ]
                 Tab {
-                    required property unknown modelData
+                    required property L.Pane modelData
                     required property int index
+                    look: look
                     width: Math.floor(views.width / 4)
                     height: 55
                     stacked: true

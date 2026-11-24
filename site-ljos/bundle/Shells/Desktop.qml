@@ -3,6 +3,7 @@ import Ljos.Core
 import Ljos.Layout
 import Ljos.Blocks
 import Ljos.Controls as C
+import "logic/shell-site.ts" as L
 
 // The site as a desktop app: a menu bar whose menus do what they say
 // (open a page, change the scheme, the motion and the shell), a toolbar
@@ -19,85 +20,106 @@ Rectangle {
     id: shell
     objectName: "desktopShell"
 
-    property unknown site: null
-    readonly property unknown router: site ? site.router : null
-    readonly property unknown preferences: site ? site.preferences : null
-    readonly property bool wide: site ? site.preferences.wide : width >= 1000
-    readonly property bool menuOpen: site ? site.menuOpen && !wide : false
-    readonly property bool calm: site ? site.preferences.calm : false
-    readonly property string route: router ? router.route : "/"
+    // Missing until the site puts itself in.
+    property L.Site site
+    readonly property L.MaybeRouter router: site !== undefined ? site.router : undefined
+    readonly property L.MaybePreferences preferences: site !== undefined ? site.preferences : undefined
+    readonly property bool wide: site !== undefined ? site.preferences.wide : width >= 1000
+    readonly property bool menuOpen: site !== undefined ? site.menuOpen && !wide : false
+    readonly property bool calm: site !== undefined ? site.preferences.calm : false
+    readonly property string route: router !== undefined ? router.route : "/"
     // A page other than the docs is this wide at most here.
     readonly property int pageWidest: 1040
 
-    readonly property unknown opened: site ? site.opened : [route]
-    readonly property int hydratedMs: site ? site.hydratedIn : -1
-    readonly property int alive: site ? site.alive : 0
-    readonly property string renderer: site ? site.renderer : ""
-    readonly property bool dark: site ? site.theme.dark : false
+    readonly property list<string> opened: site !== undefined ? site.opened : [route]
+    readonly property int hydratedMs: site !== undefined ? site.hydratedIn : -1
+    readonly property int alive: site !== undefined ? site.alive : 0
+    readonly property string renderer: site !== undefined ? site.renderer : ""
+    readonly property bool dark: site !== undefined ? site.theme.dark : false
     readonly property string metricsRoute: "/benchmarks/"
-    readonly property bool hasMetrics: router !== null && router.nameOf(metricsRoute) !== metricsRoute
+    readonly property bool hasMetrics: router !== undefined && router.nameOf(metricsRoute) !== metricsRoute
 
     property bool sidebarOpen: true
     // On a phone, the one pane shown: the page, the pages or those open.
     property int view: 0
-    // The menu bar's title whose menu is open: the pointer over another
-    // title then opens that one, as a desktop's menu bar does.
-    property Item openTitle: null
+    // The menu bar's title whose menu is open, by its label ("" while
+    // none is): the pointer over another title then opens that one, as a
+    // desktop's menu bar does.
+    property string openTitle: ""
+    function closeMenu(label: string) {
+        for (const one of [fileTitle, viewTitle, goTitle, helpTitle]) {
+            if (one.label === label)
+                one.menu.close();
+        }
+    }
     // The arrows go along the menu bar as along a desktop's, round from
-    // the last title to the first; a menu open moves with them.
-    function besideTitle(from, step) {
-        var titles = Array.from(from.parent.children).filter((one) => one.menu !== undefined && one.visible);
-        var to = titles[(titles.indexOf(from) + step + titles.length) % titles.length];
-        var wasOpen = from.open;
+    // the last title to the first; a menu open moves with them. `from` is
+    // the label of the title they are pressed on.
+    function besideTitle(from: string, step: number) {
+        const titles = [fileTitle, viewTitle, goTitle, helpTitle].filter((one) => one.visible);
+        const at = titles.map((one) => one.label).indexOf(from);
+        const here = titles[at];
+        const to = titles[(at + step + titles.length) % titles.length];
+        if (here === undefined || to === undefined)
+            return;
+        const wasOpen = here.open;
         if (wasOpen)
-            from.menu.close();
+            here.menu.close();
         to.forceActiveFocus();
         if (wasOpen)
             to.menu.open();
     }
 
-    function go(to) {
+    function go(to: string) {
         // The page already shown keeps its route, so on a phone its pane is shown here.
         if (!shell.wide && to === shell.route)
             shell.view = 0;
-        if (shell.router)
+        if (shell.router !== undefined)
             shell.router.go(to);
     }
 
     onRouteChanged: if (!shell.wide) shell.view = 0
-    onSiteChanged: if (site) site.measureRenderer()
-    Component.onCompleted: if (site) site.measureRenderer()
+    onSiteChanged: if (site !== undefined) site.measureRenderer()
+    Component.onCompleted: if (site !== undefined) site.measureRenderer()
 
-    Object {
-        id: look
-        readonly property unknown theme: shell.site ? shell.site.theme : null
-        readonly property color canvas: theme ? theme.canvas : C.Theme.canvas
-        readonly property color surface: theme ? theme.surface : C.Theme.surface
-        readonly property color raised: theme ? theme.surfaceRaised : C.Theme.surface
-        readonly property color hover: theme ? theme.surfaceHover : C.Theme.surface
-        readonly property color pressed: theme ? theme.surfacePressed : C.Theme.surface
-        readonly property color selected: theme ? theme.surfaceSelected : C.Theme.surface
-        readonly property color divider: theme ? theme.divider : C.Theme.border
-        readonly property color accent: theme ? theme.accent : C.Theme.text
-        readonly property color focus: theme ? theme.focusRing : C.Theme.text
-        readonly property color text: theme ? theme.text : C.Theme.text
-        readonly property color muted: theme ? theme.textMuted : C.Theme.textMuted
-        readonly property string sans: theme ? theme.sans : ""
-        readonly property string mono: theme ? theme.mono : "monospace"
+    // The site's colours, or the controls' own until it is had. A
+    // component of its own so the shell's parts below can be given it.
+    component Look: Object {
+        property L.MaybeTheme theme
+        readonly property color canvas: theme !== undefined ? theme.canvas : C.Theme.canvas
+        readonly property color surface: theme !== undefined ? theme.surface : C.Theme.surface
+        readonly property color raised: theme !== undefined ? theme.surfaceRaised : C.Theme.surface
+        readonly property color hover: theme !== undefined ? theme.surfaceHover : C.Theme.surface
+        readonly property color pressed: theme !== undefined ? theme.surfacePressed : C.Theme.surface
+        readonly property color selected: theme !== undefined ? theme.surfaceSelected : C.Theme.surface
+        readonly property color divider: theme !== undefined ? theme.divider : C.Theme.border
+        readonly property color accent: theme !== undefined ? theme.accent : C.Theme.text
+        readonly property color focus: theme !== undefined ? theme.focusRing : C.Theme.text
+        readonly property color text: theme !== undefined ? theme.text : C.Theme.text
+        readonly property color muted: theme !== undefined ? theme.textMuted : C.Theme.textMuted
+        readonly property string sans: theme !== undefined ? theme.sans : ""
+        readonly property string mono: theme !== undefined ? theme.mono : "monospace"
         // A desktop app's words: 13 px.
         readonly property int ui: 13
     }
+    Look {
+        id: look
+        theme: shell.site !== undefined ? shell.site.theme : undefined
+    }
 
-    width: parent ? parent.width : 1440
-    height: parent ? parent.height : 900
+    width: parent !== null ? parent.width : 1440
+    height: parent !== null ? parent.height : 900
     fill: look.canvas
 
     // A title of the menu bar, and the menu it opens.
     component MenuTitle: Rectangle {
         id: title
+        // The shell's, given: a component sees no id outside it.
+        required property L.Desk shell
+        required property Look look
         property string label: ""
-        property unknown menu: null
-        readonly property bool open: menu !== null && menu.opened
+        property C.Menu menu
+        readonly property bool open: menu !== undefined && menu.opened
 
         function toggle() {
             if (title.open)
@@ -116,19 +138,19 @@ Rectangle {
         Accessible.role: Accessible.MenuItem
         Accessible.name: label
         Accessible.onPressAction: () => title.toggle()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space || event.key === Key.Down) {
                 title.toggle();
                 event.accepted = true;
             } else if (event.key === Key.Left || event.key === Key.Right) {
-                shell.besideTitle(title, event.key === Key.Right ? 1 : -1);
+                title.shell.besideTitle(title.label, event.key === Key.Right ? 1 : -1);
                 event.accepted = true;
             }
         }
         Connections {
             target: title.menu
-            function onOpened() { shell.openTitle = title; }
-            function onClosed() { if (shell.openTitle === title) shell.openTitle = null; }
+            function onOpened() { title.shell.openTitle = title.label; }
+            function onClosed() { if (title.shell.openTitle === title.label) title.shell.openTitle = ""; }
         }
 
         Text {
@@ -147,8 +169,8 @@ Rectangle {
             Accessible.ignored: true
             onClicked: title.toggle()
             onEntered: {
-                if (shell.openTitle !== null && shell.openTitle !== title) {
-                    shell.openTitle.menu.close();
+                if (title.shell.openTitle !== "" && title.shell.openTitle !== title.label) {
+                    title.shell.closeMenu(title.shell.openTitle);
                     title.menu.open();
                 }
             }
@@ -176,14 +198,16 @@ Rectangle {
     // or a shell to show (a button, pressed while it is shown).
     component Entry: Item {
         id: entry
+        required property L.Desk shell
+        required property Look look
         property string label: ""
         property string icon: "file-text"
         property string to: ""
         property bool current: false
-        readonly property string href: to !== "" && shell.router ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && shell.router !== undefined ? shell.router.address(to) : ""
         signal pressed
 
-        width: parent ? parent.width : 232
+        width: parent !== null ? parent.width : 232
         // Native density where there's a pointer, a finger's size on a phone;
         // a long title takes a second line rather than losing its end.
         height: Math.max(shell.wide ? 26 : 44, words.implicitHeight + 10)
@@ -194,7 +218,7 @@ Rectangle {
         Accessible.checked: to === "" && current
         Accessible.selected: to !== "" && current
         Accessible.onPressAction: () => entry.press()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 entry.press();
                 event.accepted = true;
@@ -251,7 +275,8 @@ Rectangle {
 
     // A heading of the sidebar's groups.
     component Group: Text {
-        width: parent ? parent.width : 232
+        required property Look look
+        width: parent !== null ? parent.width : 232
         leftPadding: 16
         topPadding: 12
         bottomPadding: 4
@@ -266,6 +291,8 @@ Rectangle {
     // A document tab, a phone's view, or a page open in the list of them.
     component Tab: Rectangle {
         id: tab
+        required property L.Desk shell
+        required property Look look
         property string label: ""
         property string icon: ""
         property bool current: false
@@ -281,7 +308,7 @@ Rectangle {
         Accessible.name: label
         Accessible.selected: current
         Accessible.onPressAction: () => tab.pressed()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 tab.pressed();
                 event.accepted = true;
@@ -379,12 +406,15 @@ Rectangle {
                     Accessible.name: t`Menu bar`
 
                     MenuTitle {
+                        id: fileTitle
+                        shell: shell
+                        look: look
                         label: t({ message: "File", context: "menu bar" })
                         menu: fileMenu
 
                         C.Menu {
                             id: fileMenu
-                            y: parent.height + 2
+                            y: fileTitle.height + 2
 
                             C.MenuItem {
                                 text: t`Open home`
@@ -427,37 +457,40 @@ Rectangle {
                         }
                     }
                     MenuTitle {
+                        id: viewTitle
+                        shell: shell
+                        look: look
                         label: t({ message: "View", context: "menu bar" })
                         menu: viewMenu
 
                         C.Menu {
                             id: viewMenu
-                            y: parent.height + 2
+                            y: viewTitle.height + 2
 
                             C.MenuItem {
                                 text: t`Light colour scheme`
                                 checkable: true
-                                checked: shell.preferences ? shell.preferences.scheme === "light" : false
-                                onTriggered: shell.preferences.setScheme("light")
+                                checked: shell.preferences !== undefined ? shell.preferences.scheme === "light" : false
+                                onTriggered: shell.site.preferences.setScheme("light")
                             }
                             C.MenuItem {
                                 text: t`Dark colour scheme`
                                 checkable: true
-                                checked: shell.preferences ? shell.preferences.scheme === "dark" : false
-                                onTriggered: shell.preferences.setScheme("dark")
+                                checked: shell.preferences !== undefined ? shell.preferences.scheme === "dark" : false
+                                onTriggered: shell.site.preferences.setScheme("dark")
                             }
                             C.MenuItem {
                                 text: t`Follow system colour scheme`
                                 checkable: true
-                                checked: shell.preferences ? shell.preferences.scheme === "system" : false
-                                onTriggered: shell.preferences.setScheme("system")
+                                checked: shell.preferences !== undefined ? shell.preferences.scheme === "system" : false
+                                onTriggered: shell.site.preferences.setScheme("system")
                             }
                             C.MenuSeparator {}
                             C.MenuItem {
                                 text: t`Reduce motion`
                                 checkable: true
                                 checked: shell.calm
-                                onTriggered: shell.preferences.setCalm(!shell.calm)
+                                onTriggered: shell.site.preferences.setCalm(!shell.calm)
                             }
                             C.MenuItem {
                                 text: t`Toggle sidebar`
@@ -468,21 +501,21 @@ Rectangle {
                             C.MenuItem {
                                 text: t`Toggle Observer panel`
                                 checkable: true
-                                checked: shell.site ? shell.site.observing : false
+                                checked: shell.site !== undefined ? shell.site.observing : false
                                 onTriggered: shell.site.observe()
                             }
                             C.MenuSeparator {}
                             C.MenuItem {
                                 text: t`Switch to Elegant shell`
-                                onTriggered: shell.preferences.setShell("elegant")
+                                onTriggered: shell.site.preferences.setShell("elegant")
                             }
                             C.MenuItem {
                                 text: t`Switch to Cyberpunk shell`
-                                onTriggered: shell.preferences.setShell("cyberpunk")
+                                onTriggered: shell.site.preferences.setShell("cyberpunk")
                             }
                             C.MenuItem {
                                 text: t`Switch to Workbench shell`
-                                onTriggered: shell.preferences.setShell("workbench")
+                                onTriggered: shell.site.preferences.setShell("workbench")
                             }
                             C.MenuItem {
                                 text: t`Switch to Desktop shell`
@@ -491,12 +524,15 @@ Rectangle {
                         }
                     }
                     MenuTitle {
+                        id: goTitle
+                        shell: shell
+                        look: look
                         label: t({ message: "Go", context: "menu bar" })
                         menu: goMenu
 
                         C.Menu {
                             id: goMenu
-                            y: parent.height + 2
+                            y: goTitle.height + 2
 
                             C.MenuItem {
                                 text: t`Back`
@@ -525,7 +561,7 @@ Rectangle {
                                     { label: t`Capability: malleable`, to: "/start/your-own-shell/" }
                                 ]
                                 C.MenuItem {
-                                    required property unknown modelData
+                                    required property L.Shortcut modelData
                                     text: modelData.label
                                     onTriggered: shell.go(modelData.to)
                                 }
@@ -533,12 +569,15 @@ Rectangle {
                         }
                     }
                     MenuTitle {
+                        id: helpTitle
+                        shell: shell
+                        look: look
                         label: t({ message: "Help", context: "menu bar" })
                         menu: helpMenu
 
                         C.Menu {
                             id: helpMenu
-                            y: parent.height + 2
+                            y: helpTitle.height + 2
 
                             C.MenuItem {
                                 text: t`Getting started guide`
@@ -555,7 +594,7 @@ Rectangle {
                             C.MenuItem {
                                 text: t`Source on GitHub`
                                 iconName: "external-link"
-                                onTriggered: shell.go(shell.router.github)
+                                onTriggered: shell.go(shell.site.router.github)
                             }
                             C.MenuSeparator {}
                             C.MenuItem {
@@ -572,7 +611,7 @@ Rectangle {
                 visible: shell.wide && shell.width >= 1100
                 anchors.centerIn: parent
                 width: Math.min(implicitWidth, parent.width - 760)
-                text: t`Ljós — ${shell.router ? shell.router.title : ""}`
+                text: t`Ljós — ${shell.router !== undefined ? shell.router.title : ""}`
                 color: look.muted
                 font.family: look.sans
                 font.size: look.ui
@@ -653,7 +692,7 @@ Rectangle {
                     text: t`Observer`
                     tip: t`Toggle live Observer panel`
                     checkable: true
-                    checked: shell.site ? shell.site.observing : false
+                    checked: shell.site !== undefined ? shell.site.observing : false
                     onClicked: shell.site.observe()
                 }
                 Item {
@@ -686,7 +725,7 @@ Rectangle {
                     C.ToolTip {
                         visible: overSwitcher.hovered
                         text: t`Switch between Elegant, Cyberpunk, Workbench, and Desktop shells`
-                        x: parent.width - implicitWidth
+                        x: switcher.width - implicitWidth
                         y: 38
                     }
                 }
@@ -694,7 +733,7 @@ Rectangle {
                     iconName: shell.dark ? "sun" : "moon"
                     text: t`Scheme`
                     tip: t`Toggle light and dark colour scheme`
-                    onClicked: shell.preferences.setScheme(shell.dark ? "light" : "dark")
+                    onClicked: shell.site.preferences.setScheme(shell.dark ? "light" : "dark")
                 }
                 Tool {
                     iconName: "code"
@@ -734,20 +773,26 @@ Rectangle {
                 id: pages
                 width: parent.width
 
-                Group { text: t`Overview` }
+                Group { look: look; text: t`Overview` }
                 Entry {
+                    shell: shell
+                    look: look
                     icon: "house"
                     label: t`Home`
                     to: "/"
                     current: shell.route === "/"
                 }
                 Entry {
+                    shell: shell
+                    look: look
                     icon: "zap"
                     label: t`Start in a minute`
                     to: "/start/"
                     current: shell.route === "/start/"
                 }
                 Entry {
+                    shell: shell
+                    look: look
                     visible: shell.hasMetrics
                     height: !visible ? 0 : shell.wide ? 26 : 44
                     icon: "clock"
@@ -755,46 +800,54 @@ Rectangle {
                     to: shell.metricsRoute
                     current: shell.route === shell.metricsRoute
                 }
-                Group { text: t`Demos` }
+                Group { look: look; text: t`Demos` }
                 Entry {
+                    shell: shell
+                    look: look
                     icon: "play"
                     label: t`All demos`
                     to: "/demos/"
                     current: shell.route === "/demos/"
                 }
                 Repeater {
-                    model: shell.router ? shell.router.demos : []
+                    model: shell.router !== undefined ? shell.router.demos : []
                     Entry {
-                        required property unknown modelData
+                        required property L.Demo modelData
+                        shell: shell
+                        look: look
                         icon: "play"
                         label: modelData.title
                         to: modelData.route
                         current: shell.route === modelData.route
                     }
                 }
-                Group { text: t`Shells` }
+                Group { look: look; text: t`Shells` }
                 Repeater {
-                    model: shell.preferences ? shell.preferences.shells : []
+                    model: shell.preferences !== undefined ? shell.preferences.shells : []
                     Entry {
-                        required property unknown modelData
+                        required property L.ShellChoice modelData
+                        shell: shell
+                        look: look
                         icon: "image"
                         label: modelData.label
-                        current: shell.preferences.shown === modelData.name
-                        onPressed: shell.preferences.setShell(modelData.name)
+                        current: shell.site.preferences.shown === modelData.name
+                        onPressed: shell.site.preferences.setShell(modelData.name)
                     }
                 }
                 Repeater {
-                    model: shell.router ? shell.router.docs : []
+                    model: shell.router !== undefined ? shell.router.docs : []
                     Column {
                         id: section
-                        required property unknown modelData
+                        required property L.Section modelData
                         width: pages.width
 
-                        Group { text: section.modelData.label }
+                        Group { look: look; text: section.modelData.label }
                         Repeater {
                             model: section.modelData.pages
                             Entry {
-                                required property unknown modelData
+                                required property L.Page modelData
+                                shell: shell
+                                look: look
                                 label: modelData.title
                                 to: modelData.route
                                 current: shell.route === modelData.route
@@ -853,12 +906,14 @@ Rectangle {
                         Repeater {
                             model: shell.opened
                             Tab {
-                                required property unknown modelData
+                                required property string modelData
+                                shell: shell
+                                look: look
                                 width: shell.wide ? 200 : documents.width
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
                                 icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : "file-text"
-                                label: shell.router ? shell.router.nameOf(modelData) : modelData
+                                label: shell.router !== undefined ? shell.router.nameOf(modelData) : modelData
                                 current: modelData === shell.route
                                 onPressed: modelData !== shell.route ? shell.go(modelData) : (shell.view = 0)
                             }
@@ -870,7 +925,7 @@ Rectangle {
                         model: shell.opened.length > 1 ? shell.opened : []
                         C.Button {
                             required property int index
-                            required property unknown modelData
+                            required property string modelData
                             x: shell.wide ? index * 200 + 200 - width - 4 : documents.width - width - 8
                             y: shell.wide ? (32 - height) / 2 : index * 48 + (48 - height) / 2
                             width: shell.wide ? 26 : 44
@@ -878,7 +933,7 @@ Rectangle {
                             subtle: true
                             iconName: "x"
                             display: C.Button.IconOnly
-                            text: t`Close ${shell.router ? shell.router.nameOf(modelData) : modelData}`
+                            text: t`Close ${shell.router !== undefined ? shell.router.nameOf(modelData) : modelData}`
                             onClicked: shell.site.close(index)
                         }
                     }
@@ -928,8 +983,10 @@ Rectangle {
                     { label: t`Open pages`, icon: "copy" }
                 ]
                 Tab {
-                    required property unknown modelData
+                    required property L.Pane modelData
                     required property int index
+                    shell: shell
+                    look: look
                     width: Math.floor(views.width / 3)
                     height: 55
                     stacked: true

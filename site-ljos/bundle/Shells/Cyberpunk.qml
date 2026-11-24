@@ -4,6 +4,8 @@ import Ljos.Core
 import QtQuick as Q
 import Ljos.Layout
 import Ljos.Blocks
+import "logic/cyberpunk.ts" as P
+import "logic/minute.js" as Minute
 
 // A console for the running site: a rail along the top reads out what
 // the page is doing as it does it (where the reader is, the time, how
@@ -20,15 +22,16 @@ Rectangle {
     id: shell
     objectName: "cyberpunkShell"
 
-    property unknown site: null
-    readonly property unknown router: site ? site.router : null
-    readonly property bool wide: site ? site.preferences.wide : width >= 1000
-    readonly property bool calm: site ? site.preferences.calm : false
-    readonly property string route: router ? router.route : "/"
-    readonly property bool docs: router !== null && router.docsRoute
+    // Missing until the site puts itself in.
+    property P.PunkSite site
+    readonly property P.MaybePunkRouter router: site !== undefined ? site.router : undefined
+    readonly property bool wide: site !== undefined ? site.preferences.wide : width >= 1000
+    readonly property bool calm: site !== undefined ? site.preferences.calm : false
+    readonly property string route: router !== undefined ? router.route : "/"
+    readonly property bool docs: router !== undefined && router.docsRoute
     readonly property bool sidebarShown: wide && docs
-    readonly property bool tocShown: sidebarShown && width >= 1520 && router.headings.length > 0 && !(site && site.docked > 0)
-    readonly property bool menuOpen: site ? site.menuOpen && !wide : false
+    readonly property bool tocShown: sidebarShown && width >= 1520 && (router?.headings.length ?? 0) > 0 && !(site !== undefined && site.docked > 0)
+    readonly property bool menuOpen: site !== undefined ? site.menuOpen && !wide : false
     readonly property int pageWidest: 1280
     readonly property int gutter: wide ? 24 : 16
     readonly property int railWidth: 200
@@ -40,32 +43,45 @@ Rectangle {
     readonly property string metricsRoute: "/benchmarks/"
     // Where to go, each a channel. The benchmarks are one only once the
     // site has that page (a route it has no name for is not one).
-    readonly property unknown channels: router === null ? [] : [
-        { label: t`Console`, to: "/", current: route === "/" },
-        { label: t`Demos`, to: "/demos/", current: router.demosRoute },
-        { label: t`Showcase`, to: "/showcase/", current: router.showcaseRoute }
-    ].concat(router.nameOf(metricsRoute) !== metricsRoute ? [{ label: t`Metrics`, to: metricsRoute, current: route === metricsRoute }] : []).concat([
-        { label: t`Docs`, to: "/start/", current: docs && route !== shellsRoute && route !== metricsRoute },
-        { label: t`Shells`, to: shellsRoute, current: route === shellsRoute }
-    ])
+    readonly property list<P.Channel> channels: {
+        const router = shell.router;
+        if (router === undefined)
+            return [];
+        const first: P.Channel[] = [
+            { label: t`Console`, to: "/", current: route === "/" },
+            { label: t`Demos`, to: "/demos/", current: router.demosRoute },
+            { label: t`Showcase`, to: "/showcase/", current: router.showcaseRoute }
+        ];
+        const metrics: P.Channel[] = router.nameOf(metricsRoute) !== metricsRoute ? [{ label: t`Metrics`, to: metricsRoute, current: route === metricsRoute }] : [];
+        const last: P.Channel[] = [
+            { label: t`Docs`, to: "/start/", current: docs && route !== shellsRoute && route !== metricsRoute },
+            { label: t`Shells`, to: shellsRoute, current: route === shellsRoute }
+        ];
+        return first.concat(metrics).concat(last);
+    }
 
     // The colours and faces the site draws in: none of its own before it
     // is given the site.
-    Object {
+    // A component of its own so the shell's parts below can be given it:
+    // a component sees no id outside it.
+    component Look: Object {
+        property P.MaybePunkTheme theme
+        readonly property bool dark: theme?.dark ?? true
+        readonly property color canvas: theme?.canvas ?? "transparent"
+        readonly property color surface: theme?.surface ?? "transparent"
+        readonly property color hover: theme?.surfaceHover ?? "transparent"
+        readonly property color divider: theme?.divider ?? "transparent"
+        readonly property color accent: theme?.accent ?? "transparent"
+        readonly property color accent2: theme?.accent2 ?? "transparent"
+        readonly property color link: theme?.link ?? "transparent"
+        readonly property color text: theme?.text ?? "transparent"
+        readonly property color muted: theme?.textMuted ?? "transparent"
+        readonly property string mono: theme?.mono ?? "monospace"
+        readonly property string sans: theme?.sans ?? "sans-serif"
+    }
+    Look {
         id: look
-        readonly property unknown theme: shell.site ? shell.site.theme : null
-        readonly property bool dark: theme ? theme.dark : true
-        readonly property color canvas: theme ? theme.canvas : "transparent"
-        readonly property color surface: theme ? theme.surface : "transparent"
-        readonly property color hover: theme ? theme.surfaceHover : "transparent"
-        readonly property color divider: theme ? theme.divider : "transparent"
-        readonly property color accent: theme ? theme.accent : "transparent"
-        readonly property color accent2: theme ? theme.accent2 : "transparent"
-        readonly property color link: theme ? theme.link : "transparent"
-        readonly property color text: theme ? theme.text : "transparent"
-        readonly property color muted: theme ? theme.textMuted : "transparent"
-        readonly property string mono: theme ? theme.mono : "monospace"
-        readonly property string sans: theme ? theme.sans : "sans-serif"
+        theme: shell.site !== undefined ? shell.site.theme : undefined
     }
 
     // The readings. The time, to the minute, woken once a minute at its
@@ -74,17 +90,17 @@ Rectangle {
     // rest asks for no frames.
     property string clock: ""
     property int fps: 0
-    readonly property int alive: site ? site.alive : 0
-    readonly property string renderer: site ? site.renderer : ""
-    readonly property real offset: site ? site.pageOffset : 0
+    readonly property int alive: site !== undefined ? site.alive : 0
+    readonly property string renderer: site !== undefined ? site.renderer : ""
+    readonly property real offset: site !== undefined ? site.pageOffset : 0
 
-    function tick() {
-        var now = new Date();
-        shell.clock = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-        minute.interval = 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 20;
+    function tick(): void {
+        const now = Minute.now();
+        shell.clock = now.clock;
+        minute.interval = now.wait;
         minute.restart();
     }
-    function sample() {
+    function sample(): void {
         frames.running = true;
         settle.restart();
     }
@@ -105,22 +121,23 @@ Rectangle {
         onTriggered: frames.running = false
     }
     onOffsetChanged: sample()
-    onSiteChanged: if (site) site.measureRenderer()
+    onSiteChanged: if (site !== undefined) site.measureRenderer()
     Component.onCompleted: {
         tick();
         sample();
-        if (site)
+        if (site !== undefined)
             site.measureRenderer();
     }
 
-    width: parent ? parent.width : 1440
-    height: parent ? parent.height : 900
+    width: parent !== null ? parent.width : 1440
+    height: parent !== null ? parent.height : 900
     fill: look.canvas
 
     // One reading of the rails: what it is, muted, and its value in the
     // accent, said to a reader as one line.
     component Reading: Item {
         id: reading
+        required property Look look
         property string label: ""
         property string value: ""
         property string said: ""
@@ -134,8 +151,8 @@ Rectangle {
         Text {
             id: labelText
             text: reading.label
-            color: look.muted
-            font.family: look.mono
+            color: reading.look.muted
+            font.family: reading.look.mono
             font.size: 12
             lineHeightMode: Text.FixedHeight
             lineHeight: reading.stacked ? 16 : 20
@@ -148,8 +165,8 @@ Rectangle {
             width: reading.stacked ? reading.width : implicitWidth
             text: reading.value
             elide: Text.ElideMiddle
-            color: look.link
-            font.family: look.mono
+            color: reading.look.link
+            font.family: reading.look.mono
             font.size: 12
             font.weight: Font.DemiBold
             lineHeightMode: Text.FixedHeight
@@ -166,32 +183,36 @@ Rectangle {
     // second colour and the first, as a misaligned screen's does.
     component Channel: Item {
         id: channel
+        required property Look look
+        // The shell's, given.
+        required property P.MaybePunkRouter router
+        required property bool wide
         property int number: 1
         property string label: ""
         property string to: ""
         property bool current: false
         property bool action: false
-        readonly property string href: to !== "" && shell.router ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && channel.router !== undefined ? channel.router.address(to) : ""
         signal pressed
 
-        width: parent ? parent.width : 168
-        height: shell.wide ? 40 : 44
+        width: parent !== null ? parent.width : 168
+        height: channel.wide ? 40 : 44
         activeFocusOnTab: true
         Accessible.role: action ? Accessible.Button : Accessible.Link
         Accessible.name: label
         Accessible.selected: current
         Accessible.onPressAction: () => channel.press()
-        Keys.onPressed: (event) => {
+        Keys.onPressed: (event: KeyEvent) => {
             if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                 channel.press();
                 event.accepted = true;
             }
         }
-        function press() {
+        function press(): void {
             if (action)
                 channel.pressed();
-            else if (shell.router)
-                shell.router.go(to);
+            else if (channel.router !== undefined)
+                channel.router.go(to);
         }
 
         Rectangle {
@@ -199,7 +220,7 @@ Rectangle {
             width: parent.width
             height: parent.height
             fill: "transparent"
-            border.color: look.accent2
+            border.color: channel.look.accent2
             border.width: 1
             opacity: area.containsMouse ? 0.9 : 0
             Accessible.ignored: true
@@ -209,15 +230,15 @@ Rectangle {
             width: parent.width
             height: parent.height
             fill: "transparent"
-            border.color: look.accent
+            border.color: channel.look.accent
             border.width: 1
             opacity: area.containsMouse ? 0.9 : 0
             Accessible.ignored: true
         }
         Rectangle {
             anchors.fill: parent
-            fill: channel.current ? look.hover : "transparent"
-            border.color: channel.activeFocus ? look.accent : "transparent"
+            fill: channel.current ? channel.look.hover : "transparent"
+            border.color: channel.activeFocus ? channel.look.accent : "transparent"
             border.width: 2
             Accessible.ignored: true
         }
@@ -225,15 +246,15 @@ Rectangle {
             visible: channel.current
             width: 2
             height: parent.height
-            fill: look.accent
+            fill: channel.look.accent
             Accessible.ignored: true
         }
         Text {
             x: 14
             anchors.verticalCenter: parent.verticalCenter
             text: String(channel.number).padStart(2, "0")
-            color: channel.current ? look.link : look.muted
-            font.family: look.mono
+            color: channel.current ? channel.look.link : channel.look.muted
+            font.family: channel.look.mono
             font.size: 12
             Accessible.ignored: true
         }
@@ -241,8 +262,8 @@ Rectangle {
             x: 44
             anchors.verticalCenter: parent.verticalCenter
             text: channel.label
-            color: channel.current ? look.link : look.text
-            font.family: look.sans
+            color: channel.current ? channel.look.link : channel.look.text
+            font.family: channel.look.sans
             font.size: 15
             font.weight: channel.current ? Font.DemiBold : Font.Normal
             Accessible.ignored: true
@@ -302,27 +323,32 @@ Rectangle {
                 spacing: 24
 
                 Reading {
+                    look: look
                     label: t`Route`
                     value: shell.route
                     said: t`Route ${shell.route}`
                 }
                 Reading {
+                    look: look
                     visible: shell.width >= 1180
                     label: t`Clock`
                     value: shell.clock
                     said: t`Clock ${shell.clock}`
                 }
                 Reading {
+                    look: look
                     label: t`Objects alive`
                     value: String(shell.alive)
                     said: t`Objects alive ${shell.alive}`
                 }
                 Reading {
+                    look: look
                     label: t`Frame rate`
                     value: shell.fps > 0 ? t`${shell.fps} fps` : "--"
                     said: shell.fps > 0 ? t`Frame rate ${shell.fps} fps` : t`Frame rate not measured yet`
                 }
                 Reading {
+                    look: look
                     visible: shell.width >= 1300 && shell.renderer !== ""
                     label: t`Renderer`
                     value: shell.renderer
@@ -397,8 +423,11 @@ Rectangle {
                 model: shell.channels
 
                 Channel {
-                    required property unknown modelData
+                    required property P.Channel modelData
                     required property int index
+                    look: look
+                    router: shell.router
+                    wide: shell.wide
                     number: index + 1
                     label: modelData.label
                     to: modelData.to
@@ -419,10 +448,13 @@ Rectangle {
                 height: 12
             }
             Channel {
+                look: look
+                router: shell.router
+                wide: shell.wide
                 number: shell.channels.length + 1
                 action: true
                 label: t`Source`
-                onPressed: if (shell.site) shell.site.showSource("cyberpunk")
+                onPressed: if (shell.site !== undefined) shell.site.showSource("cyberpunk")
             }
         }
     }
@@ -492,6 +524,7 @@ Rectangle {
             spacing: 12
 
             Reading {
+                look: look
                 stacked: true
                 width: Math.max(64, bar.width - 2 * shell.gutter - 3 * readings.spacing - aliveReading.width - fpsReading.width - clockReading.width)
                 label: t`Route`
@@ -500,6 +533,7 @@ Rectangle {
             }
             Reading {
                 id: aliveReading
+                look: look
                 stacked: true
                 width: implicitWidth
                 label: t`Objects`
@@ -508,6 +542,7 @@ Rectangle {
             }
             Reading {
                 id: fpsReading
+                look: look
                 stacked: true
                 width: implicitWidth
                 label: t`Frame rate`
@@ -516,6 +551,7 @@ Rectangle {
             }
             Reading {
                 id: clockReading
+                look: look
                 stacked: true
                 width: implicitWidth
                 label: t`Clock`
@@ -578,8 +614,11 @@ Rectangle {
                         model: shell.channels
 
                         Channel {
-                            required property unknown modelData
+                            required property P.Channel modelData
                             required property int index
+                            look: look
+                            router: shell.router
+                            wide: shell.wide
                             number: index + 1
                             label: modelData.label
                             to: modelData.to
