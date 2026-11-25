@@ -67,12 +67,15 @@ export function changedIn(output, example) {
 
 // A demo's source, as data for its editor: each QML and TypeScript file
 // its UPSTREAM.json pins, with its highlighting (`colour(code, lang)`).
+const upstreamOf = (root) => JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
+// The paths of the files the editor holds, in its order: the page lists
+// them as it is made, so the list it was written with is the list it
+// hydrates, and their code comes after.
+export const pathsOf = (root) => Object.keys(upstreamOf(root).files).filter((path) => /\.(qml|ts)$/.test(path));
 export function projectOf(root, colour) {
-  const upstream = JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
-  const text = Object.keys(upstream.files).filter((path) => /\.(qml|ts)$/.test(path));
   return {
-    commit: upstream.commit,
-    files: text.map((path) => {
+    commit: upstreamOf(root).commit,
+    files: pathsOf(root).map((path) => {
       const code = readFileSync(join(root, path), "utf8");
       const lang = path.endsWith(".ts") ? "ts" : "qml";
       return { path, lang, code, rich: colour(code, lang) };

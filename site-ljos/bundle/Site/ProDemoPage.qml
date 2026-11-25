@@ -251,16 +251,19 @@ Column {
         Flow {
             width: parent.width
             spacing: Theme.xxs
-            Accessible.role: Accessible.List
+            // A tab for each file, which shows it in the editor below. Their
+            // paths come with the page (ProText), so the tabs it was written
+            // with are the ones it is made with; the code comes after.
+            Accessible.role: Accessible.PageTabList
             Accessible.name: t`The files of ${page.demo.what}`
 
             Repeater {
-                model: page.files
+                model: page.words.paths ?? []
                 delegate: Rectangle {
                     id: tab
-                    required property var modelData
-                    readonly property bool chosen: modelData.path === page.path
-                    readonly property bool changed: Object.hasOwn(page.edits, modelData.path)
+                    required property string modelData
+                    readonly property bool chosen: modelData === page.path
+                    readonly property bool changed: Object.hasOwn(page.edits, modelData)
                     width: name.implicitWidth + 2 * Theme.xs
                     height: name.implicitHeight + Theme.xs
                     radius: Theme.radiusSmall
@@ -268,12 +271,13 @@ Column {
                     border.color: activeFocus ? Theme.focusRing : chosen ? Theme.accent : Theme.border
                     border.width: activeFocus ? 2 : 1
                     activeFocusOnTab: true
-                    Accessible.role: Accessible.Button
-                    Accessible.name: modelData.path + (changed ? ", changed" : "")
-                    Accessible.onPressAction: () => page.show(modelData.path)
+                    Accessible.role: Accessible.PageTab
+                    Accessible.name: modelData + (changed ? ", changed" : "")
+                    Accessible.selected: chosen
+                    Accessible.onPressAction: () => page.show(modelData)
                     Keys.onPressed: (event) => {
                         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                            page.show(tab.modelData.path);
+                            page.show(tab.modelData);
                             event.accepted = true;
                         }
                     }
@@ -281,7 +285,7 @@ Column {
                     Text {
                         id: name
                         anchors.centerIn: parent
-                        text: tab.modelData.path + (tab.changed ? " •" : "")
+                        text: tab.modelData + (tab.changed ? " •" : "")
                         color: tab.chosen ? Theme.text : Theme.textMuted
                         font.family: Theme.mono
                         font.pixelSize: Theme.captionSize
@@ -292,7 +296,7 @@ Column {
                         hoverEnabled: true
                         Accessible.ignored: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: page.show(tab.modelData.path)
+                        onClicked: page.show(tab.modelData)
                     }
                 }
             }
