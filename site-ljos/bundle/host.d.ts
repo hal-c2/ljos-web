@@ -11,5 +11,6 @@ export interface Desktop {
     readonly observer: string;
     qml(name: string): string;
     readonly noLive: string;
+    readonly noDemo: string;
 }
 export declare const desktop: Desktop | undefined;

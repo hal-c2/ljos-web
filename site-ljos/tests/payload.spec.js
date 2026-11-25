@@ -70,7 +70,7 @@ test("no page's static first load holds the editor, the compiler, PhysX or sql.j
 // and Site/ObserverNote.qml are only that copy's (host.js). No page's
 // first load holds any of it, nor a word of what it says.
 test("no page's first load holds what only the desktop runs", () => {
-  const desktop = ["--site=", "on the desktop this is the example as it was built", "ljos observe command opens"];
+  const desktop = ["--site=", "on the desktop this is the example as it was built", "ljos observe command opens", "it runs in the browser, on ljos.dev"];
   const files = new Set(report.flatMap(({ first }) => first.files.map((entry) => entry.file).filter((file) => /\.(js|html)$/.test(file))));
   const holding = [...files].flatMap((file) => {
     const text = readFileSync(join(dist, file), "utf8");
