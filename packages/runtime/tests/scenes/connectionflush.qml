@@ -17,6 +17,9 @@ Item {
     property var signalled: []
     property var fromNull: []
     property var throughNull: []
+    property var selected: root.useOther ? other : box
+    property var throughSelected: []
+    property var keptOld: []
 
     Item { id: box; objectName: "box" }
     Item { id: other; objectName: "other" }
@@ -76,6 +79,27 @@ Item {
 
         function onChildrenChanged() {
             root.throughNull.push("heard");
+        }
+    }
+
+    // A binding that reads another binding: Qt evaluates both at the write.
+    Connections {
+        id: chained
+        target: root.selected
+
+        function onChildrenChanged() {
+            root.throughSelected.push("heard");
+        }
+    }
+
+    // A binding that gives `undefined`: Qt refuses it ("Unable to assign
+    // [undefined] to QObject*") and keeps the target it had.
+    Connections {
+        id: refused
+        target: root.useOther ? undefined : box
+
+        function onChildrenChanged() {
+            root.keptOld.push("heard");
         }
     }
 

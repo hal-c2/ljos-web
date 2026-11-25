@@ -1154,9 +1154,35 @@ function* sources(record: Ring): Generator<Ring, void, undefined> {
 // write is not the old target's to tell, and what the new one changes is
 // the new one's (`QtQuick/Connections.ts`). The last write of a
 // flush is the flush's own to settle. Few are ever here, each asked at
-// every write: only a Connections whose target has a binding of its own.
+// every write: only a Connections whose target has a binding of its own
+// that reads a property (`root.useOther ? other : box`), not one that
+// names an object and nothing else (`target: box`), which never moves.
 const stirred = new Set<() => void>();
+// How many `afresh` evaluations are under way, one inside another: a
+// binding read in one is evaluated afresh too, as deep as this, so that a
+// cycle ends where Solid's own would have thrown.
+let afreshing = 0;
+const AFRESH_DEPTH = 32;
 let stirring = false;
+// Properties read while `readsAny` is under way.
+let reading = 0;
+let reads = 0;
+
+// Whether `run` reads a property. One that reads none (an id, `box`) gives
+// the same object as long as it lives; one that cannot be run now may read
+// one.
+export function readsAny(run: () => unknown): boolean {
+  const before = reads;
+  reading++;
+  try {
+    untrack(run);
+  } catch {
+    return true;
+  } finally {
+    reading--;
+  }
+  return reads !== before;
+}
 
 function stir(): void {
   // What one asks is read, not written; a write it makes anyway is asked of
@@ -1335,24 +1361,38 @@ class Slot {
   }
 
   get(): unknown {
+    if (reading) reads++;
+    // Read by a binding `afresh` evaluates: as fresh as that one.
+    if (afreshing && afreshing < AFRESH_DEPTH && this.freshable()) return this.afresh();
+    return this.held();
+  }
+
+  private held(): unknown {
     this.follow();
     return this.shown ? this.shown() : this.target();
+  }
+
+  private freshable(): boolean {
+    return !WASM && !!this.bound?.source && !this.assigned && !this.layers && !this.shown && !this.resolve && this.placed === undefined;
   }
 
   // What the property's binding gives now, read by no one. On the wasm
   // kernel the graph brings the binding up to date as it is read. Solid's
   // memo has what it gave when its flush last ended, so in a flush the
-  // expression is evaluated again; what it reads of another binding is
-  // that binding's as the flush last left it.
+  // expression is evaluated again, and so is each binding it reads
+  // (`target: root.selected`), as Qt has them all evaluated at the write.
   afresh(): unknown {
-    const source = this.bound?.source;
-    if (WASM || !source || this.assigned || this.layers || this.shown || this.resolve || this.placed !== undefined) return untrack(() => this.get());
+    if (!this.freshable()) return untrack(() => this.held());
     // One that cannot be evaluated now is the memo's to tell of, when it is.
+    afreshing++;
     try {
-      const value = untrack(source);
+      const value = untrack(this.bound!.source!);
       if (value !== undefined) return value;
-    } catch {}
-    return untrack(() => this.get());
+    } catch {
+    } finally {
+      afreshing--;
+    }
+    return untrack(() => this.held());
   }
 
   // What the property was given, before its type has its say.
