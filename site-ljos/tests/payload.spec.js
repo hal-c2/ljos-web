@@ -18,6 +18,7 @@ const base = process.env.LJOS_SITE_BASE ?? "/";
 const AWAITED = {
   "/": ["Landing-"],
   "/showcase/": ["ShowcasePage-"],
+  "/demos/": ["DemosPage-"],
   ...Object.fromEntries(demos.map((demo) => [route(demo), ["ProDemoPage-"]])),
 };
 const report = pageReport(dist, { base, awaited: AWAITED });
@@ -148,11 +149,15 @@ test("no page's first load holds QtQuick.Shapes", () => {
 // packages/runtime/site.js): not cut into a file for each set of later
 // modules that share some of it (a page or a demo of its own), each
 // costing every page a file and a context gzip shares. Those cuts were
-// named after a type or script they held.
+// named after a type or script they held. What the pages of their own
+// share among themselves (the front page, the demos page and the
+// showcase each have a LinkButton) is a file those pages wait for, not
+// a cut of what every page loads, so the cuts are looked for in what a
+// page imports statically.
 test("a page's first load holds the bundle's own code in one file", () => {
   const sites = report.filter(({ first }) => first.files.filter((entry) => named(entry.file, "site-") && entry.file.endsWith(".js")).length !== 1).map(({ route }) => route);
   expect(sites, "pages without exactly one site-* script").toEqual([]);
-  expect(reaching(["Toc-", "CodeBlock-", "StageButton-", "shells-", "observed-", "code-editor-", "LinkButton-", "Theme-"])).toEqual({});
+  expect(reaching(["Toc-", "CodeBlock-", "StageButton-", "shells-", "observed-", "code-editor-", "LinkButton-", "Theme-"], pageReport(dist, { base }))).toEqual({});
 });
 
 // The `site-*` group takes the bundle's files without what they import
@@ -178,6 +183,19 @@ test("nothing the bundle's first-load file imports imports it back", () => {
     }
   }
   expect(back, "chunks that import the site-* file they are imported by").toEqual({});
+});
+
+// The demos page is a module of its own (bundle/Site/later.js): the
+// Pantry and the demos it shows are the front page's too, which no docs
+// page's first load holds. The demos page is written with it and asks
+// for it as it is taken over, so it is counted in that page's first load.
+test("no page but the demos page's first load holds the demos page", () => {
+  const demosPage = report.find(({ route }) => route === "/demos/");
+  expect(reaching(["DemosPage-"], report.filter((entry) => entry !== demosPage))).toEqual({});
+  expect(reaching(["DemosPage-"], pageReport(dist, { base })), "a chunk no page imports statically").toEqual({});
+  expect(reaching(["DemosPage-"], [demosPage]), "the DemosPage-* chunk the demos page waits for, counted").toHaveProperty(["/demos/"]);
+  const written = readFileSync(join(dist, "demos/index.html"), "utf8");
+  expect(written, "the demos page as written, with its Pantry").toContain("The Corner Pantry");
 });
 
 // The front page is a module of its own (bundle/Site/later.js), with
