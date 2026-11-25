@@ -20,6 +20,7 @@ Item {
     property var selected: root.useOther ? other : box
     property var throughSelected: []
     property var keptOld: []
+    property var nested: []
 
     Item { id: box; objectName: "box" }
     Item { id: other; objectName: "other" }
@@ -103,6 +104,17 @@ Item {
         }
     }
 
+    // A binding that reads a list (`children`) and nothing else a slot
+    // holds: it moves at the write all the same.
+    Connections {
+        id: listed
+        target: box.children.length ? box.children[0] : null
+
+        function onChildrenChanged() {
+            root.nested.push("heard");
+        }
+    }
+
     states: [
         // `explicit`: the target is given `other` where it is written, as
         // Qt gives it.
@@ -142,6 +154,11 @@ Item {
             name: "rebindThenChangeNew"
             PropertyChanges { root.useOther: true; explicit: true }
             ParentChange { target: second; parent: other }
+        },
+        State {
+            name: "nestThenChange"
+            ParentChange { target: first; parent: box }
+            ParentChange { target: second; parent: first }
         },
         State {
             name: "rebindThenWiden"
