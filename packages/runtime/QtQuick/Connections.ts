@@ -94,8 +94,6 @@ export const Connections = defineType("Connections", QtObject, {
         settles = [];
         disconnect?.();
         disconnect = null;
-        unstir?.();
-        unstir = null;
         if (target == null || (target as unknown) === Component) return;
         disconnect = runWithOwner(self.$owner, () =>
           createRoot((dispose): (() => void) => {
@@ -118,12 +116,6 @@ export const Connections = defineType("Connections", QtObject, {
             return dispose;
           }),
         );
-        // Only what is told late has anything to tell at the write: a
-        // signal is told as it is emitted, to whoever is connected then,
-        // and `connect` gives it `signalled`, which is not kept. So only a
-        // Connections that hears a computed list (`children`) is asked at
-        // each write.
-        if (settles.length) unstir = onEveryWrite(follow);
       };
       // A target given a value is the target from the write on, as in Qt,
       // which moves its connections the moment it is written and not once
@@ -155,11 +147,25 @@ export const Connections = defineType("Connections", QtObject, {
         for (const settle of settles) settle();
         moveTo(target);
       };
+      // Asked at every write only while the target has a binding of its
+      // own, whatever it is now (null too) and whatever its handlers hear:
+      // a target that is given a value, or a binding a state gives, moves
+      // where it is written or read, and asks nothing at anyone's write.
+      const arm = (): void => {
+        const own = !given.assigned && !given.layers?.length && !!given.bound?.source;
+        if (own && !unstir) unstir = onEveryWrite(follow);
+        else if (!own && unstir) {
+          unstir();
+          unstir = null;
+        }
+      };
+      arm();
       given.written = () => {
         for (const settle of settles) settle();
         const top = given.layers?.at(-1);
         written = top ? !top.bound : given.assigned || !given.bound;
         if (written) moveTo(current());
+        arm();
       };
       createRenderEffect(
         () => {
@@ -179,6 +185,7 @@ export const Connections = defineType("Connections", QtObject, {
           if (started && Object.is(target, connected)) return;
           if (moved) for (const settle of settles) settle();
           moveTo(target);
+          arm();
         },
       );
     });

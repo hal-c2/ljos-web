@@ -13,6 +13,10 @@ Item {
     property var heard: []
     property bool useOther: false
     property var followed: []
+    property bool ready: true
+    property var signalled: []
+    property var fromNull: []
+    property var throughNull: []
 
     Item { id: box; objectName: "box" }
     Item { id: other; objectName: "other" }
@@ -40,6 +44,38 @@ Item {
 
         function onChildrenChanged() {
             root.followed.push("heard");
+        }
+    }
+
+    // The same with a signal (`widthChanged`): told as it is emitted, to
+    // whichever object is the target then.
+    Connections {
+        id: signalling
+        target: root.useOther ? other : box
+
+        function onWidthChanged() {
+            root.signalled.push("heard");
+        }
+    }
+
+    // A binding whose target is none at first: it moves to `other` at the
+    // write all the same.
+    Connections {
+        id: nothingFirst
+        target: root.useOther ? other : null
+
+        function onChildrenChanged() {
+            root.fromNull.push("heard");
+        }
+    }
+
+    // A binding that moves through none on its way to `other`.
+    Connections {
+        id: nothingBetween
+        target: root.useOther ? (root.ready ? other : null) : box
+
+        function onChildrenChanged() {
+            root.throughNull.push("heard");
         }
     }
 
@@ -82,6 +118,28 @@ Item {
             name: "rebindThenChangeNew"
             PropertyChanges { root.useOther: true; explicit: true }
             ParentChange { target: second; parent: other }
+        },
+        State {
+            name: "rebindThenWiden"
+            PropertyChanges { root.useOther: true; explicit: true }
+            PropertyChanges { box.width: 5 }
+        },
+        State {
+            name: "rebindThenWidenNew"
+            PropertyChanges { root.useOther: true; explicit: true }
+            PropertyChanges { other.width: 5 }
+        },
+        State {
+            name: "rebindFromNullThenChange"
+            PropertyChanges { root.useOther: true; explicit: true }
+            ParentChange { target: second; parent: other }
+        },
+        State {
+            name: "rebindThroughNullThenChange"
+            PropertyChanges { root.ready: false; explicit: true }
+            PropertyChanges { root.useOther: true; explicit: true }
+            PropertyChanges { root.ready: true; explicit: true }
+            ParentChange { target: second; parent: other }
         }
     ]
 
@@ -95,6 +153,11 @@ Item {
     function followedAfter(name) {
         root.state = name;
         return root.followed.slice();
+    }
+
+    function heardAfter(name, list) {
+        root.state = name;
+        return root[list].slice();
     }
 
     function entered(name) {

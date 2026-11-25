@@ -1149,12 +1149,12 @@ function* sources(record: Ring): Generator<Ring, void, undefined> {
 
 // What is asked again before each write, as Qt evaluates a binding the
 // moment what it reads is written and not when it is next read: a
-// Connections whose target is a binding, and which has a change in a flush
-// to tell (`children`), moves before the write after the one that moves
-// its target, so what the old target changes in that next write is not the
-// old target's to tell (`QtQuick/Connections.ts`). The last write of a
+// Connections whose target is a binding moves before the write after the
+// one that moves its target, so what the old target changes in that next
+// write is not the old target's to tell, and what the new one changes is
+// the new one's (`QtQuick/Connections.ts`). The last write of a
 // flush is the flush's own to settle. Few are ever here, each asked at
-// every write: only a Connections that hears a computed list's change.
+// every write: only a Connections whose target has a binding of its own.
 const stirred = new Set<() => void>();
 let stirring = false;
 
