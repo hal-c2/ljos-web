@@ -255,14 +255,19 @@ test.describe(() => {
 test.describe(() => {
   test.use({ told: [/an asker broke/] });
   test("a write is made when one asker of every write throws", async ({ page }) => {
+    const broke = [];
+    page.on("pageerror", (error) => /an asker broke/.test(error.message) && broke.push(error.message));
     await open(page, "connectionstir");
     expect(
       await page.evaluate(() => {
         const before = window.objects.asked();
+        window.objects.arm();
         window.scene.unrelated = 7;
         return [window.scene.unrelated, window.scene.seen, window.objects.asked() > before];
       }),
     ).toEqual([7, 7, true]);
+    // Armed at that write only: what it threw is told of.
+    await expect.poll(() => broke.length).toBeGreaterThan(0);
   });
 });
 
