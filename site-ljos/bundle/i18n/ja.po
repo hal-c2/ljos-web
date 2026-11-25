@@ -94,7 +94,7 @@ msgstr "4月"
 msgid "AUG"
 msgstr "8月"
 
-#: ../Shells/Desktop.qml:628 ../Shells/Desktop.qml:1152
+#: ../Shells/Desktop.qml:630 ../Shells/Desktop.qml:1154
 msgid "About ljos.dev"
 msgstr "ljos.dev について"
 
@@ -110,17 +110,21 @@ msgstr "このモーションについて ▾"
 msgid "About this motion. Tap to open or close."
 msgstr "このモーションについて。タップして開閉します。"
 
-#: ../Shells/Workbench.qml:411
+#: ../Shells/Workbench.qml:413
 msgid "Activity"
 msgstr "アクティビティ"
 
-#: ../Shells/Workbench.qml:416
+#: ../Shells/Workbench.qml:418
 msgid "Activity bar"
 msgstr "アクティビティバー"
 
 #: ../Site/DemosPage.qml:65
 msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
 msgstr "バスケットに商品を入れ、ページ上で直接 Shell.qml を編集してみてください。Slot を動かすとバスケットの中身を保ったまま画面を組み替えられます。構文エラーを入れても、最後にコンパイルできたシェルが動き続け、エディターの横にコンパイラーのメッセージが表示されます。ライトとダークを切り替えると、両方のシェルが追従します。"
+
+#: ../Demos/Lottie.qml:194
+msgid "Again"
+msgstr "もう一度"
 
 #: ../Demos/AgentView.qml:330 ../Site/HeroStage.qml:26
 msgid "Agent"
@@ -142,7 +146,7 @@ msgstr "エージェント: これをボードにして"
 msgid "All caught up"
 msgstr "すべて確認済み"
 
-#: ../Shells/Desktop.qml:852
+#: ../Shells/Desktop.qml:854
 msgid "All demos"
 msgstr "すべてのデモ"
 
@@ -170,11 +174,11 @@ msgstr "アプリ実行中にエージェントがリストをボードへ変換
 msgid "An app’s layout doesn’t have to be fixed. Let people, or their agents, replace it live, without losing their work. If an edit won’t compile, the last working layout stays."
 msgstr "アプリのレイアウトは固定である必要はありません。ユーザーやエージェントが作業を失わずにライブで差し替えられます。編集がコンパイルできなくても、最後に動いていたレイアウトがそのまま残ります。"
 
-#: ../Shells/Workbench.qml:474
+#: ../Shells/Workbench.qml:476
 msgid "Appearance settings"
 msgstr "外観設定"
 
-#: ../Site/ShellSource.qml:161
+#: ../Site/ShellSource.qml:165
 msgid "Apply"
 msgstr "適用"
 
@@ -214,7 +218,7 @@ msgstr "バッテリー {0} %"
 msgid "BPM"
 msgstr "BPM"
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:565 ../Shells/Desktop.qml:688
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:567 ../Shells/Desktop.qml:690
 msgid "Back"
 msgstr "戻る"
 
@@ -230,7 +234,7 @@ msgstr "バッテリー残量 20 %"
 msgid "Before"
 msgstr "変更前"
 
-#: ../Shells/Desktop.qml:719 ../Shells/Desktop.qml:843
+#: ../Shells/Desktop.qml:721 ../Shells/Desktop.qml:845
 msgid "Benchmarks"
 msgstr "ベンチマーク"
 
@@ -246,11 +250,11 @@ msgstr "ボード"
 msgid "Board layout"
 msgstr "ボード表示"
 
-#: ../Shells/Workbench.qml:881
+#: ../Shells/Workbench.qml:883
 msgid "Bottom panel"
 msgstr "下部パネル"
 
-#: ../Shells/Desktop.qml:713
+#: ../Shells/Desktop.qml:715
 msgid "Browse all interactive demos"
 msgstr "すべてのインタラクティブデモを見る"
 
@@ -270,27 +274,27 @@ msgstr "Ljós で構築"
 msgid "Cancel timer"
 msgstr "タイマーをキャンセル"
 
-#: ../Shells/Desktop.qml:584
+#: ../Shells/Desktop.qml:586
 msgid "Capability: agentic first"
 msgstr "機能: エージェントファースト"
 
-#: ../Shells/Desktop.qml:583
+#: ../Shells/Desktop.qml:585
 msgid "Capability: descriptive language"
 msgstr "機能: 宣言的言語"
 
-#: ../Shells/Desktop.qml:586
+#: ../Shells/Desktop.qml:588
 msgid "Capability: live updates"
 msgstr "機能: ライブ更新"
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:590
 msgid "Capability: malleable"
 msgstr "機能: 柔軟な改変"
 
-#: ../Shells/Desktop.qml:585
+#: ../Shells/Desktop.qml:587
 msgid "Capability: several renderers"
 msgstr "機能: マルチレンダラー"
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:589
 msgid "Capability: tools"
 msgstr "機能: 開発ツール"
 
@@ -338,7 +342,7 @@ msgstr "メニューバー、ツールバー、サイドバー、ステータス
 msgid "Clear all"
 msgstr "すべて消去"
 
-#: ../Shells/Workbench.qml:1042
+#: ../Shells/Workbench.qml:1044
 msgid "Clear log"
 msgstr "ログを消去"
 
@@ -358,11 +362,11 @@ msgstr "時計"
 msgid "Clock {0}"
 msgstr "時計 {0}"
 
-#: ../Shells/Desktop.qml:1178
+#: ../Shells/Desktop.qml:1180
 msgid "Close"
 msgstr "閉じる"
 
-#: ../Site/ObserverDock.qml:184
+#: ../Site/ObserverDock.qml:185
 msgctxt "observer"
 msgid "Close"
 msgstr "閉じる"
@@ -375,11 +379,11 @@ msgstr "メニューを閉じる"
 msgid "Close shell source"
 msgstr "シェルのソースを閉じる"
 
-#: ../Site/ObserverDock.qml:185
+#: ../Site/ObserverDock.qml:186
 msgid "Close the Observer"
 msgstr "オブザーバーを閉じる"
 
-#: ../Shells/Desktop.qml:992 ../Shells/Workbench.qml:743
+#: ../Shells/Desktop.qml:994 ../Shells/Workbench.qml:745
 msgid "Close {0}"
 msgstr "{0} を閉じる"
 
@@ -395,7 +399,7 @@ msgstr "コード"
 msgid "Code: {0}"
 msgstr "コード: {0}"
 
-#: ../Shells/Workbench.qml:847
+#: ../Shells/Workbench.qml:849
 msgid "Collapse inspector"
 msgstr "インスペクターを折りたたむ"
 
@@ -444,11 +448,15 @@ msgstr "サイバーパンク"
 msgid "DEC"
 msgstr "12月"
 
+#: ../Demos/Lottie.qml:98
+msgid "Dance (loops)"
+msgstr "ダンス（ループ）"
+
 #: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:36
 msgid "Dark"
 msgstr "ダーク"
 
-#: ../Shells/Desktop.qml:504
+#: ../Shells/Desktop.qml:506
 msgid "Dark colour scheme"
 msgstr "ダーク配色"
 
@@ -456,11 +464,11 @@ msgstr "ダーク配色"
 msgid "Defrost"
 msgstr "デフロスト"
 
-#: ../Shells/Cyberpunk.qml:52 ../Shells/Desktop.qml:712 ../Shells/Desktop.qml:847 ../Site/Footer.qml:101 ../Site/Router.qml:39 ../Site/Router.qml:47 ../Site/Router.qml:83
+#: ../Shells/Cyberpunk.qml:52 ../Shells/Desktop.qml:714 ../Shells/Desktop.qml:849 ../Site/Footer.qml:101 ../Site/Router.qml:39 ../Site/Router.qml:47 ../Site/Router.qml:83
 msgid "Demos"
 msgstr "デモ"
 
-#: ../Shells/Workbench.qml:602
+#: ../Shells/Workbench.qml:604
 msgid "Demos/"
 msgstr "デモ/"
 
@@ -472,7 +480,7 @@ msgstr "10:00 デザインレビュー"
 msgid "Desktop"
 msgstr "デスクトップ"
 
-#: ../Shells/Workbench.qml:1167
+#: ../Shells/Workbench.qml:1169
 msgid "Diagnostics: {0}"
 msgstr "診断: {0}"
 
@@ -496,7 +504,7 @@ msgstr "おやすみモード"
 msgid "Docs"
 msgstr "ドキュメント"
 
-#: ../Shells/Desktop.qml:941
+#: ../Shells/Desktop.qml:943
 msgid "Documents"
 msgstr "ドキュメント"
 
@@ -549,15 +557,15 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "編集"
 
-#: ../Demos/PantryDemo.qml:282
+#: ../Demos/PantryDemo.qml:287
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Pantry の Shell.qml を編集"
 
-#: ../Site/LiveSource.qml:207
+#: ../Site/LiveSource.qml:210
 msgid "Edit the running shell's QML"
 msgstr "実行中のシェルの QML を編集"
 
-#: ../Site/ShellSource.qml:131
+#: ../Site/ShellSource.qml:135
 msgid "Edit this shell's QML"
 msgstr "このシェルの QML を編集"
 
@@ -565,7 +573,7 @@ msgstr "このシェルの QML を編集"
 msgid "Edit {0}"
 msgstr "{0} を編集"
 
-#: ../Site/ProDemoPage.qml:373
+#: ../Site/ProDemoPage.qml:382
 msgid "Edit {0} of {1}"
 msgstr "{1} の {0} を編集"
 
@@ -573,7 +581,7 @@ msgstr "{1} の {0} を編集"
 msgid "Edited"
 msgstr "編集済み"
 
-#: ../Shells/Workbench.qml:691
+#: ../Shells/Workbench.qml:693
 msgid "Editor"
 msgstr "エディター"
 
@@ -605,11 +613,11 @@ msgstr "サンプル"
 msgid "Exercise"
 msgstr "エクササイズ"
 
-#: ../Shells/Workbench.qml:759
+#: ../Shells/Workbench.qml:761
 msgid "Expand inspector"
 msgstr "インスペクターを展開"
 
-#: ../Shells/Workbench.qml:429 ../Shells/Workbench.qml:516 ../Shells/Workbench.qml:1100
+#: ../Shells/Workbench.qml:431 ../Shells/Workbench.qml:518 ../Shells/Workbench.qml:1102
 msgid "Explorer"
 msgstr "エクスプローラー"
 
@@ -653,16 +661,16 @@ msgstr "Feeder 12 にチームが必要です。ボタンを見つけてくだ�
 msgid "Field guide"
 msgstr "フィールドガイド"
 
-#: ../Shells/Desktop.qml:439
+#: ../Shells/Desktop.qml:441
 msgctxt "menu bar"
 msgid "File"
 msgstr "ファイル"
 
-#: ../Shells/Desktop.qml:510
+#: ../Shells/Desktop.qml:512
 msgid "Follow system colour scheme"
 msgstr "システムの配色に合わせる"
 
-#: ../Shells/Desktop.qml:570 ../Shells/Desktop.qml:694
+#: ../Shells/Desktop.qml:572 ../Shells/Desktop.qml:696
 msgid "Forward"
 msgstr "進む"
 
@@ -690,11 +698,15 @@ msgstr "ライブテレメトリーレールとミッション風パネルを備
 msgid "Gear {0}"
 msgstr "ギア {0}"
 
+#: ../Demos/Lottie.qml:98
+msgid "Genie (plays once)"
+msgstr "ジーニー（1 回再生）"
+
 #: ../Site/LandingCopy.qml:11
 msgid "Get started"
 msgstr "はじめる"
 
-#: ../Shells/Desktop.qml:610
+#: ../Shells/Desktop.qml:612
 msgid "Getting started guide"
 msgstr "はじめに"
 
@@ -710,16 +722,16 @@ msgstr "ウォッチの画面をもう一方の形状に切り替え"
 msgid "Glow"
 msgstr "グロー"
 
-#: ../Shells/Desktop.qml:557
+#: ../Shells/Desktop.qml:559
 msgctxt "menu bar"
 msgid "Go"
 msgstr "移動"
 
-#: ../Shells/Desktop.qml:695
+#: ../Shells/Desktop.qml:697
 msgid "Go to next route"
 msgstr "次のルートへ移動"
 
-#: ../Shells/Desktop.qml:689
+#: ../Shells/Desktop.qml:691
 msgid "Go to previous route"
 msgstr "前のルートへ移動"
 
@@ -730,6 +742,14 @@ msgstr "目標と原則"
 #: ../Demos/Watch/FaceGrid.qml:15
 msgid "Grid face"
 msgstr "グリッド文字盤"
+
+#: ../Demos/Lottie.qml:114
+msgid "HAL-C2's dancing avatar, looping"
+msgstr "HAL-C2 のダンスアバター（ループ再生）"
+
+#: ../Demos/Lottie.qml:126
+msgid "HAL-C2's genie avatar, plays once"
+msgstr "HAL-C2 のジーニーアバター（1 回再生）"
 
 #: ../Demos/Watch/HeartPage.qml:13
 msgid "HEART"
@@ -751,16 +771,16 @@ msgstr "心拍数、直近 {0} 秒"
 msgid "Heating"
 msgstr "暖房中"
 
-#: ../Shells/Desktop.qml:602
+#: ../Shells/Desktop.qml:604
 msgctxt "menu bar"
 msgid "Help"
 msgstr "ヘルプ"
 
-#: ../Shells/Desktop.qml:700 ../Shells/Desktop.qml:825 ../Site/Router.qml:47 ../Site/Router.qml:81
+#: ../Shells/Desktop.qml:702 ../Shells/Desktop.qml:827 ../Site/Router.qml:47 ../Site/Router.qml:81
 msgid "Home"
 msgstr "ホーム"
 
-#: ../Shells/Desktop.qml:1096 ../Shells/Workbench.qml:1054
+#: ../Shells/Desktop.qml:1098 ../Shells/Workbench.qml:1056
 msgid "Hydrated in {0} ms"
 msgstr "{0} ms でハイドレート"
 
@@ -792,7 +812,7 @@ msgstr "すべてのノードを検査し、状態をライブ修正し、新し
 msgid "Inspect {0}"
 msgstr "{0} を検査"
 
-#: ../Shells/Workbench.qml:795 ../Shells/Workbench.qml:1102
+#: ../Shells/Workbench.qml:797 ../Shells/Workbench.qml:1104
 msgid "Inspector"
 msgstr "インスペクター"
 
@@ -800,7 +820,7 @@ msgstr "インスペクター"
 msgid "It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href=\"/start/mcp/\">Connect an agent</a>."
 msgstr "画面の内容を読み取り、ボタンを押し、文字を入力し、変更が効いたか確かめられます。何を許可するかはあなたが選べます。<a href=\"/start/mcp/\">エージェントを接続</a>。"
 
-#: ../Site/ProDemoPage.qml:223
+#: ../Site/ProDemoPage.qml:228
 msgid "Its files"
 msgstr "デモのファイル"
 
@@ -884,7 +904,7 @@ msgstr "15 秒経過後と同じように、ウォッチを常時表示文字盤
 msgid "Light"
 msgstr "ライト"
 
-#: ../Shells/Desktop.qml:498
+#: ../Shells/Desktop.qml:500
 msgid "Light colour scheme"
 msgstr "ライト配色"
 
@@ -956,7 +976,7 @@ msgstr "GitHub の Ljós"
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr "Ljós は <a href=\"https://community-software.org/\">Community Software</a> の原則に沿うことを目指しています。私たちは対等な仲間として、開かれた場で共に作ります。<br><br>誰でも歓迎します。<br>私たちは対等です。<br>すべての貢献が大切です。<br>影響力は参加によって育ちます。<br>人には優しく、アイデアには厳密に。<br>「いいえ」や「まだ」は立派な返答です。<br>自分自身とお互いを大切にしましょう。<br><br>コードは貢献の方法のひとつにすぎません。テスト、ドキュメント、デザイン、翻訳、アクセシビリティレビューも同じように大切で、初めての方の質問も歓迎します。"
 
-#: ../Shells/Desktop.qml:641
+#: ../Shells/Desktop.qml:643
 msgid "Ljós — {0}"
 msgstr "Ljós — {0}"
 
@@ -976,6 +996,10 @@ msgstr "外観"
 msgid "Look at the app before changing it."
 msgstr "変更する前にアプリの今の姿を確認します。"
 
+#: ../Site/DemosPage.qml:222
+msgid "Lottie animations"
+msgstr "Lottie アニメーション"
+
 #: ../Demos/Cockpit/Dock.qml:134
 msgid "Louder"
 msgstr "音量を上げる"
@@ -992,11 +1016,11 @@ msgstr "3月"
 msgid "MAY"
 msgstr "5月"
 
-#: ../Shells/Workbench.qml:896 ../Shells/Workbench.qml:1015
+#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:1017
 msgid "MCP log"
 msgstr "MCP ログ"
 
-#: ../Shells/Desktop.qml:614
+#: ../Shells/Desktop.qml:616
 msgid "MCP servers for agents"
 msgstr "エージェント向け MCP サーバー"
 
@@ -1040,11 +1064,11 @@ msgstr "マップ: {0} へのルート"
 msgid "Media"
 msgstr "メディア"
 
-#: ../Shells/Cyberpunk.qml:632 ../Shells/Desktop.qml:1191 ../Shells/Elegant.qml:205 ../Shells/Workbench.qml:1203 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:632 ../Shells/Desktop.qml:1193 ../Shells/Elegant.qml:205 ../Shells/Workbench.qml:1205 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "メニュー"
 
-#: ../Shells/Desktop.qml:433
+#: ../Shells/Desktop.qml:435
 msgid "Menu bar"
 msgstr "メニューバー"
 
@@ -1096,7 +1120,7 @@ msgstr "再生中"
 msgid "Navigation"
 msgstr "ナビ"
 
-#: ../Site/HeroStage.qml:246
+#: ../Site/HeroStage.qml:262
 msgid "Next step"
 msgstr "次のステップ"
 
@@ -1108,7 +1132,7 @@ msgstr "次の曲"
 msgid "Next: {0}"
 msgstr "次へ: {0}"
 
-#: ../Shells/Workbench.qml:927
+#: ../Shells/Workbench.qml:929
 msgid "No compiler or lint diagnostics in the open file."
 msgstr "開いているファイルにコンパイラーやリントの診断はありません。"
 
@@ -1132,7 +1156,7 @@ msgstr "まだ何も描画されていません。"
 msgid "Nothing drawn yet. Run it to see what it does."
 msgstr "まだ何も描画されていません。実行して動きを見てください。"
 
-#: ../Site/Search.qml:219
+#: ../Site/SearchResults.qml:39
 msgid "Nothing matches “{query}”. Try a type name, like ListView."
 msgstr "「{query}」に一致する項目はありません。ListView などの型名を試してみてください。"
 
@@ -1160,15 +1184,15 @@ msgstr "生存オブジェクト"
 msgid "Objects alive {0}"
 msgstr "生存オブジェクト {0}"
 
-#: ../Shells/Desktop.qml:1102
+#: ../Shells/Desktop.qml:1104
 msgid "Objects alive: {0}"
 msgstr "生存オブジェクト: {0}"
 
-#: ../Shells/Workbench.qml:1067 ../Shells/Workbench.qml:1182
+#: ../Shells/Workbench.qml:1069 ../Shells/Workbench.qml:1184
 msgid "Objects: {0}"
 msgstr "オブジェクト: {0}"
 
-#: ../Demos/AgentView.qml:330 ../Shells/Desktop.qml:725 ../Shells/Workbench.qml:437 ../Site/HeroStage.qml:26 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
+#: ../Demos/AgentView.qml:330 ../Shells/Desktop.qml:727 ../Shells/Workbench.qml:439 ../Site/HeroStage.qml:26 ../Site/ObserverDock.qml:122 ../Site/ObserverDock.qml:174
 msgid "Observer"
 msgstr "オブザーバー"
 
@@ -1177,15 +1201,15 @@ msgctxt "stage"
 msgid "Observer"
 msgstr "オブザーバー"
 
-#: ../Demos/PantryDemo.qml:248
+#: ../Demos/PantryDemo.qml:250
 msgid "Observer for the Pantry"
 msgstr "Pantry のオブザーバー"
 
-#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:293
+#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:295
 msgid "Observer for {0}"
 msgstr "{0} のオブザーバー"
 
-#: ../Shells/Desktop.qml:618
+#: ../Shells/Desktop.qml:620
 msgid "Observer guide"
 msgstr "オブザーバーガイド"
 
@@ -1193,7 +1217,7 @@ msgstr "オブザーバーガイド"
 msgid "Observer tree"
 msgstr "オブザーバーツリー"
 
-#: ../Site/ObserverDock.qml:173
+#: ../Site/ObserverDock.qml:174
 msgid "Observer · {0}"
 msgstr "オブザーバー · {0}"
 
@@ -1205,7 +1229,7 @@ msgstr "オフ"
 msgid "On"
 msgstr "オン"
 
-#: ../Main.qml:660 ../Site/Toc.qml:22 ../Site/Toc.qml:25
+#: ../Main.qml:668 ../Site/Toc.qml:22 ../Site/Toc.qml:25
 msgid "On this page"
 msgstr "このページの内容"
 
@@ -1237,39 +1261,39 @@ msgstr "未解決"
 msgid "Open a window, then change it while it runs."
 msgstr "ウィンドウを開き、動かしたまま作り変える。"
 
-#: ../Shells/Desktop.qml:464
+#: ../Shells/Desktop.qml:466
 msgid "Open benchmarks"
 msgstr "ベンチマークを開く"
 
-#: ../Shells/Desktop.qml:452
+#: ../Shells/Desktop.qml:454
 msgid "Open demos"
 msgstr "デモを開く"
 
-#: ../Shells/Desktop.qml:469
+#: ../Shells/Desktop.qml:471
 msgid "Open documentation"
 msgstr "ドキュメントを開く"
 
-#: ../Shells/Workbench.qml:709
+#: ../Shells/Workbench.qml:711
 msgid "Open files"
 msgstr "開いているファイル"
 
-#: ../Shells/Desktop.qml:447
+#: ../Shells/Desktop.qml:449
 msgid "Open home"
 msgstr "ホームを開く"
 
-#: ../Shells/Desktop.qml:701
+#: ../Shells/Desktop.qml:703
 msgid "Open landing page"
 msgstr "ホームページを開く"
 
-#: ../Shells/Desktop.qml:720
+#: ../Shells/Desktop.qml:722
 msgid "Open native desktop benchmark tables"
 msgstr "ネイティブデスクトップのベンチマーク表を開く"
 
-#: ../Shells/Desktop.qml:957 ../Shells/Desktop.qml:1042
+#: ../Shells/Desktop.qml:959 ../Shells/Desktop.qml:1044
 msgid "Open pages"
 msgstr "開いているページ"
 
-#: ../Shells/Desktop.qml:457
+#: ../Shells/Desktop.qml:459
 msgid "Open showcase"
 msgstr "ショーケースを開く"
 
@@ -1289,11 +1313,11 @@ msgstr "別の文字盤"
 msgid "Our benchmark mail app shows its first frame in under 90 ms, uses under 24 MiB of private memory, and takes 0 % CPU when idle.<br><br>These are <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">native numbers</a> from Linux on 10 Nov 2026. They don’t measure this web page."
 msgstr "当社のベンチマーク用メールアプリは、最初のフレームを 90 ms 未満で表示し、プライベートメモリ使用量は 24 MiB 未満、待機時の CPU 使用率は 0 % です。<br><br>これらは 2026 年 11 月 10 日に Linux で計測した<a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">ネイティブ数値</a>です。この Web ページを計測したものではありません。"
 
-#: ../Shells/Workbench.qml:896
+#: ../Shells/Workbench.qml:898
 msgid "Output"
 msgstr "出力"
 
-#: ../Shells/Desktop.qml:820
+#: ../Shells/Desktop.qml:822
 msgid "Overview"
 msgstr "概要"
 
@@ -1301,15 +1325,15 @@ msgstr "概要"
 msgid "PAUSED"
 msgstr "一時停止中"
 
-#: ../Shells/Desktop.qml:1040
+#: ../Shells/Desktop.qml:1042
 msgid "Page"
 msgstr "ページ"
 
-#: ../Shells/Desktop.qml:808 ../Shells/Desktop.qml:1041 ../Site/PageTree.qml:20
+#: ../Shells/Desktop.qml:810 ../Shells/Desktop.qml:1043 ../Site/PageTree.qml:20
 msgid "Pages"
 msgstr "ページ"
 
-#: ../Shells/Workbench.qml:893
+#: ../Shells/Workbench.qml:895
 msgid "Panel"
 msgstr "パネル"
 
@@ -1337,9 +1361,13 @@ msgstr "助手席の設定: {0}"
 msgid "Passenger warmer"
 msgstr "助手席を上げる"
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:262 ../Site/ReplayFrame.qml:107 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:264 ../Site/ReplayFrame.qml:107 ../Site/ShowcaseApp.qml:197
 msgid "Pause"
 msgstr "一時停止"
+
+#: ../Demos/Lottie.qml:145
+msgid "Pause both avatars"
+msgstr "両方のアバターを一時停止"
 
 #: ../Site/ShowcaseApp.qml:198
 msgid "Pause the recording of {0}"
@@ -1349,7 +1377,7 @@ msgstr "{0} の録画を一時停止"
 msgid "Pause timer"
 msgstr "タイマーを一時停止"
 
-#: ../Site/DemoFrame.qml:275 ../Site/ReplayFrame.qml:123
+#: ../Site/DemoFrame.qml:277 ../Site/ReplayFrame.qml:123
 msgid "Pause {0}"
 msgstr "{0} を一時停止"
 
@@ -1357,17 +1385,33 @@ msgstr "{0} を一時停止"
 msgid "Pick an object to see its properties."
 msgstr "オブジェクトを選ぶとプロパティが表示されます。"
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
 msgid "Play"
 msgstr "再生"
+
+#: ../Demos/Lottie.qml:145
+msgid "Play both avatars"
+msgstr "両方のアバターを再生"
+
+#: ../Demos/Lottie.qml:175
+msgid "Play the genie avatar again"
+msgstr "ジーニーアバターをもう一度再生"
 
 #: ../Site/ShowcaseApp.qml:198
 msgid "Play the recording of {0}"
 msgstr "{0} の録画を再生"
 
-#: ../Site/Search.qml:160
+#: ../Demos/Lottie.qml:214
+msgid "Playback speed {modelData}×"
+msgstr "再生速度 {modelData}×"
+
+#: ../Site/Search.qml:163
 msgid "Press / to search"
 msgstr "/ キーで検索"
+
+#: ../Site/DemosPage.qml:223
+msgid "Press Run to load the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
+msgstr "「実行」を押すと、プレーヤーと 2 つの Lottie ファイル（HAL-C2 のアバター）が読み込まれます。JavaScript の Lottie ライブラリは使わず、Ljós が読み込みと描画を行います。「一時停止」「もう一度」や速度ボタンで、ループするダンスと 1 回再生のジーニーを操作してみてください。「モーションを減らす」がオンのときはどちらも半分の速度で再生され、画面外では一時停止し、待機時は CPU を使用しません。"
 
 #: ../Demos/Motion.qml:108
 msgid "Press and move — the puck springs after you"
@@ -1377,7 +1421,7 @@ msgstr "押したまま動かす — パックがバネのように追従しま�
 msgid "Press it, as a person would."
 msgstr "人が操作するのと同じように押します。"
 
-#: ../Shells/Workbench.qml:1101
+#: ../Shells/Workbench.qml:1103
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -1389,7 +1433,7 @@ msgstr "前の曲"
 msgid "Previous: {0}"
 msgstr "前へ: {0}"
 
-#: ../Shells/Workbench.qml:896 ../Shells/Workbench.qml:945 ../Shells/Workbench.qml:1103
+#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:947 ../Shells/Workbench.qml:1105
 msgid "Problems"
 msgstr "問題"
 
@@ -1409,11 +1453,11 @@ msgstr "音量を下げる"
 msgid "RUN COMPLETE"
 msgstr "ランニング完了"
 
-#: ../Shells/Workbench.qml:994
+#: ../Shells/Workbench.qml:996
 msgid "Recorded MCP calls appear here as you step the agent replay."
 msgstr "エージェントのリプレイを進めると、記録された MCP 呼び出しがここに表示されます。"
 
-#: ../Site/HeroStage.qml:225
+#: ../Site/HeroStage.qml:241
 msgid "Recorded replay"
 msgstr "記録済みリプレイ"
 
@@ -1421,7 +1465,7 @@ msgstr "記録済みリプレイ"
 msgid "Recorded running"
 msgstr "実行中の録画"
 
-#: ../Shells/Desktop.qml:517 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:519 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr "視差効果を減らす"
 
@@ -1433,7 +1477,7 @@ msgstr "レンダラー"
 msgid "Renderer {0}"
 msgstr "レンダラー {0}"
 
-#: ../Shells/Desktop.qml:1118 ../Shells/Workbench.qml:1061 ../Shells/Workbench.qml:1189
+#: ../Shells/Desktop.qml:1120 ../Shells/Workbench.qml:1063 ../Shells/Workbench.qml:1191
 msgid "Renderer: {0}"
 msgstr "レンダラー: {0}"
 
@@ -1445,23 +1489,23 @@ msgstr "リプレイ表示"
 msgid "Replay · no live agent"
 msgstr "リプレイ · ライブエージェントなし"
 
-#: ../Demos/PantryDemo.qml:232 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:151 ../Site/ShellSource.qml:168
+#: ../Demos/PantryDemo.qml:234 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:151 ../Site/ShellSource.qml:172
 msgid "Reset"
 msgstr "リセット"
 
-#: ../Site/HeroStage.qml:240
+#: ../Site/HeroStage.qml:256
 msgid "Reset demo"
 msgstr "デモをリセット"
 
-#: ../Shells/Desktop.qml:480
+#: ../Shells/Desktop.qml:482
 msgid "Reset demo state"
 msgstr "デモの状態をリセット"
 
-#: ../Site/ProDemoPage.qml:320
+#: ../Site/ProDemoPage.qml:325
 msgid "Reset every file"
 msgstr "すべてのファイルをリセット"
 
-#: ../Demos/PantryDemo.qml:233
+#: ../Demos/PantryDemo.qml:235
 msgid "Reset to the app's shell"
 msgstr "アプリのシェルに戻す"
 
@@ -1473,7 +1517,7 @@ msgstr "{0} を元のコードに戻す"
 msgid "Reshape the running interface, human or agent."
 msgstr "実行中のインターフェースを、人もエージェントも作り変えられます。"
 
-#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:264 ../Site/ReplayFrame.qml:100 ../Site/ReplayFrame.qml:109
+#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:266 ../Site/ReplayFrame.qml:100 ../Site/ReplayFrame.qml:109
 msgid "Resume"
 msgstr "再開"
 
@@ -1481,7 +1525,7 @@ msgstr "再開"
 msgid "Resume timer"
 msgstr "タイマーを再開"
 
-#: ../Site/DemoFrame.qml:277 ../Site/ReplayFrame.qml:116 ../Site/ReplayFrame.qml:125
+#: ../Site/DemoFrame.qml:279 ../Site/ReplayFrame.qml:116 ../Site/ReplayFrame.qml:125
 msgid "Resume {0}"
 msgstr "{0} を再開"
 
@@ -1509,11 +1553,11 @@ msgstr "ルート"
 msgid "Route {0}"
 msgstr "ルート {0}"
 
-#: ../Shells/Desktop.qml:1089 ../Shells/Workbench.qml:1161
+#: ../Shells/Desktop.qml:1091 ../Shells/Workbench.qml:1163
 msgid "Route: {0}"
 msgstr "ルート: {0}"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:266 ../Site/ReplayFrame.qml:111
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:268 ../Site/ReplayFrame.qml:111
 msgctxt "stage"
 msgid "Run"
 msgstr "実行"
@@ -1526,7 +1570,7 @@ msgstr "再実行"
 msgid "Run again: {0}"
 msgstr "再実行: {0}"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:279 ../Site/ReplayFrame.qml:127
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:281 ../Site/ReplayFrame.qml:127
 msgid "Run {0}"
 msgstr "{0} を実行"
 
@@ -1554,11 +1598,11 @@ msgstr "日"
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "同じアプリで別のシェルに切り替え。ルート、スクロール位置、実行中のデモはそのまま残ります。"
 
-#: ../Shells/Desktop.qml:773
+#: ../Shells/Desktop.qml:775
 msgid "Scheme"
 msgstr "配色"
 
-#: ../Site/Search.qml:159
+#: ../Site/Search.qml:162
 msgid "Search"
 msgstr "検索"
 
@@ -1566,11 +1610,11 @@ msgstr "検索"
 msgid "Search by name…"
 msgstr "名前で検索…"
 
-#: ../Site/Search.qml:108
+#: ../Site/Search.qml:111
 msgid "Search docs and demos"
 msgstr "ドキュメントとデモを検索"
 
-#: ../Site/Search.qml:202
+#: ../Site/SearchResults.qml:22
 msgid "Search results"
 msgstr "検索結果"
 
@@ -1615,27 +1659,27 @@ msgctxt "code language"
 msgid "Shell"
 msgstr "Shell"
 
-#: ../Shells/Workbench.qml:462
+#: ../Shells/Workbench.qml:464
 msgid "Shell switcher"
 msgstr "シェル切り替え"
 
-#: ../Demos/PantryDemo.qml:227
+#: ../Demos/PantryDemo.qml:229
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml: ライブで編集"
 
-#: ../Shells/Desktop.qml:1124
+#: ../Shells/Desktop.qml:1126
 msgid "Shell: Desktop"
 msgstr "シェル: デスクトップ"
 
-#: ../Shells/Workbench.qml:1155
+#: ../Shells/Workbench.qml:1157
 msgid "Shell: Workbench"
 msgstr "シェル: ワークベンチ"
 
-#: ../Shells/Cyberpunk.qml:58 ../Shells/Desktop.qml:868
+#: ../Shells/Cyberpunk.qml:58 ../Shells/Desktop.qml:870
 msgid "Shells"
 msgstr "シェル"
 
-#: ../Shells/Workbench.qml:549
+#: ../Shells/Workbench.qml:551
 msgid "Shells/"
 msgstr "シェル/"
 
@@ -1691,7 +1735,7 @@ msgstr "サイドボタン"
 msgid "Simulated drive"
 msgstr "模擬走行"
 
-#: ../Shells/Workbench.qml:580
+#: ../Shells/Workbench.qml:582
 msgid "Site/"
 msgstr "サイト/"
 
@@ -1699,7 +1743,7 @@ msgstr "サイト/"
 msgid "Sketch the shell"
 msgstr "シェルの下書きを作成"
 
-#: ../Main.qml:396 ../Main.qml:430
+#: ../Main.qml:404 ../Main.qml:438
 msgid "Skip to content"
 msgstr "本文へスキップ"
 
@@ -1715,7 +1759,7 @@ msgstr "動かしながら形を変えられるソフトウェア。"
 msgid "Source"
 msgstr "ソース"
 
-#: ../Shells/Workbench.qml:818
+#: ../Shells/Workbench.qml:820
 msgctxt "panel"
 msgid "Source"
 msgstr "ソース"
@@ -1729,7 +1773,7 @@ msgstr "ソース"
 msgid "Source of {0}"
 msgstr "{0} のソース"
 
-#: ../Shells/Desktop.qml:622
+#: ../Shells/Desktop.qml:624
 msgid "Source on GitHub"
 msgstr "GitHub でソースを見る"
 
@@ -1761,7 +1805,7 @@ msgstr "スタンド"
 msgid "Start"
 msgstr "開始"
 
-#: ../Shells/Desktop.qml:576 ../Shells/Desktop.qml:833
+#: ../Shells/Desktop.qml:578 ../Shells/Desktop.qml:835
 msgid "Start in a minute"
 msgstr "1 分ではじめる"
 
@@ -1781,7 +1825,7 @@ msgstr "ストップウォッチ開始"
 msgid "Start timer"
 msgstr "タイマー開始"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:119
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:275 ../Site/ReplayFrame.qml:119
 msgid "Starting {0}…"
 msgstr "{0} を起動中…"
 
@@ -1789,11 +1833,11 @@ msgstr "{0} を起動中…"
 msgid "Starting {what}…"
 msgstr "{what} を起動中…"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:260 ../Site/ReplayFrame.qml:103
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:262 ../Site/ReplayFrame.qml:103
 msgid "Starting…"
 msgstr "起動中…"
 
-#: ../Shells/Desktop.qml:1073 ../Shells/Workbench.qml:1139
+#: ../Shells/Desktop.qml:1075 ../Shells/Workbench.qml:1141
 msgid "Status bar"
 msgstr "ステータスバー"
 
@@ -1829,7 +1873,7 @@ msgstr "ストップウォッチ"
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr "Svala GT は架空の車です。モデルは本サンプルの Blender スクリプトから生成され、地図・音楽・通りもすべて架空です。見えているものはすべて Ljós が描画しています。"
 
-#: ../Shells/Desktop.qml:763
+#: ../Shells/Desktop.qml:765
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr "エレガント、サイバーパンク、ワークベンチ、デスクトップの各シェルを切り替え"
 
@@ -1837,23 +1881,23 @@ msgstr "エレガント、サイバーパンク、ワークベンチ、デスク
 msgid "Switch shell"
 msgstr "シェルを切り替え"
 
-#: ../Shells/Desktop.qml:540
+#: ../Shells/Desktop.qml:542
 msgid "Switch to Cyberpunk shell"
 msgstr "サイバーパンクシェルに切り替え"
 
-#: ../Shells/Desktop.qml:548
+#: ../Shells/Desktop.qml:550
 msgid "Switch to Desktop shell"
 msgstr "デスクトップシェルに切り替え"
 
-#: ../Shells/Desktop.qml:536
+#: ../Shells/Desktop.qml:538
 msgid "Switch to Elegant shell"
 msgstr "エレガントシェルに切り替え"
 
-#: ../Shells/Desktop.qml:544
+#: ../Shells/Desktop.qml:546
 msgid "Switch to Workbench shell"
 msgstr "ワークベンチシェルに切り替え"
 
-#: ../Main.qml:917
+#: ../Main.qml:943
 msgid "Switched to {shell}. Your place and edits are kept."
 msgstr "{shell} に切り替えました。表示位置と編集内容は保持されています。"
 
@@ -1898,7 +1942,7 @@ msgctxt "code language"
 msgid "Text"
 msgstr "テキスト"
 
-#: ../Demos/PantryDemo.qml:162
+#: ../Demos/PantryDemo.qml:163
 msgid "The Pantry, running"
 msgstr "Pantry（実行中）"
 
@@ -1922,11 +1966,11 @@ msgstr "車両は施錠されています。開けるには解錠してくださ
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr "車両。矢印キーで部位を選び、スペースキーで開閉します。"
 
-#: ../Main.qml:634
+#: ../Main.qml:642
 msgid "The docs"
 msgstr "ドキュメント"
 
-#: ../Site/ProDemoPage.qml:250
+#: ../Site/ProDemoPage.qml:255
 msgid "The files of {0}"
 msgstr "{0} のファイル"
 
@@ -1950,15 +1994,19 @@ msgstr "このアドレスにページはありません。移動した可能性
 msgid "There is no {0}.qml to edit."
 msgstr "編集できる {0}.qml がありません。"
 
-#: ../Main.qml:772
+#: ../Main.qml:786
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "この編集にはエディターを表示する site.source.live が含まれていないため、最後に動いた編集を維持します。"
+
+#: ../Site/ObserverNote.qml:19
+msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
+msgstr "このパネルはブラウザー上で動作しています。デスクトップでは、ljos observe コマンドで動いているアプリのオブザーバーを開けます。"
 
 #: ../Site/Footer.qml:148
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "このサイト自体が Ljós アプリです。ビルド時に HTML として書き出され、ブラウザーでライブに動いています。"
 
-#: ../Shells/Desktop.qml:1161
+#: ../Shells/Desktop.qml:1163
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "このサイトは ljos-web で Solid DOM にコンパイルされた Ljós で動いており、3D シーンには WebGPU と WebGL2 フォールバックを使用しています。表示メニューやツールバーからリロードなしでシェルを切り替えられます。"
 
@@ -1978,23 +2026,23 @@ msgstr "時間です"
 msgid "Timer"
 msgstr "タイマー"
 
-#: ../Shells/Desktop.qml:529
+#: ../Shells/Desktop.qml:531
 msgid "Toggle Observer panel"
 msgstr "オブザーバーパネルを切り替え"
 
-#: ../Shells/Desktop.qml:774
+#: ../Shells/Desktop.qml:776
 msgid "Toggle light and dark colour scheme"
 msgstr "ライト配色とダーク配色を切り替え"
 
-#: ../Shells/Desktop.qml:726
+#: ../Shells/Desktop.qml:728
 msgid "Toggle live Observer panel"
 msgstr "ライブオブザーバーパネルを切り替え"
 
-#: ../Shells/Desktop.qml:523
+#: ../Shells/Desktop.qml:525
 msgid "Toggle sidebar"
 msgstr "サイドバーを切り替え"
 
-#: ../Shells/Desktop.qml:676
+#: ../Shells/Desktop.qml:678
 msgid "Toolbar"
 msgstr "ツールバー"
 
@@ -2018,7 +2066,7 @@ msgstr "デモを試す"
 msgid "Try again"
 msgstr "もう一度試す"
 
-#: ../Demos/PantryDemo.qml:311
+#: ../Demos/PantryDemo.qml:316
 msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 msgstr "StatusSlot を Basket の下に移動したり、color: \"#241a10\" を設定したり、ショップ名を変えたりしてみてください。バスケットとメモはそのまま残ります。"
 
@@ -2041,6 +2089,10 @@ msgstr "クラウンを 1 目盛り下へ回します"
 #: ../Demos/WatchDemo.qml:177
 msgid "Turns the crown up a notch"
 msgstr "クラウンを 1 目盛り上へ回します"
+
+#: ../Site/DemosPage.qml:236
+msgid "Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls."
+msgstr "再生と速度のコントロールの上に、HAL-C2 のダンスアバターとジーニーアバターのカードが 2 枚並んでいます。"
 
 #: ../Demos/AgentView.qml:330
 msgid "TypeScript"
@@ -2066,24 +2118,24 @@ msgstr "ライトテーマを使う"
 msgid "Values"
 msgstr "値"
 
-#: ../Shells/Desktop.qml:490
+#: ../Shells/Desktop.qml:492
 msgctxt "menu bar"
 msgid "View"
 msgstr "表示"
 
-#: ../Shells/Desktop.qml:779
+#: ../Shells/Desktop.qml:781
 msgid "View QML"
 msgstr "QML を見る"
 
-#: ../Shells/Desktop.qml:475 ../Site/ShellChoices.qml:151
+#: ../Shells/Desktop.qml:477 ../Site/ShellChoices.qml:151
 msgid "View this shell's QML"
 msgstr "このシェルの QML を見る"
 
-#: ../Shells/Desktop.qml:780
+#: ../Shells/Desktop.qml:782
 msgid "View this shell's QML source"
 msgstr "このシェルの QML ソースを見る"
 
-#: ../Shells/Desktop.qml:1036 ../Shells/Workbench.qml:1096
+#: ../Shells/Desktop.qml:1038 ../Shells/Workbench.qml:1098
 msgid "Views"
 msgstr "ビュー"
 
@@ -2147,7 +2199,7 @@ msgstr "処理中…"
 msgid "Workout"
 msgstr "ワークアウト"
 
-#: ../Shells/Workbench.qml:525
+#: ../Shells/Workbench.qml:527
 msgid "Workspace: ljos.dev"
 msgstr "ワークスペース: ljos.dev"
 
@@ -2239,7 +2291,11 @@ msgstr "エージェントが設定"
 msgid "the 3D demo"
 msgstr "3D デモ"
 
-#: ../Demos/PantryDemo.qml:249
+#: ../Site/DemosPage.qml:235
+msgid "the Lottie demo"
+msgstr "Lottie デモ"
+
+#: ../Demos/PantryDemo.qml:251
 msgid "the Pantry"
 msgstr "Pantry"
 
@@ -2271,7 +2327,7 @@ msgstr "ウォッチ"
 msgid "this example"
 msgstr "このサンプル"
 
-#: ../Main.qml:198
+#: ../Main.qml:199
 msgid "this page"
 msgstr "このページ"
 
@@ -2350,6 +2406,10 @@ msgstr "{0} →"
 #: ../Demos/Cockpit/MediaPanel.qml:250
 msgid "{0}, {1}"
 msgstr "{0}、{1}"
+
+#: ../Demos/Lottie.qml:228
+msgid "{0}×"
+msgstr "{0}×"
 
 #: ../Pantry/Basket.qml:31
 msgid "{count, plural, one {# in the basket} other {# in the basket}} · £{0}"
