@@ -269,38 +269,27 @@ function brush(paint, t, m, alpha) {
 function gradientOf(g, t, m, alpha) {
   const values = g.colors.at(t);
   const count = Math.min(g.count, Math.floor(values.length / 4));
-  const opacities = [];
-  for (let i = count * 4; i + 1 < values.length; i += 2) opacities.push([values[i], values[i + 1]]);
-  const opacityAt = (offset) => {
-    if (!opacities.length) return 1;
-    if (opacities.length === 1) return opacities[0][1];
-    const i = opacities.findIndex((s) => s[0] > offset);
-    if (i === 0) return opacities[0][1];
-    if (i < 0) return opacities.at(-1)[1];
-    const [a, b] = [opacities[i - 1], opacities[i]];
-    const u = b[0] > a[0] ? (offset - a[0]) / (b[0] - a[0]) : 0;
-    return a[1] + (b[1] - a[1]) * u;
-  };
   const colours = [];
-  for (let i = 0; i < count; i++) colours.push(values.slice(i * 4, i * 4 + 4));
-  const colourAt = (offset) => {
-    const i = colours.findIndex((s) => s[0] > offset);
-    if (i === 0) return colours[0].slice(1);
-    if (i < 0) return colours.at(-1).slice(1);
-    const [a, b] = [colours[i - 1], colours[i]];
-    const u = b[0] > a[0] ? (offset - a[0]) / (b[0] - a[0]) : 0;
-    return [1, 2, 3].map((c) => a[c] + (b[c] - a[c]) * u);
-  };
-  // Every colour stop as it is (two at one offset are a hard edge), and a
-  // stop where an opacity stop falls between them, its colour blended
-  // there, so that opacity is not lost.
-  const own = new Set(colours.map((s) => s[0]));
-  const between = opacities.map((s) => s[0]).filter((offset) => !own.has(offset));
-  const stops = colours.length
-    ? [...colours.map((s) => [s[0], s.slice(1)]), ...[...new Set(between)].map((offset) => [offset, colourAt(offset)])]
-        .sort((a, b) => a[0] - b[0])
-        .map(([offset, rgb]) => ({ offset: Math.min(Math.max(offset, 0), 1), color: [...rgb, opacityAt(offset) * alpha] }))
-    : [];
+  for (let i = 0; i < count; i++) colours.push([values[i * 4], values.slice(i * 4 + 1, i * 4 + 4)]);
+  const opacities = [];
+  for (let i = count * 4; i + 1 < values.length; i += 2) opacities.push([values[i], [values[i + 1]]]);
+  if (!opacities.length) opacities.push([0, [1]]);
+  // Colour and opacity are each a line through their stops. Where either has
+  // stops, the gradient has one; where either has two at one offset (a hard
+  // edge), it has two, the value before and the value after.
+  const offsets = [...new Set([...colours, ...opacities].map(([offset]) => offset))].sort((a, b) => a - b);
+  const stops = [];
+  if (colours.length) {
+    for (const offset of offsets) {
+      const [colourBefore, colourAfter] = sides(colours, offset);
+      const [[opacityBefore], [opacityAfter]] = sides(opacities, offset);
+      const at = Math.min(Math.max(offset, 0), 1);
+      stops.push({ offset: at, color: [...colourBefore, opacityBefore * alpha] });
+      if (opacityAfter !== opacityBefore || colourAfter.some((c, i) => c !== colourBefore[i])) {
+        stops.push({ offset: at, color: [...colourAfter, opacityAfter * alpha] });
+      }
+    }
+  }
   const start = g.start.point(t);
   const end = g.end.point(t);
   if (!g.radial) return { linear: [...apply(m, ...start), ...apply(m, ...end)], stops };
@@ -309,6 +298,20 @@ function gradientOf(g, t, m, alpha) {
   const angle = radians(g.angle.num(t, 0, 0)) + Math.atan2(end[1] - start[1], end[0] - start[0]);
   const focal = [start[0] + Math.cos(angle) * towards, start[1] + Math.sin(angle) * towards];
   return { radial: [...apply(m, ...start), radius * meanScale(m), ...apply(m, ...focal)], stops };
+}
+
+// The value a line through `stops` (each [offset, values], in order) has
+// just before `offset` and just after it: the same but at a hard edge.
+function sides(stops, offset) {
+  const at = stops.filter(([o]) => o === offset);
+  if (at.length) return [at[0][1], at.at(-1)[1]];
+  const i = stops.findIndex(([o]) => o > offset);
+  if (i === 0) return [stops[0][1], stops[0][1]];
+  if (i < 0) return [stops.at(-1)[1], stops.at(-1)[1]];
+  const [[ao, a], [bo, b]] = [stops[i - 1], stops[i]];
+  const u = (offset - ao) / (bo - ao);
+  const value = a.map((v, c) => v + ((b[c] ?? v) - v) * u);
+  return [value, value];
 }
 
 const CAPS = { 1: "butt", 3: "square" };
