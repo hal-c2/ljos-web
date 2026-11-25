@@ -23,6 +23,8 @@ Item {
     property var nested: []
     property bool broken: false
     property int unrelated: 0
+    // Bound to what the write writes.
+    property int seen: root.unrelated
 
     Item { id: box; objectName: "box" }
     Item { id: other; objectName: "other" }
@@ -229,7 +231,7 @@ Item {
         } catch (error) {
             return "thrown: " + error.message;
         }
-        return root.unrelated;
+        return [root.unrelated, root.seen];
     }
 
     function heardAfter(name, list) {
