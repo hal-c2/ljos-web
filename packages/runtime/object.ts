@@ -263,12 +263,20 @@ const pending: object = new Proxy(Object.create(null), {
 // How many times one was read.
 let early = 0;
 
+// What an object's `$track` is: its change counter, read, and counted as
+// a property read by `readsAny` (`children` reads only this).
+function tracked(this: QObject): number {
+  if (reading) reads++;
+  return (this as unknown as { $tracker: () => number }).$tracker();
+}
+
 // The object an `id` names, made before the type that fills it in runs.
 // The id is kept for a reload, which knows an object by it (`reload.js`).
 export function $object(id?: string): QObject {
   const self: QObject = Object.create(pending);
   const [track, touch] = counted(0, getOwner());
-  hidden(self, "$track", track);
+  hidden(self, "$track", tracked);
+  hidden(self, "$tracker", track);
   hidden(self, "$touch", touch);
   if (id) hidden(self, "$id", id);
   return self;
@@ -1167,7 +1175,8 @@ const AFRESH_DEPTH = 32;
 // binding read twice (`a ? a.x : null`) is evaluated once in it.
 let freshened: Map<Slot, unknown> | null = null;
 let stirring = false;
-// Properties read while `readsAny` is under way.
+// Properties read while `readsAny` is under way, a slot's or what an
+// object tells of its changes (`$track`).
 let reading = 0;
 let reads = 0;
 
