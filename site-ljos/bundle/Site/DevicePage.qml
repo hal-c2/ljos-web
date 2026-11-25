@@ -41,6 +41,6 @@ Item {
     Loader {
         anchors.fill: parent
         active: page.made
-        sourceComponent: page.panel
+        component: page.panel
     }
 }
