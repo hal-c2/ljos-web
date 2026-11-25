@@ -84,7 +84,6 @@ Rectangle {
             delegate: Rectangle {
                 id: card
                 required property int index
-                readonly property var avatar: index === 0 ? dance : genie
                 width: (stages.width - stages.spacing) / 2
                 height: stages.side + 32
                 radius: 10
