@@ -303,7 +303,10 @@ Rectangle {
         main.keepOpen();
         Observing.watch(() => {
             main.observing = Observing.isShown("site");
-            if (Observing.shown)
+            // A dock that could not be fetched is asked for again.
+            if (Observing.shown && observerDock.status === Loader.Error)
+                observerDock.setSource(Observing.dockSource);
+            else if (Observing.shown)
                 observerDock.active = true;
         });
         siteRouter.start();

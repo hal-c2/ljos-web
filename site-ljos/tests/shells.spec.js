@@ -774,6 +774,57 @@ test("the shell choices come on a later press when the first could not load them
   }
 });
 
+// The Observer's dock and the search's results are chunks of their own
+// (bundle/observing.js, Site/later.js): one that could not be fetched is
+// asked for again the next time it is wanted.
+test("the Observer's dock comes on a later opening when the first could not load it", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    let down = true;
+    await page.route("**/ObserverDock-*.js", (route) => (down ? route.abort("connectionreset") : route.continue()));
+    await open(page, "/start/first-app/");
+    const picture = page.locator('img[alt="What this example draws"]').first();
+    await press(picture);
+    await expect(picture).toBeHidden({ timeout: 30_000 });
+    const observer = page.getByRole("button", { name: /^Observer for / }).filter({ visible: true }).first();
+    const failed = page.waitForEvent("requestfailed", (request) => /ObserverDock-/.test(request.url()));
+    await press(observer);
+    await failed;
+    const docked = page.getByRole("group", { name: "Observer", exact: true });
+    await expect(docked).toHaveCount(0);
+    down = false;
+    // Closed, then opened again, as a reader who saw nothing come would.
+    await press(observer);
+    await press(observer);
+    await expect(docked, "the dock, asked for again").toBeVisible({ timeout: 30_000 });
+  } finally {
+    await context.close();
+  }
+});
+
+test("the search's results come with a later query when the first could not load them", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    let down = true;
+    await page.route("**/SearchResults-*.js", (route) => (down ? route.abort("connectionreset") : route.continue()));
+    await open(page, "/start/first-app/");
+    const field = page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true }).first();
+    const failed = page.waitForEvent("requestfailed", (request) => /SearchResults-/.test(request.url()));
+    await field.click();
+    await page.keyboard.type("mcp");
+    await failed;
+    const results = page.getByRole("list", { name: "Search results" });
+    await expect(results).toHaveCount(0);
+    down = false;
+    await page.keyboard.type(" servers");
+    await expect(results.getByText("MCP Servers for Agents", { exact: true }), "the results, asked for again").toBeVisible({ timeout: 30_000 });
+  } finally {
+    await context.close();
+  }
+});
+
 test("a reader with no script gets the Elegant shell, whatever is kept", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop", javaScriptEnabled: false });
   try {
