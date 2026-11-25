@@ -2,7 +2,7 @@
 // it. `function onFoo(a) {}` arrives as the prop `onFoo`; the object is
 // `target`, the Connections' parent when it names none.
 import { createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
-import { connect, defineType, onEveryWrite, QtObject, signalled, slot, whenComplete, whenCompleted } from "../object.ts";
+import { connect, defineType, onEveryWrite, QtObject, readsAny, signalled, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
 import type { Dynamic, Handler, QObject, Signal } from "../object.ts";
@@ -143,18 +143,29 @@ export const Connections = defineType("Connections", QtObject, {
         const target = (self.$named ? given.afresh() : untrack(() => self.$parent)) as Dynamic | null | undefined;
         // An object that is named and not made yet: the effect's to wait for.
         if (target != null && typeof target.$track === "function" && !target.$props) return;
-        if (Object.is(target, connected)) return;
+        // Qt refuses `undefined` for an object ("Unable to assign
+        // [undefined] to QObject*") and keeps the target it had.
+        if (target === undefined || Object.is(target, connected)) return;
         for (const settle of settles) settle();
         moveTo(target);
       };
       // Asked at every write only while the target has a binding of its
-      // own, whatever it is now (null too) and whatever its handlers hear:
-      // a target that is given a value, or a binding a state gives, moves
-      // where it is written or read, and asks nothing at anyone's write.
+      // own that reads a property, whatever it is now (null too) and
+      // whatever its handlers hear: a target that is given a value, or a
+      // binding a state gives, moves where it is written or read, and one
+      // that names an object and nothing else (`target: box`) never moves.
+      // Whether a binding reads one is asked once of each binding.
+      let measured: unknown = undefined;
+      let moves = false;
       const arm = (): void => {
-        const own = !given.assigned && !given.layers?.length && !!given.bound?.source;
-        if (own && !unstir) unstir = onEveryWrite(follow);
-        else if (!own && unstir) {
+        const bound = given.bound;
+        const own = !given.assigned && !given.layers?.length && !!bound?.source;
+        if (own && bound !== measured) {
+          measured = bound;
+          moves = readsAny(bound!.source!);
+        }
+        if (own && moves && !unstir) unstir = onEveryWrite(follow);
+        else if (!(own && moves) && unstir) {
           unstir();
           unstir = null;
         }

@@ -206,6 +206,21 @@ test("a Connections whose target binding moves through none in a state's flush h
   expect(await page.evaluate(() => window.scene.heardAfter("rebindThroughNullThenChange", "throughNull"))).toEqual(["heard"]);
 });
 
+test("a Connections whose target binding reads a binding moved in a state's flush does not hear the old target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindThenChange", "throughSelected"))).toEqual([]);
+});
+
+test("a Connections whose target binding reads a binding moved in a state's flush hears the new target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindThenChangeNew", "throughSelected"))).toEqual(["heard"]);
+});
+
+test("a Connections whose target binding gives undefined in a state's flush keeps the target it had", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindThenChange", "keptOld"))).toEqual(["heard"]);
+});
+
 test("a Connections whose target binding is moved in a script does not hear the old target changed after it", async ({ page }) => {
   await open(page, "connectionflush");
   expect(await page.evaluate(() => window.scene.rebindThenChange())).toEqual([]);
