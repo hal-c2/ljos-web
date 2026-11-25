@@ -84,3 +84,10 @@ async function moduleFor() {
 function sourceFor() {
     return moduleFor;
 }
+
+// What a reload of the stage said: "" when the shell took, else why not.
+function whyNot(reloaded) {
+    return Promise.resolve(reloaded).then(function (why) {
+        return why ? String(why) : "";
+    });
+}

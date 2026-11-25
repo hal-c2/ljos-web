@@ -1,4 +1,6 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
+import Ljos.Layout
 import Pantry
 
 // The shop's layout, yours to edit. Its basket, note and status
@@ -8,12 +10,12 @@ Rectangle {
     objectName: "appShell"
     width: 480
     height: 400
-    color: Application.styleHints.colorScheme === Qt.ColorScheme.Dark ? "#171a23" : "#f6f4ee"
+    fill: App.hints.colorScheme === ColorScheme.Dark ? "#171a23" : "#f6f4ee"
 
     // Colours for a dark background or a light one, whatever you set.
-    QtObject {
+    Object {
         id: look
-        readonly property bool dark: shell.color.hslLightness < 0.5
+        readonly property bool dark: shell.fill.hslLightness < 0.5
         readonly property color ink1: dark ? "#f0ead8" : "#1b1f2a"
         readonly property color ink2: dark ? "#e8eaf0" : "#1b1f2a"
         readonly property color muted1: dark ? "#9aa3b2" : "#4d5566"
@@ -21,18 +23,17 @@ Rectangle {
         readonly property color raised: dark ? "#232839" : "#ffffff"
     }
 
+    // Anchored from the left: a right-to-left page mirrors it.
     Column {
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: 18
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        anchors.left: parent.left
+        anchors.leftMargin: 18
         y: 14
         spacing: 12
 
         Text {
             objectName: "pantryTitle"
             color: look.ink1
-            font.pixelSize: 26
+            font.size: 26
             text: "The Corner Pantry"
         }
         // The basket's summary. Try moving it below Basket.
@@ -48,33 +49,31 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                color: look.raised
+                fill: look.raised
                 Text {
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: 10
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     y: 8
                     color: look.ink2
-                    font.pixelSize: 18
-                    text: "Tea · £" + basket.teaPrice.toFixed(2)
+                    font.size: 18
+                    text: t`Tea · £${basket.teaPrice.toFixed(2)}`
                 }
                 Text {
                     objectName: "teaCount"
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: 10
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     y: 32
                     color: look.muted1
-                    font.pixelSize: 16
-                    text: basket.teaCount + " in basket"
+                    font.size: 16
+                    text: t`${basket.teaCount} in basket`
                 }
-                MouseArea {
-                    Accessible.name: "Add tea"
+                // The button is the area over the words, not their box, so
+                // what it is called need not hold what they say.
+                PointerArea {
+                    anchors.fill: parent
+                    Accessible.name: t`Add tea`
                     Accessible.role: Accessible.Button
-                    width: parent.width
-                    height: parent.height
+                    cursorShape: Cursor.PointingHand
                     onClicked: basket.addTea()
                 }
             }
@@ -83,33 +82,31 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                color: look.raised
+                fill: look.raised
                 Text {
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: 10
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     y: 8
                     color: look.ink2
-                    font.pixelSize: 18
-                    text: "Bread · £" + basket.breadPrice.toFixed(2)
+                    font.size: 18
+                    text: t`Bread · £${basket.breadPrice.toFixed(2)}`
                 }
                 Text {
                     objectName: "breadCount"
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: 10
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     y: 32
                     color: look.muted1
-                    font.pixelSize: 16
-                    text: basket.breadCount + " in basket"
+                    font.size: 16
+                    text: t`${basket.breadCount} in basket`
                 }
-                MouseArea {
-                    Accessible.name: "Add bread"
+                // The button is the area over the words, not their box, so
+                // what it is called need not hold what they say.
+                PointerArea {
+                    anchors.fill: parent
+                    Accessible.name: t`Add bread`
                     Accessible.role: Accessible.Button
-                    width: parent.width
-                    height: parent.height
+                    cursorShape: Cursor.PointingHand
                     onClicked: basket.addBread()
                 }
             }
@@ -118,33 +115,31 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                color: look.raised
+                fill: look.raised
                 Text {
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: 10
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     y: 8
                     color: look.ink2
-                    font.pixelSize: 18
-                    text: "Jam · £" + basket.jamPrice.toFixed(2)
+                    font.size: 18
+                    text: t`Jam · £${basket.jamPrice.toFixed(2)}`
                 }
                 Text {
                     objectName: "jamCount"
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: 10
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
                     y: 32
                     color: look.muted1
-                    font.pixelSize: 16
-                    text: basket.jamCount + " in basket"
+                    font.size: 16
+                    text: t`${basket.jamCount} in basket`
                 }
-                MouseArea {
-                    Accessible.name: "Add jam"
+                // The button is the area over the words, not their box, so
+                // what it is called need not hold what they say.
+                PointerArea {
+                    anchors.fill: parent
+                    Accessible.name: t`Add jam`
                     Accessible.role: Accessible.Button
-                    width: parent.width
-                    height: parent.height
+                    cursorShape: Cursor.PointingHand
                     onClicked: basket.addJam()
                 }
             }
@@ -161,8 +156,8 @@ Rectangle {
         }
         Text {
             color: look.muted2
-            font.pixelSize: 16
-            text: "Add an item, then edit the code. Your basket stays."
+            font.size: 16
+            text: t`Add an item, then edit the code. Your basket stays.`
         }
     }
 }

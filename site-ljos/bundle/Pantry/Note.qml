@@ -1,7 +1,5 @@
-// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
-import QtQuick.Controls
 
 // A note block whose text belongs to the block itself, not the shell around it:
 // rewriting Shell.qml keeps every word the reader typed. Try changing label or
@@ -11,7 +9,7 @@ Rectangle {
     width: 300
     height: 76
     radius: 8
-    color: look.raised
+    fill: look.raised
 
     // Remix knobs: customise the field's heading and placeholder in one line.
     property string label: t`Note for the baker`
@@ -19,9 +17,9 @@ Rectangle {
 
     readonly property string text: field.text
 
-    QtObject {
+    Object {
         id: look
-        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property bool dark: App.hints.colorScheme === ColorScheme.Dark
         readonly property color canvas: dark ? "#171b26" : "#f6f4ee"
         readonly property color ink: dark ? "#eef0f6" : "#1b1f2a"
         readonly property color muted1: dark ? "#93a0ba" : "#4d5566"
@@ -30,30 +28,45 @@ Rectangle {
     }
 
     Text {
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: 12
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        anchors.left: parent.left
+        anchors.leftMargin: 12
         y: 8
         color: look.muted1
-        font.pixelSize: 14
+        font.size: 14
         text: note.label
     }
-    // TextField (rather than a bare TextInput) exposes its placeholder as the
-    // field's accessible name, so we intentionally leave the outer box unnamed.
-    TextField {
-        id: field
-        objectName: "noteField"
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: 12
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+    // The field, in a box of its own; the placeholder shows until a word
+    // is typed, and the label above is the field's name for a reader.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.leftMargin: 12
         y: 26
         width: parent.width - 24
         height: 40
-        palette.base: look.canvas
-        palette.text: look.ink
-        palette.placeholderText: look.muted2
-        placeholderText: note.placeholder
+        radius: 6
+        fill: look.canvas
+        border.width: field.activeFocus ? 2 : 1
+        border.color: field.activeFocus ? look.ink : look.muted1
+
+        Text {
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            visible: field.text.length === 0
+            color: look.muted2
+            font.size: 14
+            text: note.placeholder
+        }
+        TextInput {
+            id: field
+            objectName: "noteField"
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
+            verticalAlignment: TextInput.AlignVCenter
+            color: look.ink
+            font.size: 14
+            Accessible.name: note.label
+        }
     }
 }
