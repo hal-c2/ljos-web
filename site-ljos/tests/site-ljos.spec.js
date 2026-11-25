@@ -967,7 +967,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
   // Each demo but the flagship is made once its Run is pressed, so the
   // reader scrolls to it and presses it, as a reader would; what it
   // shows is in its own frame, and what it says is on screen. The
-  // whole app and the motion demo draw as the page does, so once one
+  // whole app, the motion demo and the Lottie demo draw as the page does, so once one
   // runs its frame holds its own words, not a canvas, and its picture
   // is gone.
   const demos = [
@@ -977,6 +977,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
     ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
     ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
     ["Motion", "demo-motion.webp", "Shuffle the tiles", "Press and move — the puck springs after you", "Run the motion demo"],
+    ["Lottie animations", "demo-lottie.webp", "Genie (plays once)", "Dance (loops)", "Run the Lottie demo"],
   ];
   const headingOf = (title) => shown(page.getByText(title, { exact: true }));
   for (const [index, [title, picture, inside, drawn, label]] of demos.entries()) {

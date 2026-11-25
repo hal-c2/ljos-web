@@ -6,7 +6,7 @@
 // still goes on, and more slowly than with no preference. Hidden and
 // shown again, the clock goes on from where it held, never back to its
 // start.
-import { animationFrames, centre, expect, open, press, runButton, test } from "./fixtures.js";
+import { animationFrames, centre, expect, open, playThrough, press, runButton, test } from "./fixtures.js";
 
 // How many of the scene clock's frames a rate is read over: well under
 // either clock's loop, at any frame's length a loaded machine gives.
@@ -165,3 +165,26 @@ for (const demo of DEMOS) {
     });
   });
 }
+
+// The Lottie demo has no clock of its own to read: its pace is how long
+// its genie takes to play through, in the scene's time. Asked for less
+// motion it plays at half its pace: slower, and through to its end.
+test.describe("the Lottie demo", () => {
+  async function reach(page) {
+    await open(page, "/demos/");
+    const heading = page.locator("#app div.qq-text").filter({ hasText: /^Lottie animations$/ }).first();
+    await centre(heading);
+    const slot = heading.locator("xpath=../..");
+    await press(runButton(slot, "Run the Lottie demo"));
+    await expect(slot.locator("svg.qq-lottie").nth(1), "the genie is drawn").toBeVisible({ timeout: 30_000 });
+    return slot;
+  }
+
+  test("asked for less motion, the avatars play more slowly and never stand still", async ({ page }) => {
+    const full = await playThrough(page, await reach(page));
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const calm = await playThrough(page, await reach(page));
+    expect(calm, "asked for less motion, it plays through, more slowly").toBeGreaterThan(full * 1.6);
+    expect(calm, "at half its pace, not stopped").toBeLessThan(full * 2.6);
+  });
+});
