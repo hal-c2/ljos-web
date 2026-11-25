@@ -2,7 +2,7 @@
 // it. `function onFoo(a) {}` arrives as the prop `onFoo`; the object is
 // `target`, the Connections' parent when it names none.
 import { createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
-import { connect, defineType, onEveryWrite, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
+import { connect, defineType, onEveryWrite, QtObject, signalled, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
 import type { Dynamic, Handler, QObject, Signal } from "../object.ts";
@@ -106,7 +106,7 @@ export const Connections = defineType("Connections", QtObject, {
                   untrack(() => self.enabled && (props[handler] as Handler | undefined)?.(...args)),
                 );
                 if (heard) {
-                  settles.push(heard);
+                  if (heard !== signalled) settles.push(heard);
                   continue;
                 }
                 if (self.ignoreUnknownSignals) continue;
@@ -119,7 +119,10 @@ export const Connections = defineType("Connections", QtObject, {
           }),
         );
         // Only what is told late has anything to tell at the write: a
-        // signal is told as it is emitted, to whoever is connected then.
+        // signal is told as it is emitted, to whoever is connected then,
+        // and `connect` gives it `signalled`, which is not kept. So only a
+        // Connections that hears a computed list (`children`) is asked at
+        // each write.
         if (settles.length) unstir = onEveryWrite(follow);
       };
       // A target given a value is the target from the write on, as in Qt,
