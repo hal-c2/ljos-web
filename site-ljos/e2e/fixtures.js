@@ -422,6 +422,21 @@ export async function playThrough(page, slot) {
     });
     drawn.observer.observe(svg, { subtree: true, attributes: true, childList: true });
   });
+  // What it draws before Again (its first run, after loading) is not counted:
+  // it is quiet before the press, and counting starts afresh there.
+  await genie.page().waitForFunction(
+    (svg) => {
+      const clock = globalThis[Symbol.for("ljos-web/clock")];
+      svg.$drawn.since ??= clock.time;
+      return clock.time - (svg.$drawn.last ?? svg.$drawn.since) > 300;
+    },
+    await genie.elementHandle(),
+    { timeout: 30_000, polling: "raf" },
+  );
+  await genie.evaluate((svg) => {
+    svg.$drawn.first = null;
+    svg.$drawn.last = null;
+  });
   await press(slot.getByRole("button", { name: "Play the genie avatar again" }));
   await genie.page().waitForFunction(
     (svg) => {
