@@ -23,6 +23,13 @@ landing.awaited = true;
 function showcase() { return import("./ShowcasePage.qml"); }
 showcase.awaited = true;
 
+// The demos page, which no other page's first load carries: the Pantry
+// and the demos it shows are the front page's too, which a docs page has
+// no use for. It is chosen by the address alone, so the page made at
+// `/demos/` waits for it, as the front page's does.
+function demosPage() { return import("./DemosPage.qml"); }
+demosPage.awaited = true;
+
 // A pro demo's page, which no other page's first load carries: it is
 // chosen by the address alone, so the page made at a pro demo's route
 // waits for it, as the showcase's does. It is one module for every pro

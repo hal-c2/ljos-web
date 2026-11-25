@@ -181,10 +181,9 @@ Flickable {
 
             // Only this route's page is made, so the HTML the build
             // writes for a route holds that page and no other. The
-            // landing, a pro demo and the showcase load by route, each
-            // from a module of its own (later.js), so no other page's
-            // first load carries them, and the demos page, which shares
-            // most of what it is with the landing, is made here; a docs
+            // landing, the demos page, a pro demo and the showcase load by
+            // route, each from a module of its own (later.js), so no other
+            // page's first load carries them; a docs
             // page stands here directly, its page bound as it is made, so
             // a prerender, which writes the page as it first stands, holds
             // it whole.
@@ -197,8 +196,8 @@ Flickable {
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
                 x: Math.round((view.width - width) / 2)
                 readonly property var demo: view.router ? view.router.pro : null
-                sourceComponent: route === "/" || route === "/showcase/" || demo ? null : route === "/demos/" ? demosPage : emptyPage
-                readonly property var page: route === "/" ? Later.landing : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : ""
+                sourceComponent: route === "/" || route === "/demos/" || route === "/showcase/" || demo ? null : emptyPage
+                readonly property var page: route === "/" ? Later.landing : route === "/demos/" ? Later.demosPage : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : ""
                 source: page
                 // Every pro demo is the one module (later.js), so going
                 // from one to the next sets no new source: a page that
@@ -216,7 +215,7 @@ Flickable {
                 readonly property bool wide: view.wide
                 onLoaded: {
                     item.scroller = view;
-                    if (route !== "/")
+                    if (route !== "/" && route !== "/demos/")
                         return;
                     item.wide = Qt.binding(() => view.wide);
                 }
@@ -245,13 +244,6 @@ Flickable {
         }
     }
 
-    Component {
-        id: demosPage
-        DemosPage {
-            scroller: view
-            wide: view.wide
-        }
-    }
     Component {
         id: emptyPage
         // Every page the loader makes is handed the view it scrolls in.
