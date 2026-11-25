@@ -65,14 +65,15 @@ test.describe("a site with a catalogue", () => {
     const warned = [];
     page.on("console", (message) => message.type() === "warning" && warned.push(message.text()));
     await page.route(/\/ar(?:\.po)?-[\w-]+\.js$/u, (route) => route.abort());
+    await page.addInitScript(() => {
+      globalThis.settledLanguage = new Promise((done) => document.addEventListener("ljos:languages", (event) => done(event.detail), { once: true }));
+    });
     await page.goto(`${server.origin}/?lang=ar`);
+    const settled = page.evaluate(() => globalThis.settledLanguage);
     await expect.poll(() => warned.some((text) => /ar\.po: the catalogue could not be fetched/u.test(text)), "the failure is said").toBe(true);
-    // This site is not prerendered, so the start waits on nothing but the
-    // catalogue (`after` is undefined): it settles in the microtasks right
-    // after the failure is said, before the warning reaches this test. The
-    // frames are only a margin. The start before the fix set "ar" through
-    // this same wait, and this test caught it.
-    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    // The start says when it has settled, and with what: only then can it
+    // be known that it did not set the language the address named.
+    expect(await settled, "the start settled in the source's language").toBe("en");
     await expect(page.getByText("Stopped", { exact: true })).toBeVisible();
     expect(await marked(page)).toEqual({ lang: "en", dir: "ltr" });
     expect(await page.evaluate((key) => localStorage.getItem(key), KEY)).toBe(null);
