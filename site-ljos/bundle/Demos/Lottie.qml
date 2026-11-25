@@ -111,7 +111,12 @@ Rectangle {
         loops: root.danceLoops
         autoPlay: false
         Accessible.name: t`HAL-C2's dancing avatar, looping`
-        onStatusChanged: if (status === L.LottieAnimation.Ready) root.steer()
+        // Loaded, it starts from its own beginning (the last frame when it
+        // plays in reverse), and steer then holds or plays it.
+        onStatusChanged: if (status === L.LottieAnimation.Ready) {
+            start();
+            root.steer();
+        }
     }
     L.LottieAnimation {
         id: genie
@@ -123,7 +128,12 @@ Rectangle {
         direction: root.genieDirection
         autoPlay: false
         Accessible.name: t`HAL-C2's genie avatar, plays once`
-        onStatusChanged: if (status === L.LottieAnimation.Ready) root.steer()
+        // Loaded, it starts from its own beginning (the last frame when it
+        // plays in reverse), and steer then holds or plays it.
+        onStatusChanged: if (status === L.LottieAnimation.Ready) {
+            start();
+            root.steer();
+        }
     }
 
     // --- Controls ------------------------------------------------------------
