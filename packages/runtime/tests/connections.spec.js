@@ -234,11 +234,35 @@ test("a Connections whose target binding gives undefined keeps the target it had
 // The target's binding is asked again at every write: what it throws is
 // told of as the binding's own, and the write that asked it is made.
 test.describe(() => {
-  // What the binding throws is told of, once, as its own.
+  // The binding's effect throws as any binding's does with no boundary to
+  // take it (object.ts `guarded`), and Solid halts there: that is every
+  // binding's rule, not this write's to keep.
   test.use({ told: [/no target|REACTIVITY_HALTED/] });
   test("a write after a Connections' target binding threw is made", async ({ page }) => {
+    const said = [];
+    page.on("pageerror", (error) => said.push(error.message));
+    page.on("console", (message) => message.type() === "error" && said.push(message.text()));
     await open(page, "connectionflush");
-    expect(await page.evaluate(() => window.scene.breakThenWrite())).toBe(5);
+    // Written, and what is bound to it reads it.
+    expect(await page.evaluate(() => window.scene.breakThenWrite())).toEqual([5, 5]);
+    // What the binding throws is told of, once, as its own.
+    expect(said.filter((text) => /no target/.test(text))).toHaveLength(1);
+  });
+});
+
+// What one asker of every write throws is told of, and the write is made
+// and the askers after it are asked all the same.
+test.describe(() => {
+  test.use({ told: [/an asker broke/] });
+  test("a write is made when one asker of every write throws", async ({ page }) => {
+    await open(page, "connectionstir");
+    expect(
+      await page.evaluate(() => {
+        const before = window.objects.asked();
+        window.scene.unrelated = 7;
+        return [window.scene.unrelated, window.scene.seen, window.objects.asked() > before];
+      }),
+    ).toEqual([7, 7, true]);
   });
 });
 
