@@ -229,7 +229,9 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     route: "/demos/"
-                    least: 440
+                    // Narrow, the cards shrink and the controls wrap: two
+                    // rows of buttons under them need this much.
+                    least: 320
                     picture: "/pictures/demo-lottie.webp"
                     pictureDark: "/pictures/demo-lottie-dark.webp"
                     what: t`the Lottie demo`
