@@ -174,14 +174,15 @@ for (const [name, heard, about] of [
 // A target given by a binding of its own (`root.useOther ? other : box`):
 // what it reads is written, then the old target changes. Qt 6.12.0 (qml6
 // offscreen) hears nothing, in a state's flush and in a script: the binding
-// was evaluated at the write. A script's writes are settled as they are
-// made, so Ljós hears nothing there either; in a state's flush the binding
-// is evaluated when it is next read, after the change, so the old target's
-// change is still heard (Connections.ts, `// Qt 6.12.0:`). Pinned until
-// a kernel tells of a binding made stale at the write.
-test.fail("a Connections whose target binding is moved in a state's flush does not hear the old target changed after it", async ({ page }) => {
+// was evaluated at the write, so the change is the new target's.
+test("a Connections whose target binding is moved in a state's flush does not hear the old target changed after it", async ({ page }) => {
   await open(page, "connectionflush");
   expect(await page.evaluate(() => window.scene.followedAfter("rebindThenChange"))).toEqual([]);
+});
+
+test("a Connections whose target binding is moved in a state's flush hears the new target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.followedAfter("rebindThenChangeNew"))).toEqual(["heard"]);
 });
 
 test("a Connections whose target binding is moved in a script does not hear the old target changed after it", async ({ page }) => {

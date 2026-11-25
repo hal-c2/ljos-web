@@ -32,6 +32,7 @@ const capture = (property) => {
 };
 
 function bind(held, reads) {
+  held.writing();
   held.bound = reads;
   held.assigned = false;
   held.value = undefined;
@@ -39,6 +40,7 @@ function bind(held, reads) {
 }
 
 function restore(held, saved) {
+  held.writing();
   held.bound = saved.bound;
   held.assigned = saved.assigned;
   held.value = saved.value;

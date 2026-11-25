@@ -15,6 +15,7 @@ const RESTORE_VALUE = 2;
 const slotted = (property) => !property || property.slot !== null;
 
 function put(target, from) {
+  target.writing();
   target.bound = from.bound;
   target.assigned = from.assigned;
   target.value = from.value;

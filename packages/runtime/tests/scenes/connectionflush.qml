@@ -70,11 +70,18 @@ Item {
         },
         // What the target's own binding reads is written, then the old
         // target changes: Qt evaluates the binding at the write, so the
-        // change is the new target's no longer.
+        // change is the new target's no longer. Qt 6.12.0 (qml6 offscreen) hears
+        // nothing here, and the new target's change in the next.
         State {
             name: "rebindThenChange"
             PropertyChanges { root.useOther: true; explicit: true }
             ParentChange { target: second; parent: box }
+        },
+        // The same, and the new target changes: that is heard.
+        State {
+            name: "rebindThenChangeNew"
+            PropertyChanges { root.useOther: true; explicit: true }
+            ParentChange { target: second; parent: other }
         }
     ]
 
