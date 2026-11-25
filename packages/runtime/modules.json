@@ -63,6 +63,11 @@
       "needs": []
     },
     {
+      "module": "Qt.labs.lottieqt",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "Qt.labs.qmlmodels",
       "from": "runtime",
       "needs": []

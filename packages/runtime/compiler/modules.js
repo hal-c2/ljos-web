@@ -62,6 +62,7 @@ export const modules = {
   "ljos-web/QtLocation": () => import("./whole/QtLocation.js"),
   "ljos-web/Qt/labs/settings": () => import("./whole/Qt/labs/settings.js"),
   "ljos-web/Qt/labs/folderlistmodel": () => import("./whole/Qt/labs/folderlistmodel.js"),
+  "ljos-web/Qt/labs/lottieqt": () => import("./whole/Qt/labs/lottieqt.js"),
   "ljos-web/Qt/labs/synchronizer": () => import("./whole/Qt/labs/synchronizer.js"),
   "ljos-web/Qt/labs/qmlmodels": () => import("./whole/Qt/labs/qmlmodels.js"),
   "ljos-web/Ljos": () => import("./whole/Ljos.js"),
