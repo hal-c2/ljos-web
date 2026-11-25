@@ -10,6 +10,7 @@ function watch() { return import("./WatchDemo.qml"); }
 function shader() { return import("./Shader.qml"); }
 function fieldGuide() { return import("./FieldGuide.qml"); }
 function motion() { return import("./Motion.qml"); }
+function lottie() { return import("./Lottie.qml"); }
 function agent() { return import("./AgentStage.qml"); }
 // What the replay asks the card through. By its path, as the Observer is
 // (observing.js): its types are ljos-web's alone.
