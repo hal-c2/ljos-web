@@ -217,6 +217,10 @@ export interface Bound<T = unknown> {
   start(): () => T;
   begin(): () => T;
   busy(): boolean;
+  // The expression the property was bound to, for what asks what it gives
+  // now rather than what it gave when last read (`Slot.afresh`). None for a
+  // binding a state gives.
+  source?: () => unknown;
 }
 
 // A binding guarded against what cannot be evaluated yet.
@@ -1143,6 +1147,36 @@ function* sources(record: Ring): Generator<Ring, void, undefined> {
   if (record.fresh) yield* record.fresh;
 }
 
+// What is asked again before each write, as Qt evaluates a binding the
+// moment what it reads is written and not when it is next read: a
+// Connections whose target is a binding, and which has a change in a flush
+// to tell (`children`), moves before the write after the one that moves
+// its target, so what the old target changes in that next write is not the
+// old target's to tell (`QtQuick/Connections.ts`). The last write of a
+// flush is the flush's own to settle. Few are ever here: each is asked at
+// every write.
+const stirred = new Set<() => void>();
+let stirring = false;
+
+function stir(): void {
+  // What one asks is read, not written; a write it makes anyway is asked of
+  // no one again until it returns.
+  if (stirring) return;
+  stirring = true;
+  try {
+    for (const ask of [...stirred]) ask();
+  } finally {
+    stirring = false;
+  }
+}
+
+// Has `ask` run before every write of a property, until what it returns is
+// called.
+export function onEveryWrite(ask: () => void): () => void {
+  stirred.add(ask);
+  return () => void stirred.delete(ask);
+}
+
 // The fields are the constructor's to make, in the order it makes them:
 // declared, not defined, so that a slot is made as it always was.
 class Slot {
@@ -1266,12 +1300,15 @@ class Slot {
     const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made, self) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;
     this.given = descriptor && !descriptor.get ? this.made(descriptor.value, initially.has(props)) : undefined;
+    // What makes objects is made once: never asked afresh.
+    if (this.bound && !made) this.bound.source = () => this.made(props[key], true);
     this.bound?.start();
   }
 
   // The same from somewhere else: what an instance binds to an alias is a
   // binding of the property the alias names.
   bind(props: Props, key: string): void {
+    this.writing();
     this.take(props, key);
     this.assigned = false;
     this.value = undefined;
@@ -1300,6 +1337,22 @@ class Slot {
   get(): unknown {
     this.follow();
     return this.shown ? this.shown() : this.target();
+  }
+
+  // What the property's binding gives now, read by no one. On the wasm
+  // kernel the graph brings the binding up to date as it is read. Solid's
+  // memo has what it gave when its flush last ended, so in a flush the
+  // expression is evaluated again; what it reads of another binding is
+  // that binding's as the flush last left it.
+  afresh(): unknown {
+    const source = this.bound?.source;
+    if (WASM || !source || this.assigned || this.layers || this.shown || this.resolve || this.placed !== undefined) return untrack(() => this.get());
+    // One that cannot be evaluated now is the memo's to tell of, when it is.
+    try {
+      const value = untrack(source);
+      if (value !== undefined) return value;
+    } catch {}
+    return untrack(() => this.get());
   }
 
   // What the property was given, before its type has its say.
@@ -1410,6 +1463,14 @@ class Slot {
     this.bump?.(next);
   }
 
+  // Before the property is given anything: what the writes before this one
+  // moved, moves now, once each has done all it does (a `parent` written
+  // adds the object to its new parent's children after the write) and
+  // before this one is seen. Whatever changes a slot calls it first.
+  writing(): void {
+    if (stirred.size) stir();
+  }
+
   // An assignment: it replaces the binding, as in QML, and what depends on
   // the property is up to date when it returns.
   set(value: unknown): void {
@@ -1426,6 +1487,7 @@ class Slot {
       if (made === REFUSED) throw Object.assign(new Error(`Cannot assign ${named(value)} to ${this.kind.type}`), { refused: true });
       value = made;
     }
+    this.writing();
     // Only a write that is made takes off what was placed: a NaN size is
     // kept out and leaves the arrangement's, as in Qt.
     const yielded = this.yielded();
@@ -1449,6 +1511,7 @@ class Slot {
   // the object.
   rebind(compute: Rebinding): boolean {
     const self = this.self;
+    this.writing();
     this.yielded();
     if (this.layers) {
       this.layers.at(-1)!.put({ binding: () => compute.call(self) });
@@ -1459,6 +1522,7 @@ class Slot {
     const had = untrack(() => this.own());
     const guard = guarded(this.key, () => compute.call(self), true, self);
     this.bound = ringed(self.$owner, this.kind ? converted(this.key, this.kind, guard, had) : guard, had, true);
+    this.bound.source = () => this.made(compute.call(self), true);
     this.bound.begin();
     this.assigned = false;
     this.value = undefined;
@@ -1480,12 +1544,14 @@ class Slot {
   provide(value: unknown): void {
     value = this.made(value);
     if (Object.is(this.given, value)) return;
+    this.writing();
     this.given = value;
     this.changed();
   }
 
   place(value: unknown, yields = false): void {
     if (Object.is(this.placed, value) && this.yields === yields) return;
+    this.writing();
     this.placed = value;
     this.over = false;
     this.yields = yields && value !== undefined;
@@ -1503,6 +1569,7 @@ class Slot {
   // Back to the binding, or to the default.
   reset(): void {
     if (!this.assigned) return;
+    this.writing();
     this.assigned = false;
     this.value = undefined;
     this.changed();
@@ -1557,6 +1624,7 @@ class Layer {
 
   put({ value, binding }: LayerContent): void {
     const slot = this.slot;
+    slot.writing();
     // What the property has as the layer is put or changed: what a binding
     // the property's type refuses leaves it with, the first time as after.
     const had = binding && slot.kind ? untrack(() => (this.bound || this.value !== undefined ? this.read() : this.below())) : undefined;
@@ -1679,6 +1747,7 @@ export function override(self: QObject, key: string, content: LayerContent): Ove
     remove() {
       const index = at.layers?.indexOf(layer) ?? -1;
       if (index < 0) return;
+      at.writing();
       layer.drop();
       at.layers!.splice(index, 1);
       if (at.layers!.length === 0) at.layers = null;

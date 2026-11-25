@@ -2,7 +2,7 @@
 // it. `function onFoo(a) {}` arrives as the prop `onFoo`; the object is
 // `target`, the Connections' parent when it names none.
 import { createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
-import { connect, defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
+import { connect, defineType, onEveryWrite, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
 import type { Dynamic, Handler, QObject, Signal } from "../object.ts";
@@ -77,6 +77,8 @@ export const Connections = defineType("Connections", QtObject, {
       // Whether `target` was given a value since the listeners were last
       // moved.
       let written = false;
+      let unstir: (() => void) | null = null;
+      onCleanup(() => unstir?.());
       // The target as the effect below reads it, untracked: an object that
       // is named and not made yet is no target until it is.
       const current = (): Dynamic | null | undefined => {
@@ -92,6 +94,8 @@ export const Connections = defineType("Connections", QtObject, {
         settles = [];
         disconnect?.();
         disconnect = null;
+        unstir?.();
+        unstir = null;
         if (target == null || (target as unknown) === Component) return;
         disconnect = runWithOwner(self.$owner, () =>
           createRoot((dispose): (() => void) => {
@@ -114,6 +118,9 @@ export const Connections = defineType("Connections", QtObject, {
             return dispose;
           }),
         );
+        // Only what is told late has anything to tell at the write: a
+        // signal is told as it is emitted, to whoever is connected then.
+        if (settles.length) unstir = onEveryWrite(follow);
       };
       // A target given a value is the target from the write on, as in Qt,
       // which moves its connections the moment it is written and not once
@@ -127,11 +134,24 @@ export const Connections = defineType("Connections", QtObject, {
       // (`children`) has anything to tell here: a signal (`widthChanged`)
       // is the signal's to tell, connected or not when it is emitted, and
       // settles nothing.
-      // Qt 6.12.0: a binding runs again as soon as what it reads is written.
-      // Here it runs again when it is read, so when one flush writes what a
-      // target binding reads and then changes the old target, the old
-      // target's change is still heard, where Qt has moved away first.
       const given = slot(self, "target")!;
+      // The target's own binding (`target: root.useOther ? other : box`,
+      // or one given by `Qt.binding`), asked again at every write: one that
+      // moves it moves the listeners there and then, as Qt evaluates it the
+      // moment what it reads is written. What the old target changed before
+      // that write is told first, as its own; what it changes after it, in
+      // the same flush, no longer is. A binding a state gives (not
+      // `explicit`) has no expression of its own to ask: Qt evaluates it
+      // once the state is in, and so does the effect below.
+      const follow = (): void => {
+        if (given.assigned || given.layers?.length || !given.bound?.source) return;
+        const target = (self.$named ? given.afresh() : untrack(() => self.$parent)) as Dynamic | null | undefined;
+        // An object that is named and not made yet: the effect's to wait for.
+        if (target != null && typeof target.$track === "function" && !target.$props) return;
+        if (Object.is(target, connected)) return;
+        for (const settle of settles) settle();
+        moveTo(target);
+      };
       given.written = () => {
         for (const settle of settles) settle();
         const top = given.layers?.at(-1);
