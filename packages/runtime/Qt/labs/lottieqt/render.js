@@ -291,11 +291,15 @@ function gradientOf(g, t, m, alpha) {
     const u = b[0] > a[0] ? (offset - a[0]) / (b[0] - a[0]) : 0;
     return [1, 2, 3].map((c) => a[c] + (b[c] - a[c]) * u);
   };
-  // A stop at each offset either list has, so an opacity stop between two
-  // colour stops is kept, with the colour there blended.
-  const offsets = [...new Set([...colours.map((s) => s[0]), ...opacities.map((s) => s[0])])].sort((a, b) => a - b);
+  // Every colour stop as it is (two at one offset are a hard edge), and a
+  // stop where an opacity stop falls between them, its colour blended
+  // there, so that opacity is not lost.
+  const own = new Set(colours.map((s) => s[0]));
+  const between = opacities.map((s) => s[0]).filter((offset) => !own.has(offset));
   const stops = colours.length
-    ? offsets.map((offset) => ({ offset: Math.min(Math.max(offset, 0), 1), color: [...colourAt(offset), opacityAt(offset) * alpha] }))
+    ? [...colours.map((s) => [s[0], s.slice(1)]), ...[...new Set(between)].map((offset) => [offset, colourAt(offset)])]
+        .sort((a, b) => a[0] - b[0])
+        .map(([offset, rgb]) => ({ offset: Math.min(Math.max(offset, 0), 1), color: [...rgb, opacityAt(offset) * alpha] }))
     : [];
   const start = g.start.point(t);
   const end = g.end.point(t);

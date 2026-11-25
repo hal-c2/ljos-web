@@ -354,6 +354,18 @@ test.describe("the format", () => {
     ]);
   });
 
+  test("two colour stops at one offset keep their hard edge", async ({ page }) => {
+    const lib = await modules(page);
+    const gradient = { ty: "gf", t: 1, s: { k: [0, 0] }, e: { k: [100, 0] }, o: { k: 100 }, g: { p: 4, k: { k: [0, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 0, 0, 1, 1, 0, 0, 1] } } };
+    const { drawn } = await draw(page, lib, [{ ty: "rc", p: { k: [50, 50] }, s: { k: [100, 100] }, r: { k: 0 } }, gradient]);
+    expect(drawn[0].gradient.stops.map((s) => [s.offset, s.color[0], s.color[2]])).toEqual([
+      [0, 1, 0],
+      [0.5, 1, 0],
+      [0.5, 0, 1],
+      [1, 0, 1],
+    ]);
+  });
+
   test("precompositions used over and over draw no more than a frame can", async ({ page }) => {
     const lib = await modules(page);
     const count = await page.evaluate((lib) => {
