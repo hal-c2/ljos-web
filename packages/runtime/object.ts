@@ -1153,8 +1153,8 @@ function* sources(record: Ring): Generator<Ring, void, undefined> {
 // to tell (`children`), moves before the write after the one that moves
 // its target, so what the old target changes in that next write is not the
 // old target's to tell (`QtQuick/Connections.ts`). The last write of a
-// flush is the flush's own to settle. Few are ever here: each is asked at
-// every write.
+// flush is the flush's own to settle. Few are ever here, each asked at
+// every write: only a Connections that hears a computed list's change.
 const stirred = new Set<() => void>();
 let stirring = false;
 
@@ -2967,7 +2967,9 @@ function first(self: QObject, name: string, key: string, value: unknown, firsts:
 // of one of its properties (`widthChanged`). What it returns is `onChange`'s:
 // a signal is the signal's to tell, to whoever is connected when it is
 // emitted, so there is nothing here for it to settle; a computed list's
-// change is the listener's own, and is.
+// change is the listener's own, and is. `signalled` is what settles
+// nothing, so a listener can tell the two apart.
+export const signalled = (): void => {};
 export function connect(target: QObject, name: string, listener: Handler): () => void {
   const property = /^(\w+)Changed$/.exec(name)?.[1];
   // A list the type computes (`children`) has a change signal, which it
@@ -2979,10 +2981,10 @@ export function connect(target: QObject, name: string, listener: Handler): () =>
   if (typeof emitted?.connect === "function") {
     emitted.connect(listener);
     onCleanup(() => emitted.disconnect(listener));
-    return () => {};
+    return signalled;
   }
   if (property && property in target) return onChange(target, property, listener);
-  return () => {};
+  return signalled;
 }
 
 function attach(name: string, Attached: QmlType, self: QObject | null | undefined): QObject | undefined {
