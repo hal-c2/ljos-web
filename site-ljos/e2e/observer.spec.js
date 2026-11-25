@@ -7,8 +7,20 @@ import { centre, expect, frames, open, press, run, test, unexpected } from "./fi
 
 const ROUTE = "/start/first-app/";
 
-// The Observer is a chunk of its own; its file names say so.
+// The Observer is a chunk of its own, and so is the dock it stands in
+// (Site/ObserverDock.qml), fetched with it; their file names say so.
 const isObserver = (url) => /Observer/.test(new URL(url).pathname);
+const isPanel = (url) => /ObserverPanel/.test(new URL(url).pathname);
+const isDock = (url) => /ObserverDock/.test(new URL(url).pathname);
+
+// Waits until the Observer and its dock have been asked for and the page
+// has settled, then says what was fetched: each file once.
+async function fetchedAhead(page, fetched, message) {
+  await expect.poll(() => fetched.some(isPanel) && fetched.some(isDock), { message }).toBe(true);
+  await frames(page);
+  expect(new Set(fetched).size, "each of its files once").toBe(fetched.length);
+  return [...fetched];
+}
 
 // The dock (Site/ObserverDock.qml): the pane named Observer, and the app in it.
 // The site's menu has a link of that name too: the dock is the group.
@@ -61,14 +73,14 @@ test("once a stage offers it, it is fetched once while the page is idle, and ope
   await open(page, ROUTE);
   const block = await run(page, 0);
   await expect(observerButton(block)).toBeVisible();
-  await expect.poll(() => fetched.length, { message: "it is fetched ahead, while the page is idle" }).toBe(1);
+  const ahead = await fetchedAhead(page, fetched, "it is fetched ahead, while the page is idle");
   await idle(page);
   await frames(page);
-  expect(fetched, "and once").toHaveLength(1);
+  expect(fetched, "and once").toEqual(ahead);
   await press(observerButton(block));
   await expect(dock(page)).toBeVisible();
   await expect(page.getByText("Overview", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  expect(fetched, "opening it fetches nothing more").toHaveLength(1);
+  expect(fetched, "opening it fetches nothing more").toEqual(ahead);
 });
 
 // A browser that cannot say when it is idle (no requestIdleCallback)
@@ -89,10 +101,10 @@ test("a pointer coming onto the Observer button fetches it ahead of the press", 
   expect(fetched, "without an idle callback, it waits for the reader").toEqual([]);
   await centre(observerButton(block));
   await observerButton(block).hover();
-  await expect.poll(() => fetched.length, { message: "the pointer on the button fetches it" }).toBe(1);
+  const ahead = await fetchedAhead(page, fetched, "the pointer on the button fetches it");
   await press(observerButton(block));
   await expect(dock(page)).toBeVisible();
-  expect(fetched, "the press fetches nothing more").toHaveLength(1);
+  expect(fetched, "the press fetches nothing more").toEqual(ahead);
 });
 
 test("focus brought to the Observer button fetches it ahead of the press", async ({ page }) => {
@@ -114,10 +126,10 @@ test("focus brought to the Observer button fetches it ahead of the press", async
   await frames(page);
   expect(fetched, "focus on the buttons before it fetches nothing").toEqual([]);
   await page.keyboard.press("Tab");
-  await expect.poll(() => fetched.length, { message: "focus on the button fetches it" }).toBe(1);
+  const ahead = await fetchedAhead(page, fetched, "focus on the button fetches it");
   await page.keyboard.press("Enter");
   await expect(dock(page)).toBeVisible();
-  expect(fetched, "the press fetches nothing more").toHaveLength(1);
+  expect(fetched, "the press fetches nothing more").toEqual(ahead);
 });
 
 test("on a wide window it is docked along the right, and the example can still be pressed", async ({ page }) => {
