@@ -360,12 +360,14 @@ test("an array that holds itself is said to, and the line it is in still prints"
 });
 
 // live.js as the page loads it, its imports answered by `pull`: what it
-// does with the compiler, not the compiler.
+// does with the compiler, not the compiler. Its `Host` is a browser's
+// (bundle/host.js), with no desktop.
 function liveWith(pull) {
   const source = readFileSync(new URL("../bundle/live.js", import.meta.url), "utf8")
     .replace(/^\.pragma library\n/, "")
+    .replace(/^\.import .*$/gm, "")
     .replace(/\bimport\(/g, "pull(");
-  return new Function("pull", `${source}\nreturn { setExample, compileWith, examples, keyFor, forget };`)(pull);
+  return new Function("pull", "Host", `${source}\nreturn { setExample, compileWith, examples, keyFor, forget };`)(pull, { desktop: undefined });
 }
 
 test("blocks that compile while the compiler loads get all its modules, and a load that failed is tried again", async () => {
