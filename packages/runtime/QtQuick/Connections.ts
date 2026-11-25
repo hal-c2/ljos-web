@@ -88,7 +88,10 @@ export const Connections = defineType("Connections", QtObject, {
       // The listeners go to `target`, from now on: what it changes after
       // this is heard, what it changed before is not.
       const moveTo = (target: Dynamic | null | undefined): void => {
-        if (started && Object.is(target, connected)) return;
+        // Qt refuses `undefined` for an object ("Unable to assign
+        // [undefined] to QObject*") and keeps the target it had, then and
+        // after.
+        if (started && (target === undefined || Object.is(target, connected))) return;
         started = true;
         connected = target;
         settles = [];
@@ -143,8 +146,6 @@ export const Connections = defineType("Connections", QtObject, {
         const target = (self.$named ? given.afresh() : untrack(() => self.$parent)) as Dynamic | null | undefined;
         // An object that is named and not made yet: the effect's to wait for.
         if (target != null && typeof target.$track === "function" && !target.$props) return;
-        // Qt refuses `undefined` for an object ("Unable to assign
-        // [undefined] to QObject*") and keeps the target it had.
         if (target === undefined || Object.is(target, connected)) return;
         for (const settle of settles) settle();
         moveTo(target);

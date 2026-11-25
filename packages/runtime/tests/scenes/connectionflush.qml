@@ -179,6 +179,14 @@ Item {
         return root.followed.slice();
     }
 
+    // The refused target is kept after the flush too: a change made after
+    // it is the old target's still.
+    function refusedThenChange() {
+        root.state = "rebindThenChange";
+        first.parent = box;
+        return root.keptOld.slice();
+    }
+
     function heardAfter(name, list) {
         root.state = name;
         return root[list].slice();
