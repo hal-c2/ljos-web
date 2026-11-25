@@ -389,3 +389,20 @@ test("a canvas the compiler made is painted by the browser's frames", async ({ p
   await page.evaluate(() => (window.scene.pressed = true));
   await expect.poll(middle).toBe("255 0 0");
 });
+
+test("a canvas that is not smooth is drawn pixelated when scaled", async ({ page }) => {
+  await open(page, "canvassmooth");
+  // Either side of where red meets blue, a pixel in from it: smoothed, the
+  // colours run into each other there; not, each stays as it was drawn.
+  const edges = () => pixels(page, [[37, 40], [42, 40], [137, 40], [142, 40]]);
+  await expect.poll(async () => (await edges())[2]).toBe("255 0 0");
+  const [softRed, softBlue, sharpRed, sharpBlue] = await edges();
+  expect([sharpRed, sharpBlue]).toEqual(["255 0 0", "0 0 255"]);
+  expect(softRed).not.toBe("255 0 0");
+  expect(softBlue).not.toBe("0 0 255");
+  // And it follows the property.
+  const rendering = () => page.evaluate(() => window.scene.sharp.$node.querySelector("canvas").style.imageRendering);
+  expect(await rendering()).toBe("pixelated");
+  await page.evaluate(() => (window.scene.sharp.smooth = true));
+  expect(await rendering()).toBe("");
+});
