@@ -27,7 +27,7 @@ test("an edit to the watch's files is the watch the page runs", async ({ page })
   await page.getByRole("button", { name: /^Round, 454/ }).click();
   await expect(page.getByText(/^[\d,]+ steps$/).first()).toBeVisible({ timeout: 30_000 });
 
-  await page.getByRole("button", { name: "FacePulse.qml", exact: true }).click();
+  await page.getByRole("tab", { name: "FacePulse.qml", exact: true }).click();
   const name = "Edit FacePulse.qml of the watch";
   await page.getByRole("textbox", { name }).first().click();
   const editor = page.locator(`.cm-content[aria-label="${name}"]`).first();
@@ -102,7 +102,7 @@ test("a broken compile that lands after Reset leaves no squiggles", async ({ pag
   });
   await page.goto("/demos/watch/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  const tab = (path) => page.getByRole("button", { name: path, exact: true });
+  const tab = (path) => page.getByRole("tab", { name: path, exact: true });
   await tab("FacePulse.qml").click();
   const name = "Edit FacePulse.qml of the watch";
   const editor = page.locator(`.cm-content[aria-label="${name}"]`).first();

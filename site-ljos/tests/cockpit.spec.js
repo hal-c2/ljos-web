@@ -59,13 +59,13 @@ test("with WebGPU the cockpit runs, opens a door, and is made again from an edit
 
     const cockpit = readFileSync(join(target, "Cockpit.qml"), "utf8");
     expect(cockpit).toContain("t`Climate`");
-    await page.getByRole("button", { name: "Cockpit.qml", exact: true }).click();
+    await page.getByRole("tab", { name: "Cockpit.qml", exact: true }).click();
     await page.getByRole("textbox", { name: "Edit Cockpit.qml of the cockpit" }).first().click();
     const editor = page.locator(`.cm-content[aria-label="Edit Cockpit.qml of the cockpit"]`).first();
     await expect(editor).toBeFocused({ timeout: 30_000 });
     await editor.fill(cockpit.replace("t`Climate`", "t`Cabin`"));
     // Turning to another file before the edit compiles still runs it.
-    await page.getByRole("button", { name: "Main.qml", exact: true }).click();
+    await page.getByRole("tab", { name: "Main.qml", exact: true }).click();
     await expect(button("Cabin"), "the edited cockpit names its page as the edit says").toHaveCount(1, { timeout: 60_000 });
     await expect(button("Climate")).toHaveCount(0);
   } catch (error) {

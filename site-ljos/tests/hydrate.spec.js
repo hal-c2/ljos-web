@@ -1,4 +1,4 @@
-// The landing and the demos page are taken over as they were written:
+// The landing, the demos page and a pro demo's page are taken over as they were written:
 // a fresh load hydrates the very elements the build prerendered, in
 // either scheme, at a phone's width and a desktop's, and says nothing
 // of a mismatch. A part that is made as the page settles (the Pantry's
@@ -7,7 +7,8 @@
 import { expect, test } from "@playwright/test";
 
 const base = (process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/");
-const ROUTES = ["", "demos/", "showcase/"];
+// A pro demo's page too: its files are listed as it is written.
+const ROUTES = ["", "demos/", "showcase/", "demos/cockpit/", "demos/watch/"];
 const SIZES = [
   { width: 1440, height: 900 },
   { width: 390, height: 844 },
