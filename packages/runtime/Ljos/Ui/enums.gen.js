@@ -41,16 +41,17 @@ for (const type of types) {
   } else flat.push(type);
 }
 
+// Each is marked pure: a page keeps only the enums it names, not the table.
 const lines = [
   "// The enums of Qt's `Qt` namespace as the types of `Ljos.Ui`, from",
   "// ljos-ui's `crates/qt_types/src/ljos_enums.txt`. Written by enums.gen.js.",
   "// Not edited by hand.",
   "// prettier-ignore",
 ];
-for (const type of flat) lines.push(`export const ${type.name} = Object.freeze(${object(type.keys)});`);
+for (const type of flat) lines.push(`export const ${type.name} = /* @__PURE__ */ Object.freeze(${object(type.keys)});`);
 for (const [outer, members] of nested) {
   const inside = members.map(([inner, type]) => `${inner}: Object.freeze(${object(type.keys)})`).join(", ");
-  lines.push(`export const ${outer} = Object.freeze({ ${inside} });`);
+  lines.push(`export const ${outer} = /* @__PURE__ */ Object.freeze({ ${inside} });`);
 }
 
 writeFileSync(join(import.meta.dirname, "enums.js"), `${lines.join("\n")}\n`);

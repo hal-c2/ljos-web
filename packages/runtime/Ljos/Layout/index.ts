@@ -738,11 +738,11 @@ function arrangement(name: string, spec: Spec) {
 }
 
 // Children side by side, and one under another.
-export const Row = arrangement("Row", { vertical: () => false });
-export const Column = arrangement("Column", { vertical: () => true });
+export const Row = /* @__PURE__ */ arrangement("Row", { vertical: () => false });
+export const Column = /* @__PURE__ */ arrangement("Column", { vertical: () => true });
 
 // A row or a column, as `direction` says; it can turn.
-export const Box = arrangement("Box", {
+export const Box = /* @__PURE__ */ arrangement("Box", {
   properties: { direction: 0 },
   enums: { Row: 0, Column: 1 },
   vertical: (self: Arrangement) => self.direction === 1,
@@ -751,14 +751,14 @@ export const Box = arrangement("Box", {
 // Children in cells, along the flow. A count of columns (or rows) bounds a
 // line; with neither, the children are one line along the flow. Between
 // two columns (and rows) is `spacing` until a spacing of its own is given.
-const gap = derived((self) => self.spacing as number);
-export const Grid = arrangement("Grid", {
+const gap = /* @__PURE__ */ derived((self) => self.spacing as number);
+export const Grid = /* @__PURE__ */ arrangement("Grid", {
   grid: true,
   properties: { columns: 0, rows: 0, columnSpacing: gap, rowSpacing: gap, flow: 0 },
   enums: { LeftToRight: 0, TopToBottom: 1 },
 });
 
 // One child at a time, as big as where it is.
-export const Pages = defineType("Pages", StackLayout, {});
+export const Pages = /* @__PURE__ */ defineType("Pages", StackLayout, {});
 
 export { Flow, Layout };
