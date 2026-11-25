@@ -143,7 +143,14 @@ export const Connections = defineType("Connections", QtObject, {
       // once the state is in, and so does the effect below.
       const follow = (): void => {
         if (given.assigned || given.layers?.length || !given.bound?.source) return;
-        const target = (self.$named ? given.afresh() : untrack(() => self.$parent)) as Dynamic | null | undefined;
+        // What the binding throws is its own to tell of, once, where it is
+        // evaluated (the effect below): not the write's that asked.
+        let target: Dynamic | null | undefined;
+        try {
+          target = (self.$named ? given.afresh() : untrack(() => self.$parent)) as Dynamic | null | undefined;
+        } catch {
+          return;
+        }
         // An object that is named and not made yet: the effect's to wait for.
         if (target != null && typeof target.$track === "function" && !target.$props) return;
         if (target === undefined || Object.is(target, connected)) return;

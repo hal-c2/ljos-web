@@ -1202,7 +1202,16 @@ function stir(): void {
   if (stirring) return;
   stirring = true;
   try {
-    for (const ask of [...stirred]) ask();
+    // What one throws is told of, as a handler's is, and the write that
+    // asked is made all the same: a state's next change, a Binding's
+    // release, a script's assignment are not one asker's to stop.
+    for (const ask of [...stirred]) {
+      try {
+        ask();
+      } catch (error) {
+        reportError(error);
+      }
+    }
   } finally {
     stirring = false;
   }

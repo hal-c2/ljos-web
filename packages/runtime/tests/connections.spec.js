@@ -231,6 +231,17 @@ test("a Connections whose target binding gives undefined keeps the target it had
   expect(await page.evaluate(() => window.scene.refusedThenChange())).toEqual(["heard", "heard"]);
 });
 
+// The target's binding is asked again at every write: what it throws is
+// told of as the binding's own, and the write that asked it is made.
+test.describe(() => {
+  // What the binding throws is told of, once, as its own.
+  test.use({ told: [/no target|REACTIVITY_HALTED/] });
+  test("a write after a Connections' target binding threw is made", async ({ page }) => {
+    await open(page, "connectionflush");
+    expect(await page.evaluate(() => window.scene.breakThenWrite())).toBe(5);
+  });
+});
+
 test("a Connections whose target binding is moved in a script does not hear the old target changed after it", async ({ page }) => {
   await open(page, "connectionflush");
   expect(await page.evaluate(() => window.scene.rebindThenChange())).toEqual([]);
