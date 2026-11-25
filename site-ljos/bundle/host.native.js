@@ -178,6 +178,8 @@ function navigation() {
         // What a live code block or the Pantry's editor says in place of
         // compiling (live.js, Demos/pantry-live.js).
         noLive: "Live editing runs in the browser; on the desktop this is the example as it was built.",
+        // What a demo's frame says under its picture (Site/DemoFrame.qml).
+        noDemo: "A picture of the demo: it runs in the browser, on ljos.dev.",
         list: function () {
             return list;
         },

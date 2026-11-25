@@ -5,6 +5,7 @@ import QtQuick
 import Site
 import "../nav.js" as Nav
 import "../observing.js" as Observing
+import "../host.js" as Host
 
 // Where a live demo stands: a frame its own size from the first paint,
 // holding a picture of the demo and the words for it, so nothing below
@@ -181,8 +182,9 @@ Item {
                 width: parent.width
                 // The need this browser lacks; where it lacks none (WebGPU with no
                 // adapter for the page, or the build writing the page), the
-                // demo's main one.
-                text: "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.wasm === -1 ? "WebAssembly" : frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
+                // demo's main one. On the desktop no browser lacks anything:
+                // the host says where the demo runs (host.native.js).
+                text: Host.desktop ? Host.desktop.noDemo : "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.wasm === -1 ? "WebAssembly" : frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize
