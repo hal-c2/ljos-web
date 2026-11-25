@@ -362,6 +362,14 @@ export const Canvas = defineType("Canvas", Item, {
         if (type && !state.context) context(self, type);
       },
     );
+    // Scaled, a canvas that is not smooth keeps its pixels square, as a
+    // picture that is not (Image.js): pixel art asks for it.
+    effect(
+      () => self.smooth,
+      (smooth) => {
+        element.style.imageRendering = smooth ? "" : "pixelated";
+      },
+    );
     // The picture is as large as the item, and is painted when it comes to
     // be and whenever its size changes: a canvas of another size is empty.
     effect(
