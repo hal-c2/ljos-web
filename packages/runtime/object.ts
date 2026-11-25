@@ -2041,7 +2041,7 @@ function heldApart<T>(make: () => T): T {
 // The nonvisual object whose property's value is being created: given to
 // the object made, not to what that object makes in turn.
 let declaring: QObject | null = null;
-function declaredIn<T>(holder: QObject, make: () => T): T {
+function declaredIn<T>(holder: QObject | null, make: () => T): T {
   const outer = declaring;
   declaring = holder;
   try {
@@ -2988,8 +2988,10 @@ export function $component(file: File): Component {
     const data: Props = { ...properties };
     initially.add(data);
     let made: Instantiated;
+    // What a binding asks for is made where the call says, not declared in
+    // the property the binding is given to (an alias's target, #149).
     try {
-      made = instantiate(given, data, item);
+      made = declaredIn(null, () => instantiate(given, data, item));
     } catch (error) {
       const initial = (error as { initial?: string } | null)?.initial;
       if (initial === undefined) throw error;
