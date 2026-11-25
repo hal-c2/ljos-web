@@ -79,6 +79,10 @@ export function startInSource(source = "en") {
 }
 
 /**
+ * Starts a page's languages, and says on the document, as a
+ * `ljos:languages` event whose detail is the language, when the start has
+ * settled: what waits on the page being in its language waits on that.
+ *
  * Starts a page's languages: `catalogs` maps each language the site is
  * translated into to what gives its catalogue's text, `source` is the
  * language the site is written in, and `key` where the reader's pick is
@@ -87,7 +91,13 @@ export function startInSource(source = "en") {
  * prerendered is taken over as it was written. Resolves with the language
  * the page is read in.
  */
-export async function startLanguages({ catalogs, source = "en", key = "ljos-site:language", after }) {
+export async function startLanguages(options) {
+  const shown = await startingLanguages(options);
+  globalThis.document?.dispatchEvent(new CustomEvent("ljos:languages", { detail: shown }));
+  return shown;
+}
+
+async function startingLanguages({ catalogs, source = "en", key = "ljos-site:language", after }) {
   const languages = [source, ...Object.keys(catalogs)];
   catalogSources(catalogs);
   let asked = "";
