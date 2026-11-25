@@ -199,5 +199,16 @@ Item {
         active: false
         source: Later.searchResults
     }
-    onShowingChanged: if (showing) list.active = true
+    // Results that could not be fetched are asked for again with the next
+    // query, or the next time there is one to show.
+    function want() {
+        if (!showing)
+            return;
+        if (list.status === Loader.Error)
+            list.setSource(Later.searchResults);
+        else
+            list.active = true;
+    }
+    onShowingChanged: want()
+    onQueryChanged: want()
 }
