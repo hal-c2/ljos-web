@@ -9,6 +9,10 @@
 
 export const INFINITE = -1;
 
+// A count of loops as an int property holds it: whole, and 0 for what is
+// not a number. Fewer than one run is one run (`runsLeft`).
+export const loopCount = (loops) => Math.trunc(Number(loops)) || 0;
+
 export class Playback {
   constructor({ start = 0, end = 0, direction = 1, loops = 1 } = {}) {
     this.start = start;
@@ -42,6 +46,11 @@ export class Playback {
   ticksToWrap() {
     const left = this.forward ? this.end - this.frame : this.frame - this.start;
     return Math.floor(Math.max(left, 0)) + 1;
+  }
+
+  // Whether it has played every run it was to play.
+  get finished() {
+    return !this.playing && !this.endless && this.loopsDone >= Math.max(this.loops, 1);
   }
 
   get endless() {

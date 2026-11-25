@@ -20,13 +20,13 @@
 import { onCleanup } from "solid-js";
 import { signal, untrack } from "#kernel";
 import { guardedFetch } from "../../../guard.js";
-import { defineType, effect, flush, located, native, slot, whenCompleted } from "../../../object.ts";
+import { defineType, effect, flush, gather, located, native, slot, whenCompleted } from "../../../object.ts";
 import { clock } from "../../../QtQuick/animation/clock.js";
 import { css } from "../../../QtQuick/color.ts";
 import { rules } from "../../../QtQuick/compute.ts";
 import { PaintedItem, paintArea } from "../../../QtQuick/PaintedItem.js";
 import { LoadError, parse } from "./model.js";
-import { INFINITE, Playback } from "./playback.js";
+import { INFINITE, loopCount, Playback } from "./playback.js";
 import { render } from "./render.js";
 
 const NULL = 0;
@@ -36,6 +36,8 @@ const ERROR = 3;
 const LOW = 0;
 
 const CATEGORY = "qt.lottieqt.lottie.parser";
+// What the file says and a program cannot (see the end of this file).
+const READ_ONLY = { status: NULL, startFrame: 0, endFrame: 0 };
 const SVG = "http://www.w3.org/2000/svg";
 
 rules(`
@@ -204,10 +206,12 @@ export const LottieAnimation = defineType("LottieAnimation", PaintedItem, {
       state.playback.restart();
       state.moved();
     },
-    // Plays on from the frame shown.
+    // Plays on from the frame shown. One that has finished has nothing left
+    // to play: it stays on its last frame and says nothing more, and
+    // start() plays it again.
     play() {
       const state = this.$lottie;
-      if (!state.composition || state.playback.playing) return;
+      if (!state.composition || state.playback.playing || state.playback.finished) return;
       state.playback.playing = true;
       state.spent = 0;
       state.moved();
@@ -245,6 +249,13 @@ export const LottieAnimation = defineType("LottieAnimation", PaintedItem, {
     },
   },
   setup(self) {
+    // Qt refuses a file that gives these a value or a binding. Here what
+    // was given is said, once, and the property keeps what the file says.
+    for (const [name, initial] of Object.entries(READ_ONLY)) {
+      if (!self.$props || !Object.hasOwn(self.$props, name)) continue;
+      console.warn(`Invalid property assignment: "${name}" is a read-only property`);
+      slot(self, name).write(initial);
+    }
     const [painted, repaint] = signal(0, self.$owner);
     const [shown, setShown] = signal(false, self.$owner);
     // Loading is told as a change, as Qt tells it. A file given as the
@@ -321,7 +332,11 @@ export const LottieAnimation = defineType("LottieAnimation", PaintedItem, {
         clock.wake();
       } else clock.remove(job);
     }
-    onCleanup(() => clock.remove(job));
+    // A file that arrives after the object is gone is no one's.
+    onCleanup(() => {
+      state.generation++;
+      clock.remove(job);
+    });
 
     function arrived(generation, comp, error) {
       if (generation !== state.generation) return;
@@ -337,15 +352,20 @@ export const LottieAnimation = defineType("LottieAnimation", PaintedItem, {
       const end = Math.round(comp.outPoint);
       const { loops, direction, autoPlay } = untrack(() => ({ loops: self.loops, direction: self.direction, autoPlay: self.autoPlay }));
       state.composition = comp;
-      state.playback = new Playback({ start, end, direction, loops });
+      state.playback = new Playback({ start, end, direction, loops: loopCount(loops) });
       state.spent = 0;
-      slot(self, "startFrame").write(start);
-      slot(self, "endFrame").write(end);
-      self.frameRate = Math.round(comp.frameRate);
-      self.width = comp.width;
-      self.height = comp.height;
-      slot(self, "status").write(READY);
-      if (autoPlay && state.generation === generation) state.playback.restart();
+      // Handlers hear of the numbers once the status is stored, so one that
+      // takes the source away on hearing of them is not undone by it.
+      gather(() => {
+        slot(self, "startFrame").write(start);
+        slot(self, "endFrame").write(end);
+        self.frameRate = Math.round(comp.frameRate);
+        self.width = comp.width;
+        self.height = comp.height;
+        slot(self, "status").write(READY);
+      });
+      if (state.generation !== generation) return;
+      if (autoPlay) state.playback.restart();
       state.moved();
       flush();
     }
@@ -380,7 +400,7 @@ export const LottieAnimation = defineType("LottieAnimation", PaintedItem, {
     effect(
       () => [self.loops, self.direction],
       ([loops, direction]) => {
-        state.playback.loops = loops;
+        state.playback.loops = loopCount(loops);
         state.playback.direction = direction < 0 ? -1 : 1;
         sync();
       },
@@ -422,7 +442,7 @@ export const LottieAnimation = defineType("LottieAnimation", PaintedItem, {
 // What the file says, a program cannot say instead: as Qt refuses an
 // assignment to a read-only property, so is one here. The runtime writes
 // them through their slots.
-for (const name of ["status", "startFrame", "endFrame"]) {
+for (const name of Object.keys(READ_ONLY)) {
   const { get } = Object.getOwnPropertyDescriptor(LottieAnimation.proto, name);
   Object.defineProperty(LottieAnimation.proto, name, {
     get,
