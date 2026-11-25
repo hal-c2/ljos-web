@@ -1163,6 +1163,9 @@ const stirred = new Set<() => void>();
 // cycle ends where Solid's own would have thrown.
 let afreshing = 0;
 const AFRESH_DEPTH = 32;
+// What each slot gave in the outermost `afresh` under way, so that a
+// binding read twice (`a ? a.x : null`) is evaluated once in it.
+let freshened: Map<Slot, unknown> | null = null;
 let stirring = false;
 // Properties read while `readsAny` is under way.
 let reading = 0;
@@ -1363,7 +1366,7 @@ class Slot {
   get(): unknown {
     if (reading) reads++;
     // Read by a binding `afresh` evaluates: as fresh as that one.
-    if (afreshing && afreshing < AFRESH_DEPTH && this.freshable()) return this.afresh();
+    if (afreshing && afreshing < AFRESH_DEPTH && this.freshable()) return freshened!.has(this) ? freshened!.get(this) : this.afresh();
     return this.held();
   }
 
@@ -1383,16 +1386,22 @@ class Slot {
   // (`target: root.selected`), as Qt has them all evaluated at the write.
   afresh(): unknown {
     if (!this.freshable()) return untrack(() => this.held());
-    // One that cannot be evaluated now is the memo's to tell of, when it is.
+    const outermost = !afreshing;
+    if (outermost) freshened = new Map();
     afreshing++;
     try {
-      const value = untrack(this.bound!.source!);
-      if (value !== undefined) return value;
-    } catch {
+      // One that cannot be evaluated now is the memo's to tell of, when it is.
+      let value: unknown;
+      try {
+        value = untrack(this.bound!.source!);
+      } catch {}
+      if (value === undefined) value = untrack(() => this.held());
+      freshened!.set(this, value);
+      return value;
     } finally {
       afreshing--;
+      if (outermost) freshened = null;
     }
-    return untrack(() => this.held());
   }
 
   // What the property was given, before its type has its say.

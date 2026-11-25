@@ -221,6 +221,11 @@ test("a Connections whose target binding gives undefined in a state's flush keep
   expect(await page.evaluate(() => window.scene.heardAfter("rebindThenChange", "keptOld"))).toEqual(["heard"]);
 });
 
+test("a Connections whose target binding gives undefined keeps the target it had once the flush is done", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.refusedThenChange())).toEqual(["heard", "heard"]);
+});
+
 test("a Connections whose target binding is moved in a script does not hear the old target changed after it", async ({ page }) => {
   await open(page, "connectionflush");
   expect(await page.evaluate(() => window.scene.rebindThenChange())).toEqual([]);
