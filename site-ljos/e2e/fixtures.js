@@ -405,6 +405,38 @@ export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, 
   }
 }
 
+// How long the Lottie demo's genie (its second animation, in `slot`) takes
+// to play through once its Again is pressed, in ms of the scene's own
+// time: from the first frame it draws to the last, read where the page
+// draws them. The dance goes on, so the clock does; the genie has played
+// through once it has drawn nothing new for 1.5 s of the scene's time.
+export async function playThrough(page, slot) {
+  const genie = slot.locator("svg.qq-lottie").nth(1);
+  await genie.evaluate((svg) => {
+    const clock = globalThis[Symbol.for("ljos-web/clock")];
+    svg.$drawn?.observer.disconnect();
+    const drawn = (svg.$drawn = { first: null, last: null, observer: null });
+    drawn.observer = new MutationObserver(() => {
+      drawn.first ??= clock.time;
+      drawn.last = clock.time;
+    });
+    drawn.observer.observe(svg, { subtree: true, attributes: true, childList: true });
+  });
+  await press(slot.getByRole("button", { name: "Play the genie avatar again" }));
+  await genie.page().waitForFunction(
+    (svg) => {
+      const { first, last } = svg.$drawn;
+      return first !== null && globalThis[Symbol.for("ljos-web/clock")].time - last > 1_500;
+    },
+    await genie.elementHandle(),
+    { timeout: 30_000, polling: "raf" },
+  );
+  return genie.evaluate((svg) => {
+    svg.$drawn.observer.disconnect();
+    return svg.$drawn.last - svg.$drawn.first;
+  });
+}
+
 // A `<video>` in the region plays: its own time moves on by more than a
 // quarter of a second while nobody touches it, however long the page takes
 // to play that quarter. A video that loops counts what it played across

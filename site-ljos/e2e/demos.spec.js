@@ -3,7 +3,7 @@
 // heading. The Pantry runs with the page, as a plain example would: it
 // holds still, and its shell is the one compiled with the page. The
 // others wait for their Run, and then run.
-import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, press, runButton, signature, test, unexpected } from "./fixtures.js";
+import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, playThrough, press, runButton, sceneRuns, signature, test, unexpected } from "./fixtures.js";
 import { sourceView } from "./known.js";
 
 function headingOf(page, heading) {
@@ -35,6 +35,7 @@ const RUN = {
   "A shader effect": "Run the shader demo",
   "A whole app": "Run the field guide",
   Motion: "Run the motion demo",
+  "Lottie animations": "Run the Lottie demo",
 };
 
 // The demo under `heading`, started as a reader starts it: brought into
@@ -85,7 +86,7 @@ function rigOf(canvas) {
 test.describe("/demos/", () => {
   test("loads with nothing in its console", async ({ page, errors }) => {
     await settled(page, "/demos/");
-    for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) await expect(demo(page, heading), heading).toBeVisible();
+    for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion", "Lottie animations"]) await expect(demo(page, heading), heading).toBeVisible();
     expect(unexpected(errors)).toEqual([]);
   });
 
@@ -226,7 +227,36 @@ test.describe("/demos/", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
-  for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
+  // The Lottie demo draws HAL-C2's avatars as SVG, the dance first.
+  test("the Lottie demo plays, holds its frame on Pause, and plays on from there", async ({ page, errors }) => {
+    await settled(page, "/demos/");
+    const slot = await started(page, "Lottie animations");
+    const dance = slot.locator("svg.qq-lottie").first();
+    await expect(dance, "the dance is drawn").toBeVisible({ timeout: 30_000 });
+    await expectFramesAdvance(dance, { message: "the dance plays" });
+    await press(slot.getByRole("button", { name: "Pause both avatars" }));
+    const held = await dance.innerHTML();
+    await sceneRuns(page, 500, "paused");
+    expect(await dance.innerHTML(), "paused, the dance holds its frame").toBe(held);
+    await press(slot.getByRole("button", { name: "Play both avatars" }));
+    await expectFramesAdvance(dance, { message: "played again, the dance goes on" });
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("the Lottie demo's genie plays once, again on Again, and more slowly at 0.5×", async ({ page, errors }) => {
+    await settled(page, "/demos/");
+    const slot = await started(page, "Lottie animations");
+    await expect(slot.locator("svg.qq-lottie").nth(1), "the genie is drawn").toBeVisible({ timeout: 30_000 });
+    const full = await playThrough(page, slot);
+    expect(full, "at 1× its 48 frames take about 2 s").toBeGreaterThan(1_500);
+    expect(full).toBeLessThan(3_000);
+    await press(slot.getByRole("radio", { name: "Playback speed 0.5×" }));
+    const half = await playThrough(page, slot);
+    expect(half, "at 0.5× it takes about twice as long").toBeGreaterThan(full * 1.6);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion", "Lottie animations"]) {
     test(`${heading}: show source opens its QML`, async ({ page }) => {
       test.fail(true, sourceView);
       await settled(page, "/demos/");
