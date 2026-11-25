@@ -288,8 +288,8 @@ test("an ordered list's numbers are said, a bullet is not", async ({ page }) => 
 // where none ever does, at the size the page gives them.
 for (const [route, demos] of [
   ["/", 1],
-  // Four demos framed in the page, and each pro demo's card.
-  ["/demos/", 4 + proDemos.length],
+  // Five demos framed in the page, and each pro demo's card.
+  ["/demos/", 5 + proDemos.length],
 ]) {
   test(`${route}'s mark and demo pictures are drawn with no script`, async ({ browser }) => {
     for (const width of [390, 1440]) {

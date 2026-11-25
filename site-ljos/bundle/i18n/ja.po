@@ -1410,8 +1410,8 @@ msgid "Press / to search"
 msgstr "/ キーで検索"
 
 #: ../Site/DemosPage.qml:223
-msgid "Press Run to load the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
-msgstr "「実行」を押すと、プレーヤーと 2 つの Lottie ファイル（HAL-C2 のアバター）が読み込まれます。JavaScript の Lottie ライブラリは使わず、Ljós が読み込みと描画を行います。「一時停止」「もう一度」や速度ボタンで、ループするダンスと 1 回再生のジーニーを操作してみてください。「視差効果を減らす」がオンのときはどちらも半分の速度で再生され、画面外では一時停止し、待機時は CPU を使用しません。"
+msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
+msgstr "実行すると、プレーヤーと 2 つの Lottie ファイル（HAL-C2 のアバター）が読み込まれます。JavaScript の Lottie ライブラリは使わず、Ljós が読み込みと描画を行います。「一時停止」「もう一度」や速度ボタンで、ループするダンスと 1 回再生のジーニーを操作してみてください。「視差効果を減らす」がオンのときはどちらも半分の速度で再生され、画面外では一時停止し、待機時は CPU を使用しません。"
 
 #: ../Demos/Motion.qml:108
 msgid "Press and move — the puck springs after you"

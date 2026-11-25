@@ -1410,8 +1410,8 @@ msgid "Press / to search"
 msgstr "Ýttu á / til að leita"
 
 #: ../Site/DemosPage.qml:223
-msgid "Press Run to load the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
-msgstr "Ýttu á Keyra til að hlaða spilaranum og tveimur Lottie-skrám (táknmyndum HAL-C2), sem Ljós les og teiknar án nokkurs JavaScript Lottie-safns. Prófaðu Hlé, Aftur og hraðahnappana til að stýra dansinum í lykkju og andanum sem spilast einu sinni. Báðar spilast á hálfum hraða þegar kveikt er á minni hreyfingu, fara í hlé utan skjás og nota engan örgjörva í bið."
+msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
+msgstr "Þegar það er keyrt hlaðast spilarinn og tvær Lottie-skrár (táknmyndir HAL-C2), sem Ljós les og teiknar án nokkurs JavaScript Lottie-safns. Prófaðu Hlé, Aftur og hraðahnappana til að stýra dansinum í lykkju og andanum sem spilast einu sinni. Báðar spilast á hálfum hraða þegar kveikt er á minni hreyfingu, fara í hlé utan skjás og nota engan örgjörva í bið."
 
 #: ../Demos/Motion.qml:108
 msgid "Press and move — the puck springs after you"

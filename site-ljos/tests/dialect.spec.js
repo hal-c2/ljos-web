@@ -49,6 +49,7 @@ const qtQuick = {
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
   ...site(["Demos/Orbit"], "Ljos.Ui has no FrameAnimation"),
+  ...site(["Demos/Lottie"], "Ljos.Ui has no Item.TopLeft for the transformOrigin its avatars scale about"),
   ...site(["Shells/Cyberpunk"], "Ljos.Ui has no FrameAnimation or LayoutMirroring"),
   // A right-to-left page reads LayoutMirroring.enabled to set from the
   // right what these place from the left; Ljos.Ui has no LayoutMirroring.
