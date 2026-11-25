@@ -249,3 +249,22 @@ test.describe("painting", () => {
     expect([r, g, b].map((v, i) => Math.abs(v - [127, 127, 255][i]) <= 3)).toEqual([true, true, true]);
   });
 });
+
+// HAL-C2's avatars, drawn by Blender's grease pencil and exported as
+// Lottie: each frame as its preview (ljos-ui features/lottie/avatars,
+// `dance-07.png`, `genie-17.png`) has it, within what antialiasing moves.
+test("the HAL-C2 avatars are drawn as their previews show them", async ({ page }) => {
+  await open(page, "lottieavatar&still");
+  await loaded(page, ["dance", "genie"]);
+  const near = (seen, want) => seen.every((rgb, index) => rgb.split(" ").every((channel, at) => Math.abs(Number(channel) - want[index][at]) <= 3));
+  await read(page, () => window.objects.dance.gotoAndStop(7));
+  const dance = await pixels(page, [[160, 170], [140, 90], [245, 97], [200, 230], [30, 30]]);
+  expect(near(dance, [[0, 0, 5], [249, 168, 25], [117, 142, 249], [246, 244, 244], [255, 255, 255]]), dance.join(", ")).toBe(true);
+  await read(page, () => {
+    window.objects.dance.visible = false;
+    window.objects.genie.visible = true;
+    window.objects.genie.gotoAndStop(17);
+  });
+  const genie = await pixels(page, [[150, 140], [110, 65], [200, 62], [105, 205], [290, 290]]);
+  expect(near(genie, [[0, 0, 5], [249, 168, 25], [117, 142, 249], [249, 168, 25], [255, 255, 255]]), genie.join(", ")).toBe(true);
+});
