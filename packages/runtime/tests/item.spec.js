@@ -301,6 +301,13 @@ test("an item given through an alias of an alias of a declared property has no p
   expect(answer).toEqual(["madeChainLater", true, null]);
 });
 
+// What such a binding makes with `createObject` is not the property's: the
+// alias's target is no parent of it (#149).
+test("an object a binding given through an alias makes with createObject has the parent it was given", async ({ page }) => {
+  await open(page, "propertyitemmade");
+  expect(await page.evaluate(() => window.scene.parents())).toEqual([null, "root"]);
+});
+
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());
