@@ -198,7 +198,7 @@ Flickable {
                 x: Math.round((view.width - width) / 2)
                 readonly property var demo: view.router ? view.router.pro : null
                 sourceComponent: route === "/" || route === "/showcase/" || demo ? null : route === "/demos/" ? demosPage : emptyPage
-                readonly property var page: route === "/" ? Later.landing : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : undefined
+                readonly property var page: route === "/" ? Later.landing : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : ""
                 source: page
                 // Every pro demo is the one module (later.js), so going
                 // from one to the next sets no new source: a page that

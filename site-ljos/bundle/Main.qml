@@ -305,7 +305,7 @@ Rectangle {
             main.observing = Observing.isShown("site");
             // A dock that could not be fetched is asked for again.
             if (Observing.shown && observerDock.status === Loader.Error)
-                observerDock.setSource(Observing.dockSource);
+                observerDock.setSource(main.observerDockSource);
             else if (Observing.shown)
                 observerDock.active = true;
         });
@@ -726,6 +726,9 @@ Rectangle {
     // The shell every page is written in, as the loader takes it
     // (Native.qml gives it by its address).
     property var elegant: elegantShell
+    // The Observer's dock, as the loader takes it (Native.qml gives it by
+    // its address).
+    property var observerDockSource: Observing.dockSource
     Component {
         id: elegantShell
         Elegant {
@@ -813,7 +816,7 @@ Rectangle {
         z: 4
         y: main.pageTop
         active: false
-        source: Observing.dockSource
+        source: main.observerDockSource
         onLoaded: {
             item.room = Qt.binding(() => main.width);
             item.roomHeight = Qt.binding(() => main.pageHeight);

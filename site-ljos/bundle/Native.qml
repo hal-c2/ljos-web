@@ -15,6 +15,7 @@ Item {
         focus: true
         renderer: "Ljós"
         elegant: url("Shells/Elegant.qml")
+        observerDockSource: url("Site/ObserverDock.qml")
     }
 
     // What the site's own keys leave (Main.qml takes `/` and Escape).

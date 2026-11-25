@@ -92,7 +92,7 @@ Rectangle {
                     Text {
                         width: parent.width
                         textFormat: Text.RichText
-                        text: Nav.anchor(Nav.at(Content.base, modelData.href), modelData.title, false)
+                        text: Nav.anchor(Nav.at(Content.base, modelData.href), modelData.title, false, color)
                         color: Theme.text
                         linkColor: Theme.text
                         font.family: Theme.sans
