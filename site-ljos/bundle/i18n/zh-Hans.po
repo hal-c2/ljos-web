@@ -1410,8 +1410,8 @@ msgid "Press / to search"
 msgstr "按 / 搜索"
 
 #: ../Site/DemosPage.qml:223
-msgid "Press Run to load the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
-msgstr "点击“运行”加载播放器和两个 Lottie 文件（HAL-C2 的形象），由 Ljós 直接读取并绘制，无需任何 JavaScript Lottie 库。试试“暂停”、“重播”以及速度按钮，控制循环播放的舞蹈和单次播放的灯神。开启减弱动态效果时，两者会以半速播放；离开屏幕时暂停；空闲时不占用 CPU。"
+msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
+msgstr "运行后会加载播放器和两个 Lottie 文件（HAL-C2 的形象），由 Ljós 直接读取并绘制，无需任何 JavaScript Lottie 库。试试“暂停”、“重播”以及速度按钮，控制循环播放的舞蹈和单次播放的灯神。开启减弱动态效果时，两者会以半速播放；离开屏幕时暂停；空闲时不占用 CPU。"
 
 #: ../Demos/Motion.qml:108
 msgid "Press and move — the puck springs after you"

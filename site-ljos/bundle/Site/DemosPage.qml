@@ -220,7 +220,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`Lottie animations`
-        body: t`Press Run to load the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle.`
+        body: t`Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle.`
 
         Slot {
             name: "demo-lottie"
