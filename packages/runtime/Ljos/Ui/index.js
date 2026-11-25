@@ -163,19 +163,19 @@ function gesture(name, Base) {
 // `Rectangle`, with `color` called `fill`: what is inside the outline,
 // beside the `border` around it, where a `color` of `Text` is the glyphs'.
 // Asked for less motion, they move nothing and still fade (motion.js).
-export const PropertyAnimation = calmed("PropertyAnimation", PropertyAnimationBase);
-export const NumberAnimation = calmed("NumberAnimation", NumberAnimationBase);
-export const ColorAnimation = calmed("ColorAnimation", ColorAnimationBase);
-export const RotationAnimation = calmed("RotationAnimation", RotationAnimationBase);
-export const SpringAnimation = calmed("SpringAnimation", SpringAnimationBase);
-export const SmoothedAnimation = calmed("SmoothedAnimation", SmoothedAnimationBase);
+export const PropertyAnimation = /* @__PURE__ */ calmed("PropertyAnimation", PropertyAnimationBase);
+export const NumberAnimation = /* @__PURE__ */ calmed("NumberAnimation", NumberAnimationBase);
+export const ColorAnimation = /* @__PURE__ */ calmed("ColorAnimation", ColorAnimationBase);
+export const RotationAnimation = /* @__PURE__ */ calmed("RotationAnimation", RotationAnimationBase);
+export const SpringAnimation = /* @__PURE__ */ calmed("SpringAnimation", SpringAnimationBase);
+export const SmoothedAnimation = /* @__PURE__ */ calmed("SmoothedAnimation", SmoothedAnimationBase);
 
-export const Rectangle = face("Rectangle", RectangleBase, { fill: "color" });
+export const Rectangle = /* @__PURE__ */ face("Rectangle", RectangleBase, { fill: "color" });
 
 // `Text`, with its alignment, wrapping and format called `align`, `wrap`
 // and `format`; `elide` keeps its name, and so does `color`, which is the
 // glyphs'. Its font is the one font value, whose pixel size is `size`.
-export const Text = face("Text", TextBase, {
+export const Text = /* @__PURE__ */ face("Text", TextBase, {
   align: "horizontalAlignment",
   wrap: "wrapMode",
   format: "textFormat",
@@ -183,53 +183,57 @@ export const Text = face("Text", TextBase, {
 
 // `MouseArea`, called `PointerArea`: it takes a pen and a finger as it
 // takes a mouse, and the old name says only the one.
-export const PointerArea = face("PointerArea", MouseArea);
+export const PointerArea = /* @__PURE__ */ face("PointerArea", MouseArea);
 
 // `TapHandler`, called `Tap`: a gesture is a child of the item it acts
 // on, and says what it recognises. The others likewise.
-export const Tap = gesture("Tap", TapHandler);
-export const Hover = gesture("Hover", HoverHandler);
-export const Drag = gesture("Drag", DragHandler);
-export const Wheel = gesture("Wheel", WheelHandler);
+export const Tap = /* @__PURE__ */ gesture("Tap", TapHandler);
+export const Hover = /* @__PURE__ */ gesture("Hover", HoverHandler);
+export const Drag = /* @__PURE__ */ gesture("Drag", DragHandler);
+export const Wheel = /* @__PURE__ */ gesture("Wheel", WheelHandler);
 // Not here: `Pointer`, the face of Qt's PointHandler, which the runtime
 // does not have in `QtQuick` either. A dialect file that names it says
 // so at load, by the import it cannot make.
 
 // `Loader`, with `sourceComponent` called `component`: what it shows is
 // a component. A file named by a string, `source`, stays.
-export const Loader = face("Loader", LoaderBase, { component: "sourceComponent" });
+export const Loader = /* @__PURE__ */ face("Loader", LoaderBase, { component: "sourceComponent" });
 
 // `ListView` as it is. What natively calls its passages `enter` and
 // `exit` (Qt's `add` and `remove` transitions) the runtime's views do
 // not have in either name, so there is nothing here to rename.
-export const ListView = face("ListView", ListViewBase);
+export const ListView = /* @__PURE__ */ face("ListView", ListViewBase);
 // `GridView`, as `ListView` is.
-export const GridView = face("GridView", GridViewBase);
+export const GridView = /* @__PURE__ */ face("GridView", GridViewBase);
 
 // Qt's attached `Drag`, called `DragSource`: what carries data to a
 // `DropArea`, where `Drag` above is the gesture that moves an item. It
 // is the one attached object by both names: what a file says by
 // `DragSource.` is put under `Drag.` before the object is made.
-export const DragSource = defineType("DragSource", QtObject, { enums: DragAttachedSource.enums });
-DragSource.attached = (self) => {
-  const props = self?.$props;
-  if (props) {
-    for (const key of Object.keys(props)) {
-      if (!key.startsWith("DragSource$")) continue;
-      const own = `Drag$${key.slice("DragSource$".length)}`;
-      if (!Object.hasOwn(props, own)) Object.defineProperty(props, own, Object.getOwnPropertyDescriptor(props, key));
-      delete props[key];
+export const DragSource = /* @__PURE__ */ dragSource();
+function dragSource() {
+  const Type = defineType("DragSource", QtObject, { enums: DragAttachedSource.enums });
+  Type.attached = (self) => {
+    const props = self?.$props;
+    if (props) {
+      for (const key of Object.keys(props)) {
+        if (!key.startsWith("DragSource$")) continue;
+        const own = `Drag$${key.slice("DragSource$".length)}`;
+        if (!Object.hasOwn(props, own)) Object.defineProperty(props, own, Object.getOwnPropertyDescriptor(props, key));
+        delete props[key];
+      }
+      if (props.$attach) props.$attach = props.$attach.map((type) => (type === Type ? DragAttachedSource : type));
     }
-    if (props.$attach) props.$attach = props.$attach.map((type) => (type === DragSource ? DragAttachedSource : type));
-  }
-  return DragAttachedSource.attached(self);
-};
+    return DragAttachedSource.attached(self);
+  };
+  return Type;
+}
 
 // `Font.of({ family, size })` is Qt's `Qt.font`, and `Font.families()` its
 // `Qt.fontFamilies()`, beside the enums of the font value (`Font.Bold`).
 // A page is told only of the families it has loaded itself: the browser
 // does not list what is installed.
-export const Font = Object.freeze({
+export const Font = /* @__PURE__ */ Object.freeze({
   ...FontEnums,
   of: (given) => font(given, "Font.of()"),
   families: () => [...new Set([...(document.fonts ?? [])].map((face) => face.family.replace(/^["']|["']$/g, "")))].sort(),
