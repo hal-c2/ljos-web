@@ -825,6 +825,41 @@ test("the search's results come with a later query when the first could not load
   }
 });
 
+// A pro demo's page is one chunk for every pro demo (Site/later.js), so
+// going from one pro demo to the next keeps the Loader's source: one that
+// could not be fetched is asked for again with the next pro demo.
+test("a pro demo's page comes with the next pro demo when the first could not load it", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    let down = true;
+    await page.route("**/ProDemoPage-*.js", (route) => (down ? route.abort("connectionreset") : route.continue()));
+    await open(page, "/start/first-app/");
+    const field = page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true }).first();
+    const results = page.getByRole("list", { name: "Search results" });
+    const go = async (query, route) => {
+      await field.click();
+      await page.keyboard.type(query);
+      await expect(results.getByRole("listitem").first()).toBeVisible({ timeout: 30_000 });
+      await page.keyboard.press("Enter");
+      await page.waitForURL(`**${route}`);
+    };
+    const failed = page.waitForEvent("requestfailed", (request) => /ProDemoPage-/.test(request.url()));
+    await go("Svala", "/demos/cockpit/");
+    await failed;
+    await expect(page.getByRole("heading", { name: "Svala GT cockpit", exact: true })).toHaveCount(0);
+    down = false;
+    await go("Kestrel", "/demos/watch/");
+    await expect(page.getByRole("heading", { name: "Kestrel, a smartwatch", exact: true }), "the page, asked for again").toBeVisible({ timeout: 30_000 });
+    // And the page still follows the route once it was asked for again.
+    await go("Built with", "/showcase/");
+    await expect(page.getByRole("heading", { name: "Built with Ljós", exact: true }), "the next route's page").toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Kestrel, a smartwatch", exact: true })).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
 test("a reader with no script gets the Elegant shell, whatever is kept", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop", javaScriptEnabled: false });
   try {
