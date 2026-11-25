@@ -4,5 +4,6 @@ export declare function watch(): Promise<unknown>;
 export declare function shader(): Promise<unknown>;
 export declare function fieldGuide(): Promise<unknown>;
 export declare function motion(): Promise<unknown>;
+export declare function lottie(): Promise<unknown>;
 export declare function agent(): Promise<unknown>;
 export declare function inspectorSession(): Promise<unknown>;

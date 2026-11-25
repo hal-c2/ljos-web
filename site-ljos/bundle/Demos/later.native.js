@@ -8,6 +8,7 @@ var watch = Qt.resolvedUrl("WatchDemo.qml");
 var shader = Qt.resolvedUrl("Shader.qml");
 var fieldGuide = Qt.resolvedUrl("FieldGuide.qml");
 var motion = Qt.resolvedUrl("Motion.qml");
+var lottie = Qt.resolvedUrl("Lottie.qml");
 var agent = Qt.resolvedUrl("AgentStage.qml");
 // The replay's card is ljos-web's alone (observing.js), so on the desktop
 // there is none and the replay stays at its end result.

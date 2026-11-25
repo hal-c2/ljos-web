@@ -215,4 +215,28 @@ Column {
             }
         }
     }
+
+    DemoSection {
+        width: demos.textWidth
+        wide: demos.wide
+        title: t`Lottie animations`
+        body: t`Press Run to load the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle.`
+
+        Slot {
+            name: "demo-lottie"
+            delegate: Component {
+                DemoFrame {
+                    width: demos.textWidth
+                    scroller: demos.scroller
+                    route: "/demos/"
+                    least: 440
+                    picture: "/pictures/demo-lottie.webp"
+                    pictureDark: "/pictures/demo-lottie-dark.webp"
+                    what: t`the Lottie demo`
+                    description: t`Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls.`
+                    source: Later.lottie
+                }
+            }
+        }
+    }
 }
