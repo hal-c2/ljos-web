@@ -185,6 +185,27 @@ test("a Connections whose target binding is moved in a state's flush hears the n
   expect(await page.evaluate(() => window.scene.followedAfter("rebindThenChangeNew"))).toEqual(["heard"]);
 });
 
+// Qt 6.12.0 (qml6 offscreen) gives each of these.
+test("a Connections with a signal handler whose target binding is moved in a state's flush does not hear the old target's signal after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindThenWiden", "signalled"))).toEqual([]);
+});
+
+test("a Connections with a signal handler whose target binding is moved in a state's flush hears the new target's signal after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindThenWidenNew", "signalled"))).toEqual(["heard"]);
+});
+
+test("a Connections whose target binding moves from none in a state's flush hears the new target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindFromNullThenChange", "fromNull"))).toEqual(["heard"]);
+});
+
+test("a Connections whose target binding moves through none in a state's flush hears the new target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.heardAfter("rebindThroughNullThenChange", "throughNull"))).toEqual(["heard"]);
+});
+
 test("a Connections whose target binding is moved in a script does not hear the old target changed after it", async ({ page }) => {
   await open(page, "connectionflush");
   expect(await page.evaluate(() => window.scene.rebindThenChange())).toEqual([]);
