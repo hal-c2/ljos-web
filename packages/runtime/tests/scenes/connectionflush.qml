@@ -21,6 +21,8 @@ Item {
     property var throughSelected: []
     property var keptOld: []
     property var nested: []
+    property bool broken: false
+    property int unrelated: 0
 
     Item { id: box; objectName: "box" }
     Item { id: other; objectName: "other" }
@@ -115,6 +117,15 @@ Item {
         }
     }
 
+    // A binding that throws once what it reads is written: what it throws
+    // is its own to tell of, and no other write's.
+    Connections {
+        id: throwing
+        target: root.broken ? root.refuse() : box
+
+        function onChildrenChanged() {}
+    }
+
     states: [
         // `explicit`: the target is given `other` where it is written, as
         // Qt gives it.
@@ -202,6 +213,23 @@ Item {
         root.state = "rebindThenChange";
         first.parent = box;
         return root.keptOld.slice();
+    }
+
+    function refuse() {
+        throw new Error("no target");
+    }
+
+    // A write after the target binding threw is made all the same.
+    function breakThenWrite() {
+        try {
+            root.broken = true;
+        } catch (error) {}
+        try {
+            root.unrelated = 5;
+        } catch (error) {
+            return "thrown: " + error.message;
+        }
+        return root.unrelated;
     }
 
     function heardAfter(name, list) {
