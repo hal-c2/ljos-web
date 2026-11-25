@@ -12,6 +12,7 @@
 // How deep compositions may hold each other: a file whose assets hold
 // themselves stops here.
 const MAX_DEPTH = 16;
+const MAX_POINTS = 1000;
 const KAPPA = 0.5522847498307936;
 
 // [a, b, c, d, e, f]: x' = a x + c y + e, y' = b x + d y + f.
@@ -76,13 +77,20 @@ export function render(comp, frame) {
   // end is drawn just before it, where the layers still are.
   const t = frame >= comp.outPoint ? comp.outPoint - 1e-3 : frame;
   const out = [];
-  layers(comp, comp.layers, t, IDENTITY, 1, 0, out);
+  layers(comp, comp.layers, t, IDENTITY, 1, 0, out, { left: MAX_LAYERS });
   return out;
 }
 
-function layers(comp, list, t, m, alpha, depth, out) {
+// How many layers one frame draws at most, however its precompositions nest:
+// depth bounds one branch, this how many branches. A file that uses the same
+// precomposition many times over, each inside the last, would otherwise ask
+// for more than a frame has time for.
+const MAX_LAYERS = 10_000;
+
+function layers(comp, list, t, m, alpha, depth, out, budget) {
   if (depth > MAX_DEPTH) return;
   for (let i = list.length - 1; i >= 0; i--) {
+    if (budget.left-- <= 0) return;
     const layer = list[i];
     if (layer.hidden || t < layer.inPoint || t >= layer.outPoint) continue;
     const local = localTime(layer, t);
@@ -94,7 +102,7 @@ function layers(comp, list, t, m, alpha, depth, out) {
       const inner = comp.assets.get(layer.precomp);
       if (!inner) continue;
       const innerT = layer.remap ? layer.remap.num(local, 0, 0) * comp.frameRate : local;
-      layers(comp, inner, innerT, world, a, depth + 1, out);
+      layers(comp, inner, innerT, world, a, depth + 1, out, budget);
     } else if (layer.solid) {
       const { width, height } = layer;
       const path = mapped([["M", 0, 0], ["L", width, 0], ["L", width, height], ["L", 0, height], ["Z"]], world);
@@ -168,15 +176,17 @@ function rectangle(x0, y0, x1, y1, r) {
   ];
 }
 
+// From the top, clockwise, as the format draws one: where a trim of it
+// starts.
 function ellipse(cx, cy, rx, ry) {
   const kx = rx * KAPPA;
   const ky = ry * KAPPA;
   return [
-    ["M", cx + rx, cy],
+    ["M", cx, cy - ry],
+    ["C", cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy],
     ["C", cx + rx, cy + ky, cx + kx, cy + ry, cx, cy + ry],
     ["C", cx - kx, cy + ry, cx - rx, cy + ky, cx - rx, cy],
     ["C", cx - rx, cy - ky, cx - kx, cy - ry, cx, cy - ry],
-    ["C", cx + kx, cy - ry, cx + rx, cy - ky, cx + rx, cy],
     ["Z"],
   ];
 }
@@ -197,7 +207,10 @@ function geometry(shape, t) {
     case "path":
       return bezPath(shape.path.at(t));
     case "star": {
-      const n = Math.max(Math.round(shape.points.num(t, 0, 5)), 2);
+      // A count past what a shape can show is held there, so an animated
+      // one cannot ask for unbounded work.
+      const asked = Math.round(shape.points.num(t, 0, 5));
+      const n = Number.isFinite(asked) ? Math.min(Math.max(asked, 2), MAX_POINTS) : 5;
       const [cx, cy] = shape.position.point(t);
       const outer = shape.outer.num(t, 0, 0);
       const inner = shape.inner.num(t, 0, 0);
@@ -268,11 +281,22 @@ function gradientOf(g, t, m, alpha) {
     const u = b[0] > a[0] ? (offset - a[0]) / (b[0] - a[0]) : 0;
     return a[1] + (b[1] - a[1]) * u;
   };
-  const stops = [];
-  for (let i = 0; i < count; i++) {
-    const [offset, r, gr, b] = values.slice(i * 4, i * 4 + 4);
-    stops.push({ offset: Math.min(Math.max(offset, 0), 1), color: [r, gr, b, opacityAt(offset) * alpha] });
-  }
+  const colours = [];
+  for (let i = 0; i < count; i++) colours.push(values.slice(i * 4, i * 4 + 4));
+  const colourAt = (offset) => {
+    const i = colours.findIndex((s) => s[0] > offset);
+    if (i === 0) return colours[0].slice(1);
+    if (i < 0) return colours.at(-1).slice(1);
+    const [a, b] = [colours[i - 1], colours[i]];
+    const u = b[0] > a[0] ? (offset - a[0]) / (b[0] - a[0]) : 0;
+    return [1, 2, 3].map((c) => a[c] + (b[c] - a[c]) * u);
+  };
+  // A stop at each offset either list has, so an opacity stop between two
+  // colour stops is kept, with the colour there blended.
+  const offsets = [...new Set([...colours.map((s) => s[0]), ...opacities.map((s) => s[0])])].sort((a, b) => a - b);
+  const stops = colours.length
+    ? offsets.map((offset) => ({ offset: Math.min(Math.max(offset, 0), 1), color: [...colourAt(offset), opacityAt(offset) * alpha] }))
+    : [];
   const start = g.start.point(t);
   const end = g.end.point(t);
   if (!g.radial) return { linear: [...apply(m, ...start), ...apply(m, ...end)], stops };
@@ -409,6 +433,9 @@ function subPath(path, from, to) {
 // length) moved on by `offset`: each on its own, or all as one long path
 // when `sequential`.
 function trim(paths, start, end, offset, sequential) {
+  // Past either end is that end, before the offset moves the stretch on.
+  start = Math.min(Math.max(start, 0), 1);
+  end = Math.min(Math.max(end, 0), 1);
   if (start > end) [start, end] = [end, start];
   if (end - start >= 1) return paths;
   if (end - start <= 0) return [];

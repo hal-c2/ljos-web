@@ -268,3 +268,102 @@ test("the HAL-C2 avatars are drawn as their previews show them", async ({ page }
   const genie = await pixels(page, [[150, 140], [110, 65], [200, 62], [105, 205], [290, 290]]);
   expect(near(genie, [[0, 0, 5], [249, 168, 25], [117, 142, 249], [249, 168, 25], [255, 255, 255]]), genie.join(", ")).toBe(true);
 });
+
+test("an animation that has finished does not finish again when played", async ({ page }) => {
+  await open(page, "lottieplay&still");
+  await loaded(page, ["once"]);
+  await advance(page, 3000);
+  expect((await finishes(page)).once).toBe(1);
+  await read(page, () => window.objects.once.play());
+  await advance(page, 3000);
+  expect((await finishes(page)).once).toBe(1);
+  await read(page, () => window.objects.once.start());
+  await advance(page, 3000);
+  expect((await finishes(page)).once).toBe(2);
+});
+
+// What a file says, read and drawn by the renderer itself, as the Lottie
+// format (lottie-spec) has it: one shape layer, 100 by 100, at frame `t`.
+test.describe("the format", () => {
+  const modules = async (page) => {
+    await open(page, "lottieplay&still");
+    await loaded(page, ["once"]);
+    return page.evaluateHandle(async () => {
+      const find = (re) => performance.getEntriesByType("resource").find(({ name }) => re.test(name)).name;
+      return { model: await import(find(/lottieqt\/model\.js(\?|$)/)), render: await import(find(/lottieqt\/render\.js(\?|$)/)) };
+    });
+  };
+  // Draws `shapes` at frame `t`, with the warnings parse gave.
+  const draw = (page, lib, shapes, t = 0) =>
+    page.evaluate(
+      ({ lib, shapes, t }) => {
+        const file = { w: 100, h: 100, fr: 10, ip: 0, op: 10, layers: [{ ty: 4, ip: 0, op: 10, ks: {}, shapes }] };
+        const comp = lib.model.parse(JSON.stringify(file));
+        return { drawn: lib.render.render(comp, t), warnings: comp.warnings };
+      },
+      { lib, shapes, t },
+    );
+  const fill = { ty: "fl", c: { k: [1, 0, 0, 1] }, o: { k: 100 } };
+
+  test("a segment eases by the out and in tangents of the key it starts from", async ({ page }) => {
+    const lib = await modules(page);
+    const at = await page.evaluate((lib) => {
+      const p = lib.model.prop({ a: 1, k: [{ t: 0, s: [0], o: { x: [0], y: [0] }, i: { x: [1], y: [1] } }, { t: 10, s: [10], i: { x: [0], y: [1] } }] });
+      return p.num(5, 0, 0);
+    }, lib);
+    expect(Math.abs(at - 5)).toBeLessThan(0.01);
+  });
+
+  test("a shape of a type that is no string is warned about, not thrown on", async ({ page }) => {
+    const lib = await modules(page);
+    const { warnings } = await draw(page, lib, [{ ty: { toString: 1 } }]);
+    expect(warnings).toEqual(['shapes of type "" are not drawn']);
+  });
+
+  test("an ellipse starts at its top", async ({ page }) => {
+    const lib = await modules(page);
+    const { drawn } = await draw(page, lib, [{ ty: "el", p: { k: [50, 50] }, s: { k: [40, 20] } }, fill]);
+    expect(drawn[0].path[0]).toEqual(["M", 50, 40]);
+  });
+
+  test("a trim past either end is held at that end", async ({ page }) => {
+    const lib = await modules(page);
+    const line = { ty: "sh", ks: { k: { c: false, v: [[0, 50], [100, 50]], i: [[0, 0], [0, 0]], o: [[0, 0], [0, 0]] } } };
+    const stroke = { ty: "st", c: { k: [0, 0, 0, 1] }, o: { k: 100 }, w: { k: 2 } };
+    const whole = await draw(page, lib, [line, { ty: "tm", s: { k: 0 }, e: { k: 50 }, o: { k: 0 } }, stroke]);
+    const past = await draw(page, lib, [line, { ty: "tm", s: { k: -50 }, e: { k: 50 }, o: { k: 0 } }, stroke]);
+    expect(past.drawn[0].path).toEqual(whole.drawn[0].path);
+  });
+
+  test("a star asks for no more points than it can show", async ({ page }) => {
+    const lib = await modules(page);
+    const star = { ty: "sr", sy: 1, p: { k: [50, 50] }, pt: { k: 1e9 }, or: { k: 40 }, ir: { k: 20 }, r: { k: 0 }, os: { k: 0 }, is: { k: 0 } };
+    const { drawn } = await draw(page, lib, [star, fill]);
+    expect(drawn[0].path.length).toBeLessThanOrEqual(2002);
+  });
+
+  test("an opacity stop between colour stops is kept", async ({ page }) => {
+    const lib = await modules(page);
+    const gradient = { ty: "gf", t: 1, s: { k: [0, 0] }, e: { k: [100, 0] }, o: { k: 100 }, g: { p: 2, k: { k: [0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0.5, 0, 1, 1] } } };
+    const { drawn } = await draw(page, lib, [{ ty: "rc", p: { k: [50, 50] }, s: { k: [100, 100] }, r: { k: 0 } }, gradient]);
+    const { stops } = drawn[0].gradient;
+    expect(stops.map((s) => [s.offset, Math.round(s.color[0] * 100) / 100, s.color[3]])).toEqual([
+      [0, 1, 1],
+      [0.5, 0.5, 0],
+      [1, 0, 1],
+    ]);
+  });
+
+  test("precompositions used over and over draw no more than a frame can", async ({ page }) => {
+    const lib = await modules(page);
+    const count = await page.evaluate((lib) => {
+      const ref = (id) => ({ ty: 0, refId: id, ip: 0, op: 10, ks: {}, w: 100, h: 100 });
+      const assets = [{ id: "a0", layers: [{ ty: 1, sc: "#ff0000", sw: 1, sh: 1, ip: 0, op: 10, ks: {} }] }];
+      for (let i = 1; i <= 12; i++) assets.push({ id: `a${i}`, layers: Array.from({ length: 10 }, () => ref(`a${i - 1}`)) });
+      const file = { w: 100, h: 100, fr: 10, ip: 0, op: 10, assets, layers: [ref("a12")] };
+      return lib.render.render(lib.model.parse(JSON.stringify(file)), 0).length;
+    }, lib);
+    expect(count).toBeLessThanOrEqual(10_000);
+    expect(count).toBeGreaterThan(0);
+  });
+});

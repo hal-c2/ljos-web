@@ -57,9 +57,9 @@ function easeAt(ease, c) {
   return x === undefined || y === undefined ? null : [x, y];
 }
 
-// The in tangent of a segment: on the next key in today's files, on the key
-// itself in older ones.
-const nextIn = (key, next, c) => easeAt(next.inEase, c) ?? easeAt(key.inEase, c);
+// The in tangent of a segment: on the key it starts from, as the format
+// has it (`i` beside `o`); on the next key where the first has none.
+const nextIn = (key, next, c) => easeAt(key.inEase, c) ?? easeAt(next.inEase, c);
 
 function blendNumbers(a, b, progress) {
   return a.map((value, c) => value + ((b[c] ?? value) - value) * progress(c));
@@ -325,7 +325,9 @@ function shape(o, warnings) {
     case "tm":
       return { kind: "trim", start: get(o, "s", []), end: get(o, "e", [100]), offset: get(o, "o", []), sequential: int(o, "m", 1) === 2 };
     default:
-      warnings.push(`shapes of type ${JSON.stringify(String(o.ty ?? ""))} are not drawn`);
+      // A type that is not a string is said as none: what JSON gives
+      // (`{"toString": 1}`) may not be made into one.
+      warnings.push(`shapes of type ${JSON.stringify(typeof o.ty === "string" ? o.ty : "")} are not drawn`);
       return { kind: "other" };
   }
 }
