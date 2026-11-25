@@ -9,7 +9,10 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const roots = ["site-ljos/bundle", "site/src/demos"];
+// What a visitor sees or remixes: the site's own QML, the Astro reference's
+// and the showcase's, and the text of a QML file shown as a `.qml.txt`.
+const roots = ["site-ljos/bundle", "site/src"];
+const qml = (path) => path.endsWith(".qml") || path.endsWith(".qml.txt");
 
 const walk = (dir) =>
   readdirSync(dir).flatMap((name) => {
@@ -19,14 +22,14 @@ const walk = (dir) =>
 
 const files = roots
   .flatMap((root) => walk(join(repo, root)))
-  .filter((path) => path.endsWith(".qml"))
+  .filter(qml)
   .map((path) => ({ file: relative(repo, path), text: readFileSync(path, "utf8") }));
 
-// The first load: every page loads the site's shell and the Pantry demo
-// before a reader does anything, and Ljos.Ui and Ljos.Layout are each one
-// module a bundler keeps whole (about 23 kB gzip more), which takes
-// /data/models/ over the 405 kB ceiling (payload.spec.js).
-const firstLoad = "on every page's first load; Ljos.Ui and Ljos.Layout cost about 23 kB gzip there, over the 405 kB ceiling";
+// The first load: every page loads the site's shell before a reader does
+// anything, and Ljos.Ui and Ljos.Layout are each one module a bundler keeps
+// whole, about 23 kB gzip a docs page does not load yet (payload.spec.js
+// holds every page to 405 kB). The chrome moves over in a change of its own.
+const firstLoad = "on every page's first load, where Ljos.Ui and Ljos.Layout add about 23 kB gzip to a docs page; it moves over on its own";
 // A copy of hal-c2/ljos-ui's examples, pinned to the commit it names
 // (pro.spec.js): it changes there and comes over by scripts/sync-demo.mjs.
 const synced = "a copy of hal-c2/ljos-ui's examples: it moves there";
@@ -35,7 +38,7 @@ const site = (names, reason) => Object.fromEntries(names.map((name) => [`site-lj
 
 // Files that import QtQuick itself, and why.
 const qtQuick = {
-  ...site(["Main", "Shells/Elegant", "Demos/PantryDemo", "Demos/PantryShell", "Pantry/Basket", "Pantry/Note", "Pantry/StatusSlot"], firstLoad),
+  ...site(["Main", "Shells/Elegant"], firstLoad),
   ...site(
     [
       "Brand", "CodeBlock", "CodeEditor", "ControlsHost", "DemoFrame", "DemoSection", "DemosPage", "DocPage", "DocsMap", "Footer",
@@ -72,11 +75,16 @@ const qtQuick = {
   ...site(["Demos/ModuleLoader"], "Ljos.Ui's Loader takes a url, not a lazy import or a live module, and a component that is never missing"),
   ...site(["Demos/HeldBinding"], "Ljos.Core's Binding takes a QtObject target, not an object a loaded app names"),
   ...site(["Demos/DispatchShell"], "Ljos.Blocks' ShellLoader takes a url source and fallback, not a lazy import or a component, and its item is untyped"),
-  // What the build writes (Content, ShowcaseApps, DispatchSource) is not in
-  // a checkout until it runs, and CI's ljos check runs before it: these three
+  ...site(["Demos/PantryStage"], "Ljos.Blocks' ShellLoader takes a url source and fallback, not a shell compiled in the page or a component"),
+  // What the build writes (Content, ShowcaseApps, DispatchSource, PantryProject)
+  // is not in a checkout until it runs, and CI's ljos check runs before it: these
   // read those singletons by name for the typed files that use them.
-  ...site(["Site/Built", "Site/ShowcaseBuilt", "Demos/DispatchBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
+  ...site(["Site/Built", "Site/ShowcaseBuilt", "Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
+  "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
+  // ljos-play's own example as its repository has it, at the commit
+  // ShowcaseApps names: it changes there, not here.
+  "site-ljos/bundle/Showcase/play/snail-post.qml.txt": "a copy of hal-c2/ljos-play's Snail Post example: it moves there",
   // A visitor's edit to it is compiled in the page and run by
   // Ljos/Blocks/shell.js, which makes QtQuick's types only.
   "site/src/demos/pantry/Shell.qml": "a visitor's edit runs in the page's shell runner, which makes QtQuick's types only",
@@ -91,7 +99,7 @@ const qtQuick = {
 const qtQuickModules = {
   "QtQuick.Controls": {
     ...site(["Site/ControlsHost"], "it builds the page with Qt Quick Controls, which readers' in-page compiles import"),
-    ...site(["Pantry/Note"], "a reader's edit compiles in the page against QtQuick.Controls; Ljos.Controls would bring QtQuick.Shapes and Binding into the first load"),
+    "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
     "site/src/demos/pantry/Pantry/Note.qml": "the Pantry demo's in-page compile maps QtQuick.Controls; Ljos.Controls would bring QtQuick.Shapes and Binding with it",
   },
   "QtQuick.Effects": {

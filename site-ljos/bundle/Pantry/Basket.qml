@@ -1,6 +1,5 @@
-// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
 import Ljos.Blocks
 
 // The basket block owns the app's state, actions, and status contribution.
@@ -12,7 +11,7 @@ Rectangle {
     width: 300
     height: 64
     radius: 8
-    color: look.basket
+    fill: look.basket
 
     // Remix knobs: change any item price in one line.
     readonly property real teaPrice: 3.5
@@ -51,9 +50,9 @@ Rectangle {
         added(count);
     }
 
-    QtObject {
+    Object {
         id: look
-        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property bool dark: App.hints.colorScheme === ColorScheme.Dark
         readonly property color basket: dark ? "#2a2118" : "#fbf1de"
         readonly property color basketMuted: dark ? "#d8c39a" : "#6b5a3a"
         readonly property color basketStatus: dark ? "#f3c97e" : "#7a4c00"
@@ -67,7 +66,7 @@ Rectangle {
             Text {
                 objectName: "statusText"
                 color: look.basketStatus
-                font.pixelSize: 16
+                font.size: 16
                 text: basket.summary
             }
         }
@@ -75,24 +74,20 @@ Rectangle {
 
     Text {
         objectName: "basketText"
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: 14
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        anchors.left: parent.left
+        anchors.leftMargin: 14
         y: 10
         color: look.ink
-        font.pixelSize: 18
+        font.size: 18
         text: t`Basket`
     }
     Text {
         objectName: "basketSummary"
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: 14
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        anchors.left: parent.left
+        anchors.leftMargin: 14
         y: 36
         color: look.basketMuted
-        font.pixelSize: 16
+        font.size: 16
         text: basket.summary
     }
 }

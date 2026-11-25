@@ -698,24 +698,25 @@ async function stageButton(page, name) {
 // A visitor's own shell over the Pantry's blocks: its own title, the
 // basket, one button that adds tea, the status and the note.
 const MY_SHELL = [
-  "import QtQuick",
+  "import Ljos.Ui",
+  "import Ljos.Layout",
   "import Pantry",
   "",
   "Rectangle {",
   "    width: 480",
   "    height: 400",
-  '    color: "#241a10"',
+  '    fill: "#241a10"',
   "    Column {",
   "        x: 18",
   "        y: 14",
   "        spacing: 12",
-  '        Text { text: "My Pantry"; color: "#f0ead8"; font.pixelSize: 24 }',
+  '        Text { text: "My Pantry"; color: "#f0ead8"; font.size: 24 }',
   "        Basket { id: basket; width: 444 }",
   "        Row {",
   "            spacing: 10",
-  '            Rectangle { width: 140; height: 58; radius: 8; color: "#232839"',
-  '                Text { x: 10; y: 8; color: "#e8eaf0"; font.pixelSize: 15; text: "Tea" }',
-  '                MouseArea { width: 140; height: 58; Accessible.name: "Add tea"; Accessible.role: Accessible.Button; onClicked: basket.addTea() } }',
+  '            Rectangle { width: 140; height: 58; radius: 8; fill: "#232839"',
+  '                Text { x: 10; y: 8; color: "#e8eaf0"; font.size: 15; text: "Tea" }',
+  '                PointerArea { anchors.fill: parent; Accessible.name: "Add tea"; Accessible.role: Accessible.Button; onClicked: basket.addTea() } }',
   "        }",
   "        StatusSlot {}",
   "        Note { width: 444 }",
@@ -743,7 +744,7 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
 
   // A broken shell is refused with what broke and where, and the
   // running shell stands; the next good edit takes over again.
-  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await editor.fill("import Ljos.Ui\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
   await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
   await expect(editor.locator(".cm-lintRange-error").first()).toBeVisible();
   await expect(editor).toHaveAttribute("aria-invalid", "true");
@@ -763,7 +764,7 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
   // A broken edit refused, then undone: the refusal clears and
   // the good shell stands again.
-  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await editor.fill("import Ljos.Ui\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
   await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
   await editor.fill(app);
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });

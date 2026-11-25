@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and a name
-// both have (Timer) stays QtQuick's, the later import.
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Ljos.Blocks
 import Site
 import Demos
@@ -41,7 +40,7 @@ Column {
     // Whether its Observer is fetched ahead, once the page is idle.
     property bool observerWhenIdle: true
 
-    width: parent ? parent.width : 680
+    width: parent !== null ? parent.width : 680
     spacing: 0
 
     function apply() {
@@ -53,11 +52,11 @@ Column {
             started = true;
             // At once, as CodeBlock gives its stage's: what a visitor
             // does to the app's shell before a check answered is kept.
-            stage.source = LivePantry.sourceFor();
+            stage.module = LivePantry.sourceFor();
             return;
         }
-        stage.reload().then(function (why) {
-            demo.said = why || "";
+        LivePantry.whyNot(stage.reloadModule()).then((why: string) => {
+            demo.said = why;
             editor.diagnostics = LivePantry.diagnostics();
         });
     }
@@ -67,7 +66,7 @@ Column {
     // settle outside a flush) or after it (a handler queued
     // inside one) — it compares equal and restarts nothing; the
     // debounce a visitor's typing just armed is stopped as well.
-    function writeOwn(text) {
+    function writeOwn(text: string) {
         applied = text;
         editor.text = text;
         debounce.stop();
@@ -75,7 +74,7 @@ Column {
 
     // Before the first edit the stage is the app's shell already.
     function resetToAppShell() {
-        writeOwn(PantryProject.shellText);
+        writeOwn(PantryBuilt.shellText);
         if (started)
             apply();
     }
@@ -85,12 +84,12 @@ Column {
     // first apply fetches the compiler, megabytes of wasm.
     Component.onCompleted: {
         Observing.watch(demo.observerMoved);
-        LivePantry.setProject(PantryProject.files, PantryProject.shellText);
-        writeOwn(PantryProject.shellText);
+        LivePantry.setProject(PantryBuilt.files, PantryBuilt.shellText);
+        writeOwn(PantryBuilt.shellText);
         // As CodeBlock asks it: before any edit, so the demo says why
         // it cannot be rewritten here before it is tried.
-        LivePantry.needsWasm().then(function (why) {
-            if (why) {
+        LivePantry.needsWasm().then((why: string) => {
+            if (why !== "") {
                 demo.runs = false;
                 demo.said = why;
             }
@@ -130,19 +129,17 @@ Column {
         width: parent.width
         height: bench.height + 2
         radius: Theme.radiusLarge
-        color: Theme.divider
+        fill: Theme.divider
 
         Rectangle {
             id: bench
-            // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
-            readonly property real startX: 1
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            anchors.left: parent.left
+            anchors.leftMargin: 1
             y: 1
             width: parent.width - 2
             height: demo.side ? 400 : stageBox.height + 1 + head.height + editorBox.height
             radius: Theme.radiusLarge - 1
-            color: Theme.codeBg
+            fill: Theme.codeBg
             clip: true
 
             // The stage: the running app, under whichever shell stands. It
@@ -156,26 +153,26 @@ Column {
                 readonly property real fit: Math.min(1, width / 480)
                 width: demo.side ? 480 : parent.width
                 // Beside the editor, it changes sides with it on a right-to-left page.
-                x: LayoutMirroring.enabled ? parent.width - width : 0
+                anchors.left: parent.left
                 height: Math.round(400 * fit)
-                color: Theme.stage
+                fill: Theme.stage
                 Accessible.role: Accessible.Grouping
                 Accessible.name: t`The Pantry, running`
 
-                ShellLoader {
+                PantryStage {
                     id: stage
                     onItemChanged: Observing.retarget(demo.observerKey, item)
                     width: 480
                     height: 400
-                    scale: stageBox.fit
-                    transformOrigin: Item.TopLeft
-                    // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
-                    readonly property real startX: Math.max(0, (parent.width - width * stageBox.fit) / 2)
-                    // Scaled from its top left, it takes width × fit.
-                    x: LayoutMirroring.enabled ? parent.width - width * stageBox.fit - startX : startX
+                    // Scaled from its top left, it takes width × fit, centred
+                    // in the stage: the same place read from either side.
+                    transform: Scale {
+                        xScale: stageBox.fit
+                        yScale: stageBox.fit
+                    }
+                    x: Math.max(0, (parent.width - width * stageBox.fit) / 2)
                     // Ljós on the desktop takes a shell by its address alone.
-                    fallback: Host.desktop ? Host.desktop.qml("Demos/PantryShell") : appShell
+                    stand: Host.desktop !== undefined ? Host.desktop.qml("Demos/PantryShell") : appShell
                 }
                 Component {
                     id: appShell
@@ -184,29 +181,25 @@ Column {
             }
             // The hairline between the app and its source.
             Rectangle {
-                // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
-                readonly property real startX: demo.side ? stageBox.width : 0
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                anchors.left: parent.left
+                anchors.leftMargin: demo.side ? stageBox.width : 0
                 y: demo.side ? 0 : stageBox.height
                 width: demo.side ? 1 : parent.width
                 height: demo.side ? parent.height : 1
-                color: Theme.divider
+                fill: Theme.divider
             }
 
             Column {
-                // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
-                readonly property real startX: demo.side ? stageBox.width + 1 : 0
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                anchors.left: parent.left
+                anchors.leftMargin: demo.side ? stageBox.width + 1 : 0
                 y: demo.side ? 0 : stageBox.height + 1
-                width: parent.width - startX
+                width: parent.width - anchors.leftMargin
 
                 Rectangle {
                     id: head
                     width: parent.width
                     height: Math.max(headRow.implicitHeight, observerButton.implicitHeight) + 2 * Theme.xs
-                    color: Theme.surface
+                    fill: Theme.surface
 
                     Row {
                         id: headRow
@@ -220,17 +213,17 @@ Column {
                             - (observerButton.visible ? observerButton.width + observerButton.anchors.rightMargin + spacing : anchors.leftMargin)
 
                         Text {
-                            anchors.verticalCenter: parent.verticalCenter
+                            Layout.alignment: Align.VCenter
                             width: Math.max(0, Math.min(implicitWidth, headRow.room - resetButton.width - headRow.spacing))
                             elide: Text.ElideRight
                             color: Theme.textMuted
                             font.family: Theme.mono
-                            font.pixelSize: Theme.captionSize - 1
+                            font.size: Theme.captionSize - 1
                             text: t`Shell.qml: edit it live`
                         }
                         StageButton {
                             id: resetButton
-                            anchors.verticalCenter: parent.verticalCenter
+                            Layout.alignment: Align.VCenter
                             text: t`Reset`
                             label: t`Reset to the app's shell`
                             onPressed: demo.resetToAppShell()
@@ -248,13 +241,13 @@ Column {
                         visible: stage.item !== null
                         checked: demo.observing
                         label: t`Observer for the Pantry`
-                        onPressed: Observing.toggle(demo.observerKey, stage.item, null, t`the Pantry`)
+                        onPressed: Observing.toggle(demo.observerKey, stage.item, undefined, t`the Pantry`)
                     }
                     Rectangle {
                         y: parent.height - 1
                         width: parent.width
                         height: 1
-                        color: Theme.divider
+                        fill: Theme.divider
                     }
                 }
 
@@ -262,7 +255,7 @@ Column {
                     id: editorBox
                     width: parent.width
                     height: demo.editorHeight
-                    color: Theme.codeBg
+                    fill: Theme.codeBg
                     // The ring of the editor in it, which scrolls (Site/CodeEditor).
                     border.color: editor.activeFocus ? Theme.focusRing : "transparent"
                     border.width: 2
@@ -282,12 +275,12 @@ Column {
                             // The Flickable's own width: its content item is as wide as
                             // the editor, so `parent.width` would go round.
                             width: Math.max(editorScroll.width, implicitWidth)
-                            code: PantryProject.shellText
-                            rich: PantryProject.shellRich
+                            code: PantryBuilt.shellText
+                            rich: PantryBuilt.shellRich
                             label: t`Edit the Pantry's Shell.qml`
                             errors: told
                             onTextChanged: {
-                                if (text !== demo.applied)
+                                if (editor.text !== demo.applied)
                                     debounce.restart();
                             }
                         }
@@ -305,20 +298,20 @@ Column {
         text: demo.said || stage.error
         color: Theme.danger
         font.family: Theme.mono
-        font.pixelSize: Theme.captionSize
+        font.size: Theme.captionSize
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.captionLine
-        wrapMode: Text.Wrap
+        wrap: Text.Wrap
     }
     Text {
         width: parent.width
         topPadding: Theme.m
-        text: t`Try moving StatusSlot below Basket, setting color: "#241a10", or renaming the shop. Your basket and note stay as they are.`
+        text: t`Try moving StatusSlot below Basket, setting fill: "#241a10", or renaming the shop. Your basket and note stay as they are.`
         color: Theme.textMuted
         font.family: Theme.sans
-        font.pixelSize: Theme.uiSize
+        font.size: Theme.uiSize
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.uiLine
-        wrapMode: Text.Wrap
+        wrap: Text.Wrap
     }
 }

@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import Ljos.Blocks
 
 // A named slot a shell can place anywhere. Basket contributes its status line
