@@ -1,5 +1,6 @@
+pragma Scripts: JavaScript
 import Ljos.Core
-pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Ui
 import Ljos.Layout
 import Site
 import "../nav.js" as Nav
