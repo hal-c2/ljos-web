@@ -56,20 +56,32 @@ async function awayFrom(page) {
   }, "the world is scrolled off screen").toPass();
 }
 
+// Farther than a walker goes between two readings (a few frames: a few
+// steps of 2 px, at the scale the frame draws the world): a canvas put
+// somewhere else, which is not walking. A pose's sheet (LjosPlay/Sheet.qml)
+// is one canvas of all its frames, moved a cell (18 px) under its clip for
+// each frame it shows; a snail that naps nods, and would walk as far.
+const JUMP = 12;
+
 // How far the farthest walker went while the scene's clock gave `ms`, or,
 // with `wall`, while `ms` went by on the test's own clock: the path of each
 // canvas, read every few frames, summed. A walker stops at its goal, so the
-// farthest of them says how fast they walk.
-async function walked(page, ms, { wall = false } = {}) {
+// farthest of them says how fast they walk. A move farther than `JUMP` is
+// left out, and counted in `seen.jumps`.
+async function walked(page, ms, { wall = false, seen = {} } = {}) {
   const start = await clockOf(page);
   const began = Date.now();
   let last = await places(page);
   const paths = {};
+  seen.jumps = 0;
   for (;;) {
     await animationFrames(page, 3);
     const now = await places(page);
     for (const [name, [x, y]] of Object.entries(now)) {
-      if (last[name]) paths[name] = (paths[name] ?? 0) + Math.abs(x - last[name][0]) + Math.abs(y - last[name][1]);
+      if (!last[name]) continue;
+      const moved = Math.abs(x - last[name][0]) + Math.abs(y - last[name][1]);
+      if (moved > JUMP) seen.jumps++;
+      else paths[name] = (paths[name] ?? 0) + moved;
     }
     last = now;
     const clock = await clockOf(page);
@@ -259,9 +271,10 @@ test.describe("Snail Post on /showcase/", () => {
       // over the same two seconds of the test's clock: the worlds step on
       // timers, which a loaded page's scene clock (capped in each frame)
       // falls behind, and the two pages' clocks fall behind unalike.
+      const [calmSeen, fullSeen] = [{}, {}];
       const [[calm, calmFrames], [full, fullFrames]] = await Promise.all([
-        framesDuring(page, () => walked(page, 2000, { wall: true })),
-        framesDuring(other, () => walked(other, 2000, { wall: true })),
+        framesDuring(page, () => walked(page, 2000, { wall: true, seen: calmSeen })),
+        framesDuring(other, () => walked(other, 2000, { wall: true, seen: fullSeen })),
       ]);
       await context.close();
       // Each by the steps its world took: one a frame at most, at most
@@ -269,7 +282,7 @@ test.describe("Snail Post on /showcase/", () => {
       // less for that alone.
       const steps = (frames) => Math.max(1, Math.min(frames, BEATS));
       const [calmStep, fullStep] = [calm / steps(calmFrames), full / steps(fullFrames)];
-      const drawn = `${calm} and ${full} px; the pages drew ${calmFrames} and ${fullFrames} frames a second, of the world's ${BEATS} beats`;
+      const drawn = `${calm} and ${full} px; the pages drew ${calmFrames} and ${fullFrames} frames a second, of the world's ${BEATS} beats; ${calmSeen.jumps} and ${fullSeen.jumps} jumps left out`;
       expect(calmStep, `slower a step than with no preference; ${drawn}`).toBeLessThan(fullStep * 0.8);
       expect(calmStep, `and not still; ${drawn}`).toBeGreaterThan(fullStep * 0.2);
       expect(unexpected(errors)).toEqual([]);
