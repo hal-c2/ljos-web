@@ -2454,3 +2454,15 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:137
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#: ../Site/BuiltWith.qml:54
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
+msgstr "Un poste de contrôle pour les agents de code de votre machine, avec un terminal, des onglets de navigateur et une disposition QML modifiable pendant qu’elle tourne. Son <a href=\"/showcase/\">extension Office</a> est dans la vitrine."
+
+#: ../Site/BuiltWith.qml:52 ../Site/Footer.qml:138
+msgid "HAL-C2"
+msgstr "HAL-C2"
+
+#: ../Site/BuiltWith.qml:57
+msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
+msgstr "Les réglages d’apparence de HAL-C2 sur Ljós : les sections des réglages à gauche, les options de jeu de couleurs System/Light/Dark et une liste de thèmes où HAL-C2 est choisi."
