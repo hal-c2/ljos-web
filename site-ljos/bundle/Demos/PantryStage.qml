@@ -12,7 +12,9 @@ ShellLoader {
     property var module
     // What stands until then: the app's own shell.
     property var stand
-    source: module
+    // An empty url, not undefined, until there is one: the native
+    // ShellLoader's `source` is a url, and both runtimes read "" as none.
+    source: module ?? ""
     fallback: stand
 
     // Makes the shell again from what `module` gives now, and answers
