@@ -46,7 +46,7 @@ Item {
             id: app
             anchors.fill: parent
             made: Live.isLive(demo.live) ? undefined : own
-            module: demo.live ?? undefined
+            module: demo.live ?? ""
         }
     }
     Component {

@@ -59,8 +59,9 @@ function isFile(value: unknown): value is File {
 }
 
 export function fileIn(project: unknown, path: string): unknown {
-  const files = typeof project === "object" && project !== null && "files" in project && Array.isArray(project.files) ? project.files : []
-  return files.find((file: unknown) => isFile(file) && file.path === path) ?? null
+  const none: unknown[] = []
+  const files = typeof project === "object" && project !== null && "files" in project && Array.isArray(project.files) ? project.files : none
+  return files.find((file: unknown) => isFile(file) && file.path === path)
 }
 
 export function codeOf(file: unknown): string {
@@ -73,40 +74,12 @@ export function richOf(file: unknown): string {
 
 // The reader's edit, as example-live.js takes edits: by the file's path.
 export function edits(path: string, text: string): Record<string, string> {
-  return { [path]: text }
+  const made: Record<string, string> = {}
+  made[path] = text
+  return made
 }
 
 export function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
-// What the compiler said of `path`, for the editor's squiggles.
-export function diagnosticsOf(error: unknown, path: string): unknown[] {
-  if (typeof error !== "object" || error === null || !("diagnostics" in error)) return []
-  const said = error.diagnostics
-  if (typeof said !== "object" || said === null || !(path in said)) return []
-  const list: unknown = (said as Record<string, unknown>)[path]
-  return Array.isArray(list) ? list : []
-}
-
-// A capture as Showcase/products.json gives it (products.ts's Capture),
-// read from the unknown value the engine's entry holds.
-function field(capture: unknown, name: string): unknown {
-  return typeof capture === "object" && capture !== null && name in capture ? (capture as Record<string, unknown>)[name] : undefined
-}
-const text = (value: unknown): string => (typeof value === "string" ? value : "")
-
-export function nameOf(capture: unknown): string {
-  return text(field(capture, "name"))
-}
-export function altOf(capture: unknown): string {
-  return text(field(capture, "alt"))
-}
-export function showsOf(capture: unknown): string {
-  return text(field(capture, "shows"))
-}
-export function aspectOf(capture: unknown): number {
-  const width = field(capture, "width")
-  const height = field(capture, "height")
-  return typeof width === "number" && typeof height === "number" && width > 0 ? height / width : 0.7
+  if (typeof error === "string") return error
+  return typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" ? error.message : ""
 }
