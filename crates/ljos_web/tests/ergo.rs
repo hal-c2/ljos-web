@@ -254,6 +254,40 @@ Item {
     assert_lacks(&code, "ljos-web/Ljos/Core");
 }
 
+/// A delegate's model may have a role of any name, and QML reads the role
+/// first; where the model has none, what Ljos.Core gives is read, as a
+/// global of JavaScript's is, never a role nobody gave.
+#[test]
+fn what_ljos_core_gives_is_read_in_a_delegate_unless_the_model_has_the_role() {
+    let main = given(
+        r#"import Ljos.Ui
+import Ljos.Core
+Item {
+  property int base: 3
+  Repeater {
+    model: 2
+    delegate: Item {
+      property int twice: 0
+      Component.onCompleted: twice = bind(() => base * 2)
+    }
+  }
+  Component {
+    id: kept
+    Item {
+      property int thrice: 0
+      Component.onCompleted: thrice = bind(() => base * 3)
+    }
+  }
+  Loader { sourceComponent: kept }
+}"#,
+    );
+    let code = code_of(&[("Main.qml", main)], "Main.qml", "Main.qml");
+    assert_contains(&code, r#""bind" in $data ? $data.bind("#);
+    assert_contains(&code, ") : bind(");
+    assert_lacks(&code, "= $data.bind(");
+    assert_contains(&code, r#"import { bind } from "ljos-web/Ljos/Core";"#);
+}
+
 #[test]
 fn a_file_that_does_not_import_ljos_core_has_none_of_it() {
     let main = given(

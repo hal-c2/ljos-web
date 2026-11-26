@@ -366,11 +366,18 @@ impl<'a> Resolver<'a, '_, '_> {
             tree: &tree.front,
             types: self.types.front(),
         };
-        let mut resolution = names.lookup(name, span.start).map(|mut resolution| {
+        // What Ljos.Core gives, to a file that imports it: the front end's
+        // `global` knows only QML's and JavaScript's.
+        let core = (CORE_GLOBALS.contains(&name) && self.types.front().imports(CORE))
+            .then_some(qml_front::names::Global::Core);
+        let resolution = names.lookup(name, span.start).map(|mut resolution| {
             // A delegate's model may have a role of any name, so a global's
             // name in a delegate comes back as the outermost model's role,
             // with nothing behind it. QML finds the global where no model
-            // has the role: it is what is read when none does. What is
+            // has the role: it is what is read when none does, Ljos.Core's
+            // `bind` or `t` as much as JavaScript's `parseInt`. A message
+            // written out is read as the file is compiled
+            // ([`is_message_macro`](Self::is_message_macro)). What is
             // assigned to has to be one place, and is the role, as before.
             if let Some(qml_front::names::Target::Context {
                 context,
@@ -378,35 +385,13 @@ impl<'a> Resolver<'a, '_, '_> {
             }) = &resolution.target
                 && !written
                 && !matches!(role.as_str(), "index" | "model" | "modelData")
-                && let Some(global) = qml_front::names::global(name)
+                && let Some(global) = qml_front::names::global(name).or(core)
             {
                 resolution.roles.push(*context);
                 resolution.target = Some(qml_front::names::Target::Global(global));
             }
             resolution
         });
-        // `t(m)`, or `select` read, in a delegate: a message macro is a
-        // global the pinned front end does not know yet, so it is found as
-        // one is above: the model's role where it has one, else Ljos.Core's
-        // macro. A message written out is read as the file is compiled
-        // ([`is_message_macro`](Self::is_message_macro)); this is the rest.
-        if !written
-            && let Some(resolution) = &mut resolution
-            && resolution.aimed.is_none()
-            && let Some(qml_front::names::Target::Context {
-                context,
-                name: role,
-            }) = &resolution.target
-            && !matches!(role.as_str(), "index" | "model" | "modelData")
-            && let Some(kind) = MacroKind::named(name)
-            && self.types.front().imports(CORE)
-        {
-            self.uses.core.insert(kind.name());
-            resolution.roles.push(*context);
-            resolution.target = Some(qml_front::names::Target::Global(
-                qml_front::names::Global::Core,
-            ));
-        }
         let (aimed, roles, target) = match resolution {
             Some(resolution) => {
                 if let Some(qml_front::names::Target::Global(global)) = &resolution.target {
