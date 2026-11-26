@@ -60,6 +60,23 @@ test("a demo's editor holds its QML and TypeScript, as the pin names them", () =
   ]);
 });
 
+// A demo made for the site itself (`upstream: null`) has no pin: its
+// editor holds every QML and TypeScript file of its directory.
+test("a demo of the site's own holds every QML and TypeScript file it has", () => {
+  const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "own-"));
+  mkdirSync(join(root, "logic"));
+  writeFileSync(join(root, "Main.qml"), "import QtQuick\nItem {}\n");
+  writeFileSync(join(root, "logic/sea.ts"), "export const tide = 1;\n");
+  writeFileSync(join(root, "notes.txt"), "not shipped\n");
+  const project = projectOf(root, (code, lang) => [{ code, lang }]);
+  expect(project.commit).toBeNull();
+  expect(project.files.map(({ path, lang }) => [path, lang])).toEqual([
+    ["Main.qml", "qml"],
+    ["logic/sea.ts", "ts"],
+  ]);
+  expect(shippedBy({ ...second, upstream: null })("logic/sea.ts")).toBe(true);
+});
+
 test("a demo ships its QML, TypeScript and assets, and leaves what made them", () => {
   const shipped = shippedBy(second);
   expect(["Main.qml", "logic/sea.ts", "assets/ship.glb"].every(shipped)).toBe(true);
@@ -93,7 +110,17 @@ test("a rename marked in the worktree column is changed on both sides", () => {
   expect(changedIn(" C app/Copy.qml\0bigapp/Main.qml\0", "app")).toEqual(["Copy.qml"]);
 });
 
-for (const demo of demos) {
+for (const demo of demos.filter((demo) => demo.upstream === null)) {
+  test(`${route(demo)} is the site's own: no pin, and only what the app runs on`, () => {
+    const target = targetOf(demo);
+    const here = walk(target).sort();
+    expect(here).not.toContain("UPSTREAM.json");
+    expect(here.every(shippedBy(demo)), here.join(", ")).toBe(true);
+    expect(here).toContain(demo.entry);
+  });
+}
+
+for (const demo of demos.filter((demo) => demo.upstream !== null)) {
   const target = targetOf(demo);
   const upstream = JSON.parse(readFileSync(join(target, "UPSTREAM.json"), "utf8"));
 

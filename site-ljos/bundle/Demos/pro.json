@@ -65,5 +65,31 @@
       "height": 992
     },
     "picture": "demo-watch"
+  },
+  {
+    "name": "agent-built",
+    "dir": "Dispatch",
+    "app": "AgentBuiltDemo.qml",
+    "entry": "Main.qml",
+    "upstream": null,
+    "title": "Agent-built (replay)",
+    "description": "A recorded step-by-step replay of a coding agent editing, checking, auditing, and driving a live dispatch app over MCP.",
+    "summary": "Watch a recorded MCP session build and verify a live field-service dispatch card for Brekka Grid (a made-up grid operator). Every step shows the exact tool call from ljos mcp and ljos run --mcp — structural QML edits, compiler checks, accessibility snapshot queries, pointer actions, binding inspection, and design contrast audit — replayed against the real running widget on this page. This demo is a recorded replay, not a live LLM connection.",
+    "use": "The replay plays by itself. Pause it, step back and forth, or press any call in the log to jump to it; the card on the right is the running app, ringed where each call touched it. At step 14 the agent waits for the app to log something: assign a crew to a ticket in the card and the agent reads your pick. The card is yours to use at any step.",
+    "tryThis": "Press Play to step through the recorded MCP calls, pause on any step to inspect the widget yourself in Observer, or jump to step 5 to see app_audit catch and fix a low-contrast status badge. Edit DispatchCard.qml below and your edit runs in place of the replay.",
+    "card": "Agent-built (replay)",
+    "cardBody": "A recorded step-by-step replay of a coding agent editing, checking, auditing, and driving a live dispatch app over MCP. Opens on its own page, where the card it builds runs beside every call.",
+    "cardAlt": "A split view showing a recorded MCP tool-call log on the left driving a live Brekka Grid dispatch card on the right.",
+    "open": "Open the replay",
+    "what": "the agent-built replay",
+    "shows": "A split view showing a recorded MCP tool-call log on the left driving a live Brekka Grid dispatch card on the right.",
+    "needs": "wasm",
+    "width": 1280,
+    "height": 760,
+    "compact": {
+      "width": 400,
+      "height": 900
+    },
+    "picture": "demo-agent-built"
   }
 ]

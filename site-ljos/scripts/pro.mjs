@@ -8,7 +8,8 @@
 // An entry: `name` (its route's last part), `dir` (its copied files
 // under bundle/Demos), `app` (the file under bundle/Demos that runs
 // them in the page's frame), `entry` (the app's root file), `upstream`
-// (where the files are copied from, and what there is `leave`n out),
+// (where the files are copied from, and what there is `leave`n out; null
+// for a demo made for the site itself, whose files are its own),
 // the words of its page and card, `needs` (what DemoFrame needs),
 // `width` and `height` (its shape), and `picture` (its pictures' name:
 // `<picture>.webp` light, `<picture>-dark.webp` dark). Optional: `use`
@@ -19,8 +20,8 @@
 // `scheme` (dark or light, for an app with one look; without it the
 // pictures follow the site).
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const bundle = resolve(dirname(fileURLToPath(import.meta.url)), "../bundle");
@@ -42,7 +43,7 @@ export const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex"
 // What an app runs on: its QML, its TypeScript and its assets. What
 // made them (a build script, the source of a model) is left upstream,
 // and so is anything outside those, such as a native crate's files.
-export const shippedBy = (demo) => (path) => !demo.upstream.leave.includes(path) && (/\.(qml|ts)$/.test(path) || path.startsWith("assets/"));
+export const shippedBy = (demo) => (path) => !(demo.upstream?.leave ?? []).includes(path) && (/\.(qml|ts)$/.test(path) || path.startsWith("assets/"));
 // What `git ls-files -z` lists of the app at `example`, by each file's
 // path in the app. NUL-ended records hold each path as it is: git
 // quotes nothing in them.
@@ -67,8 +68,15 @@ export function changedIn(output, example) {
 
 // A demo's source, as data for its editor: each QML and TypeScript file
 // its UPSTREAM.json pins, with its highlighting (`colour(code, lang)`).
+// A demo of the site's own has no pin: its files are what its directory
+// holds, and it names no commit.
+const walk = (root, directory = root) =>
+  readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => (entry.isDirectory() ? walk(root, join(directory, entry.name)) : [relative(root, join(directory, entry.name))]))
+    .sort();
 export function projectOf(root, colour) {
-  const upstream = JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
+  const pin = join(root, "UPSTREAM.json");
+  const upstream = existsSync(pin) ? JSON.parse(readFileSync(pin, "utf8")) : { commit: null, files: Object.fromEntries(walk(root).map((path) => [path, ""])) };
   const text = Object.keys(upstream.files).filter((path) => /\.(qml|ts)$/.test(path));
   return {
     commit: upstream.commit,
