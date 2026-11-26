@@ -1,5 +1,4 @@
 import Ljos.Ui
-import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Site
@@ -68,7 +67,7 @@ Item {
 
         // On the side the words start from, as they are.
         Rectangle {
-            x: Q.LayoutMirroring.enabled ? sayRow.width - width : 0
+            x: App.layoutDirection === Direction.RightToLeft ? sayRow.width - width : 0
             y: 7
             width: 6
             height: 6
@@ -80,7 +79,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 14
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             width: parent.width - startX
             text: line.text
             color: line.kind === "end" ? Theme.text : Theme.textMuted
@@ -110,7 +109,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Theme.s
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: Theme.xs
             width: parent.width - 2 * Theme.s
             spacing: 2
@@ -195,7 +194,7 @@ Item {
         height: eventText.height + 6
 
         Rectangle {
-            x: Q.LayoutMirroring.enabled ? eventRow.width - width : 0
+            x: App.layoutDirection === Direction.RightToLeft ? eventRow.width - width : 0
             width: 2
             height: eventRow.height
             radius: 1
@@ -206,7 +205,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Theme.s
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: 3
             width: parent.width - startX
             text: t`app` + "  " + (line.text)
