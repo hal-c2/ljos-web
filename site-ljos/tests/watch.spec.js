@@ -216,6 +216,16 @@ test("the watch's file tabs are one tab stop, and the arrows go along them", asy
     await page.keyboard.press("Shift+Tab");
   }
   expect(await ringed(), "the stop is the file chosen by pointer").toEqual([second]);
+  // The open file's tab clicked again changes no file, but takes the
+  // stop and the keyboard back from the tab an arrow had gone on to.
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(ringed).toEqual([names[2]]);
+  await tabs.nth(1).click();
+  await expect.poll(ringed, { message: "the open file's tab, clicked again, has the keyboard" }).toEqual([second]);
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(ringed).toEqual([]);
+  await page.keyboard.press("Tab");
+  await expect.poll(ringed, { message: "and the stop" }).toEqual([second]);
 
   // The pro demos are one page given the other demo: the cockpit comes in
   // at its own entry file on Tab, not at the place the watch's keyboard had.
