@@ -4,10 +4,11 @@
 // plays where the reader allows motion, waits for Play where they ask
 // for less, and runs only while it is seen.
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { PLAY, pinned, sha256 } from "../scripts/play.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(here, "dist");
@@ -162,6 +163,28 @@ test("the Office names ljos-play, and the copy of its example is the file at the
   }
 });
 
+// ljos-play's files the showcase runs, as scripts/sync-play.mjs copied
+// them: each the file at the commit pinned, which is the commit the
+// entry names, with the engine's licence, and nothing else in its folder.
+test("the example and its engine are ljos-play's files at the commit the entry names, with its licence", () => {
+  const pin = pinned();
+  expect(pin.repository).toBe(PLAY.repository);
+  expect(pin.license).toBe("MIT");
+  expect(pin.commit).toMatch(/^[0-9a-f]{40}$/);
+  const live = engines.map(({ example }) => example).filter((example) => example.live);
+  expect(live.map((example) => example.live)).toEqual(["snail-post"]);
+  for (const example of live) {
+    expect(example.commit).toBe(pin.commit);
+    expect(example.copy).toBe(`${PLAY.example}/Main.qml`);
+  }
+  const changed = Object.entries(pin.files).filter(([path, { sha256: hash }]) => !existsSync(join(here, "bundle", path)) || sha256(readFileSync(join(here, "bundle", path))) !== hash);
+  expect(changed.map(([path]) => path), "change hal-c2/ljos-play and run scripts/sync-play.mjs").toEqual([]);
+  const module = readdirSync(join(here, "bundle", PLAY.module)).filter((name) => name !== "UPSTREAM.json").map((name) => `${PLAY.module}/${name}`);
+  expect(module.sort()).toEqual(Object.keys(pin.files).filter((path) => path.startsWith(`${PLAY.module}/`)).sort());
+  expect(module).toContain(`${PLAY.module}/LICENSE`);
+  expect(readFileSync(join(here, "bundle", PLAY.module, "LICENSE"), "utf8")).toMatch(/MIT License/);
+});
+
 test("with no script, the engine stands in its own words: its lines coloured as code, each linked to them at the commit, its capture beside", async ({ browser }) => {
   expect(engines.length).toBeGreaterThan(0);
   for (const width of [390, 1440]) {
@@ -193,7 +216,9 @@ test("with no script, the engine stands in its own words: its lines coloured as 
             `https://github.com/${example.repository}/blob/${example.commit}/${example.path}#L${from}-L${to}`,
           );
         }
-        const capture = page.locator(`#app picture img[src$="showcase/media/${example.capture.name}.png"]`).filter({ visible: true });
+        // An example that runs in the page stands as its picture in the
+        // frame it will run in (DemoFrame); one that does not, as its set.
+        const capture = page.locator(`#app ${example.live ? "" : "picture "}img[src$="showcase/media/${example.capture.name}.png"]`).filter({ visible: true });
         await expect(capture).toHaveCount(1);
         await expect(capture).toHaveAttribute("alt", example.capture.alt);
         await expect(page.getByText(prose(example.capture.shows)).filter({ visible: true })).toHaveCount(1);

@@ -25,6 +25,7 @@ import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { kernelNamed } from "ljos-web/vite";
 import { packRich } from "ljos-web/codeblock/rich";
 import * as Pro from "./pro.mjs";
+import * as Play from "./play.mjs";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, liveOutcome, madeNews, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
 import { drawPictures, shipsDark, stagesOf, verdictKey } from "./pictures.mjs";
@@ -533,6 +534,11 @@ for (const demo of Pro.demos)
 writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
 writeFileSync(join(bundle, "Demos/pro-later.native.js"), Pro.nativeLoaders(Pro.demos));
 
+// The showcase's ljos-play example as data for its editor (scripts/play.mjs):
+// its file and the engine's beside it, imported once the reader opens the
+// editor (Showcase/later.js). Generated; do not edit by hand.
+writeFileSync(join(bundle, Play.PLAY.project), `${JSON.stringify(Play.projectOf((code, lang) => packRich(highlight(code, lang))))}\n`);
+
 // What the site's pages name from its root, beside them under `root`:
 // the web build's output, or the desktop's directory (LJOS_SITE_NATIVE),
 // whose shell reads them from there as a browser fetches them.
@@ -636,7 +642,7 @@ const paths = files(bundle).filter((path) => path !== "ljos-site.json").sort();
 const imports = new Set();
 for (const path of paths.filter((path) => path.endsWith(".qml"))) {
   for (const [, uri] of readFileSync(join(bundle, path), "utf8").matchAll(/^\s*import\s+([A-Za-z_][\w.]*)/gm)) {
-    if (!["Site", "Shells", "Demos", "Pantry"].includes(uri)) imports.add(uri);
+    if (!["Site", "Shells", "Demos", "Pantry", "LjosPlay"].includes(uri)) imports.add(uri);
   }
 }
 let ljosWeb = "0".repeat(40);
@@ -659,7 +665,7 @@ writeFileSync(
       ],
       files: paths.map((path) => ({ path, bytes: statSync(join(bundle, path)).size })),
       left_out: [],
-      modules: [{ module: "Site", qmldir: "Site/qmldir" }, { module: "Demos", qmldir: "Demos/qmldir" }, { module: "Pantry", qmldir: "Pantry/qmldir" }, { module: "Shells", qmldir: "Shells/qmldir" }],
+      modules: [{ module: "Site", qmldir: "Site/qmldir" }, { module: "Demos", qmldir: "Demos/qmldir" }, { module: "Pantry", qmldir: "Pantry/qmldir" }, { module: "Shells", qmldir: "Shells/qmldir" }, { module: "LjosPlay", qmldir: "LjosPlay/qmldir" }],
       imports: [...imports].sort(),
       ljos_web: ljosWeb,
     },
