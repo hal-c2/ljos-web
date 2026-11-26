@@ -9,7 +9,8 @@
     },
     "Showcase/play/snail-post/Main.qml": {
       "from": "examples/snail-post/Main.qml",
-      "sha256": "3f9bc6bf8f8d5e91b3414a9cf475ce863ee138f7d8a1f1136b689da487671bed"
+      "sha256": "3f9bc6bf8f8d5e91b3414a9cf475ce863ee138f7d8a1f1136b689da487671bed",
+      "copy": "71d90ab06447bbddbba1aa63ae7687bdbf4567cf42ae4371babf5e555f021ff3"
     },
     "LjosPlay/Activity.qml": {
       "from": "qml/LjosPlay/Activity.qml",
