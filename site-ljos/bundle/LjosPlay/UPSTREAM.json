@@ -1,0 +1,63 @@
+{
+  "repository": "hal-c2/ljos-play",
+  "license": "MIT",
+  "commit": "6097753c40b3a9f1fb664257f9dfa0f7e2a43072",
+  "files": {
+    "LjosPlay/LICENSE": {
+      "from": "LICENSE",
+      "sha256": "78c322b8d0fd070cd34d1a7aecabdee64aa5fe9a34cc239e9acdcfdf03e9c16d"
+    },
+    "Showcase/play/snail-post/Main.qml": {
+      "from": "examples/snail-post/Main.qml",
+      "sha256": "3f9bc6bf8f8d5e91b3414a9cf475ce863ee138f7d8a1f1136b689da487671bed"
+    },
+    "LjosPlay/Activity.qml": {
+      "from": "qml/LjosPlay/Activity.qml",
+      "sha256": "e5eb2402657326638d3880d6c91a654ab0e772b247fa7279fb9ef38c3b2bfb44"
+    },
+    "LjosPlay/Actor.qml": {
+      "from": "qml/LjosPlay/Actor.qml",
+      "sha256": "95dcd76781b4a3e46dca15924be85c4ff626bd95766de186bc95b0fed4d54beb"
+    },
+    "LjosPlay/Art.qml": {
+      "from": "qml/LjosPlay/Art.qml",
+      "sha256": "f7ebb9c96653c4a7a0790ef17005df684f403f21e3210dd22383ba668b840876"
+    },
+    "LjosPlay/Crowd.qml": {
+      "from": "qml/LjosPlay/Crowd.qml",
+      "sha256": "d9f28cddec52bc3bb00945d1bdf30bfdaeb9f037b7f950e4b55835faf937cc10"
+    },
+    "LjosPlay/Pose.qml": {
+      "from": "qml/LjosPlay/Pose.qml",
+      "sha256": "48c4e61ead680baabd06169f2615b5863df55efc5d7700a994b27821032a9ff5"
+    },
+    "LjosPlay/Sheet.qml": {
+      "from": "qml/LjosPlay/Sheet.qml",
+      "sha256": "b492f8e0a31901bcfa51dd108126cae8c70d2e9df83458ca0510394052d417ad"
+    },
+    "LjosPlay/Spot.qml": {
+      "from": "qml/LjosPlay/Spot.qml",
+      "sha256": "217dc96991030597052776f9d4ef811c728311047b1229aa45f0028b9cfc3889"
+    },
+    "LjosPlay/Talks.qml": {
+      "from": "qml/LjosPlay/Talks.qml",
+      "sha256": "2679de6334043fad706e081a8da968ca936935261f9d92e15b1a58e9e0d9430e"
+    },
+    "LjosPlay/Thing.qml": {
+      "from": "qml/LjosPlay/Thing.qml",
+      "sha256": "3a76dbe8356b62e919a06b397a1ae2b73993e32f6ab25b8ba90af9ad31695feb"
+    },
+    "LjosPlay/Touchable.qml": {
+      "from": "qml/LjosPlay/Touchable.qml",
+      "sha256": "96c1588431851c7307fad7c8fd7cb831c3530e51a5af61eef4fc12c7475f3ba4"
+    },
+    "LjosPlay/World.qml": {
+      "from": "qml/LjosPlay/World.qml",
+      "sha256": "230985d79c1fd1a13bce17305bc907e4f09e0b2d61521d8f930571adddc4eda3"
+    },
+    "LjosPlay/qmldir": {
+      "from": "qml/LjosPlay/qmldir",
+      "sha256": "c482017ed32d3e8bba47ea9cc918dfbac91ce9c00e87d94c2f6b88db77c76e8e"
+    }
+  }
+}
