@@ -883,3 +883,18 @@ fn a_module_imported_again_is_the_last_one_imported() {
         }
     );
 }
+
+#[test]
+fn a_shell_importing_only_ljos_core_makes_qtquick_s_types() {
+    let text = "import Ljos.Core\nimport Shop\n\nRectangle {\n    color: \"#171a23\"\n}\n";
+    let file = shell::compile(text, &blocks()).unwrap();
+    assert_eq!(
+        file.components[0].objects[0].ty,
+        ir::TypeRef::Native {
+            module: "QtQuick".into(),
+            name: "Rectangle".into(),
+        }
+    );
+    let diagnostics = refused("import Ljos.Core\nimport Shop\n\nItem {\n    Gizmo {}\n}\n");
+    says(&diagnostics, 5, "it makes Item");
+}
