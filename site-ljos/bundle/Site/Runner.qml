@@ -1,7 +1,7 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and a name
 // both have (Timer) stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 
 // Whether what it lies over runs, an example's stage or a demo. Nothing
@@ -113,7 +113,7 @@ Item {
     }
     onSpanHeightChanged: look()
     onVisibleChanged: look()
-    Component.onCompleted: Qt.callLater(look)
+    Component.onCompleted: later(look)
     Component.onDestruction: Running.release(runner)
 
     Connections {
@@ -129,7 +129,7 @@ Item {
     // picture runs nothing. It stands where it cannot run too, only
     // taking nothing, so a page without WebAssembly is built of the same
     // parts.
-    MouseArea {
+    PointerArea {
         id: hover
         width: runner.spanWidth
         height: runner.spanHeight
@@ -137,7 +137,7 @@ Item {
         enabled: runner.can && runner.pressRuns
         hoverEnabled: runner.can && runner.pressRuns
         Accessible.ignored: true
-        cursorShape: runner.can ? Qt.PointingHandCursor : Qt.ArrowCursor
+        cursorShape: runner.can ? Cursor.PointingHand : Cursor.Arrow
         // Where the picture stood on the page at the press. A finger
         // the page scrolls with keeps its place on the picture, so a
         // swipe ends as a click on it; the picture having moved under

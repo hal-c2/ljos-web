@@ -1,6 +1,6 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import "code-editor.js" as Editor
 
@@ -64,18 +64,18 @@ Item {
         id: shown
         color: field.color
         font.family: Theme.mono
-        font.pixelSize: field.pixelSize
+        font.size: field.pixelSize
         lineHeightMode: Text.FixedHeight
         lineHeight: field.lineHeight
-        textFormat: Text.RichText
-        wrapMode: Text.NoWrap
+        format: Text.RichText
+        wrap: Text.NoWrap
         text: Editor.shownAs(field.rich, field.text, field.code)
     }
-    MouseArea {
+    PointerArea {
         anchors.fill: parent
         enabled: !field.editing
         Accessible.ignored: true
-        cursorShape: Qt.IBeamCursor
+        cursorShape: Cursor.IBeam
         // The press asks first, so the editor comes with its caret where
         // the press was; the field then has focus, and a reader who
         // moves on before the editor has come is not pulled back.

@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import Ljos.Core
 import "../nav.js" as Nav
@@ -22,13 +23,13 @@ Rectangle {
     readonly property real column: (innerWidth - (Theme.columns - 1) * Theme.columnGap) / Theme.columns
 
     height: inner.implicitHeight + Theme.xxl + Theme.xl
-    color: Theme.surface
+    fill: Theme.surface
 
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 1
-        color: Theme.divider
+        fill: Theme.divider
     }
 
     Column {
@@ -37,7 +38,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: Math.round((footer.width - width) / 2)
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: Theme.xxl
         spacing: Theme.xl
 
@@ -49,7 +50,7 @@ Rectangle {
                 id: said
                 width: footer.spread ? Math.round(5 * footer.column + 4 * Theme.columnGap) : parent.width
                 // Beside the links, it changes sides with them on a right-to-left page.
-                x: LayoutMirroring.enabled ? parent.width - width : 0
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
                 spacing: Theme.s
 
                 // The logo, in the page as written, as the header's is
@@ -58,16 +59,16 @@ Rectangle {
                 Text {
                     height: 32
                     width: Math.round(height * Theme.logoAspect)
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     text: Nav.picture(footer.route, "/ljos.svg", width, height, t`Ljós`)
                 }
                 Text {
                     width: parent.width
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                     text: t`Malleable software, everywhere.`
                     color: Theme.text
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize
+                    font.size: Theme.bodySize
                     font.weight: Font.DemiBold
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.bodyLine
@@ -79,7 +80,7 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: footer.spread ? parent.width - width : 0
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: footer.spread ? Theme.xs : said.implicitHeight + Theme.xl
                 columns: footer.spread || footer.innerWidth >= 560 ? 3 : 2
                 columnSpacing: footer.spread ? Theme.xxxl : Theme.xxl
@@ -91,7 +92,7 @@ Rectangle {
                         text: t`Learn`
                         color: Theme.textMuted
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                         font.weight: Font.DemiBold
                         font.letterSpacing: 1.1
                         font.capitalization: Font.AllUppercase
@@ -108,7 +109,7 @@ Rectangle {
                         text: t`Project`
                         color: Theme.textMuted
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                         font.weight: Font.DemiBold
                         font.letterSpacing: 1.1
                         font.capitalization: Font.AllUppercase
@@ -126,7 +127,7 @@ Rectangle {
                         text: t`Built with Ljós`
                         color: Theme.textMuted
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                         font.weight: Font.DemiBold
                         font.letterSpacing: 1.1
                         font.capitalization: Font.AllUppercase
@@ -142,17 +143,17 @@ Rectangle {
         Rectangle {
             width: parent.width
             height: 1
-            color: Theme.divider
+            fill: Theme.divider
         }
         Text {
             width: parent.width
             text: t`This site is itself a Ljós app, written to HTML when it’s built and live in your browser.`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.captionLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 }

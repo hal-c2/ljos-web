@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import Ljos.Core
 import "../nav.js" as Nav
@@ -9,7 +9,7 @@ import "../nav.js" as Nav
 // page (Shells/), so a shell only shows it and asks it to go
 // (docs/adr/0003-blocks-and-shells.md, section 1: a block's contract is
 // its own members).
-QtObject {
+Object {
     id: router
 
     // The route the build prerendered this page for (`/`, `/demos/`, a
@@ -138,7 +138,7 @@ QtObject {
             router.view.restore(offset);
         } else if (fragment) {
             var anchor = router.anchorOf(fragment.slice(1));
-            Qt.callLater(() => router.view.land(anchor));
+            later(() => router.view.land(anchor));
         } else {
             router.view.top();
         }

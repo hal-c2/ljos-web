@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import QtQuick.Controls
 
 // Never shown: naming it makes this page one built with Qt Quick

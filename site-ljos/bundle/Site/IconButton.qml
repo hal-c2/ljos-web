@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 
 // A square button of the header, its icon drawn in the theme's own
@@ -15,7 +15,7 @@ Rectangle {
     width: Theme.target
     height: Theme.target
     radius: Theme.radiusSmall
-    color: hit.pressed ? Theme.surfacePressed : hit.containsMouse ? Theme.surfaceHover : ground
+    fill: hit.pressed ? Theme.surfacePressed : hit.containsMouse ? Theme.surfaceHover : ground
     border.width: activeFocus ? 2 : 0
     border.color: Theme.focusRing
 
@@ -24,18 +24,18 @@ Rectangle {
     Accessible.name: label
     Accessible.onPressAction: () => button.pressed()
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             button.pressed();
             event.accepted = true;
         }
     }
 
-    MouseArea {
+    PointerArea {
         id: hit
         anchors.fill: parent
         hoverEnabled: true
         Accessible.ignored: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         onClicked: button.pressed()
     }
 }

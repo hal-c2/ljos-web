@@ -1,5 +1,5 @@
 import Ljos.Core
-import QtQuick
+import Ljos.Ui
 import Site
 import "../observing.js" as Observing
 

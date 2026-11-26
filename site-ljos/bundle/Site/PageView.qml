@@ -1,6 +1,7 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import "../nav.js" as Nav
 import "later.js" as Later
@@ -35,7 +36,7 @@ Flickable {
     // A web page: the wheel, the scrollbar, a finger and the keys scroll
     // it, a mouse drag does not. A drag that starts in a live example is
     // the example's (an orbit, a slider, a drop), never the page's.
-    acceptedButtons: Qt.NoButton
+    acceptedButtons: MouseButton.None
     contentWidth: width
     contentHeight: column.height
     clip: true
@@ -50,7 +51,7 @@ Flickable {
     // so kept, before, which would be the offset cut to an empty page.
     property real waiting: -1
     function restore(offset) {
-        Qt.callLater(() => {
+        later(() => {
             if (pageLoader.visible && pageLoader.status === Loader.Loading) {
                 view.waiting = offset;
                 return;
@@ -130,7 +131,7 @@ Flickable {
             return;
         view.placing = true;
         settling.restart();
-        Qt.callLater(view.place);
+        later(view.place);
     }
     onWidthChanged: reflowed()
     onMeasureChanged: reflowed()
@@ -160,7 +161,7 @@ Flickable {
     }
     onYChanged: seen()
     onHeightChanged: seen()
-    onParentChanged: Qt.callLater(seen)
+    onParentChanged: later(seen)
     onContentHeightChanged: {
         place();
         Running.moved();
@@ -209,9 +210,9 @@ Flickable {
                 visible: !docItem.visible
                 active: visible
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
-                x: Math.round((view.width - width) / 2)
+                Layout.alignment: Align.HCenter
                 readonly property var demo: view.router ? view.router.pro : null
-                sourceComponent: route === "/" || route === "/demos/" || route === "/showcase/" || demo ? null : emptyPage
+                component: route === "/" || route === "/demos/" || route === "/showcase/" || demo ? null : emptyPage
                 readonly property var page: route === "/" ? Later.landing : route === "/demos/" ? Later.demosPage : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : ""
                 source: page
                 // Every pro demo is the one module (later.js), so going
@@ -227,7 +228,7 @@ Flickable {
                 function retry() {
                     pageLoader.byKey = again.activeFocus;
                     setSource(page);
-                    source = Qt.binding(() => pageLoader.page);
+                    source = bind(() => pageLoader.page);
                 }
                 // What a page it loads reads as it is made (`wide`, and a
                 // pro demo's page its `demo`), so it is bound from the
@@ -245,7 +246,7 @@ Flickable {
                         return;
                     view.waiting = -1;
                     if (pageLoader.byKey)
-                        Qt.callLater(() => again.forceActiveFocus(Qt.OtherFocusReason));
+                        later(() => again.forceActiveFocus(FocusReason.Other));
                     pageLoader.byKey = false;
                 }
                 onLoaded: {
@@ -253,7 +254,7 @@ Flickable {
                     if (pageLoader.byKey) {
                         pageLoader.byKey = false;
                         const first = item.nextItemInFocusChain(true);
-                        Qt.callLater(() => (first && first !== again ? first : item).forceActiveFocus(Qt.OtherFocusReason));
+                        later(() => (first && first !== again ? first : item).forceActiveFocus(FocusReason.Other));
                     }
                     if (view.waiting >= 0) {
                         view.restore(view.waiting);
@@ -261,7 +262,7 @@ Flickable {
                     }
                     if (route !== "/" && route !== "/demos/")
                         return;
-                    item.wide = Qt.binding(() => view.wide);
+                    item.wide = bind(() => view.wide);
                 }
             }
             // A page whose module could not be fetched (a dropped
@@ -273,16 +274,16 @@ Flickable {
                 id: unfetched
                 visible: pageLoader.visible && pageLoader.status === Loader.Error
                 width: pageLoader.width
-                x: pageLoader.x
+                Layout.alignment: Align.HCenter
                 topPadding: Theme.xxl
                 spacing: Theme.m
 
                 Text {
                     width: parent.width
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                     color: Theme.text
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize
+                    font.size: Theme.bodySize
                     text: t`This page could not be loaded.`
                 }
                 Rectangle {
@@ -291,7 +292,7 @@ Flickable {
                     width: implicitWidth
                     height: Theme.target
                     radius: Theme.radiusSmall
-                    color: againHit.pressed ? Theme.surfacePressed : againHit.containsMouse ? Theme.surfaceHover : Theme.surfaceRaised
+                    fill: againHit.pressed ? Theme.surfacePressed : againHit.containsMouse ? Theme.surfaceHover : Theme.surfaceRaised
                     border.width: activeFocus ? 2 : 1
                     border.color: activeFocus ? Theme.focusRing : Theme.divider
                     activeFocusOnTab: true
@@ -299,7 +300,7 @@ Flickable {
                     Accessible.name: againLabel.text
                     Accessible.onPressAction: () => pageLoader.retry()
                     Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                             pageLoader.retry();
                             event.accepted = true;
                         }
@@ -310,15 +311,15 @@ Flickable {
                         anchors.centerIn: parent
                         color: Theme.text
                         font.family: Theme.sans
-                        font.pixelSize: Theme.uiSize
+                        font.size: Theme.uiSize
                         text: t`Try again`
                         Accessible.ignored: true
                     }
-                    MouseArea {
+                    PointerArea {
                         id: againHit
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.PointingHand
                         onClicked: pageLoader.retry()
                     }
                 }
@@ -327,7 +328,7 @@ Flickable {
                 id: docItem
                 visible: view.router !== null && view.router.docsRoute
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
-                x: Math.round((view.width - width) / 2)
+                Layout.alignment: Align.HCenter
                 route: visible ? view.router.route : ""
                 page: view.router ? view.router.page : null
                 scroller: view

@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import Site
 import Ljos.Core
 
@@ -20,7 +20,7 @@ IconButton {
         Rectangle {
             anchors.fill: parent
             radius: 9
-            color: Theme.text
+            fill: Theme.text
         }
         Rectangle {
             x: 6
@@ -28,7 +28,7 @@ IconButton {
             width: 15
             height: 15
             radius: 7.5
-            color: toggle.color
+            fill: toggle.fill
         }
     }
     // The sun: a disc and its rays.
@@ -43,7 +43,7 @@ IconButton {
             width: 10
             height: 10
             radius: 5
-            color: Theme.text
+            fill: Theme.text
         }
         Repeater {
             model: 8
@@ -54,7 +54,7 @@ IconButton {
                 width: 2
                 height: 4
                 radius: 1
-                color: Theme.text
+                fill: Theme.text
                 transform: Rotation {
                     origin.x: 1
                     origin.y: 11

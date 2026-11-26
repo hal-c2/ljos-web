@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import Ljos.Core
 import "../shells.js" as Shells
@@ -7,7 +7,7 @@ import "../shells.js" as Shells
 // it moves less, which shell it is shown in and the language it is read
 // in. Each is kept for the next visit (scheme.js, motion.js, shells.js,
 // site-languages.js); a shell only shows the choices and asks for another.
-QtObject {
+Object {
     id: preferences
 
     // "system", "light" or "dark".

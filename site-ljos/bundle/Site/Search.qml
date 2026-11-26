@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import Ljos.Core
 import "../nav.js" as Nav
@@ -60,7 +60,7 @@ Item {
         anchors.fill: parent
         // A field in the header is a pill where the look has corners.
         radius: Theme.radiusSmall > 0 ? height / 2 : 0
-        color: field.activeFocus ? Theme.surfaceRaised : Theme.surface
+        fill: field.activeFocus ? Theme.surfaceRaised : Theme.surface
         border.color: field.activeFocus ? Theme.focusRing : Theme.border
         border.width: field.activeFocus ? 2 : 1
 
@@ -69,7 +69,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 14
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             width: 16
             height: 16
@@ -79,7 +79,7 @@ Item {
                 width: 12
                 height: 12
                 radius: 6
-                color: "transparent"
+                fill: "transparent"
                 border.color: Theme.textMuted
                 border.width: 2
             }
@@ -87,12 +87,12 @@ Item {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: 9
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: 11
                 width: 7
                 height: 2
                 radius: 1
-                color: Theme.textMuted
+                fill: Theme.textMuted
                 rotation: 45
             }
         }
@@ -100,7 +100,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: field.startX
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             // Up to the key's box where it shows, else the field's own
             // edge: a narrow rail's field ends its words, never runs them
             // under the key or out of the box.
@@ -111,7 +111,7 @@ Item {
             text: t`Search docs and demos`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: field.font.pixelSize
+            font.size: field.font.size
             Accessible.ignored: true
         }
         // The key that comes here, where a keyboard is likely.
@@ -123,12 +123,12 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: parent.width - width - Theme.s
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             width: 22
             height: 22
             radius: Theme.radiusSmall > 0 ? 6 : 0
-            color: Theme.canvas
+            fill: Theme.canvas
             border.color: Theme.divider
             border.width: 1
             Accessible.ignored: true
@@ -138,7 +138,7 @@ Item {
                 text: "/"
                 color: Theme.textMuted
                 font.family: Theme.mono
-                font.pixelSize: Theme.captionSize - 1
+                font.size: Theme.captionSize - 1
             }
         }
         TextInput {
@@ -146,7 +146,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 38
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             width: parent.width - startX - Theme.m
             // The whole box's height, so a press anywhere in it is the field's.
             height: parent.height
@@ -156,7 +156,7 @@ Item {
             selectedTextColor: Theme.text
             font.family: Theme.sans
             // A phone's browser zooms into a field set under 16 px.
-            font.pixelSize: Theme.narrow ? Theme.bodySize : Theme.uiSize + 1
+            font.size: Theme.narrow ? Theme.bodySize : Theme.uiSize + 1
             clip: true
             Accessible.role: Accessible.EditableText
             Accessible.name: t`Search`
@@ -168,17 +168,17 @@ Item {
                 search.load();
             }
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Down) {
+                if (event.key === Key.Down) {
                     search.open = true;
                     search.chosen = Math.min(search.chosen + 1, search.results.length - 1);
                     event.accepted = true;
-                } else if (event.key === Qt.Key_Up) {
+                } else if (event.key === Key.Up) {
                     search.chosen = Math.max(search.chosen - 1, 0);
                     event.accepted = true;
-                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                } else if (event.key === Key.Return || event.key === Key.Enter) {
                     search.go(search.chosen);
                     event.accepted = true;
-                } else if (event.key === Qt.Key_Escape) {
+                } else if (event.key === Key.Escape) {
                     field.text = "";
                     search.open = false;
                     event.accepted = true;

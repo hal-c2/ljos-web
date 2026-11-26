@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import Ljos.Core
 
@@ -25,7 +26,7 @@ Column {
         text: t`On this page`
         color: Theme.textMuted
         font.family: Theme.sans
-        font.pixelSize: Theme.captionSize
+        font.size: Theme.captionSize
         font.weight: Font.DemiBold
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.captionLine
@@ -38,9 +39,10 @@ Column {
             required property var modelData
 
             // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
+            // sets it as far from the right.
             readonly property real startX: modelData.level > 2 ? (toc.roomy ? Theme.m : Theme.s) : 0
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            Layout.leftMargin: App.layoutDirection === Direction.RightToLeft ? 0 : startX
+            Layout.rightMargin: App.layoutDirection === Direction.RightToLeft ? startX : 0
             width: toc.width - startX
             label: modelData.plain
             // The heading's own address, so it can be kept or opened

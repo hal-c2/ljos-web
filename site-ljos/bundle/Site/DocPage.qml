@@ -1,7 +1,8 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and any name
 // both have stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import "../nav.js" as Nav
 
@@ -56,15 +57,15 @@ Column {
         readonly property string startLink: Nav.anchor(Nav.at(Content.base, "/start/"), t`What is Ljós?`, true)
         width: parent.width
         visible: !doc.page && doc.route !== ""
-        textFormat: Text.RichText
+        format: Text.RichText
         text: t`There is no page at this address. The address may have moved — search, or begin at ${missingDoc.startLink}.`
         color: Theme.text
         linkColor: Theme.link
         font.family: Theme.sans
-        font.pixelSize: Theme.bodySize
+        font.size: Theme.bodySize
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.bodyLine
-        wrapMode: Text.Wrap
+        wrap: Text.Wrap
         onLinkActivated: (link) => doc.followed(link)
     }
     Column {
@@ -88,10 +89,10 @@ Column {
             text: doc.page ? (doc.page.description || "") : ""
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.subtitleSize
+            font.size: Theme.subtitleSize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -121,16 +122,16 @@ Column {
                     width: doc.width
                     topPadding: level <= 2 ? Theme.xl : Theme.m
                     text: "<a name=\"" + blockItem.anchor + "\"></a>" + blockItem.modelData.rich
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     color: Theme.onCanvasStrong
                     linkColor: Theme.link
                     font.family: Theme.sans
                     font.letterSpacing: level <= 2 ? -0.3 : 0
-                    font.pixelSize: level <= 2 ? Theme.headlineSize - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleSize : Theme.bodySize
+                    font.size: level <= 2 ? Theme.headlineSize - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleSize : Theme.bodySize
                     font.weight: level <= 3 ? Font.DemiBold : Font.Bold
                     lineHeightMode: Text.FixedHeight
                     lineHeight: level <= 2 ? Theme.headlineLine - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleLine : Theme.bodyLine
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                     // Said at the level the docs wrote it: their sections
                     // are second level, under the page's title.
                     readonly property int headingLevel: Math.max(2, level)
@@ -144,14 +145,14 @@ Column {
                 Text {
                     width: doc.width
                     text: blockItem.modelData.rich
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     color: Theme.text
                     linkColor: Theme.link
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize
+                    font.size: Theme.bodySize
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.bodyLine + Theme.xxs
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                     onLinkActivated: (link) => doc.followed(link)
                 }
             }
@@ -172,11 +173,11 @@ Column {
 
                             Text {
                                 width: blockItem.modelData.ordered ? 24 : 16
-                                horizontalAlignment: Text.AlignRight
+                                align: Text.AlignRight
                                 text: blockItem.modelData.ordered ? (index + 1) + "." : "•"
                                 color: Theme.textMuted
                                 font.family: Theme.sans
-                                font.pixelSize: Theme.bodySize
+                                font.size: Theme.bodySize
                                 lineHeightMode: Text.FixedHeight
                                 lineHeight: Theme.bodyLine + Theme.xxs
                                 // A step's number is its order, which the
@@ -186,14 +187,14 @@ Column {
                             Text {
                                 width: doc.width - (blockItem.modelData.ordered ? 24 : 16) - Theme.xs
                                 text: modelData
-                                textFormat: Text.RichText
+                                format: Text.RichText
                                 color: Theme.text
                                 linkColor: Theme.link
                                 font.family: Theme.sans
-                                font.pixelSize: Theme.bodySize
+                                font.size: Theme.bodySize
                                 lineHeightMode: Text.FixedHeight
                                 lineHeight: Theme.bodyLine + Theme.xxs
-                                wrapMode: Text.Wrap
+                                wrap: Text.Wrap
                                 onLinkActivated: (link) => doc.followed(link)
                             }
                         }
@@ -214,7 +215,7 @@ Column {
                     width: doc.width
                     height: table.height + 2
                     radius: Theme.radius
-                    color: Theme.canvas
+                    fill: Theme.canvas
                     border.color: Theme.divider
                     border.width: 1
                     clip: true
@@ -239,22 +240,22 @@ Column {
                                         required property var modelData
                                         width: tableFrame.cellWidth
                                         height: headRow.height
-                                        color: Theme.surface
+                                        fill: Theme.surface
                                         Text {
                                             id: headCell
                                             x: Theme.s
                                             y: Theme.xs
                                             width: parent.width - 2 * Theme.s
                                             text: modelData
-                                            textFormat: Text.RichText
+                                            format: Text.RichText
                                             color: Theme.text
                                             linkColor: Theme.link
                                             font.family: Theme.sans
-                                            font.pixelSize: Theme.captionSize + 1
+                                            font.size: Theme.captionSize + 1
                                             font.weight: Font.DemiBold
                                             lineHeightMode: Text.FixedHeight
                                             lineHeight: Theme.captionLine
-                                            wrapMode: Text.Wrap
+                                            wrap: Text.Wrap
                                             onLinkActivated: (link) => doc.followed(link)
                                         }
                                     }
@@ -293,21 +294,21 @@ Column {
                                             Rectangle {
                                                 width: parent.width
                                                 height: 1
-                                                color: Theme.divider
+                                                fill: Theme.divider
                                             }
                                             Text {
                                                 x: Theme.s
                                                 y: Theme.xs + 1
                                                 width: parent.width - 2 * Theme.s
                                                 text: modelData
-                                                textFormat: Text.RichText
+                                                format: Text.RichText
                                                 color: Theme.text
                                                 linkColor: Theme.link
                                                 font.family: Theme.sans
-                                                font.pixelSize: Theme.captionSize + 1
+                                                font.size: Theme.captionSize + 1
                                                 lineHeightMode: Text.FixedHeight
                                                 lineHeight: Theme.captionLine
-                                                wrapMode: Text.Wrap
+                                                wrap: Text.Wrap
                                                 onLinkActivated: (link) => doc.followed(link)
                                             }
                                         }
@@ -344,7 +345,7 @@ Column {
                     width: doc.width
                     height: quoteWords.implicitHeight + 2 * Theme.m
                     radius: Theme.radiusSmall
-                    color: Theme.surface
+                    fill: Theme.surface
                     border.color: Theme.divider
                     border.width: 1
 
@@ -352,7 +353,7 @@ Column {
                         width: 4
                         height: parent.height
                         radius: 2
-                        color: Theme.accent
+                        fill: Theme.accent
                     }
                     Column {
                         id: quoteWords
@@ -366,7 +367,7 @@ Column {
                             text: blockItem.modelData.note ? String(blockItem.modelData.note).charAt(0).toUpperCase() + String(blockItem.modelData.note).slice(1) : ""
                             color: Theme.link
                             font.family: Theme.sans
-                            font.pixelSize: Theme.captionSize
+                            font.size: Theme.captionSize
                             font.weight: Font.Bold
                             lineHeightMode: Text.FixedHeight
                             lineHeight: Theme.captionLine
@@ -374,14 +375,14 @@ Column {
                         Text {
                             width: parent.width
                             text: blockItem.modelData.rich
-                            textFormat: Text.RichText
+                            format: Text.RichText
                             color: Theme.text
                             linkColor: Theme.link
                             font.family: Theme.sans
-                            font.pixelSize: Theme.bodySize
+                            font.size: Theme.bodySize
                             lineHeightMode: Text.FixedHeight
                             lineHeight: Theme.bodyLine
-                            wrapMode: Text.Wrap
+                            wrap: Text.Wrap
                             onLinkActivated: (link) => doc.followed(link)
                         }
                     }
@@ -411,10 +412,10 @@ Column {
                         text: blockItem.modelData.alt || ""
                         color: Theme.textMuted
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                         lineHeightMode: Text.FixedHeight
                         lineHeight: Theme.captionLine
-                        wrapMode: Text.Wrap
+                        wrap: Text.Wrap
                     }
                 }
             }
@@ -428,7 +429,7 @@ Column {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width
                         height: 1
-                        color: Theme.divider
+                        fill: Theme.divider
                     }
                 }
             }
@@ -446,7 +447,7 @@ Column {
         Rectangle {
             width: parent.width
             height: 1
-            color: Theme.border
+            fill: Theme.border
         }
         NavLink {
             id: prevLink
@@ -459,7 +460,7 @@ Column {
         NavLink {
             id: nextLink
             visible: doc.next !== null
-            x: parent.width - width
+            Layout.alignment: Align.Right
             readonly property string title: doc.next ? doc.next.title : ""
             label: doc.next ? t`${nextLink.title} →` : ""
             to: doc.next ? doc.next.route : "/"

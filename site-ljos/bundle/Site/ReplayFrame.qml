@@ -1,7 +1,7 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and a name
 // both have (Timer) stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import "../nav.js" as Nav
 
@@ -79,11 +79,11 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: frame.width - width - frame.inset
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: frame.inset
         width: frame.actWidth
         height: act.implicitHeight
-        color: "transparent"
+        fill: "transparent"
 
         // One button through the run's phases, so the focus a keyboard
         // reader gave it stays as it changes.
@@ -132,7 +132,7 @@ Item {
                 // and asked again once that is done.
                 if (runner.phase === "failed") {
                     runner.evict();
-                    Qt.callLater(() => runner.ask());
+                    later(() => runner.ask());
                     return;
                 }
                 if (!frame.replayable)
@@ -148,18 +148,18 @@ Item {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: frame.width - width - frame.inset
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: (pictured.item?.noteCentre ?? 56) - Math.round(height / 2)
         text: frame.note
         color: Theme.textMuted
         font.family: Theme.sans
-        font.pixelSize: Theme.captionSize
+        font.size: Theme.captionSize
     }
 
     Rectangle {
         anchors.fill: parent
         radius: Theme.radius
-        color: "transparent"
+        fill: "transparent"
         clip: true
 
         // The poster is hidden, not unmade, once the demo is drawn: the
@@ -170,7 +170,7 @@ Item {
             height: frame.surfaceHeight
             active: frame.poster !== null
             visible: !(frame.drawn && loader.opacity === 1)
-            sourceComponent: frame.poster
+            component: frame.poster
         }
     }
 
@@ -195,8 +195,8 @@ Item {
             }
         }
         onLoaded: {
-            item.active = Qt.binding(() => runner.running);
-            item.calm = Qt.binding(() => Theme.calm);
+            item.active = bind(() => runner.running);
+            item.calm = bind(() => Theme.calm);
         }
     }
 

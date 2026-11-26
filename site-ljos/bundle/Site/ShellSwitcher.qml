@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import Ljos.Core
 import "later.js" as Later
@@ -42,7 +43,7 @@ Rectangle {
     implicitWidth: switcher.compact ? Theme.target : row.implicitWidth + 2 * Theme.xs
     implicitHeight: Theme.target
     radius: Theme.radiusSmall
-    color: hit.pressed ? Theme.surfacePressed : hit.containsMouse || switcher.opened ? Theme.surfaceHover : "transparent"
+    fill: hit.pressed ? Theme.surfacePressed : hit.containsMouse || switcher.opened ? Theme.surfaceHover : "transparent"
     border.width: activeFocus ? 2 : 0
     border.color: Theme.focusRing
 
@@ -54,7 +55,7 @@ Rectangle {
     Accessible.name: switcher.compact || !label ? t`Switch shell` : t`Current shell: ${label}`
     Accessible.onPressAction: () => switcher.toggle()
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             switcher.toggle();
             event.accepted = true;
         }
@@ -67,11 +68,11 @@ Rectangle {
 
         // A window with a pane beside its page: what a shell is.
         Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
+            Layout.alignment: Align.VCenter
             width: 18
             height: 16
             radius: 3
-            color: "transparent"
+            fill: "transparent"
             border.width: 2
             border.color: Theme.text
 
@@ -79,25 +80,25 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: 6
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: 2
                 width: 2
                 height: parent.height - 4
-                color: Theme.text
+                fill: Theme.text
             }
         }
         Text {
-            anchors.verticalCenter: parent.verticalCenter
+            Layout.alignment: Align.VCenter
             visible: !switcher.compact
             text: switcher.label
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize + 1
+            font.size: Theme.captionSize + 1
             font.weight: Font.DemiBold
         }
         // It opens: a chevron, two strokes meeting below.
         Item {
-            anchors.verticalCenter: parent.verticalCenter
+            Layout.alignment: Align.VCenter
             visible: !switcher.compact
             width: 12
             height: 8
@@ -106,24 +107,24 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: 1
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: 3
                 width: 7
                 height: 2
                 radius: 1
-                color: Theme.textMuted
+                fill: Theme.textMuted
                 rotation: 40
             }
             Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: 4
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: 3
                 width: 7
                 height: 2
                 radius: 1
-                color: Theme.textMuted
+                fill: Theme.textMuted
                 rotation: -40
             }
         }
@@ -137,8 +138,8 @@ Rectangle {
         active: false
         source: Later.shellChoices
         onLoaded: {
-            item.preferences = Qt.binding(() => switcher.preferences);
-            item.shown = Qt.binding(() => switcher.shown);
+            item.preferences = bind(() => switcher.preferences);
+            item.shown = bind(() => switcher.shown);
             item.toggle();
         }
     }
@@ -148,12 +149,12 @@ Rectangle {
             switcher.sourceAsked(name);
         }
     }
-    MouseArea {
+    PointerArea {
         id: hit
         anchors.fill: parent
         hoverEnabled: true
         Accessible.ignored: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         onClicked: switcher.toggle()
     }
 }

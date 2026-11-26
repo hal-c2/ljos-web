@@ -1,4 +1,6 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
+import Ljos.Core
 import Site
 
 // The docs, section by section, in the order their front matter puts
@@ -27,7 +29,7 @@ Column {
                 text: modelData.label
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 font.weight: Font.DemiBold
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.captionLine + Theme.xxs
@@ -44,14 +46,14 @@ Column {
                     // A finger's row is the link from top to bottom.
                     height: Math.max(words.implicitHeight + Theme.xs, Theme.rowLeast)
                     radius: Theme.radiusSmall
-                    color: current ? Theme.surfaceSelected : "transparent"
+                    fill: current ? Theme.surfaceSelected : "transparent"
 
                     NavLink {
                         id: words
                         // Where it starts, read from the left; a right-to-left page
                         // sets it as far from the right (LayoutMirroring).
                         readonly property real startX: Theme.xs
-                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                         y: Theme.narrow ? 0 : Theme.xxs
                         width: parent.width - 2 * Theme.xs
                         height: Theme.narrow ? parent.height : implicitHeight

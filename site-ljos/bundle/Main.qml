@@ -1,4 +1,6 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
+import QtQuick as Q
 import Site
 import Shells
 import Ljos.Core
@@ -39,11 +41,11 @@ Rectangle {
     // prerender would write the page at no size at all.
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
-    color: Theme.canvas
+    fill: Theme.canvas
     // A language written from the right lays the site out from the right:
     // every anchor, row and list of it, the shell's and the page's.
-    LayoutMirroring.enabled: App.layoutDirection === Qt.RightToLeft
-    LayoutMirroring.childrenInherit: true
+    Q.LayoutMirroring.enabled: App.layoutDirection === Direction.RightToLeft
+    Q.LayoutMirroring.childrenInherit: true
 
     // What a shell is given as `site`: the state, and what it may ask.
     readonly property var router: siteRouter
@@ -129,15 +131,20 @@ Rectangle {
     // later, not bound, as a shell may lay out by `docked`, which is
     // itself worked out from where the page stands.
     readonly property var pageAt: main.pageHost ? main.pageHost.mapToItem(main, 0, 0) : null
-    onPageAtChanged: Qt.callLater(placePage)
-    onPageHostChanged: Qt.callLater(placePage)
-    onWidthChanged: Qt.callLater(placePage)
-    onHeightChanged: Qt.callLater(placePage)
+    onPageAtChanged: later(placePage)
+    onPageHostChanged: later(placePage)
+    onWidthChanged: later(placePage)
+    onHeightChanged: later(placePage)
+    // The same, for the page's host, made in a shell's slot: a script
+    // there names `later` where the compiler reads it as a model's role.
+    function placeSoon() {
+        later(placePage);
+    }
 
     function find() {
         if (!sitePreferences.wide)
             main.menuOpen = true;
-        Qt.callLater(() => {
+        later(() => {
             var field = main.searches.find((one) => main.seen(one));
             if (field)
                 field.find();
@@ -286,7 +293,7 @@ Rectangle {
         onWent: main.menuOpen = false
         onRouteChanged: {
             main.keepOpen();
-            Qt.callLater(main.count);
+            later(main.count);
         }
     }
     Preferences {
@@ -327,7 +334,7 @@ Rectangle {
             } else {
                 main.settle();
             }
-            Qt.callLater(main.count);
+            later(main.count);
         });
     }
 
@@ -385,7 +392,7 @@ Rectangle {
 
     Keys.onEscapePressed: main.menuOpen = false
     Keys.onPressed: (event) => {
-        if (event.text === "/" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+        if (event.text === "/" && !(event.modifiers & (Modifier.Control | Modifier.Alt | Modifier.Meta))) {
             main.find();
             event.accepted = true;
         }
@@ -408,12 +415,12 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Theme.s
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: skip.activeFocus ? Theme.s : -height - Theme.s
             width: skipWords.implicitWidth + 2 * Theme.s
             height: 40
             radius: Theme.radiusSmall
-            color: Theme.surfaceRaised
+            fill: Theme.surfaceRaised
             border.color: Theme.focusRing
             border.width: 2
             activeFocusOnTab: true
@@ -426,7 +433,7 @@ Rectangle {
             Accessible.name: skipWords.text
             Accessible.onPressAction: () => pageView.forceActiveFocus()
             Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                     pageView.forceActiveFocus();
                     event.accepted = true;
                 }
@@ -438,7 +445,7 @@ Rectangle {
                 text: t`Skip to content`
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: Theme.bodySize
+                font.size: Theme.bodySize
                 Accessible.ignored: true
             }
         }
@@ -471,8 +478,8 @@ Rectangle {
                 // A shell sizes the page's place as it lays out, the
                 // window, its sidebar or its header changing: each
                 // change it makes reaches this item's size.
-                onWidthChanged: Qt.callLater(main.placePage)
-                onHeightChanged: Qt.callLater(main.placePage)
+                onWidthChanged: main.placeSoon()
+                onHeightChanged: main.placeSoon()
             }
         }
     }
@@ -513,7 +520,7 @@ Rectangle {
                     // stand on the header's middle line with the mark.
                     NavLink {
                         required property var modelData
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Align.VCenter
                         label: modelData.label
                         to: modelData.to
                         current: modelData.current
@@ -632,7 +639,7 @@ Rectangle {
         slot: "site.sidebar"
         delegate: Component {
             Flickable {
-                acceptedButtons: Qt.NoButton
+                acceptedButtons: MouseButton.None
                 width: parent ? parent.width : Theme.sidebarWidth
                 height: parent ? parent.height : 0
                 contentWidth: width
@@ -646,7 +653,7 @@ Rectangle {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: Theme.gutterWide
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                     y: Theme.l
                     width: parent.width - Theme.gutterWide - Theme.m
                     route: siteRouter.route
@@ -658,7 +665,7 @@ Rectangle {
         slot: "site.toc"
         delegate: Component {
             Flickable {
-                acceptedButtons: Qt.NoButton
+                acceptedButtons: MouseButton.None
                 width: parent ? parent.width : Theme.tocWidth
                 height: parent ? parent.height : 0
                 contentWidth: width
@@ -672,7 +679,7 @@ Rectangle {
                     // Where it starts, read from the left; a right-to-left page
                     // sets it as far from the right (LayoutMirroring).
                     readonly property real startX: Theme.l
-                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                     y: Theme.xxl
                     width: parent.width - Theme.l - Theme.gutterWide
                     router: siteRouter
@@ -752,9 +759,9 @@ Rectangle {
         onLoaded: {
             main.controlsShown = true;
             item.name = main.liveOf;
-            item.touch = Qt.binding(() => !sitePreferences.wide);
+            item.touch = bind(() => !sitePreferences.wide);
             main.housed();
-            item.visible = Qt.binding(() => main.liveHost !== null);
+            item.visible = bind(() => main.liveHost !== null);
         }
     }
 
@@ -790,7 +797,7 @@ Rectangle {
                     main.userShell = main.liveGood;
                 }
             }
-            Qt.callLater(main.placePage);
+            later(main.placePage);
             if (fadeIn.armed) {
                 fadeIn.armed = false;
                 fadeIn.target = loader.item;
@@ -798,9 +805,9 @@ Rectangle {
             }
             if (main.revealing) {
                 main.revealing = false;
-                Qt.callLater(main.settle);
+                later(main.settle);
             }
-            Qt.callLater(main.count);
+            later(main.count);
         }
     }
 
@@ -818,9 +825,9 @@ Rectangle {
         active: false
         source: main.observerDockSource
         onLoaded: {
-            item.room = Qt.binding(() => main.width);
-            item.roomHeight = Qt.binding(() => main.pageHeight);
-            item.beside = Qt.binding(() => main.pageLeft);
+            item.room = bind(() => main.width);
+            item.roomHeight = bind(() => main.pageHeight);
+            item.beside = bind(() => main.pageLeft);
             item.openChanged.connect(() => {
                 if (item.open)
                     main.placePage();
@@ -854,7 +861,7 @@ Rectangle {
         source: SiteLater.shellSource
         onLoaded: {
             item.room = main;
-            item.error = Qt.binding(() => loader.error);
+            item.error = bind(() => loader.error);
             item.show(shellSource.asked);
         }
     }

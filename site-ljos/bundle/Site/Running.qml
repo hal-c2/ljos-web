@@ -1,5 +1,6 @@
 pragma Singleton
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Core
 
 // What runs on the page. The rule of thumb (site-ljos/README.md):
 // nothing runs until the reader asks, but the front page's replay,
@@ -11,7 +12,7 @@ import QtQuick
 // press Run. At most `most` are started at once: one
 // more stops another, out of view first. One that leaves the view, or
 // a page whose tab is hidden, pauses, and resumes when it is back.
-QtObject {
+Object {
     id: running
 
     // The page's view, in the shell's coordinates: the band of it the
@@ -24,7 +25,7 @@ QtObject {
     signal moved()
 
     // A hidden tab runs nothing: the reader is not looking.
-    readonly property bool shown: Qt.application.state !== Qt.ApplicationHidden && Qt.application.state !== Qt.ApplicationSuspended
+    readonly property bool shown: App.state !== ApplicationState.Hidden && App.state !== ApplicationState.Suspended
 
     // The page is taken over and its kept shell in, or given up on
     // (Main.qml `settle`, `late`). What starts itself waits for it: the

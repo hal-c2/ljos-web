@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import Ljos.Core
 import "code-editor.js" as Editor
@@ -40,7 +41,7 @@ Item {
             text: source.file ? source.file.file : ""
             color: Theme.text
             font.family: Theme.mono
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: Font.DemiBold
             elide: Text.ElideMiddle
         }
@@ -49,8 +50,8 @@ Item {
             text: t`The QML this page is made from. The shell around it is its own file: open the shell menu to see it.`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
-            wrapMode: Text.Wrap
+            font.size: Theme.captionSize
+            wrap: Text.Wrap
         }
     }
     Flickable {
@@ -66,11 +67,11 @@ Item {
             id: code
             color: Theme.codeFg
             font.family: Theme.mono
-            font.pixelSize: 12
+            font.size: 12
             lineHeightMode: Text.FixedHeight
             lineHeight: 18
-            textFormat: Text.RichText
-            wrapMode: Text.NoWrap
+            format: Text.RichText
+            wrap: Text.NoWrap
             text: source.file ? Editor.shownAs(source.file.rich, source.file.text, source.file.text) : ""
         }
     }
