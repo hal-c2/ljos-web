@@ -1998,6 +1998,10 @@ msgstr "संपादित करने के लिए कोई {0}.qml �
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "इस संपादन में site.source.live नहीं है, जहाँ इसका संपादक दिखता है, इसलिए पिछला चला हुआ संपादन बना रहता है।"
 
+#: ../Site/PageView.qml:248
+msgid "This page could not be loaded."
+msgstr "यह पेज लोड नहीं हो सका।"
+
 #: ../Site/ObserverNote.qml:19
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "यह पैनल ब्राउज़र में चलता है। डेस्कटॉप पर, ljos observe कमांड चलते हुए ऐप पर ऑब्ज़र्वर खोलता है।"
@@ -2062,7 +2066,7 @@ msgstr "बिना कुछ इंस्टॉल किए अपने ब�
 msgid "Try a demo"
 msgstr "डेमो आज़माएँ"
 
-#: ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
 msgid "Try again"
 msgstr "फिर प्रयास करें"
 

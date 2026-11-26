@@ -1,3 +1,5 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Core
 import QtQuick
 import Site
 import "../nav.js" as Nav
@@ -204,8 +206,12 @@ Flickable {
                 // could not be fetched is asked for again here, and is
                 // bound again after, to follow the route on.
                 onDemoChanged: {
-                    if (!demo || status !== Loader.Error)
-                        return;
+                    if (demo && status === Loader.Error)
+                        retry();
+                }
+                // Asks for the route's page again, then binds it again
+                // to follow the route on.
+                function retry() {
                     setSource(page);
                     source = Qt.binding(() => pageLoader.page);
                 }
@@ -218,6 +224,65 @@ Flickable {
                     if (route !== "/" && route !== "/demos/")
                         return;
                     item.wide = Qt.binding(() => view.wide);
+                }
+            }
+            // A page whose module could not be fetched (a dropped
+            // connection, a deploy that replaced its chunk) says so where
+            // it would stand, and is asked for again on the same route
+            // when the reader presses Try again: going elsewhere and back
+            // is not the only way to it.
+            Column {
+                id: unfetched
+                visible: pageLoader.visible && pageLoader.status === Loader.Error
+                width: pageLoader.width
+                x: pageLoader.x
+                topPadding: Theme.xxl
+                spacing: Theme.m
+
+                Text {
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    color: Theme.text
+                    font.family: Theme.sans
+                    font.pixelSize: Theme.bodySize
+                    text: t`This page could not be loaded.`
+                }
+                Rectangle {
+                    id: again
+                    implicitWidth: againLabel.implicitWidth + 2 * Theme.m
+                    width: implicitWidth
+                    height: Theme.target
+                    radius: Theme.radiusSmall
+                    color: againHit.pressed ? Theme.surfacePressed : againHit.containsMouse ? Theme.surfaceHover : Theme.surfaceRaised
+                    border.width: activeFocus ? 2 : 1
+                    border.color: activeFocus ? Theme.focusRing : Theme.divider
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: againLabel.text
+                    Accessible.onPressAction: () => pageLoader.retry()
+                    Keys.onPressed: (event) => {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            pageLoader.retry();
+                            event.accepted = true;
+                        }
+                    }
+
+                    Text {
+                        id: againLabel
+                        anchors.centerIn: parent
+                        color: Theme.text
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.uiSize
+                        text: t`Try again`
+                        Accessible.ignored: true
+                    }
+                    MouseArea {
+                        id: againHit
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: pageLoader.retry()
+                    }
                 }
             }
             DocPage {

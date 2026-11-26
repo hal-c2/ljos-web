@@ -860,6 +860,34 @@ test("a pro demo's page comes with the next pro demo when the first could not lo
   }
 });
 
+// A page of its own (Site/later.js) whose chunk could not be fetched
+// says so where the page would stand, and Try again asks for it on the
+// same route: the reader need not go elsewhere and come back.
+test("the demos page comes on Try again when its chunk could not be fetched", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    let down = true;
+    await page.route("**/DemosPage-*.js", (route) => (down ? route.abort("connectionreset") : route.continue()));
+    await open(page, "/start/first-app/");
+    const failed = page.waitForEvent("requestfailed", (request) => /DemosPage-/.test(request.url()));
+    await press(page.getByRole("link", { name: "Demos", exact: true }).filter({ visible: true }).first());
+    await page.waitForURL("**/demos/");
+    await failed;
+    const pantry = page.getByText("The Corner Pantry", { exact: true });
+    await expect(page.getByText("This page could not be loaded.", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(pantry).toHaveCount(0);
+    down = false;
+    const again = page.getByRole("button", { name: "Try again", exact: true });
+    await press(again);
+    await expect(pantry, "the page, asked for again on its route").toBeVisible({ timeout: 30_000 });
+    await expect(again).toHaveCount(0);
+    expect(new URL(page.url()).pathname.endsWith("/demos/"), "still on the demos page").toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
 test("a reader with no script gets the Elegant shell, whatever is kept", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop", javaScriptEnabled: false });
   try {

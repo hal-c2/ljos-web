@@ -1997,6 +1997,10 @@ msgstr ""
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr ""
 
+#: ../Site/PageView.qml:248
+msgid "This page could not be loaded."
+msgstr ""
+
 #: ../Site/ObserverNote.qml:19
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr ""
@@ -2061,7 +2065,7 @@ msgstr ""
 msgid "Try a demo"
 msgstr ""
 
-#: ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
 msgid "Try again"
 msgstr ""
 

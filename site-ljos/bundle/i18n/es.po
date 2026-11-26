@@ -1998,6 +1998,10 @@ msgstr "No hay ningún {0}.qml para editar."
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "Esta edición no contiene site.source.live, donde se muestra el editor, así que se mantiene la última edición que funcionó."
 
+#: ../Site/PageView.qml:248
+msgid "This page could not be loaded."
+msgstr "No se pudo cargar esta página."
+
 #: ../Site/ObserverNote.qml:19
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "Este panel se ejecuta en el navegador. En el escritorio, el comando ljos observe abre el Observador en una app en ejecución."
@@ -2062,7 +2066,7 @@ msgstr "Prueba Ljós en tu navegador, sin instalar nada."
 msgid "Try a demo"
 msgstr "Probar una demo"
 
-#: ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
 msgid "Try again"
 msgstr "Intentar de nuevo"
 
