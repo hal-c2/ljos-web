@@ -9,9 +9,9 @@
 // pin, and on an entry that names another commit).
 // Usage: node scripts/sync-play.mjs <checkout>
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { bundle, PLAY, playFiles, sha256 } from "./play.mjs";
+import { bundle, dialectLines, PLAY, playFiles, sha256 } from "./play.mjs";
 
 const [checkout] = process.argv.slice(2);
 if (!checkout) throw new Error("usage: node scripts/sync-play.mjs <ljos-play checkout>");
@@ -23,23 +23,20 @@ const wanted = playFiles(listed);
 // since would be a pin that lies: they are committed first.
 const changed = git("status", "--porcelain=v1", "-z", "--", ...Object.values(wanted)).split("\0").filter(Boolean);
 if (changed.length) throw new Error(`commit these in ${checkout} first: ${changed.map((line) => line.slice(3)).join(", ")}`);
-// A file the module no longer has goes too: the copy is the commit's
-// files and nothing else.
-const module = join(bundle, PLAY.module);
-if (existsSync(module)) for (const name of readdirSync(module)) if (!Object.hasOwn(wanted, `${PLAY.module}/${name}`)) rmSync(join(module, name));
+// Everything is read and checked before anything in the bundle changes:
+// a refresh that stops part way leaves the copy as it was.
 // The example is held in Ljós's dialect: the lines its showcase entry
 // (Showcase/products.json) has an `upstream` for are written back as the
 // copy has them, and the pin hashes the repository's bytes. A line that
 // changed upstream is the entry's to change first.
-const products = JSON.parse(readFileSync(join(bundle, "Showcase/products.json"), "utf8"));
-const dialect = Object.fromEntries(products.filter((product) => product.engine?.example?.upstream).map(({ engine: { example } }) => [example.copy, example.upstream]));
+const dialect = dialectLines();
 const files = {};
+const staged = {};
 for (const [here, there] of Object.entries(wanted)) {
-  mkdirSync(dirname(join(bundle, here)), { recursive: true });
   const bytes = readFileSync(join(checkout, there));
   files[here] = { from: there, sha256: sha256(bytes) };
   if (!Object.hasOwn(dialect, here)) {
-    copyFileSync(join(checkout, there), join(bundle, here));
+    staged[here] = bytes;
     continue;
   }
   const held = readFileSync(join(bundle, here), "utf8").split("\n");
@@ -48,7 +45,15 @@ for (const [here, there] of Object.entries(wanted)) {
     if (lines[Number(line) - 1] !== upstream) throw new Error(`${here}:${line} is now ${JSON.stringify(lines[Number(line) - 1])} in ${checkout}: change its \`upstream\` in Showcase/products.json first`);
     lines[Number(line) - 1] = held[Number(line) - 1];
   }
-  writeFileSync(join(bundle, here), lines.join("\n"));
+  staged[here] = lines.join("\n");
+}
+// A file the module no longer has goes too: the copy is the commit's
+// files and nothing else.
+const module = join(bundle, PLAY.module);
+if (existsSync(module)) for (const name of readdirSync(module)) if (name !== "UPSTREAM.json" && !Object.hasOwn(wanted, `${PLAY.module}/${name}`)) rmSync(join(module, name));
+for (const [here, content] of Object.entries(staged)) {
+  mkdirSync(dirname(join(bundle, here)), { recursive: true });
+  writeFileSync(join(bundle, here), content);
 }
 writeFileSync(join(bundle, PLAY.pin), `${JSON.stringify({ repository: PLAY.repository, license: "MIT", commit, files }, null, 2)}\n`);
 console.log(`ljos-play: ${Object.keys(files).length} files from ${commit}`);
