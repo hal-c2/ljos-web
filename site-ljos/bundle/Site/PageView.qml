@@ -41,13 +41,26 @@ Flickable {
     clip: true
 
     function land(anchor) {
+        view.waiting = -1;
         docItem.scrollToAnchor(anchor);
     }
-    // Once the page shown is laid out, so it is as tall as it was.
+    // Once the page shown is laid out, so it is as tall as it was. A
+    // page that loads by route (later.js) and is still being fetched is
+    // not: the offset waits for it (`waiting`), and nothing is scrolled,
+    // so kept, before, which would be the offset cut to an empty page.
+    property real waiting: -1
     function restore(offset) {
-        Qt.callLater(() => view.contentY = Math.max(0, Math.min(offset, view.contentHeight - view.height)));
+        Qt.callLater(() => {
+            if (pageLoader.visible && pageLoader.status === Loader.Loading) {
+                view.waiting = offset;
+                return;
+            }
+            view.waiting = -1;
+            view.contentY = Math.max(0, Math.min(offset, view.contentHeight - view.height));
+        });
     }
     function top() {
+        view.waiting = -1;
         view.contentY = 0;
     }
 
@@ -212,6 +225,7 @@ Flickable {
                 // Asks for the route's page again, then binds it again
                 // to follow the route on.
                 function retry() {
+                    pageLoader.byKey = again.activeFocus;
                     setSource(page);
                     source = Qt.binding(() => pageLoader.page);
                 }
@@ -219,8 +233,32 @@ Flickable {
                 // pro demo's page its `demo`), so it is bound from the
                 // start, not once loaded.
                 readonly property bool wide: view.wide
+                // Try again pressed from the keyboard: the button goes as
+                // the page is asked for, and focus is put where the reader
+                // can go on from, the button again if it fails once more,
+                // else the page's first stop.
+                property bool byKey: false
+                // `loaded` comes after the status reads Ready, so it is
+                // there, not here, that a page that came takes the focus.
+                onStatusChanged: {
+                    if (status !== Loader.Error)
+                        return;
+                    view.waiting = -1;
+                    if (pageLoader.byKey)
+                        Qt.callLater(() => again.forceActiveFocus(Qt.OtherFocusReason));
+                    pageLoader.byKey = false;
+                }
                 onLoaded: {
                     item.scroller = view;
+                    if (pageLoader.byKey) {
+                        pageLoader.byKey = false;
+                        const first = item.nextItemInFocusChain(true);
+                        Qt.callLater(() => (first && first !== again ? first : item).forceActiveFocus(Qt.OtherFocusReason));
+                    }
+                    if (view.waiting >= 0) {
+                        view.restore(view.waiting);
+                        view.waiting = -1;
+                    }
                     if (route !== "/" && route !== "/demos/")
                         return;
                     item.wide = Qt.binding(() => view.wide);

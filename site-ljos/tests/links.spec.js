@@ -351,6 +351,35 @@ test("with script, a page loaded again is where the reader left it", async ({ pa
   await expect.poll(() => down(next)).toBe(left);
 });
 
+// The demos page loads by route (Site/later.js): loaded again while its
+// module is slow to come, it is put where the reader left it once it
+// has come, not at the top of the empty page that stood before.
+test("with script, the demos page loaded again while its module is slow is where the reader left it", async ({ page }) => {
+  await page.goto(`${base}demos/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const pantry = page.getByText("The Corner Pantry", { exact: true }).first();
+  await expect(pantry).toBeVisible({ timeout: 30_000 });
+  const unscrolled = await down(pantry);
+  const { width, height } = page.viewportSize();
+  await page.mouse.move(width / 2, height / 2);
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => down(pantry)).toBeLessThan(unscrolled - 300);
+  const left = await rest(pantry);
+  await test.step("the entry keeps where the page stopped", () =>
+    page.waitForFunction((moved) => Math.abs((history.state?.offset ?? 0) - moved) < 1, unscrolled - left, { timeout: 0, polling: "raf" }),
+  );
+
+  await page.route("**/DemosPage-*.js", async (route) => {
+    await new Promise((done) => setTimeout(done, 1500));
+    await route.continue();
+  });
+  await page.reload();
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect.poll(() => down(pantry), { timeout: 30_000 }).toBe(left);
+  // Nor is the place cut to the empty page kept while it was fetched.
+  expect(await page.evaluate(() => history.state?.offset), "the entry still keeps the place").toBeCloseTo(unscrolled - left, 0);
+});
+
 test("with script, back pressed again while a page is still read keeps each page's place", async ({ page }) => {
   await page.goto(`${base}start/`);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
