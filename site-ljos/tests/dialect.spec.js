@@ -48,39 +48,17 @@ const qtQuick = {
   ...site(["Site/Theme"], `needs MotionPreference: ${coming}`),
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
-  ...site(["Demos/Orbit"], "Ljos.Ui has no FrameAnimation"),
+  ...site(["Demos/Orbit"], `needs FrameAnimation: ${coming}`),
   ...site(["Demos/Lottie"], "Ljos.Ui has no Item.TopLeft for the transformOrigin its avatars scale about"),
   ...site(["Shells/Cyberpunk"], `needs FrameAnimation: ${coming}`),
-  // A right-to-left page reads LayoutMirroring.enabled to set from the
-  // right what these place from the left; Ljos.Ui has no LayoutMirroring.
-  ...site(
-    [
-      "Demos/AgentLogRow", "Demos/AgentView", "Demos/DispatchCard", "Demos/FieldGuide", "Demos/WatchDemo",
-    ],
-    "Ljos.Ui has no LayoutMirroring",
-  ),
   ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
   // ShowcaseApp's recording, loaded when a reader asks (Loader.source given
   // an import), with what it sets on the item loaded and reads of it;
   // Ljos.Ui's Loader takes a url only and its item is a QtObject with none
   // of those.
   ...site(["Site/ShowcasePlayer"], "Ljos.Ui's Loader takes a url, not a lazy import, and its item is untyped"),
-  // The rest of the site's loading is typed; these three hold what is not,
-  // each one Qt type given an untyped value, so the files that use them
-  // are typed throughout.
-  ...site(["Demos/ModuleLoader"], "Ljos.Ui's Loader takes a url, not a lazy import or a live module, and a component that is never missing"),
-  ...site(["Demos/HeldBinding"], "Ljos.Core's Binding takes a QtObject target, not an object a loaded app names"),
-  ...site(["Demos/DispatchShell"], "Ljos.Blocks' ShellLoader takes a url source and fallback, not a lazy import or a component, and its item is untyped"),
-  ...site(["Demos/PantryStage"], "Ljos.Blocks' ShellLoader takes a url source and fallback, not a shell compiled in the page or a component"),
-  // What the build writes (Content, ShowcaseApps, DispatchSource, PantryProject)
-  // is not in a checkout until it runs, and CI's ljos check runs before it: these
-  // read those singletons by name for the typed files that use them.
-  ...site(["Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
-  // A visitor's edit to it is compiled in the page and run by
-  // Ljos/Blocks/shell.js, which makes QtQuick's types only.
-  "site/src/demos/pantry/Shell.qml": "a visitor's edit runs in the page's shell runner, which makes QtQuick's types only",
   // The Motion demo calms its own motion (a softer spring, shorter glides)
   // when a reader asks for less; Ljos.Ui's animations would put what moves
   // at its end at once (e2e/motion.spec.js holds that the puck travels).
@@ -93,7 +71,6 @@ const qtQuickModules = {
   "QtQuick.Controls": {
     ...site(["Site/ControlsHost"], "it builds the page with Qt Quick Controls, which readers' in-page compiles import"),
     "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
-    "site/src/demos/pantry/Pantry/Note.qml": "the Pantry demo's in-page compile maps QtQuick.Controls; Ljos.Controls would bring QtQuick.Shapes and Binding with it",
   },
   "QtQuick.Effects": {
     ...site(["Site/CodeBlock"], "no Ljós module has RectangularShadow or MultiEffect"),
