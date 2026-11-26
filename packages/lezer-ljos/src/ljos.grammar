@@ -496,7 +496,25 @@ BinaryExpression {
 AssignmentExpression {
   (VariableName | MemberExpression) !assign UpdateOp<($[+\-/%^] | "*" "*"? | "|" "|"? | "&" "&"? | "<<" | ">>" ">"? | "??") "=">
     expressionNoComma |
-  (VariableName | MemberExpression | ArrayPattern | ObjectPattern) !assign "=" expressionNoComma
+  (VariableName | MemberExpression | assignArray | assignObject) !assign "=" expressionNoComma
+}
+
+// What a destructuring assignment (not a declaration) puts values in: a
+// name it defines, as a declaration's pattern does, or a member, as a swap
+// writes `[heap[k], heap[up]] = [heap[up], heap[k]]`.
+assignArray[@name=ArrayPattern] { "[" commaSep<("..."? assignElement)?> ~destructure "]" }
+
+assignObject[@name=ObjectPattern] { "{" commaSep<assignProperty> ~destructure "}" }
+
+assignTarget { VariableDefinition | assignArray | assignObject | MemberExpression ~destructure }
+
+assignElement { assignTarget ("=" expressionNoComma)? }
+
+assignProperty[@name=PatternProperty] {
+  "..." assignElement |
+  (VariableDefinition { word ~propName } |
+   (PropertyName | Number | String | "[" expression "]") ~destructure ":" assignTarget)
+  ("=" expressionNoComma)?
 }
 
 MemberExpression {
