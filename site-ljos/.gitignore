@@ -11,3 +11,4 @@ bundle/Examples/
 bundle/Demos/DispatchSource.qml
 bundle/Demos/PantryProject.qml
 bundle/Demos/*-project.json
+bundle/Showcase/*-project.json

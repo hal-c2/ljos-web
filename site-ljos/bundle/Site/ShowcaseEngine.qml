@@ -2,13 +2,21 @@ import Ljos.Ui
 import Ljos.Layout
 import Ljos.Core
 import Site
+import Demos
+import "../Showcase/example-live.js" as Example
+import "../Showcase/logic/world.ts" as World
 
 // The engine an app is built on, as its entry in Showcase/products.json
 // names it (ShowcaseApp hands its fields in): a line that says so and
 // links to it, then the engine in its own words. Those are lines of one
 // of its examples, cut by the build from a copy of the file at the
 // commit the entry names, each linked to those lines there; beside
-// them, that example running, drawn off-screen.
+// them, that example running, drawn off-screen. An example the entry says
+// runs in a browser (`live`, its name in Showcase/later.js) stands as
+// that picture in a frame (DemoFrame) until the reader presses Run, and
+// then runs in the page; Edit opens its file, and an edit that compiles
+// is run in its place (Showcase/example-live.js), one that does not says
+// what broke while the last world that did goes on.
 Column {
     id: section
 
@@ -23,11 +31,106 @@ Column {
     required property string path
     required property unknown snippets
     required property unknown capture
+    // The example's name where it runs in the page (Showcase/later.js),
+    // and what it is called, for its controls' names: "Run Snail Post".
+    property string live: ""
+    property string what: ""
     property string route: "/showcase/"
     property bool wide: true
     property Flickable scroller
 
     spacing: Theme.l
+
+    // The editor, once the reader opens it: the example's own file as the
+    // build copied it ({ path, lang, code, rich }), what the reader made
+    // of it, and the world that made, as the frame's host gives it.
+    readonly property string entry: "Main.qml"
+    property bool editing: false
+    property unknown file: null
+    property string edit: ""
+    property unknown made: undefined
+    property string said: ""
+    property bool compiles: true
+    // The text last given to the editor by the page, so the editor saying
+    // it back is not taken for an edit.
+    property string own: ""
+    readonly property bool changed: section.file !== null && section.edit !== "" && section.edit !== section.code
+    readonly property string code: World.codeOf(section.file)
+    // The compiler's squiggles on the reader's text.
+    property unknown diagnostics: []
+    // Writing the editor's text (a Reset): to whichever editor is open.
+    signal retyped(string text)
+
+    function openEditor(): void {
+        section.editing = !section.editing;
+        if (!section.editing || section.file !== null)
+            return;
+        Example.load(section.live).then((project) => {
+            section.file = World.fileIn(project, section.entry);
+            section.own = section.code;
+            section.retyped(section.code);
+        });
+        Example.needsWasm().then((why) => {
+            if (why !== "") {
+                section.compiles = false;
+                section.said = why;
+            }
+        });
+    }
+    function edited(text: string): void {
+        if (text === section.own || section.file === null)
+            return;
+        section.own = text;
+        section.edit = text === section.code ? "" : text;
+        debounce.restart();
+    }
+    function apply(): void {
+        if (!section.compiles)
+            return;
+        const asked = section.edit;
+        if (asked === "") {
+            section.made = undefined;
+            section.said = "";
+            section.diagnostics = [];
+            return;
+        }
+        Example.compile(section.live, section.entry, World.edits(section.entry, asked)).then((made) => {
+            if (asked !== section.edit)
+                return;
+            section.said = "";
+            section.made = made;
+            section.diagnostics = [];
+        }, (error) => {
+            if (asked !== section.edit)
+                return;
+            section.said = World.messageOf(error);
+            section.diagnostics = World.diagnosticsOf(error, section.entry);
+        });
+    }
+    // The world follows its frame and the reader's edits. Bound as
+    // DemoFrame binds its demo's: a Binding would be on every visit's first
+    // load (tests/payload.spec.js). Written here, not in the component it
+    // is for, where `bind` would be read as a model's role first.
+    function follow(world: unknown, host: unknown): void {
+        world.active = bind(() => host.active);
+        world.calm = bind(() => host.calm);
+        world.live = bind(() => section.made);
+    }
+    function reset(): void {
+        debounce.stop();
+        section.edit = "";
+        section.made = undefined;
+        section.said = "";
+        section.own = section.code;
+        section.diagnostics = [];
+        section.retyped(section.code);
+    }
+
+    Timer {
+        id: debounce
+        interval: 500
+        onTriggered: section.apply()
+    }
 
     Column {
         width: parent.width
@@ -86,8 +189,16 @@ Column {
             width: section.wide ? pair.width - pair.spacing - pair.side : pair.width
             spacing: Theme.l
 
+            // On a desk the editor stands in the code's place, beside the
+            // world it changes.
+            Loader {
+                width: parent.width
+                active: section.editing && section.wide
+                visible: active
+                sourceComponent: editorView
+            }
             Repeater {
-                model: section.snippets
+                model: section.editing && section.wide ? [] : section.snippets
                 Column {
                     id: snippet
                     required property string says
@@ -125,9 +236,163 @@ Column {
             }
         }
         ShowcaseCapture {
+            visible: section.live === ""
             width: pair.side
             capture: section.capture
             route: section.route
+        }
+        Column {
+            visible: section.live !== ""
+            width: pair.side
+            spacing: Theme.s
+
+            DemoFrame {
+                width: parent.width
+                scroller: section.scroller
+                route: section.route
+                aspect: World.aspectOf(section.capture)
+                picture: "/showcase/media/" + World.nameOf(section.capture) + ".png"
+                description: World.altOf(section.capture)
+                what: section.what
+                demo: section.live !== "" ? running : null
+            }
+            Text {
+                width: parent.width
+                text: World.showsOf(section.capture)
+                color: Theme.text
+                font.family: Theme.sans
+                font.size: Theme.bodySize
+                font.weight: Font.DemiBold
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.bodyLine
+                wrap: Text.Wrap
+            }
+            StageButton {
+                checkable: true
+                checked: section.editing
+                text: section.editing ? t`Close the editor` : t`Edit`
+                label: section.editing ? t`Close the editor of ${section.what}` : t`Edit ${section.what}`
+                onPressed: section.openEditor()
+            }
+        }
+    }
+
+    // The example's file, to change: an edit is compiled as the reader
+    // stops typing and, once it compiles, runs in the frame. On a phone
+    // it stands under the world, which the reader's keyboard leaves in
+    // sight.
+    Loader {
+        width: parent.width
+        active: section.editing && !section.wide
+        visible: active
+        sourceComponent: editorView
+    }
+
+    Component {
+        id: editorView
+
+        Column {
+            width: parent.width
+            spacing: Theme.s
+
+            Connections {
+                target: section
+                function onRetyped(text) {
+                    editor.text = text;
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: head.implicitHeight + Theme.xs
+                fill: Theme.panel
+                border.color: Theme.border
+                border.width: 1
+
+                Row {
+                    id: head
+                    x: Theme.s
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.m
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: section.path
+                        color: Theme.muted
+                        font.family: Theme.mono
+                        font.size: Theme.captionSize
+                    }
+                    StageButton {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: section.changed
+                        text: t`Reset`
+                        label: t`Reset ${section.what} to its file`
+                        onPressed: section.reset()
+                    }
+                }
+            }
+            Rectangle {
+                width: parent.width
+                height: section.wide ? 420 : 320
+                fill: Theme.codeBg
+                border.color: editor.activeFocus ? Theme.focusRing : Theme.border
+                border.width: editor.activeFocus ? 2 : 1
+
+                Flickable {
+                    id: editorScroll
+                    anchors.fill: parent
+                    anchors.margins: Theme.s
+                    contentWidth: editor.width
+                    contentHeight: editor.height
+                    clip: true
+
+                    CodeEditor {
+                        id: editor
+                        // The Flickable's own width: its content item's follows
+                        // the editor's, so the parent's would go round.
+                        width: Math.max(editorScroll.width, implicitWidth)
+                        code: section.code
+                        rich: section.changed ? "" : World.richOf(section.file)
+                        diagnostics: section.diagnostics
+                        lang: "qml"
+                        label: t`Edit ${section.path} of ${section.what}`
+                        errors: told
+                        onTextChanged: section.edited(text)
+                        // Made again in the other place (the window turned): as
+                        // the reader left it.
+                        Component.onCompleted: if (section.edit !== "") text = section.edit
+                    }
+                }
+            }
+            Text {
+                id: told
+                visible: section.said !== ""
+                width: parent.width
+                text: section.said
+                color: Theme.danger
+                font.family: Theme.mono
+                font.size: Theme.captionSize
+                wrap: Text.Wrap
+            }
+        }
+    }
+
+    // The example, given what the reader's edits made of it as they compile.
+    Component {
+        id: running
+        Item {
+            id: host
+            property bool active: true
+            property bool calm: false
+            // The frame waits on what it holds; what it holds is the world.
+            readonly property bool ready: app.item !== null && app.item !== undefined
+            readonly property unknown observed: World.observedOf(app.item)
+            ModuleLoader {
+                id: app
+                anchors.fill: parent
+                module: Example.app(section.live)
+                onLoaded: section.follow(app.item, host)
+            }
         }
     }
 }

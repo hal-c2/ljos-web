@@ -9,7 +9,8 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
   Covered by site-ljos/tests/showcase.spec.js, with the route in
   links.spec.js, parity.spec.js, hydrate.spec.js, a11y.spec.js and
   design.spec.js, the first load by payload.spec.js, and the rich text's
-  <picture> by packages/runtime/tests/text.spec.js.
+  <picture> by packages/runtime/tests/text.spec.js. The example that runs
+  in the page is covered by site-ljos/e2e/showcase-play.spec.js.
 
   Background:
     Given the site is built
@@ -42,6 +43,47 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     And the lines are the file's at the commit the entry names, byte for byte
     And each links to those lines at that commit
     And beside them is a capture of the example running, made off-screen
+
+  Scenario: The engine's example runs in the page once the reader asks
+    Given an app whose engine has an example that runs in a browser, as ljos-play's Snail Post does
+    When a reader opens /showcase/
+    Then the example's capture stands in a frame with a control named "Run Snail Post"
+    And nothing of the example is fetched: not its QML, its engine or its files
+    When the reader presses Run
+    Then the example is made in the page from the files the build copied, and the capture stays until it is drawn
+    And its snails walk, fetch letters and carry them to the boxes
+
+  Scenario: The example is copied from its engine, pinned, with its licence
+    Given the example and the engine's QML it needs, copied by scripts/sync-play.mjs
+    Then each copy is the file at the commit the entry names, as the pin's hashes say
+    And the engine's licence is beside them, and nothing else is in its folder
+
+  Scenario: The example runs only while it is seen
+    Given the example is running
+    When the reader scrolls it out of view, or hides its tab
+    Then its world's clock stands still
+    And it goes on once it is shown again
+
+  Scenario: Under reduced motion the snails go slower and never stop
+    Given a browser that asks for reduced motion
+    When the reader runs the example
+    Then its snails move at less than their own pace, and still move
+
+  Scenario: The reader changes the example and it runs as they changed it
+    Given the example is running
+    When the reader presses "Edit Snail Post"
+    Then its Main.qml is shown in place of the lines beside the world, or under the world on a phone
+    When the reader changes it
+    Then the edit is compiled in the page and the world is made again from it
+    And an edit that does not compile says what broke, and the last world that did goes on
+    And "Reset" gives back the file as it was copied
+
+  Scenario: Without WebAssembly an edit says why it cannot run
+    Given a browser without WebAssembly
+    And the example is running
+    When the reader edits its Main.qml
+    Then the page says that live editing needs WebAssembly
+    And the world goes on as the file made it
 
   Scenario: No other page loads the showcase
     When a reader opens any page but /showcase/

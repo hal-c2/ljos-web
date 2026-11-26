@@ -323,6 +323,8 @@ Column {
             path: modelData.example.path
             snippets: modelData.example.snippets
             capture: modelData.example.capture
+            live: modelData.example.live ?? ""
+            what: modelData.example.what ?? ""
             route: app.route
             wide: app.wide
             scroller: app.scroller

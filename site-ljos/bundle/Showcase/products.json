@@ -60,10 +60,12 @@
       "example": {
         "about": "Snail Post, one of ljos-play's examples: snails fetch letters, carry them to the boxes, nap under toadstools and stop to gossip.",
         "repository": "hal-c2/ljos-play",
-        "commit": "f3752fb1b54f3fa1ec31984e9d3c4dbc78c5ba9c",
+        "commit": "6097753c40b3a9f1fb664257f9dfa0f7e2a43072",
         "path": "examples/snail-post/Main.qml",
         "blob": "a35a663615756d62a795b63e6aa5ed5da1fc6bd8",
-        "copy": "Showcase/play/snail-post.qml.txt",
+        "copy": "Showcase/play/snail-post/Main.qml",
+        "live": "snail-post",
+        "what": "Snail Post",
         "upstream": {
           "1": "import QtQuick",
           "9": "    readonly property var shells: [\"#c9634f\", \"#d8a03f\", \"#7d6bb3\", \"#4f8fb0\", \"#b05c86\", \"#6f9a4c\", \"#c27f3d\", \"#8f6f5a\"]",
