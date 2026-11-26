@@ -1998,6 +1998,10 @@ msgstr "没有可供编辑的 {0}.qml。"
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "此次编辑缺少用于显示编辑器的 site.source.live，因此保留上一次可运行的版本。"
 
+#: ../Site/PageView.qml:248
+msgid "This page could not be loaded."
+msgstr "无法加载此页面。"
+
 #: ../Site/ObserverNote.qml:19
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "此面板运行在浏览器中。在桌面端，ljos observe 命令可以为运行中的应用打开观察器。"
@@ -2062,7 +2066,7 @@ msgstr "无需安装，在浏览器里直接体验 Ljós。"
 msgid "Try a demo"
 msgstr "试试演示"
 
-#: ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
 msgid "Try again"
 msgstr "重试"
 
