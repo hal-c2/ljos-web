@@ -109,7 +109,7 @@ test("a broken shell is refused, the running shell stays, and the next good edit
   const editor = fig.locator(".pantry-editor__text");
   const good = await editor.inputValue();
 
-  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await editor.fill("import Ljos.Ui\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
   await fig.locator(".pantry-apply").click();
   const errors = fig.locator(".pantry-editor__errors");
   await expect(errors).toBeVisible({ timeout: 30000 });
