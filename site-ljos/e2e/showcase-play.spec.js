@@ -44,11 +44,13 @@ async function awayFrom(page) {
   }, "the world is scrolled off screen").toPass();
 }
 
-// How far the farthest walker went while the scene's clock gave `ms`: the
-// path of each canvas, read every few frames, summed. A walker stops at
-// its goal, so the farthest of them says how fast they walk.
-async function walked(page, ms) {
+// How far the farthest walker went while the scene's clock gave `ms`, or,
+// with `wall`, while `ms` went by on the test's own clock: the path of each
+// canvas, read every few frames, summed. A walker stops at its goal, so the
+// farthest of them says how fast they walk.
+async function walked(page, ms, { wall = false } = {}) {
   const start = await clockOf(page);
+  const began = Date.now();
   let last = await places(page);
   const paths = last.map(() => 0);
   for (;;) {
@@ -57,7 +59,7 @@ async function walked(page, ms) {
     for (let i = 0; i < Math.min(now.length, last.length); i++) paths[i] += Math.abs(now[i][0] - last[i][0]) + Math.abs(now[i][1] - last[i][1]);
     last = now;
     const clock = await clockOf(page);
-    if (clock.time - start.time >= ms || !clock.jobs) return Math.max(0, ...paths);
+    if (wall ? Date.now() - began >= ms : clock.time - start.time >= ms || !clock.jobs) return Math.max(0, ...paths);
   }
 }
 
@@ -222,10 +224,13 @@ test.describe("Snail Post on /showcase/", () => {
       const context = await browser.newContext({ reducedMotion: "no-preference", viewport: page.viewportSize() });
       const other = await context.newPage();
       await Promise.all([started(page), started(other)]);
-      // Side by side, so that what else the machine does slows both alike.
+      // Side by side, so that what else the machine does slows both alike,
+      // over the same two seconds of the test's clock: the worlds step on
+      // timers, which a loaded page's scene clock (capped in each frame)
+      // falls behind, and the two pages' clocks fall behind unalike.
       const [[calm, calmFrames], [full, fullFrames]] = await Promise.all([
-        framesDuring(page, () => walked(page, 2000)),
-        framesDuring(other, () => walked(other, 2000)),
+        framesDuring(page, () => walked(page, 2000, { wall: true })),
+        framesDuring(other, () => walked(other, 2000, { wall: true })),
       ]);
       await context.close();
       const drawn = `the pages drew ${calmFrames} and ${fullFrames} frames a second, of the world's 25 beats`;
