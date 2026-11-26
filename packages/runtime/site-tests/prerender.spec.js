@@ -3,8 +3,10 @@
 // at all; with script, hydration takes those very nodes over rather
 // than making the page again, and the page then behaves as it always
 // did. Both kernels are built the same way and must give the same page.
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { buildSite } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
 import { building, expect, part, serve, shared, test } from "./served.js";
@@ -504,4 +506,39 @@ test("the prerender's document has the focus, and says so once", async () => {
   expect(new ServerDocument().hasFocus()).toBe(true);
   const said = readFileSync(join(import.meta.dirname, "../server/dom.js"), "utf8").match(/^  hasFocus\(\)/gm) ?? [];
   expect(said).toHaveLength(1);
+});
+
+// In a process of its own: the prerender's globals are the process's.
+test("the prerender sets a run in the size it is drawn at, and keeps the spaces white space keeps", () => {
+  const probe = `
+    const { installPrerenderGlobals } = await import(${JSON.stringify(pathToFileURL(join(import.meta.dirname, "../server/dom.js")).href)});
+    const c = (font, text, width) => [["c", font, "auto", "normal", text].join("\\u0000"), [width, 0, 0, 0, 0, 0, 0]];
+    installPrerenderGlobals({ measured: [c("16px Inter", "Ab", 10), c("32px Inter", "Ab", 20), c("10px Inter", "A", 10), c("10px Inter", "B", 10), c("10px Inter", " ", 10)] });
+    // Rich text: its root says the font, a <font size> a part of it.
+    const root = document.createElement("div");
+    root.style.setProperty("font", "16px Inter");
+    root.style.setProperty("--qq-size", "16px");
+    const big = document.createElement("span");
+    big.style.setProperty("font-size", "calc(var(--qq-size) * 2)");
+    big.textContent = "Ab";
+    const plain = document.createElement("span");
+    plain.textContent = "Ab";
+    root.append(big, plain);
+    document.body.append(root);
+    const lines = (whiteSpace) => {
+      const text = document.createElement("div");
+      for (const [name, value] of [["font", "10px Inter"], ["width", "40px"], ["line-height", "10px"], ["white-space", whiteSpace]]) text.style.setProperty(name, value);
+      text.textContent = "A    B";
+      return text.getBoundingClientRect().height / 10;
+    };
+    console.log(JSON.stringify({ big: big.getBoundingClientRect().width, plain: plain.getBoundingClientRect().width, normal: lines("normal"), preWrap: lines("pre-wrap"), breakSpaces: lines("break-spaces") }));
+  `;
+  const said = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", probe], { encoding: "utf8" }));
+  // Measured at 32px, as drawn, and the run that inherits its size as before.
+  expect(said.big).toBe(20);
+  expect(said.plain).toBe(10);
+  // "A    B" in 40px of 10px letters: one line with its spaces collapsed;
+  // kept, A and its spaces fill the first (hanging past it in pre-wrap,
+  // wrapping in break-spaces) and B starts the second.
+  expect(said).toMatchObject({ normal: 1, preWrap: 2, breakSpaces: 2 });
 });

@@ -38,7 +38,20 @@ async function answer(keys) {
     const text = rest.at(-1) ?? "";
     letters.set(font, (letters.get(font) ?? "") + text);
   }
-  await Promise.all([...letters].map(([font, text]) => document.fonts.load(font, [...new Set(text || "x")].join("")).catch(() => [])));
+  // A face that does not load fails the build: measured in its fallback,
+  // the answers would be kept and every line laid out again as a page
+  // hydrates. A font no browser can read (a SyntaxError) is answered
+  // nothing, so the prerender guesses at it, as a canvas told it keeps
+  // the font it had.
+  const unread = new Set();
+  await Promise.all(
+    [...letters].map(([font, text]) =>
+      document.fonts.load(font, [...new Set(text || "x")].join("")).catch((error) => {
+        if (error?.name !== "SyntaxError") throw error;
+        unread.add(font);
+      }),
+    ),
+  );
   const context = document.createElement("canvas").getContext("2d");
   const span = document.createElement("span");
   span.style.cssText = "position:fixed;left:0;top:0;visibility:hidden;white-space:pre;pointer-events:none";
@@ -46,6 +59,7 @@ async function answer(keys) {
   gauge.style.cssText = "position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;width:1ex;height:1cap";
   document.body.append(span, gauge);
   const answers = asked.map(([kind, ...rest]) => {
+    if (unread.has(rest[0])) return null;
     if (kind === "c" && rest.length === 4) {
       const [font, kerning, caps, text] = rest;
       context.font = font;
