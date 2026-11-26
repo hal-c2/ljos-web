@@ -4,6 +4,7 @@ import Ljos.Core
 import "../motion.js" as Motion
 import "../scheme.js" as Scheme
 import "../tokens.js" as Tokens
+import "../looks.ts" as Looks
 
 // The site's design system, in one place: colour roles, type, spacing,
 // shape and motion. Every page, demo frame and the code theme read it
@@ -26,15 +27,15 @@ Object {
     property string picked: Scheme.picked()
     readonly property bool dark: picked === "dark" || (picked !== "light" && App.hints.colorScheme === ColorScheme.Dark)
 
-    function toggle() {
-        var next = dark ? "light" : "dark";
+    function toggle(): void {
+        const next: string = dark ? "light" : "dark";
         picked = next;
         Scheme.keep(next);
         Scheme.mark(next, next === "dark" ? look.dark.canvas : look.light.canvas);
     }
 
     // "light", "dark", or "" to follow the browser again.
-    function pick(scheme) {
+    function pick(scheme: string): void {
         picked = scheme;
         Scheme.keep(scheme);
         if (scheme === "")
@@ -52,7 +53,7 @@ Object {
     property string motion: Motion.picked()
     readonly property bool calm: motion === "calm" || (motion !== "full" && systemCalm)
 
-    function setCalm(wanted) {
+    function setCalm(wanted: bool): void {
         // Kept even where it agrees with the browser now: the reader chose
         // it for this site, and a browser that changes its preference
         // later does not change the site back under them.
@@ -67,11 +68,11 @@ Object {
     // default one, Elegant, which is what every page is written in.
     property string shell: "elegant"
     readonly property string lookName: Tokens.looks[shell] ? shell : "elegant"
-    readonly property var look: Tokens.looks[lookName]
+    readonly property Looks.Look look: Tokens.looks[lookName] ?? Tokens.looks.elegant
 
     // Colour roles: the scheme's own in the shell's look, from the one
     // table both the pages and the page's head read (tokens.js).
-    readonly property var tone: dark ? look.dark : look.light
+    readonly property Looks.Tone tone: dark ? look.dark : look.light
     readonly property color canvas: tone.canvas
     readonly property color surface: tone.surface
     readonly property color surfaceRaised: tone.surfaceRaised
@@ -130,7 +131,7 @@ Object {
     // display), a sans for the rest and a mono for code, each the site's
     // own face first (bundle/assets/fonts) and the system's after it.
     // Each step is a size and the line it sits on.
-    readonly property var type: look.type
+    readonly property Looks.TypeSteps type: look.type
     readonly property string display: look.fonts.display
     readonly property int displayWeight: look.fonts.displayWeight
     // Letter spacing at the hero's size, in pixels; a smaller step is
@@ -193,7 +194,7 @@ Object {
     // Whether a device `width` wide stands as a console: DeviceFrame asks
     // it of its own width, the front page of the width its live app would
     // have under its words, so it stands the app there only as a console.
-    function consoleAt(width) {
+    function consoleAt(width: real): bool {
         return consoleLayout && width >= consoleFrom;
     }
 
@@ -234,7 +235,7 @@ Object {
     readonly property int enterPanel: 250
     readonly property int moveSmall: 150
     readonly property int exitSmall: 100
-    readonly property var easeOut: [0.23, 1, 0.32, 1, 1, 1]
+    readonly property list<real> easeOut: [0.23, 1, 0.32, 1, 1, 1]
     // How far something entering travels: none for a reader who asked
     // for less movement, who still sees it fade.
     readonly property int travel: calm ? 0 : 8
