@@ -888,6 +888,17 @@ test("the demos page comes on Try again when its chunk could not be fetched", as
   }
 });
 
+// Where the elements drawing `ring` are: Try again, inside which page,
+// or outside any.
+const ringedWith = (page, ring) =>
+  page.evaluate(
+    (ring) =>
+      [...document.querySelectorAll("*")]
+        .filter((one) => one.style.boxShadow === ring && one.checkVisibility())
+        .map((one) => (one.getAttribute("aria-label") === "Try again" ? "Try again" : (one.closest('[role="main"]')?.getAttribute("aria-label") ?? "outside the page"))),
+    ring,
+  );
+
 // Try again pressed from the keyboard keeps the keyboard's place: on
 // the button again when the page fails once more, on the page when it
 // comes. The keyboard's place is read from the ring drawn round the
@@ -914,6 +925,11 @@ test("Try again from the keyboard keeps the focus on the button, then gives it t
     await expect(again, "the page fails once more").toBeVisible({ timeout: 30_000 });
     await expect.poll(ringed, { message: "and the keyboard is on Try again again" }).toBe(true);
 
+    // The focus ring, and every element that draws it now.
+    const ring = await again.evaluate((button) => button.style.boxShadow);
+    const before = await ringedWith(page, ring);
+    expect(before, "Try again draws the ring").toContain("Try again");
+
     down = false;
     await page.keyboard.press("Enter");
     await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
@@ -925,6 +941,12 @@ test("Try again from the keyboard keeps the focus on the button, then gives it t
         message: "the keyboard is on the page that came, not left on the button gone",
       })
       .toBe(0);
+    // Nor on nothing, nor past the page: the ring Try again had is now
+    // on a stop inside the demos that came, and wherever else it was
+    // drawn before (the skip link) is as it was.
+    await expect
+      .poll(() => ringedWith(page, ring), { message: "the keyboard is on a stop of the page that came" })
+      .toEqual(before.map((where) => (where === "Try again" ? "Live demos" : where)));
   } finally {
     await context.close();
   }
