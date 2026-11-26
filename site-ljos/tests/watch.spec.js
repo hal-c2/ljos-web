@@ -158,3 +158,53 @@ test("on a narrow page the watch's picture is its compact one, unstretched", asy
     }
   }
 });
+
+// The file tabs are one stop on Tab, the chosen file's, and the arrows
+// go along them, round past either end, the stop going with them;
+// Enter shows the one reached.
+// The keyboard's place is read from the ring drawn round a tab (its
+// border, two pixels wide while it has the focus).
+test("the watch's file tabs are one tab stop, and the arrows go along them", async ({ page }) => {
+  await page.goto("/demos/watch/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const tabs = page.getByRole("tablist", { name: /^The files of/ }).getByRole("tab");
+  const names = await tabs.evaluateAll((all) => all.map((tab) => tab.getAttribute("aria-label")));
+  expect(names.length, names.join(", ")).toBeGreaterThan(2);
+  const [first, second, last] = [names[0], names[1], names[names.length - 1]];
+  const ringed = () => tabs.evaluateAll((all) => all.filter((tab) => / 2px inset/u.test(tab.style.boxShadow)).map((tab) => tab.getAttribute("aria-label")));
+  const chosen = () => tabs.evaluateAll((all) => all.filter((tab) => tab.getAttribute("aria-selected") === "true").map((tab) => tab.getAttribute("aria-label")));
+  const shown = (await chosen())[0];
+  expect(shown).toBeTruthy();
+
+  for (let n = 0; (await ringed()).length === 0; n++) {
+    expect(n, "Tab comes to the file tabs").toBeLessThan(60);
+    await page.keyboard.press("Tab");
+  }
+  expect(await ringed(), "Tab comes to the chosen file's tab").toEqual([shown]);
+  await page.keyboard.press("Tab");
+  await expect.poll(ringed, { message: "the next Tab leaves the row: it is one stop" }).toEqual([]);
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(ringed).toEqual([shown]);
+
+  // To the first file: Home is not the pattern's here, so Left along.
+  for (let at = names.indexOf(shown); at > 0; at--) await page.keyboard.press("ArrowLeft");
+  await expect.poll(ringed).toEqual([first]);
+  await expect.poll(chosen, { message: "an arrow moves the keyboard, not the chosen file" }).toEqual([shown]);
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(ringed).toEqual([second]);
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(ringed, { message: "Left from the first goes round to the last" }).toEqual([last]);
+  await page.keyboard.press("Enter");
+  await expect.poll(chosen).toEqual([last]);
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(ringed, { message: "Right from the last goes round to the first" }).toEqual([first]);
+  // The stop is where the keyboard is: out of the row backwards and in
+  // again lands on the tab the arrow reached, as Tab does.
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(ringed, { message: "Shift+Tab leaves the row" }).toEqual([]);
+  await page.keyboard.press("Tab");
+  await expect.poll(ringed).toEqual([first]);
+  await page.keyboard.press("Tab");
+  await expect.poll(ringed, { message: "still one stop" }).toEqual([]);
+});

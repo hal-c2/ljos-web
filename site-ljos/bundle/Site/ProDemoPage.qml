@@ -258,10 +258,24 @@ Column {
             Accessible.name: t`The files of ${page.demo.what}`
 
             Repeater {
+                id: fileTabs
                 model: page.words.paths ?? []
+                // The tabs are one stop on Tab, and the arrows go along them:
+                // the ARIA tab pattern a tab list is announced with. The stop
+                // is the tab the keyboard was last on, so Shift+Tab from a tab
+                // an arrow reached leaves the row as Tab does; until then it is
+                // the chosen file's, or the first's while none is.
+                property int stop: -1
+                readonly property int stopAt: stop >= 0 && stop < count ? stop : Math.max(0, (page.words.paths ?? []).indexOf(page.path))
+                function focusAt(at) {
+                    const next = fileTabs.itemAt((at + fileTabs.count) % fileTabs.count);
+                    if (next)
+                        next.forceActiveFocus(Qt.TabFocusReason);
+                }
                 delegate: Rectangle {
                     id: tab
                     required property string modelData
+                    required property int index
                     readonly property bool chosen: modelData === page.path
                     readonly property bool changed: Object.hasOwn(page.edits, modelData)
                     width: name.implicitWidth + 2 * Theme.xs
@@ -270,13 +284,20 @@ Column {
                     color: chosen ? Theme.surfaceSelected : press.containsMouse ? Theme.surfaceHover : Theme.surface
                     border.color: activeFocus ? Theme.focusRing : chosen ? Theme.accent : Theme.border
                     border.width: activeFocus ? 2 : 1
-                    activeFocusOnTab: true
+                    activeFocusOnTab: index === fileTabs.stopAt
+                    onActiveFocusChanged: if (activeFocus) fileTabs.stop = index
                     Accessible.role: Accessible.PageTab
                     Accessible.name: modelData + (changed ? ", changed" : "")
                     Accessible.selected: chosen
                     Accessible.onPressAction: () => page.show(modelData)
                     Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        if (event.key === Qt.Key_Right || event.key === Qt.Key_Left) {
+                            // Along the row as it is drawn: on a right-to-left
+                            // page Right goes back. Past either end, round.
+                            const forward = (event.key === Qt.Key_Right) !== LayoutMirroring.enabled;
+                            fileTabs.focusAt(tab.index + (forward ? 1 : -1));
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
                             page.show(tab.modelData);
                             event.accepted = true;
                         }
