@@ -18,7 +18,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 function bundled(dir) {
   cpSync(fixture, dir, { recursive: true });
   mkdirSync(join(dir, "Site"));
-  for (const name of ["motion.js", "scheme.js", "tokens.js"]) cpSync(join(site, name), join(dir, name));
+  for (const name of ["looks.ts", "motion.js", "motion.d.ts", "scheme.js", "scheme.d.ts", "tokens.js", "tokens.d.ts"]) cpSync(join(site, name), join(dir, name));
   for (const name of ["Theme.qml", "StageButton.qml"]) cpSync(join(site, "Site", name), join(dir, "Site", name));
   writeFileSync(join(dir, "Site/qmldir"), "module Site\nsingleton Theme 1.0 Theme.qml\nStageButton 1.0 StageButton.qml\n");
   cpSync(join(site, "Demos/DispatchCard.qml"), join(dir, "DispatchCard.qml"));
