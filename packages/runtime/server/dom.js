@@ -219,7 +219,8 @@ function linesIn(text, width, size, font, whiteSpace = "normal") {
     }
     if (wide > width + 0.01) {
       lines += Math.ceil(wide / width) - 1;
-      at = wide % width;
+      // A word that fills its last line exactly leaves that line full.
+      at = wide % width || width;
     } else at += wide;
     if (!kept) at += space;
   }

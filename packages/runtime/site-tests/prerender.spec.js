@@ -513,7 +513,7 @@ test("the prerender sets a run in the size it is drawn at, and keeps the spaces 
   const probe = `
     const { installPrerenderGlobals } = await import(${JSON.stringify(pathToFileURL(join(import.meta.dirname, "../server/dom.js")).href)});
     const c = (font, text, width) => [["c", font, "auto", "normal", text].join("\\u0000"), [width, 0, 0, 0, 0, 0, 0]];
-    installPrerenderGlobals({ measured: [c("16px Inter", "Ab", 10), c("32px Inter", "Ab", 20), c("10px Inter", "A", 10), c("10px Inter", "B", 10), c("10px Inter", " ", 10)] });
+    installPrerenderGlobals({ measured: [c("16px Inter", "Ab", 10), c("32px Inter", "Ab", 20), c("10px Inter", "A", 10), c("10px Inter", "B", 10), c("10px Inter", " ", 10), c("10px Inter", "Wide", 80)] });
     // Rich text: its root says the font, a <font size> a part of it.
     const root = document.createElement("div");
     root.style.setProperty("font", "16px Inter");
@@ -525,13 +525,13 @@ test("the prerender sets a run in the size it is drawn at, and keeps the spaces 
     plain.textContent = "Ab";
     root.append(big, plain);
     document.body.append(root);
-    const lines = (whiteSpace) => {
+    const lines = (whiteSpace, words = "A    B") => {
       const text = document.createElement("div");
       for (const [name, value] of [["font", "10px Inter"], ["width", "40px"], ["line-height", "10px"], ["white-space", whiteSpace]]) text.style.setProperty(name, value);
-      text.textContent = "A    B";
+      text.textContent = words;
       return text.getBoundingClientRect().height / 10;
     };
-    console.log(JSON.stringify({ big: big.getBoundingClientRect().width, plain: plain.getBoundingClientRect().width, normal: lines("normal"), preWrap: lines("pre-wrap"), breakSpaces: lines("break-spaces") }));
+    console.log(JSON.stringify({ big: big.getBoundingClientRect().width, plain: plain.getBoundingClientRect().width, normal: lines("normal"), preWrap: lines("pre-wrap"), breakSpaces: lines("break-spaces"), filled: lines("normal", "Wide B") }));
   `;
   const said = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", probe], { encoding: "utf8" }));
   // Measured at 32px, as drawn, and the run that inherits its size as before.
@@ -541,4 +541,6 @@ test("the prerender sets a run in the size it is drawn at, and keeps the spaces 
   // kept, A and its spaces fill the first (hanging past it in pre-wrap,
   // wrapping in break-spaces) and B starts the second.
   expect(said).toMatchObject({ normal: 1, preWrap: 2, breakSpaces: 2 });
+  // A word two lines wide fills both, and the next word starts a third.
+  expect(said.filled).toBe(3);
 });
