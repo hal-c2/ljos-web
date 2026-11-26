@@ -13,7 +13,7 @@ Grid {
     id: built
 
     // Which to show, by name, in this order.
-    property list<string> names: ["studio", "eldur", "hof"]
+    property list<string> names: ["studio", "eldur", "hof", "halc2"]
     property bool wide: true
     // The page's route, which the pictures' addresses are written from.
     property string route: "/"
@@ -46,6 +46,15 @@ Grid {
             picture: "/pictures/built-hof",
             pictureDark: "/pictures/built-hof-dark",
             alt: t`Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right.`
+        },
+        {
+            name: "halc2",
+            title: t`HAL-C2`,
+            href: "https://github.com/hal-c2/hal-c2",
+            body: t`A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href="/showcase/">Office plugin</a> is in the showcase.`,
+            picture: "/pictures/built-halc2",
+            pictureDark: "/pictures/built-halc2-dark",
+            alt: t`HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen.`
         }
     ]
     readonly property list<Made.Made> shown: Made.pick(all, names)
@@ -59,7 +68,7 @@ Grid {
         heights = Made.withHeight(heights, shown.length, at, height);
     }
 
-    columns: wide ? Math.min(3, shown.length) : 1
+    columns: wide ? Made.columns(shown.length) : 1
     columnSpacing: Theme.l
     rowSpacing: Theme.l
 

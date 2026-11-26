@@ -34,3 +34,9 @@ export function withHeight(heights: readonly number[], count: number, at: number
 export function tallest(heights: readonly number[]): number {
   return heights.reduce((most, one) => Math.max(most, one), 0);
 }
+
+// How many cards stand side by side on a wide page: up to three in a row,
+// but four as two rows of two, so no card stands alone under the others.
+export function columns(count: number): number {
+  return count === 4 ? 2 : Math.min(3, count);
+}

@@ -85,7 +85,7 @@ Column {
         }
         BuiltWith {
             width: parent.width
-            names: ["studio", "eldur"]
+            names: ["studio", "eldur", "halc2"]
             wide: showcase.wide
             route: "/showcase/"
             onFollowed: (link) => Nav.go(link)

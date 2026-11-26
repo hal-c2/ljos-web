@@ -2458,3 +2458,15 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:137
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#: ../Site/BuiltWith.qml:54
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
+msgstr "आपकी मशीन पर चल रहे कोडिंग एजेंटों के लिए एक नियंत्रण पटल, जिसमें एक टर्मिनल, ब्राउज़र टैब और एक QML लेआउट है जिसे आप इसके चलते हुए बदल सकते हैं। इसका <a href=\"/showcase/\">Office प्लगइन</a> शोकेस में है।"
+
+#: ../Site/BuiltWith.qml:52 ../Site/Footer.qml:138
+msgid "HAL-C2"
+msgstr "HAL-C2"
+
+#: ../Site/BuiltWith.qml:57
+msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
+msgstr "Ljós पर HAL-C2 की रूप-रंग सेटिंग: बाईं ओर सेटिंग के खंड, System/Light/Dark रंग योजना के विकल्प और थीम की एक सूची, जिसमें HAL-C2 चुनी हुई है।"

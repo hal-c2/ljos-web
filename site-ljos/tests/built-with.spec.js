@@ -1,7 +1,7 @@
 // What is built with Ljós (features/built-with.feature): Ljós Studio,
-// Eldur and Ljós Hof on the front page, a capture of each and its
-// repository (Site/BuiltWith.qml); Studio and Eldur on the showcase; all
-// three in every page's footer.
+// Eldur, Ljós Hof and HAL-C2 on the front page, a capture of each and its
+// repository (Site/BuiltWith.qml); Studio, Eldur and HAL-C2 on the
+// showcase, after the apps it records; all four in every page's footer.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,7 +16,10 @@ const built = [
   { name: "Ljós Studio", href: "https://github.com/hal-c2/ljos-studio", picture: "built-studio", dark: true },
   { name: "Eldur", href: "https://github.com/hal-c2/eldur", picture: "built-eldur", dark: false },
   { name: "Ljós Hof", href: "https://github.com/hal-c2/ljos-hof", picture: "built-hof", dark: true },
+  { name: "HAL-C2", href: "https://github.com/hal-c2/hal-c2", picture: "built-halc2", dark: true },
 ];
+// Those the showcase records, which its tools section leaves out.
+const recorded = ["Ljós Hof"];
 
 // Each picture of the page as written: its sources, address and size.
 const picturesIn = (page) =>
@@ -137,9 +140,9 @@ test("with no script, the showcase names the tools built with Ljós after its ap
     await page.goto(`${base}showcase/`);
     await expect(page.getByRole("heading", { level: 2, name: "Tools built with Ljós" })).toBeVisible();
     const app = page.locator("#app");
-    for (const { name, href } of built.filter(({ name }) => name !== "Ljós Hof")) await expect(app.getByRole("link", { name, exact: true }).first()).toHaveAttribute("href", href);
+    for (const { name, href } of built.filter(({ name }) => !recorded.includes(name))) await expect(app.getByRole("link", { name, exact: true }).first()).toHaveAttribute("href", href);
     const pictures = await picturesIn(page);
-    for (const picture of ["built-studio", "built-eldur"]) expect(pictureOf(pictures, picture), picture).toBeTruthy();
+    for (const picture of ["built-studio", "built-eldur", "built-halc2"]) expect(pictureOf(pictures, picture), picture).toBeTruthy();
   } finally {
     await context.close();
   }
@@ -147,7 +150,7 @@ test("with no script, the showcase names the tools built with Ljós after its ap
 
 for (const width of [390, 1440]) {
   for (const colorScheme of ["light", "dark"]) {
-    test(`at ${width} in ${colorScheme}, the cards fit, ${width < 800 ? "one under another" : "side by side"}`, async ({ browser }) => {
+    test(`at ${width} in ${colorScheme}, the cards fit, ${width < 800 ? "one under another" : "two side by side"}`, async ({ browser }) => {
       const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme, reducedMotion: "reduce" });
       try {
         const page = await context.newPage();
@@ -161,7 +164,9 @@ for (const width of [390, 1440]) {
         }
         for (let i = 1; i < boxes.length; ++i) {
           if (width < 800) expect(boxes[i].top).toBeGreaterThan(boxes[i - 1].bottom);
-          else expect(Math.abs(boxes[i].top - boxes[0].top)).toBeLessThan(2);
+          // Four cards stand as two rows of two, each row level.
+          else if (i % 2 === 1) expect(Math.abs(boxes[i].top - boxes[i - 1].top)).toBeLessThan(2);
+          else expect(boxes[i].top).toBeGreaterThan(boxes[i - 2].bottom);
         }
       } finally {
         await context.close();

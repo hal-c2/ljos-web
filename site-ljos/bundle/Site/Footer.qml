@@ -135,6 +135,7 @@ Rectangle {
                     NavLink { label: t`Ljós Studio`; to: "https://github.com/hal-c2/ljos-studio"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                     NavLink { label: t`Eldur`; to: "https://github.com/hal-c2/eldur"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                     NavLink { label: t`Ljós Hof`; to: "https://github.com/hal-c2/ljos-hof"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
+                    NavLink { label: t`HAL-C2`; to: "https://github.com/hal-c2/hal-c2"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                 }
             }
         }
