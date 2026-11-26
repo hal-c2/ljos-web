@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { PLAY, pinned, sha256 } from "../scripts/play.mjs";
+import { PLAY, pinned, projectOf, sha256 } from "../scripts/play.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(here, "dist");
@@ -195,6 +195,20 @@ test("the example and its engine are ljos-play's files at the commit the entry n
   expect(module.sort()).toEqual(Object.keys(pin.files).filter((path) => path.startsWith(`${PLAY.module}/`)).sort());
   expect(module).toContain(`${PLAY.module}/LICENSE`);
   expect(readFileSync(join(here, "bundle", PLAY.module, "LICENSE"), "utf8")).toMatch(/MIT License/);
+});
+
+// The editor's project is packed from the copy only while it is the
+// pin's: a file that drifted stops the build, named, rather than going
+// out as ljos-play's.
+test("the editor's project is never packed from a copy that drifted from its pin", () => {
+  const read = (path) => readFileSync(join(here, "bundle", path));
+  expect(projectOf(() => "", read).files.map((file) => file.path)).toContain("Main.qml");
+  const engine = Object.keys(pinned().files).find((path) => path.endsWith(".qml") && path.startsWith(`${PLAY.module}/`));
+  const drifted = (path) => (path === engine ? Buffer.concat([read(path), Buffer.from("// changed here\n")]) : read(path));
+  expect(() => projectOf(() => "", drifted)).toThrow(engine);
+  const example = `${PLAY.example}/Main.qml`;
+  const edited = (path) => (path === example ? Buffer.from(read(path).toString("utf8").replace("seed: 41", "seed: 42")) : read(path));
+  expect(() => projectOf(() => "", edited)).toThrow(example);
 });
 
 test("with no script, the engine stands in its own words: its lines coloured as code, each linked to them at the commit, its capture beside", async ({ browser }) => {

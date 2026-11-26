@@ -32,19 +32,54 @@ export function playFiles(listed) {
 
 export const pinned = () => JSON.parse(readFileSync(join(bundle, PLAY.pin), "utf8"));
 
+// The lines each copy holds in Ljós's dialect, by its path in the bundle:
+// for each, the line as ljos-play has it (its showcase entry's
+// `upstream`, Showcase/products.json).
+export function dialectLines() {
+  const products = JSON.parse(readFileSync(join(bundle, "Showcase/products.json"), "utf8"));
+  return Object.fromEntries(products.filter((product) => product.engine?.example?.upstream).map(({ engine: { example } }) => [example.copy, example.upstream]));
+}
+
+// The paths whose copy (`read(path)`, its bytes) is not the file the pin
+// names: absent, or different once its dialect lines are put back.
+export function drifted(read = (path) => readFileSync(join(bundle, path))) {
+  const dialect = dialectLines();
+  const { files } = pinned();
+  return Object.entries(files)
+    .filter(([path, { sha256: hash }]) => {
+      let bytes;
+      try {
+        bytes = read(path);
+      } catch {
+        return true;
+      }
+      if (Object.hasOwn(dialect, path)) {
+        const lines = bytes.toString("utf8").split("\n");
+        for (const [line, upstream] of Object.entries(dialect[path])) lines[Number(line) - 1] = upstream;
+        bytes = Buffer.from(lines.join("\n"), "utf8");
+      }
+      return sha256(bytes) !== hash;
+    })
+    .map(([path]) => path);
+}
+
 // The project the editor compiles: the example as `Main.qml`, at its
 // root, and the module's files under LjosPlay/ (its qmldir too: it is
 // what makes the directory the module the example imports), each with
 // its highlighting (`colour(code, lang)`). Only the example is the
-// reader's to change; the engine is compiled beside it as it is.
-export function projectOf(colour) {
+// reader's to change; the engine is compiled beside it as it is. It is
+// packed only from the files the pin names: a copy that drifted stops
+// the build, named, rather than going out as ljos-play's.
+export function projectOf(colour, read = (path) => readFileSync(join(bundle, path))) {
+  const changed = drifted(read);
+  if (changed.length) throw new Error(`${changed.join(", ")}: not the file ${PLAY.pin} pins; change hal-c2/ljos-play and run scripts/sync-play.mjs`);
   const { commit, files } = pinned();
   const entry = `${PLAY.example}/Main.qml`;
   const paths = [entry, ...Object.keys(files).filter((path) => path.startsWith(`${PLAY.module}/`) && (path.endsWith(".qml") || path.endsWith("/qmldir")))];
   return {
     commit,
     files: paths.map((path) => {
-      const code = readFileSync(join(bundle, path), "utf8");
+      const code = read(path).toString("utf8");
       const qml = path.endsWith(".qml");
       return { path: path === entry ? "Main.qml" : path, lang: qml ? "qml" : "text", code, rich: path === entry ? colour(code, "qml") : "" };
     }),
