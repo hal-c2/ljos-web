@@ -53,6 +53,12 @@ Feature: ljos.dev runs on Ljós on the desktop
     When the reader presses Alt+Left twice quickly
     Then the front page is shown
 
+  Scenario: A page is built in a turn of its own, however slow the machine
+    Given the site runs on the desktop
+    When the reader follows a link and its reading arrives
+    Then the page is built in a turn after the one the reading arrived in
+    And building it is not cut off as a promise job that ran too long
+
   Scenario: A page that cannot be read leaves the list as it was
     Given the site runs on the desktop
     When the reader follows a link to a page whose reading is missing

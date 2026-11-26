@@ -81,17 +81,21 @@ function navigation() {
     // The route's page shown once its reading is had. Only then does the
     // list move (`commit`), the page left keeping where it was at that
     // moment: a page that cannot be read leaves the list as it was, and
-    // says so.
+    // says so. The page is built in a turn of its own: a promise job's
+    // time counts the native work it asks for, and Ljós cuts it off
+    // after one slice, which building a page on a slow machine passes.
     function show(route, fragment, offset, commit) {
         var mine = ++asked;
         reading(route).then(
             function (read) {
-                if (mine !== asked)
-                    return;
-                keep();
-                commit();
-                list.aim = list.at;
-                shell.show(route, fragment, offset, read);
+                Qt.callLater(function () {
+                    if (mine !== asked)
+                        return;
+                    keep();
+                    commit();
+                    list.aim = list.at;
+                    shell.show(route, fragment, offset, read);
+                });
             },
             function (error) {
                 console.warn("site: " + error.message);
