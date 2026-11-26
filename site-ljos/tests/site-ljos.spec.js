@@ -719,7 +719,7 @@ const MY_SHELL = [
   '                PointerArea { anchors.fill: parent; Accessible.name: "Add tea"; Accessible.role: Accessible.Button; onClicked: basket.addTea() } }',
   "        }",
   "        StatusSlot {}",
-  "        Note { width: 444 }",
+  "        Note { id: note; width: 444 }",
   "    }",
   "}",
   "",
@@ -732,6 +732,21 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
 
+  // The note is a bare TextInput with a drawn placeholder (Pantry/
+  // Note.qml): typed into, the placeholder goes; and it is a tab stop,
+  // so a reader on keys comes back to it from the stop before it.
+  const stage = page.getByRole("group", { name: "The Pantry, running" });
+  const note = stage.getByRole("textbox", { name: "Note for the baker" });
+  const placeholder = stage.getByText("Note for the baker…", { exact: true });
+  await expect(placeholder).toBeVisible();
+  await note.fill("Two loaves, please");
+  await expect(note).toHaveValue("Two loaves, please");
+  await expect(placeholder).toBeHidden();
+  await page.keyboard.press("Shift+Tab");
+  await expect(note, "the stop before the note has the keys").not.toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(note, "Tab comes back to the note").toBeFocused();
+
   const editor = await codeEditor(page, "Edit the Pantry's Shell.qml");
   const app = APP_SHELL;
   await expect(editor).toContainText("import Pantry");
@@ -739,6 +754,8 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   // What the app held, it still holds — and still works.
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  await expect(note, "the note keeps what was typed across the shell").toHaveValue("Two loaves, please");
+  await expect(placeholder).toBeHidden();
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
 
