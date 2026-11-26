@@ -870,3 +870,16 @@ fn a_shell_in_ljos_s_api_makes_only_its_names() {
         refused("import Ljos.Ui\nimport Shop\n\nItem {\n    MouseArea { onClicked: {} }\n}\n");
     says(&diagnostics, 5, "PointerArea");
 }
+
+#[test]
+fn a_module_imported_again_is_the_last_one_imported() {
+    let text = "import Ljos.Ui\nimport QtQuick\nimport Ljos.Ui\nimport Shop\n\nRectangle {\n    fill: \"#171a23\"\n}\n";
+    let file = shell::compile(text, &blocks()).unwrap();
+    assert_eq!(
+        file.components[0].objects[0].ty,
+        ir::TypeRef::Native {
+            module: "Ljos.Ui".into(),
+            name: "Rectangle".into(),
+        }
+    );
+}

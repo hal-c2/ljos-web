@@ -665,9 +665,9 @@ impl<'s> Shell<'s> {
             if is_blocks && !self.imported.contains(&module) {
                 self.imported.push(module.clone());
             }
-            if let Some(types) = types
-                && !self.made_from.contains(&types)
-            {
+            // The last import wins, so one imported again moves to the end.
+            if let Some(types) = types {
+                self.made_from.retain(|made| *made != types);
                 self.made_from.push(types);
             }
             imports.push(ir::Import {
