@@ -179,7 +179,13 @@ const shot = (page, height) =>
   page.screenshot({ animations: "disabled", caret: "hide", fullPage: true, clip: { x: 0, y: 0, width: 1280, height } });
 
 // How many pixels of two pictures of the same size differ, read by the
-// browser so no image library is needed here.
+// browser so no image library is needed here. Two pixels differ when
+// their colours are further apart than a tenth of the largest distance,
+// measured in YIQ as pixelmatch does (Playwright's toHaveScreenshot
+// allows two tenths): the rasterizer may shade a glyph's edge a few
+// levels apart in two pages laid out alike but of different heights,
+// which is not a difference a reader can see; a moved or recoloured
+// element is far past it.
 const differing = (page, a, b) =>
   page.evaluate(
     async ([a, b]) => {
@@ -192,11 +198,19 @@ const differing = (page, a, b) =>
       };
       const [one, two] = [await pixels(a), await pixels(b)];
       if (one.width !== two.width || one.height !== two.height) return { size: [one.width, one.height, two.width, two.height] };
+      const MAX_DELTA = 35215 * 0.1 * 0.1;
+      const distance = (i) => {
+        const [r, g, b] = [one.data[i] - two.data[i], one.data[i + 1] - two.data[i + 1], one.data[i + 2] - two.data[i + 2]];
+        const y = r * 0.29889531 + g * 0.58662247 + b * 0.11448223;
+        const iq = r * 0.59597799 - g * 0.2741761 - b * 0.32180189;
+        const q = r * 0.21147017 - g * 0.52261711 + b * 0.31114694;
+        return 0.5053 * y * y + 0.299 * iq * iq + 0.1957 * q * q;
+      };
       let count = 0;
       // Where they differ, for who reads the failure.
       let [left, top, right, bottom] = [one.width, one.height, 0, 0];
       for (let i = 0; i < one.data.length; i += 4)
-        if (one.data[i] !== two.data[i] || one.data[i + 1] !== two.data[i + 1] || one.data[i + 2] !== two.data[i + 2]) {
+        if (distance(i) > MAX_DELTA) {
           count++;
           const [x, y] = [(i / 4) % one.width, Math.floor(i / 4 / one.width)];
           [left, top, right, bottom] = [Math.min(left, x), Math.min(top, y), Math.max(right, x + 1), Math.max(bottom, y + 1)];
