@@ -63,10 +63,11 @@ const qtQuick = {
     "Ljos.Ui has no LayoutMirroring",
   ),
   ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
-  // It loads the recording it shows when a reader asks (Loader.source given
-  // an import) and sets what it shows on the item loaded; Ljos.Ui's Loader
-  // takes a url only and its item is a QtObject with none of those.
-  ...site(["Site/ShowcaseApp"], "Ljos.Ui's Loader takes a url, not a lazy import, and its item is untyped"),
+  // ShowcaseApp's recording, loaded when a reader asks (Loader.source given
+  // an import), with what it sets on the item loaded and reads of it;
+  // Ljos.Ui's Loader takes a url only and its item is a QtObject with none
+  // of those.
+  ...site(["Site/ShowcasePlayer"], "Ljos.Ui's Loader takes a url, not a lazy import, and its item is untyped"),
   // The rest of the site's loading is typed; these three hold what is not,
   // each one Qt type given an untyped value, so the files that use them
   // are typed throughout.
@@ -77,7 +78,7 @@ const qtQuick = {
   // What the build writes (Content, ShowcaseApps, DispatchSource, PantryProject)
   // is not in a checkout until it runs, and CI's ljos check runs before it: these
   // read those singletons by name for the typed files that use them.
-  ...site(["Site/Built", "Site/ShowcaseBuilt", "Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
+  ...site(["Site/Built", "Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
   // ljos-play's own example as its repository has it, at the commit
