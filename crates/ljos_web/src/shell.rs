@@ -16,7 +16,7 @@
 //! `fetch`), a member by a computed string (`x["constructor"]`), a function,
 //! an object literal, `new`, a Qt function that is not pure
 //! (`Qt.openUrlExternally`), a URL of its own (only one a block gives), and
-//! an import beyond QtQuick and the block modules.
+//! an import beyond QtQuick, Ljós's own API ([`LJOS`]) and the block modules.
 
 use std::{
     collections::{HashMap, HashSet},
@@ -59,6 +59,19 @@ pub const QUICK: &[&str] = &[
     "Flow",
     "MouseArea",
     "Image",
+];
+
+/// The modules of Ljós's own API a shell may import (ljos-ui's
+/// docs/DIALECT.md), each with the types it lets a shell make: those of
+/// [`QUICK`], by the names Ljós gives them. `Ljos.Core` makes nothing a
+/// shell may, and its import is one a file in Ljós's API writes anyway.
+pub const LJOS: &[(&str, &[&str])] = &[
+    (
+        "Ljos.Ui",
+        &["Item", "Rectangle", "Text", "Image", "PointerArea"],
+    ),
+    ("Ljos.Layout", &["Row", "Column", "Grid", "Flow"]),
+    ("Ljos.Core", &[]),
 ];
 
 /// What a shell gets of a block: its type, where it is, and what it
@@ -434,6 +447,7 @@ pub fn compile(source: &str, blocks: &[Contract]) -> Result<ir::CompiledFile, Ve
         source,
         blocks,
         imported: Vec::new(),
+        made_from: Vec::new(),
         objects: Vec::new(),
         ids: HashMap::new(),
         errors: Vec::new(),
@@ -479,10 +493,11 @@ pub fn to_json(file: &ir::CompiledFile) -> serde_json::Value {
     value
 }
 
-/// What an object of the shell is: one of QtQuick's or a block.
+/// What an object of the shell is: a type of QtQuick's or of Ljós's API,
+/// with the module the shell named it from, or a block.
 #[derive(Clone, Copy)]
 enum Kind<'s> {
-    Quick(&'static qt_types::Type),
+    Quick(&'static qt_types::Type, &'static str),
     Block(&'s Contract),
 }
 
@@ -497,6 +512,9 @@ struct Shell<'s> {
     blocks: &'s [Contract],
     /// The block modules it imports.
     imported: Vec<String>,
+    /// The modules of types it imports (QtQuick, Ljós's), in order: a name
+    /// is the type of the last that has it. None imported is QtQuick.
+    made_from: Vec<&'static str>,
     objects: Vec<Object<'s>>,
     ids: HashMap<String, usize>,
     errors: Vec<Diagnostic>,
@@ -525,6 +543,36 @@ const FORBIDDEN: &[&str] = &[
 
 fn forbidden(name: &str) -> bool {
     FORBIDDEN.contains(&name) || name.starts_with('$') || name.starts_with("__")
+}
+
+/// The module of types `module` is, as the table names it: QtQuick or
+/// one of [`LJOS`].
+fn types_module(module: &str) -> Option<&'static str> {
+    if module == "QtQuick" {
+        return Some("QtQuick");
+    }
+    LJOS.iter().map(|(uri, _)| *uri).find(|uri| *uri == module)
+}
+
+/// The names of the types a shell may make of `module`.
+fn names_in(module: &str) -> &'static [&'static str] {
+    if module == "QtQuick" {
+        return QUICK;
+    }
+    LJOS.iter()
+        .find(|(uri, _)| *uri == module)
+        .map_or(&[], |(_, names)| names)
+}
+
+/// The type `name` of `module`, when a shell may make it.
+fn made_in(module: &str, name: &str) -> Option<&'static qt_types::Type> {
+    if module == "QtQuick" {
+        return quick(name);
+    }
+    names_in(module)
+        .contains(&name)
+        .then(|| qt_types::module(module)?.type_named(name))
+        .flatten()
 }
 
 fn quick(name: &str) -> Option<&'static qt_types::Type> {
@@ -570,7 +618,7 @@ impl<'s> Shell<'s> {
             let QmlImportSource::Module(name) = &import.source else {
                 self.refuse(
                     import.span,
-                    "a shell imports only QtQuick and the site's block modules, not a path",
+                    "a shell imports only QtQuick, Ljós's API and the site's block modules, not a path",
                 );
                 continue;
             };
@@ -585,18 +633,20 @@ impl<'s> Shell<'s> {
                 continue;
             }
             let is_blocks = self.blocks.iter().any(|block| block.module == module);
-            if module != "QtQuick" && !is_blocks {
+            let types = types_module(&module);
+            if types.is_none() && !is_blocks {
                 let modules: Vec<&str> = self
                     .blocks
                     .iter()
                     .map(|block| block.module.as_str())
                     .collect();
                 let mut known = vec!["QtQuick"];
+                known.extend(LJOS.iter().map(|(module, _)| *module));
                 known.extend(
                     modules
                         .iter()
                         .copied()
-                        .filter(|module| *module != "QtQuick"),
+                        .filter(|module| types_module(module).is_none()),
                 );
                 known.dedup();
                 self.refuse(
@@ -614,6 +664,11 @@ impl<'s> Shell<'s> {
             }
             if is_blocks && !self.imported.contains(&module) {
                 self.imported.push(module.clone());
+            }
+            if let Some(types) = types
+                && !self.made_from.contains(&types)
+            {
+                self.made_from.push(types);
             }
             imports.push(ir::Import {
                 source: ir::ImportSource::Module(module),
@@ -635,7 +690,43 @@ impl<'s> Shell<'s> {
         {
             return Some(Kind::Block(block));
         }
-        quick(name).map(Kind::Quick)
+        self.made(name).map(|(module, ty)| Kind::Quick(ty, module))
+    }
+
+    /// The modules a name of a type is looked for in, last first.
+    fn type_modules(&self) -> Vec<&'static str> {
+        if self.made_from.is_empty() {
+            return vec!["QtQuick"];
+        }
+        self.made_from.iter().rev().copied().collect()
+    }
+
+    /// The type a shell makes by `name`, and the module it is of.
+    fn made(&self, name: &str) -> Option<(&'static str, &'static qt_types::Type)> {
+        self.type_modules()
+            .into_iter()
+            .find_map(|module| made_in(module, name).map(|ty| (module, ty)))
+    }
+
+    /// The names of types a shell may make, of the modules it imports.
+    fn makes(&self) -> Vec<&'static str> {
+        let mut names: Vec<&'static str> = Vec::new();
+        for module in self.made_from_or_quick() {
+            for name in names_in(module) {
+                if !names.contains(name) {
+                    names.push(name);
+                }
+            }
+        }
+        names
+    }
+
+    fn made_from_or_quick(&self) -> Vec<&'static str> {
+        if self.made_from.is_empty() {
+            vec!["QtQuick"]
+        } else {
+            self.made_from.clone()
+        }
     }
 
     /// Every object and id first: an expression may name an id written
@@ -652,7 +743,7 @@ impl<'s> Shell<'s> {
                     .filter(|block| self.imported.contains(&block.module))
                     .map(|block| block.name.as_str())
                     .collect();
-                let mut allowed: Vec<&str> = QUICK.to_vec();
+                let mut allowed: Vec<&str> = self.makes();
                 allowed.extend(blocks);
                 self.refuse(
                     object.type_name.span,
@@ -661,7 +752,7 @@ impl<'s> Shell<'s> {
                         allowed.join(", ")
                     ),
                 );
-                Kind::Quick(quick("Item").expect("QtQuick has Item"))
+                Kind::Quick(quick("Item").expect("QtQuick has Item"), "QtQuick")
             }
         };
         if object.on.is_some() {
@@ -733,7 +824,7 @@ impl<'s> Shell<'s> {
                 }
                 quick(&block.base)?
             }
-            Kind::Quick(ty) => ty,
+            Kind::Quick(ty, _) => ty,
         };
         quick_member(ty, name)
     }
@@ -741,7 +832,7 @@ impl<'s> Shell<'s> {
     fn type_name(&self, object: usize) -> &str {
         match self.objects[object].kind {
             Kind::Block(block) => &block.name,
-            Kind::Quick(ty) => ty.name,
+            Kind::Quick(ty, _) => ty.name,
         }
     }
 
@@ -801,8 +892,8 @@ impl<'s> Shell<'s> {
                 module: block.module.clone(),
                 name: block.name.clone(),
             },
-            Kind::Quick(ty) => ir::TypeRef::Native {
-                module: "QtQuick".to_string(),
+            Kind::Quick(ty, module) => ir::TypeRef::Native {
+                module: module.to_string(),
                 name: ty.name.to_string(),
             },
         };
@@ -1072,10 +1163,18 @@ impl<'s> Shell<'s> {
             } else {
                 self.member(index, group).and_then(|_| {
                     let ty = match self.objects[index].kind {
-                        Kind::Quick(ty) => ty,
+                        Kind::Quick(ty, _) => ty,
                         Kind::Block(block) => quick(&block.base)?,
                     };
-                    ty.property(group)?.value_type()?.property(name)
+                    let value = ty.property(group)?.value_type()?;
+                    // Beside Qt's table, what Ljós adds to one of its
+                    // value types (`font.size`) is in Ljós's description.
+                    value.property(name).or_else(|| {
+                        value
+                            .additions()
+                            .into_iter()
+                            .find_map(|added| added.property(name))
+                    })
                 })
             }) else {
                 self.refuse(
@@ -2101,10 +2200,10 @@ impl<'p, 's> Program<'p, 's> {
                     format!("Accessible has no enum key `{first}`"),
                 ));
             }
-            if let Some(ty) = quick(name) {
+            if let Some((module, ty)) = self.shell.made(name) {
                 if path.len() == 1 && ty.enum_value(first).is_some() {
                     let ty_ref = ir::TypeRef::Native {
-                        module: "QtQuick".to_string(),
+                        module: module.to_string(),
                         name: name.to_string(),
                     };
                     let param = self.param_index(name, ir::Arg::Type(ty_ref));

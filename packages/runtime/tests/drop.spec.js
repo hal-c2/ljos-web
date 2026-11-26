@@ -121,6 +121,48 @@ Column {
     expect(await read(page, "label", "text")).toBe("Mine 1");
   });
 
+  test("A shell written in Ljós's API is shown, with its types and their names", async ({ page }) => {
+    await opened(page);
+    await dropped(
+      page,
+      `import Ljos.Core
+import Ljos.Ui
+import Ljos.Layout
+import Shop
+
+Column {
+    objectName: "mine"
+    spacing: 6
+    Basket { id: basket; objectName: "basket" }
+    Rectangle {
+        objectName: "swatch"
+        width: 120
+        height: 40
+        fill: "#336699"
+        Text { objectName: "label"; text: "Mine " + basket.count; font.size: 18; align: Text.AlignHCenter }
+        PointerArea {
+            anchors.fill: parent
+            Accessible.name: "Add one"
+            Accessible.role: Accessible.Button
+            onClicked: basket.add()
+        }
+    }
+}
+`,
+    );
+    await expect(errors(page)).toBeHidden();
+    expect(await page.evaluate(() => String(window.named("swatch").fill))).toBe("#336699");
+    // Text.AlignHCenter
+    expect(await read(page, "label", "horizontalAlignment")).toBe(4);
+    expect(await page.evaluate(() => window.named("label").font.pixelSize)).toBe(18);
+    const add = page.getByRole("button", { name: "Add one" });
+    await expect(add).toHaveCount(1);
+    await add.click();
+    await page.evaluate(() => window.flush());
+    expect(await read(page, "label", "text")).toBe("Mine 1");
+    await expect(page.locator("#scene")).toContainText("Mine 1");
+  });
+
   test("A shell is opened from a file with the keyboard", async ({ page }) => {
     await opened(page);
     const open = page.getByRole("button", { name: "Open a shell…" });
@@ -232,9 +274,9 @@ test.describe("A shell names only what is in its scope", () => {
       /^Shell\.qml:7:\d+: Image\.source takes only a URL a block gives/,
     ],
     [
-      "an import beyond QtQuick and the blocks",
+      "an import beyond QtQuick, Ljós's API and the blocks",
       "import QtQuick\nimport QtQuick.Controls\nimport Shop\n\nColumn {}\n",
-      /^Shell\.qml:2:\d+: a shell may import only `QtQuick`, `Shop`, not `QtQuick\.Controls`/,
+      /^Shell\.qml:2:\d+: a shell may import only `QtQuick`, `Ljos\.Ui`, `Ljos\.Layout`, `Ljos\.Core`, `Shop`, not `QtQuick\.Controls`/,
     ],
   ];
   for (const [what, text, said] of refusals) {
