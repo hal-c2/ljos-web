@@ -108,6 +108,8 @@ Column {
         section.own = text;
         section.edit = text;
         section.touched = text !== section.code;
+        // A compile of the text before is no longer the reader's.
+        section.asking += 1;
         debounce.restart();
     }
     function apply(): void {
@@ -124,8 +126,12 @@ Column {
             section.diagnostics = [];
             return;
         }
+        // What this compile's world names and does not have: the running
+        // world's notice stays until this one runs in its place.
+        let heard = "";
         Example.compile(section.live, section.entry, World.edits(section.entry, asked), (text: string) => {
-            if (turn === section.asking || turn === section.ran)
+            heard = text;
+            if (turn === section.ran)
                 section.absent = text;
         }).then((made) => {
             if (turn !== section.asking)
@@ -133,6 +139,7 @@ Column {
             section.said = "";
             section.made = made;
             section.ran = turn;
+            section.absent = heard;
             section.diagnostics = [];
         }, (error) => {
             if (turn !== section.asking)

@@ -322,6 +322,10 @@ test.describe("Snail Post on /showcase/", () => {
       const drawn = `${calm} and ${full} px; the pages drew ${calmFrames} and ${fullFrames} frames a second, of the world's ${BEATS} beats; ${calmSeen.jumps} and ${fullSeen.jumps} jumps left out`;
       expect(calmStep, `slower a step than with no preference; ${drawn}`).toBeLessThan(fullStep * 0.8);
       expect(calmStep, `and not still; ${drawn}`).toBeGreaterThan(fullStep * 0.2);
+      // A move past a walker's reach is a walker put elsewhere, which the
+      // calm world, walking less far, does no more often: one that went
+      // too far a step would be counted here, not in its path.
+      expect(calmSeen.jumps, `and puts its snails elsewhere no more often; ${drawn}`).toBeLessThanOrEqual(fullSeen.jumps + 1);
       expect(unexpected(errors)).toEqual([]);
     });
   });
