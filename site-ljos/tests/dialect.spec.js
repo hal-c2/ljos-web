@@ -35,6 +35,10 @@ const firstLoad = "on every page's first load, where Ljos.Ui and Ljos.Layout add
 // A Qt type the chrome still names, which Ljos.Ui gains in ljos-ui.
 const coming = "in ljos-ui PR launch-dialect2-ui, reaches ljos-web with the crates pin bump";
 const synced = "a copy of hal-c2/ljos-ui's examples: it moves there";
+// A copy of hal-c2/ljos-play, its engine and the showcase's example,
+// pinned to the commit it names (showcase.spec.js): it changes there and
+// comes over by scripts/sync-play.mjs.
+const played = "a copy of hal-c2/ljos-play: it moves there";
 
 const site = (names, reason) => Object.fromEntries(names.map((name) => [`site-ljos/bundle/${name}.qml`, reason]));
 
@@ -46,6 +50,8 @@ const qtQuick = {
   ...site(["Main"], `needs LayoutMirroring: ${coming}`),
   ...site(["Site/CodeBlock"], `needs LayoutMirroring and WindowContainer: ${coming}`),
   ...site(["Site/Theme"], `needs MotionPreference: ${coming}`),
+  ...site(["Activity", "Actor", "Art", "Crowd", "Pose", "Sheet", "Spot", "Talks", "Thing", "Touchable", "World"].map((name) => `LjosPlay/${name}`), played),
+  ...site(["Showcase/play/snail-post/Main"], played),
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
   ...site(["Demos/Orbit"], `needs FrameAnimation: ${coming}`),
