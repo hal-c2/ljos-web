@@ -112,10 +112,109 @@ class Style {
   }
 }
 
-// How wide a run of text is taken to be at `size`: a canvas on the
-// server there is none, so a glyph is a little over half its size, as
-// most are. The browser measures again as it hydrates.
-const advance = (text, size) => [...text].length * size * 0.55;
+// How wide a run of text is taken to be at `size`, when nothing better
+// is known: a canvas on the server there is none, so a glyph is a little
+// over half its size, as most are. The browser measures again as it
+// hydrates.
+const guess = (text, size) => [...text].length * size * 0.55;
+
+// What a browser measured for the build, so that the text of a render is
+// set as the reader's browser will set it, in the fonts the page shows:
+// each question asked of it (a key, below), and its answer. A question
+// it has no answer for is answered by the guess and kept in `missed`,
+// for the build to have a browser answer and to render again with it.
+//   c NUL font NUL kerning NUL caps NUL text — a 2d canvas's
+//     measureText: [width, actualBoundingBoxLeft, actualBoundingBoxRight,
+//     actualBoundingBoxAscent, actualBoundingBoxDescent,
+//     fontBoundingBoxAscent, fontBoundingBoxDescent]
+//   s NUL font NUL kerning NUL features NUL variations NUL text — a span
+//     set in the font, its white space kept: [width]
+//   u NUL font — the font's units: [1ex, 1cap] in pixels
+let measures = new Map();
+const missed = new Set();
+const SEP = "\u0000";
+
+function measured(key) {
+  const known = measures.get(key);
+  if (known === undefined) missed.add(key);
+  return known;
+}
+
+// The questions this render asked that the build had no answer for.
+export function prerenderMisses() {
+  return [...missed];
+}
+
+// How wide `text` is in the CSS font `font` (a canvas's, kerned), else
+// the guess at `size`.
+function advance(text, size, font) {
+  if (text === "") return 0;
+  if (font) {
+    const known = measured(["c", font, "auto", "normal", text].join(SEP));
+    if (known) return known[0];
+  }
+  return guess(text, size);
+}
+
+// The font an element's text is set in, as a CSS `font`: the nearest one
+// said, from the element up, made bold or italic where markup between
+// says so. None where none is said.
+function fontOf(element) {
+  let bold = false;
+  let italic = false;
+  for (let at = element; at; at = at.parentElement) {
+    const font = at.style?.getPropertyValue?.("font");
+    if (font) {
+      if (!bold && !italic) return font;
+      // What stands before the size (style, variant, weight), and the rest.
+      const sized = /^(.*?)(\S*\d(?:\.\d+)?px\b.*)$/.exec(font);
+      if (!sized) return font;
+      let lead = sized[1].trim().split(/\s+/).filter(Boolean);
+      if (bold) lead = [...lead.filter((word) => !/^(\d{3}|bold|bolder|lighter|normal)$/.test(word)), "bold"];
+      if (italic && !lead.includes("italic")) lead = ["italic", ...lead];
+      return `${lead.join(" ")} ${sized[2]}`;
+    }
+    if (at.localName === "b" || at.localName === "strong" || /^h[1-6]$/.test(at.localName ?? "")) bold = true;
+    if (at.localName === "i" || at.localName === "em") italic = true;
+  }
+  return null;
+}
+
+// How many lines `text` takes in `width`, broken between words as a
+// browser breaks them: a word that is wider than the line is a line of
+// its own, or more.
+function linesIn(text, width, size, font) {
+  if (!(width > 0)) return 1;
+  if (!font) return Math.max(1, Math.ceil(guess(text, size) / width));
+  const space = advance(" ", size, font);
+  let lines = 1;
+  let at = 0;
+  for (const word of text.split(/ +/)) {
+    if (word === "") continue;
+    const wide = advance(word, size, font);
+    if (at > 0 && at + wide > width + 0.01) {
+      lines++;
+      at = 0;
+    }
+    if (wide > width + 0.01) {
+      lines += Math.ceil(wide / width) - 1;
+      at = wide % width;
+    } else at += wide;
+    at += space;
+  }
+  return lines;
+}
+
+// A length an element's style says, in pixels: its font's `ex` and `cap`
+// too, as a browser has them.
+function lengthOf(element, value) {
+  const unit = /^(-?[\d.]+)(ex|cap)$/.exec(value ?? "");
+  if (!unit) return parseFloat(value);
+  const font = fontOf(element);
+  const known = font && measured(["u", font].join(SEP));
+  const size = fontSizeOf(element);
+  return parseFloat(unit[1]) * (known ? known[unit[2] === "ex" ? 0 : 1] : size * (unit[2] === "ex" ? 0.5 : 0.7));
+}
 
 function fontSizeOf(element) {
   for (let at = element; at; at = at.parentElement) {
@@ -143,8 +242,8 @@ function pitchOf(element, size) {
 }
 
 function rect(element) {
-  const width = element._width ?? parseFloat(element.style?.getPropertyValue?.("width")) ?? 0;
-  const height = element._height ?? parseFloat(element.style?.getPropertyValue?.("height")) ?? 0;
+  const width = element._width ?? lengthOf(element, element.style?.getPropertyValue?.("width")) ?? 0;
+  const height = element._height ?? lengthOf(element, element.style?.getPropertyValue?.("height")) ?? 0;
   const w = Number.isFinite(width) && width > 0 ? width : element._textWidth?.() ?? 0;
   // An element that holds text and says no height is as tall as its
   // lines: on the server that is said by the text it holds over the
@@ -157,8 +256,9 @@ function rect(element) {
     const pitch = pitchOf(element, size);
     const wraps = !/^(nowrap|pre)$/.test(element.style?.getPropertyValue?.("white-space") ?? "");
     const set = element._lines?.() ?? [element.textContent];
+    const font = fontOf(element);
     let lines = 0;
-    for (const line of set) lines += wraps && w > 0 ? Math.max(1, Math.ceil(advance(line, size) / w)) : 1;
+    for (const line of set) lines += wraps && w > 0 ? linesIn(line, w, size, font) : 1;
     h = lines * pitch;
   }
   return { x: 0, y: 0, left: 0, top: 0, right: w, bottom: h, width: w, height: h, toJSON: () => ({}) };
@@ -174,9 +274,15 @@ function context2d() {
       if (name in heldValues) return heldValues[name];
       if (name === "measureText") {
         return (text) => {
+          const said = String(text);
+          const known = measured(["c", heldValues.font, heldValues.fontKerning ?? "auto", heldValues.fontVariantCaps ?? "normal", said].join(SEP));
+          if (known) {
+            const [width, actualBoundingBoxLeft, actualBoundingBoxRight, actualBoundingBoxAscent, actualBoundingBoxDescent, fontBoundingBoxAscent, fontBoundingBoxDescent] = known;
+            return { width, actualBoundingBoxLeft, actualBoundingBoxRight, actualBoundingBoxAscent, actualBoundingBoxDescent, fontBoundingBoxAscent, fontBoundingBoxDescent };
+          }
           const size = parseFloat(/(\d+(?:\.\d+)?)px/.exec(heldValues.font)?.[1]) || 16;
-          const width = advance(String(text), size);
-          const each = advance("x", size);
+          const width = guess(said, size);
+          const each = guess("x", size);
           return {
             width,
             actualBoundingBoxLeft: 0,
@@ -576,7 +682,17 @@ class Element {
   _textWidth() {
     if (this.textContent === "") return 0;
     const size = fontSizeOf(this);
-    return Math.max(...this._lines().map((line) => advance(line, size)));
+    // Set with features or axes, or keeping its spaces, it is measured as
+    // a span is; else as a canvas measures it.
+    const font = fontOf(this);
+    const style = this.style;
+    const spanned = font && (style?.getPropertyValue?.("font-feature-settings") || style?.getPropertyValue?.("font-variation-settings"));
+    if (spanned) {
+      const kerning = style.getPropertyValue("font-kerning") || "auto";
+      const asked = (line) => measured(["s", font, kerning, style.getPropertyValue("font-feature-settings"), style.getPropertyValue("font-variation-settings"), line].join(SEP))?.[0] ?? guess(line, size);
+      return Math.max(...this._lines().map(asked));
+    }
+    return Math.max(...this._lines().map((line) => advance(line, size, font)));
   }
   // The text it holds as the lines a `<br>` breaks it into, and a
   // block (rich text's `<div>`, `<p>`, `<li>`) starts and ends. These
@@ -711,7 +827,7 @@ class Range {
     const node = this.node;
     if (!node || node.nodeType !== 3 || node.data === "") return [];
     const size = node.parentElement ? fontSizeOf(node.parentElement) : 16;
-    const width = advance(node.data, size);
+    const width = advance(node.data, size, node.parentElement ? fontOf(node.parentElement) : null);
     return [{ x: 0, y: 0, left: 0, top: 0, right: width, bottom: size, width, height: size, toJSON: () => ({}) }];
   }
   getBoundingClientRect() {
@@ -906,7 +1022,11 @@ function storage() {
 // request can reach.
 const PLACE = "http://prerender.invalid/";
 
-export function installPrerenderGlobals({ width = 1280, height = 720, scheme } = {}) {
+export function installPrerenderGlobals({ width = 1280, height = 720, scheme, measured: answers } = {}) {
+  // The build's answers, as [key, answer] pairs, or none: text is then
+  // guessed at, as it always was.
+  measures = new Map(answers ?? []);
+  missed.clear();
   const document = new ServerDocument();
   const globals = {
     document,

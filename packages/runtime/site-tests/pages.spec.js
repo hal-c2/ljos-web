@@ -199,11 +199,11 @@ test.describe("a site prerendered at more than one size", () => {
       prerender: {
         sizes: [
           { width: 390, height: 844 },
-          { width: 1200, height: 800, from: 800 },
+          { width: 1200, height: 800, from: 800, centred: 1000 },
         ],
         pages: [
           { route: "/", title: "Home", description: "What a <home> says & shows", props: { route: "/" } },
-          { route: "/docs/", title: "Docs", props: { route: "/docs/" } },
+          { route: "/docs/", title: "Docs", centred: false, props: { route: "/docs/" } },
         ],
       },
     }));
@@ -252,6 +252,31 @@ test.describe("a site prerendered at more than one size", () => {
         await page.goto(`${origin}/`);
         await expect(page.getByText(shown, { exact: true })).toBeVisible();
         await expect(page.getByText(hidden, { exact: true })).toBeHidden();
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  // A size `centred` on a column stands in the middle of a window wider
+  // than it, where the page once alive centres its column, so nothing
+  // moves sideways as it hydrates; in a narrower one the column, not
+  // the render's left edge, stays in view.
+  // A page that fills its window (`centred: false`) stands at its left.
+  for (const [route, width, left] of [
+    ["/", 1600, 200],
+    ["/", 1000, -100],
+    ["/docs/", 1600, 0],
+    ["/docs/", 1000, 0],
+  ]) {
+    test(`a window ${width} wide is shown ${route}'s wide render ${left ? "with its column centred" : "at its left"}, with JavaScript off`, async ({ browser }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 800 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${origin}${route}`);
+        const render = page.locator("#app > [data-ljos-render] > .qq").filter({ visible: true });
+        expect(await render.evaluate((node) => node.getBoundingClientRect().left)).toBe(left);
+        expect(await page.evaluate(() => document.scrollingElement.scrollWidth), "the page does not scroll sideways").toBe(width);
       } finally {
         await context.close();
       }
@@ -413,7 +438,7 @@ test.describe("a site prerendered in both colour schemes", () => {
 // the same as with a render per scheme, and the page carries half as much.
 test.describe("a site whose schemes differ only in how they are drawn", () => {
   test.describe.configure({ mode: "serial" });
-  const shell = `import QtQuick\nimport QtQuick.Shapes\n\nRectangle {\n    id: root\n    property string route: "/"\n    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    color: dark ? "#101010" : "#fafafa"\n    Text { objectName: "words"; text: root.width < 600 ? "Narrow" : "Wide"; color: root.dark ? "#eeeeee" : "#222222" }\n    Rectangle { objectName: "toggle"; y: 40; width: 20; height: 20; color: "#808080"; Accessible.role: Accessible.Button; Accessible.name: root.dark ? "Use the light theme" : "Use the dark theme"\n        Rectangle { objectName: "moon"; visible: root.dark; width: 10; height: 10; color: "#ffcc00" }\n    }\n    Shape { y: 80; width: 20; height: 20\n        ShapePath { fillColor: root.dark ? "#eeeeee" : "#222222"; strokeColor: root.dark ? "#ffcc00" : "#0055aa"; PathSvg { path: "M0 0L20 0L20 20Z" } }\n    }\n}\n`;
+  const shell = `import QtQuick\nimport QtQuick.Shapes\n\nRectangle {\n    id: root\n    property string route: "/"\n    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    color: dark ? "#101010" : "#fafafa"\n    Text { objectName: "words"; text: root.width < 600 ? "Narrow" : "Wide"; color: root.dark ? "#eeeeee" : "#222222" }\n    Rectangle { objectName: "toggle"; y: 40; width: 20; height: 20; color: "#808080"; Accessible.role: Accessible.Button; Accessible.name: root.dark ? "Use the light theme" : "Use the dark theme"\n        Rectangle { objectName: "moon"; visible: root.dark; width: 10; height: 10; color: "#ffcc00" }\n    }\n    Rectangle { objectName: "sun"; visible: !root.dark; y: 120; width: 10; height: 10; color: root.dark ? "#010203" : "#ff6600" }\n    Shape { y: 80; width: 20; height: 20\n        ShapePath { fillColor: root.dark ? "#eeeeee" : "#222222"; strokeColor: root.dark ? "#ffcc00" : "#0055aa"; PathSvg { path: "M0 0L20 0L20 20Z" } }\n    }\n}\n`;
   let made;
   let server;
   let origin;
@@ -476,6 +501,13 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
         .map((path) => ({ fill: getComputedStyle(path).fill, stroke: getComputedStyle(path).stroke })),
     );
 
+  // What the visible items are filled with: an item shown in the light
+  // scheme alone is filled in the light's colour, never the dark's.
+  const fills = (page) =>
+    page.evaluate(() => [...document.querySelectorAll("#app div")].filter((node) => node.checkVisibility()).map((node) => getComputedStyle(node).backgroundColor));
+  const SUN = "rgb(255, 102, 0)";
+  const NOT_SUN = "rgb(1, 2, 3)";
+
   const LIGHT_STROKE = "rgb(0, 85, 170)";
   const DARK_STROKE = "rgb(255, 204, 0)";
   for (const [scheme, width, text, ink, stroke] of [
@@ -493,6 +525,9 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
         expect(await words(page)).toBe(ink);
         expect(await moon(page), "the moon is shown in the dark only").toBe(scheme === "dark");
         expect(await paint(page), "the shape is filled and stroked in its scheme's ink").toEqual([{ fill: ink, stroke }]);
+        const filled = await fills(page);
+        expect(filled.includes(SUN), "the sun is shown in the light only, in the light's colour").toBe(scheme === "light");
+        expect(filled).not.toContain(NOT_SUN);
       } finally {
         await context.close();
       }
@@ -547,7 +582,106 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
   }
 });
 
-test("sizes that are not narrowest first, or beside a width, are refused before anything is built", async () => {
+// With a browser to measure for it, a prerender sets its text by that
+// browser's answers rather than by a guess, so the lines and sizes a page
+// is first painted with are the ones it has once alive; and what a build
+// was told, given back to the next, is not asked again.
+test.describe("a site prerendered with a browser to measure its text", () => {
+  test.describe.configure({ mode: "serial" });
+  const shell = `import QtQuick\n\nItem {\n    property string route: "/"\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    Rectangle { width: label.implicitWidth; height: 10; color: "#ff0000" }\n    Text { id: label; y: 20; text: "Hi"; font.pixelSize: 20 }\n}\n`;
+  // Every letter 50 wide, whatever a font is: far from any guess.
+  const answer = (key) => {
+    const [kind, ...rest] = key.split("\u0000");
+    const text = rest.at(-1);
+    if (kind === "c") return [text.length * 50, 0, text.length * 50, 15, 5, 18, 6];
+    if (kind === "s") return [text.length * 50];
+    if (kind === "u") return [10, 14];
+    return null;
+  };
+  let made;
+  let server;
+  let asked = [];
+  let built;
+
+  const boxWidth = async (browser) => {
+    const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      await page.goto(`${server.origin}/`);
+      return await page.evaluate(() => [...document.querySelectorAll("#app div")].filter((node) => getComputedStyle(node).backgroundColor === "rgb(255, 0, 0)").map((node) => node.getBoundingClientRect().width));
+    } finally {
+      await context.close();
+    }
+  };
+
+  test.beforeAll(shared("build the site and serve it", async () => {
+    made = bundle("pages", (dir, written) => {
+      writeFileSync(join(dir, "Shell.qml"), shell);
+      written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
+    });
+    built = await part("build the site", () => buildSite({
+      dir: made.dir,
+      out: made.out,
+      qmlc,
+      prerender: {
+        sizes: [{ width: 390, height: 844 }],
+        schemes: ["light"],
+        pages: [{ route: "/", props: { route: "/" } }],
+        measure: async (keys) => {
+          asked.push(...keys);
+          return keys.map(answer);
+        },
+      },
+    }));
+    server = await part("serve it", () => serve(made.out));
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
+    made?.remove();
+  }));
+
+  test("the text is set by the browser's answers, and the build gives them back", async ({ browser }) => {
+    expect(asked.length, "the prerender asked the browser").toBeGreaterThan(0);
+    expect(new Set(asked).size, "no question is asked twice").toBe(asked.length);
+    expect(await boxWidth(browser)).toEqual([100]);
+    expect(built.measured.map(([key]) => key).sort()).toEqual(asked.filter((key) => answer(key) !== null).sort());
+  });
+
+  test("a build given what the last one was told asks nothing it was told", async ({ browser }) => {
+    const told = built.measured;
+    const again = [];
+    await part("build the site again", () => buildSite({
+      dir: made.dir,
+      out: made.out,
+      qmlc,
+      prerender: {
+        sizes: [{ width: 390, height: 844 }],
+        schemes: ["light"],
+        pages: [{ route: "/", props: { route: "/" } }],
+        measured: told,
+        measure: async (keys) => {
+          again.push(...keys);
+          return keys.map(answer);
+        },
+      },
+    }));
+    expect(again.filter((key) => told.some(([known]) => known === key))).toEqual([]);
+    expect(await boxWidth(browser)).toEqual([100]);
+  });
+
+  test("a browser that does not answer each question, in order, refuses the build", async () => {
+    const other = bundle("pages");
+    try {
+      const pages = [{ route: "/" }];
+      await expect(buildSite({ dir: other.dir, out: other.out, qmlc, prerender: { pages, measure: async (keys) => keys.slice(1) } })).rejects.toThrow(/an answer for each/);
+      expect(existsSync(join(other.out, "index.html"))).toBe(false);
+    } finally {
+      other.remove();
+    }
+  });
+});
+
+test("sizes that are not narrowest first, beside a width or centred on no column, and a measure that is no function, are refused before anything is built", async () => {
   const made = bundle("pages");
   try {
     const pages = [{ route: "/" }];
@@ -555,6 +689,12 @@ test("sizes that are not narrowest first, or beside a width, are refused before 
     await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, width: 390, sizes: [{ width: 390, height: 844 }] } })).rejects.toThrow(/not both/);
     await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, sizes: [{ width: 390 }] } })).rejects.toThrow(/no width or height/);
     await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages: [{ route: "/", description: 3 }] } })).rejects.toThrow(/description/);
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages: [{ route: "/", centred: true }] } })).rejects.toThrow(/centred/);
+    for (const centred of [0, 1201, "1000", true]) {
+      await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, sizes: [{ width: 1200, height: 800, centred }] } }), String(centred)).rejects.toThrow(/centred/);
+    }
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, measure: "chromium" } })).rejects.toThrow(/prerender\.measure/);
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, measured: { a: 1 } } })).rejects.toThrow(/prerender\.measured/);
     expect(existsSync(join(made.out, "index.html"))).toBe(false);
   } finally {
     made.remove();

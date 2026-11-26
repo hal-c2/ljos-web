@@ -11,11 +11,15 @@
 //
 //   node prerender.js SERVER-BUNDLE [{"width":1280,"height":720} | -]
 //   (`-`: the options on stdin)
-import { readFileSync } from "node:fs";
+//
+// `measures`, a file of what a browser measured for the build (dom.js),
+// sets the page's text as that browser does; `misses`, a file this
+// writes the questions the page asked that it had no answer for to.
+import { readFileSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { installPrerenderGlobals } from "./dom.js";
+import { installPrerenderGlobals, prerenderMisses } from "./dom.js";
 
 const [bundle, said] = process.argv.slice(2);
 const options = said === "-" ? JSON.parse(readFileSync(0, "utf8") || "{}") : said ? JSON.parse(said) : {};
@@ -48,7 +52,7 @@ globalThis.fetch = async (url, init) => {
   return new Response("", { status: 404 });
 };
 
-installPrerenderGlobals(options);
+installPrerenderGlobals({ ...options, measured: options.measures ? JSON.parse(readFileSync(options.measures, "utf8")) : undefined });
 // What the page says as it is made — QML's `print` and `console.log`
 // are console.log here — is not the page: stdout is the HTML and
 // nothing else, so the page's saying goes where a build's does.
@@ -56,4 +60,6 @@ for (const said of ["log", "info", "debug"]) console[said] = (...args) => consol
 const page = await import(pathToFileURL(resolve(bundle)).href);
 // A page's animations and timers would keep this process for ever:
 // the render is what it was run for, and it ends with it.
-process.stdout.write(await page.default(options), () => process.exit(0));
+const html = await page.default(options);
+if (options.misses) writeFileSync(options.misses, JSON.stringify(prerenderMisses()));
+process.stdout.write(html, () => process.exit(0));
