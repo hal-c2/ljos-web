@@ -1,0 +1,48 @@
+# A destructuring assignment's targets are names or members, as a swap writes them {"top":"Script","dialect":"ts"}
+
+[heap[k], heap.up] = [heap.up, heap[k]];
+
+==>
+
+Script(
+  ExpressionStatement(
+    AssignmentExpression(
+      ArrayPattern("[",
+        MemberExpression(VariableName,"[",VariableName,"]"),",",
+        MemberExpression(VariableName,".",PropertyName),"]"),
+      Equals,
+      ArrayExpression("[",
+        MemberExpression(VariableName,".",PropertyName),",",
+        MemberExpression(VariableName,"[",VariableName,"]"),"]")),
+    ";"))
+
+# An object pattern's property may be assigned to a member {"top":"Script","dialect":"ts"}
+
+({ a: o.x, b: o[k] } = p);
+
+==>
+
+Script(
+  ExpressionStatement(
+    ParenthesizedExpression("(",
+      AssignmentExpression(
+        ObjectPattern("{",
+          PatternProperty(PropertyName,":",MemberExpression(VariableName,".",PropertyName)),",",
+          PatternProperty(PropertyName,":",MemberExpression(VariableName,"[",VariableName,"]")),"}"),
+        Equals,
+        VariableName),
+      ")"),
+    ";"))
+
+# A declaration's pattern still defines names {"top":"Script","dialect":"ts"}
+
+const [a, { b }] = c;
+
+==>
+
+Script(
+  VariableDeclaration(const,
+    ArrayPattern("[",VariableDefinition,",",ObjectPattern("{",PatternProperty(VariableDefinition),"}"),"]"),
+    Equals,
+    VariableName,
+    ";"))
