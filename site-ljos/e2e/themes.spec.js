@@ -21,18 +21,17 @@ const SCHEMES = ["light", "dark"];
 // there to show what that looks like, and is not read for it.
 const showsUnreadable = ({ code }) => /^(\s*\/\/[^\n]*\n)*?\s*\/\/[^\n]*color-text-contrast/.test(code);
 
-// Ljós's own palettes draw placeholder words under AA. Basic's
-// placeholderText is see-through: #88353637 in light
+// Basic's placeholderText is see-through: #88353637 in light
 // (packages/runtime/QtQuick/Controls/Basic/index.js:37, from ljos-ui's
 // palette.rs) and #88c8c9cb in dark (QtQuick/Palette.ts:89). What it
 // comes to depends on what it is drawn on: #919191 on #f9f9f8 (2.99:1)
 // or #939494 on white (3.04:1) in light, #707172 on #0c0c0c (3.99:1) in
-// dark. That is the palettes' to fix, not an example's. So a field's
-// placeholder is not counted here, and nothing else is: the words must
-// be drawn in that colour and be the placeholder of an empty field
-// beside them, the input that those very words name. Real words in the
-// same colour still count. The test at the end turns red once the
-// palettes meet AA, and this comes out with it.
+// dark, all under AA. A field in Ljós's own style no longer draws its
+// placeholder in it: Ljos.Controls' TextField and TextArea (TextArea's
+// own since ljos-ui 3bdb194e) take Theme.placeholder, which Theme.qml
+// reaches to 4.5:1 on a raised surface. So a placeholder is counted as
+// any words are, and the test at the end holds it to AA. Words an example
+// draws in Basic's colour itself are under AA, and UNDER_AA names them.
 const PLACEHOLDER = { light: "#88353637", dark: "#88c8c9cb" };
 const rgba = (hex) => {
   const digits = hex.slice(1);
@@ -73,10 +72,11 @@ const placeholderOf = (page, target) =>
     return { words, placeholder: false };
   }, target.join(" "));
 
-// A field's placeholder is drawn where its text would be. Words beside
-// the field that say the same, in the same colour, are the example's own
-// and are counted: Notes is the TextArea's placeholder, and is a Text too.
-test("words beside an empty field that say what its placeholder says are counted", async ({ page }) => {
+// A field's placeholder is drawn where its text would be, and meets AA.
+// Words beside the field that say the same in Basic's placeholder colour
+// are the example's own and are counted: Notes is the TextArea's
+// placeholder, and is a Text too.
+test("words beside an empty field that say what its placeholder says are counted, and the placeholder is readable", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   const route = "/controls/value-inputs/";
   const { examples } = livePages().find((each) => each.route === route);
@@ -99,9 +99,9 @@ test("words beside an empty field that say what its placeholder says are counted
   await sceneRuns(page, 400, "the edited example settles");
   await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
   const all = await contrast(page, "[data-themes-check]");
-  expect(all.filter(({ line }) => inPlaceholderColour("light", line)), "axe finds both under AA").toHaveLength(2);
+  expect(all.filter(({ line }) => inPlaceholderColour("light", line)), "axe finds the Text under AA, and not the field's placeholder").toHaveLength(1);
   const found = await unexcused(page, "[data-themes-check]", "light", route, new Set());
-  expect(found, "the placeholder is excused, the Text beside it is not").toHaveLength(1);
+  expect(found, "only the Text is counted").toHaveLength(1);
   const counted = await page.evaluate((selector) => document.querySelector(selector).getBoundingClientRect().top, found[0].split(" — ")[0]);
   const [above] = await notes.evaluateAll((each) => each.map((element) => element.getBoundingClientRect().top).sort((a, b) => a - b));
   expect(counted, "and what is counted is the Text, above the field").toBe(above);
@@ -124,8 +124,7 @@ async function unexcused(page, include, colorScheme, route, seen) {
   const found = [];
   for (const { target, line } of await contrast(page, include)) {
     if (inPlaceholderColour(colorScheme, line)) {
-      const { words, placeholder } = await placeholderOf(page, target);
-      if (placeholder) continue;
+      const { words } = await placeholderOf(page, target);
       const listed = UNDER_AA.find((each) => each.route === route && each.words === words);
       if (listed) {
         seen.add(listed);
@@ -214,11 +213,10 @@ test("a scheme picked in the header reaches the demos that are running", async (
   expect(await unreadable(page, "[data-themes-check]")).toEqual([]);
 });
 
-// What PLACEHOLDER excuses is still so: a field's placeholder, in
-// Ljós's own style, is under AA. Red once the palette is fixed: take
-// PLACEHOLDER out then.
+// A field's placeholder, in Ljós's own style, meets AA: axe finds
+// nothing under it on an empty field's placeholder, in any colour.
 for (const colorScheme of SCHEMES) {
-  test(`in ${colorScheme} Ljós's placeholder colour is still under AA, as excused above`, async ({ page }) => {
+  test(`in ${colorScheme} Ljós's placeholder meets AA`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
     const example = livePages()
       .flatMap(({ route, examples }) => examples.map((each) => ({ route, ...each })))
@@ -229,10 +227,13 @@ for (const colorScheme of SCHEMES) {
     await open(page, example.route);
     const block = await run(page, example.index);
     await sceneRuns(page, 400, "the example settles");
+    // It is drawn, so axe has it to read: an empty list below says it met AA.
+    const [, words] = /placeholderText:\s*(?:qsTr\()?"([^"]+)"/.exec(example.code);
+    await expect(block.running.locator(".qq-text").filter({ hasText: words }).first(), "the placeholder is drawn").toBeVisible();
     await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
     const placeholders = [];
     for (const { target, line } of await contrast(page, "[data-themes-check]"))
-      if (inPlaceholderColour(colorScheme, line) && (await placeholderOf(page, target)).placeholder) placeholders.push(line);
-    expect(placeholders, "the placeholder is still under AA").not.toEqual([]);
+      if ((await placeholderOf(page, target)).placeholder) placeholders.push(line);
+    expect(placeholders, "no placeholder is under AA").toEqual([]);
   });
 }
