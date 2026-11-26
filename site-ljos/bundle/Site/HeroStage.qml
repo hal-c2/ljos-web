@@ -1,5 +1,4 @@
 import Ljos.Ui
-import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Site
@@ -150,9 +149,9 @@ DeviceFrame {
                                 Row {
                                     id: named
                                     // Where it starts, read from the left; a right-to-left page
-                                    // sets it as far from the right (LayoutMirroring).
+                                    // sets it as far from the right (App.layoutDirection).
                                     readonly property real startX: Theme.xs + line.modelData.depth * Theme.m
-                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: Theme.xs
                                     Text {
@@ -177,9 +176,9 @@ DeviceFrame {
                                 Row {
                                     id: reading
                                     // Where it starts, read from the left; a right-to-left page
-                                    // sets it as far from the right (LayoutMirroring).
+                                    // sets it as far from the right (App.layoutDirection).
                                     readonly property real startX: parent.width - width - Theme.xs
-                                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                                    x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: Theme.xs
                                     Text {
@@ -225,9 +224,9 @@ DeviceFrame {
 
                         Rectangle {
                             // Where it starts, read from the left; a right-to-left page
-                            // sets it as far from the right (LayoutMirroring).
+                            // sets it as far from the right (App.layoutDirection).
                             readonly property real startX: Theme.m
-                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                             anchors.verticalCenter: parent.verticalCenter
                             width: badge.implicitWidth + 2 * Theme.xs
                             height: 22
@@ -247,9 +246,9 @@ DeviceFrame {
                         }
                         Row {
                             // Where it starts, read from the left; a right-to-left page
-                            // sets it as far from the right (LayoutMirroring).
+                            // sets it as far from the right (App.layoutDirection).
                             readonly property real startX: parent.width - width - Theme.m
-                            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs
                             StageButton {

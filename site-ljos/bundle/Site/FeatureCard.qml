@@ -1,5 +1,5 @@
 import Ljos.Ui
-import QtQuick as Q
+import Ljos.Core
 import Ljos.Layout
 import QtQuick.Effects
 import Site
@@ -71,9 +71,9 @@ Item {
             readonly property bool atRight: index % 2 === 1
             readonly property bool atBottom: index > 1
             // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
+            // sets it as far from the right (App.layoutDirection).
             readonly property real startX: atRight ? card.width - width : 0
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: atBottom ? card.height - height : 0
             width: 14
             height: 14
@@ -86,9 +86,9 @@ Item {
             }
             Rectangle {
                 // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
+                // sets it as far from the right (App.layoutDirection).
                 readonly property real startX: corner.atRight ? corner.width - 2 : 0
-                x: Q.LayoutMirroring.enabled ? corner.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? corner.width - width - startX : startX
                 width: 2
                 height: parent.height
                 fill: Theme.accent

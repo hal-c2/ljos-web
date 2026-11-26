@@ -1,5 +1,4 @@
 import Ljos.Ui
-import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Ljos.Blocks
@@ -300,9 +299,9 @@ Column {
                 readonly property int wordsX: landing.wide ? Math.round(5 * column + 5 * Theme.columnGap) : 0
 
                 // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
+                // sets it as far from the right (App.layoutDirection).
                 readonly property real startX: togetherPanel.pad
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: togetherPanel.pad
                 width: parent.width - 2 * togetherPanel.pad
                 height: landing.wide ? Math.max(togetherHeading.height, togetherWords.implicitHeight) : togetherHeading.height + Theme.m + togetherWords.implicitHeight
@@ -311,7 +310,7 @@ Column {
                     id: togetherHeading
                     width: landing.wide ? together.wordsX - Theme.columnGap : parent.width
                     // Beside the words, it changes sides with them on a right-to-left page.
-                    x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+                    x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
                     level: "display"
                     wide: landing.wide
                     text: t`Built together`
@@ -319,9 +318,9 @@ Column {
                 Text {
                     id: togetherWords
                     // Where it starts, read from the left; a right-to-left page
-                    // sets it as far from the right (LayoutMirroring).
+                    // sets it as far from the right (App.layoutDirection).
                     readonly property real startX: together.wordsX
-                    x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                    x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                     y: landing.wide ? Theme.xs : togetherHeading.height + Theme.m
                     width: Math.min(parent.width - startX, Theme.measure)
                     format: Text.RichText

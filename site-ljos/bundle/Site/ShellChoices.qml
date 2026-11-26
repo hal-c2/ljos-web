@@ -1,5 +1,4 @@
 import Ljos.Ui
-import QtQuick as Q
 import Site
 import Ljos.Core
 import Ljos.Layout
@@ -90,9 +89,9 @@ Item {
 
                     C.Icon {
                         // Where it starts, read from the left; a right-to-left page
-                        // sets it as far from the right (LayoutMirroring).
+                        // sets it as far from the right (App.layoutDirection).
                         readonly property real startX: Theme.xs
-                        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                         y: Theme.xs + 2
                         name: "check"
                         size: 16
@@ -102,9 +101,9 @@ Item {
                     Column {
                         id: words
                         // Where it starts, read from the left; a right-to-left page
-                        // sets it as far from the right (LayoutMirroring).
+                        // sets it as far from the right (App.layoutDirection).
                         readonly property real startX: Theme.xs + 24
-                        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                         y: Theme.xs
                         width: row.width - startX - Theme.xs
                         spacing: 2

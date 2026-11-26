@@ -1,5 +1,4 @@
 import Ljos.Ui
-import QtQuick as Q
 import Site
 import Ljos.Core
 import Ljos.Layout
@@ -127,9 +126,9 @@ Item {
 
         Text {
             // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
+            // sets it as far from the right (App.layoutDirection).
             readonly property real startX: 12
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - startX - reset.width - 20
             text: live.source.file
@@ -141,9 +140,9 @@ Item {
         C.Button {
             id: reset
             // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
+            // sets it as far from the right (App.layoutDirection).
             readonly property real startX: parent.width - width - 8
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             height: live.touch ? 44 : implicitHeight
             subtle: true
@@ -158,9 +157,9 @@ Item {
     Column {
         visible: live.failed !== ""
         // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
+        // sets it as far from the right (App.layoutDirection).
         readonly property real startX: 12
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: head.height + 12
         width: parent.width - 24
         spacing: 8
