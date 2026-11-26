@@ -39,6 +39,7 @@ Feature: The site shows what is built with Ljós
   Scenario: The showcase names the tools built with Ljós
     When a reader with no script opens /showcase/
     Then after the apps, a section "Tools built with Ljós" has cards for Ljós Studio, Eldur and HAL-C2, each linking to its repository
+    And HAL-C2's card does not send the reader to the showcase they are on
 
   Scenario: Every page's footer names what is built with Ljós
     When a reader opens any page

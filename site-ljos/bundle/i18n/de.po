@@ -2470,3 +2470,7 @@ msgstr "HAL-C2"
 #: ../Site/BuiltWith.qml:57
 msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
 msgstr "Die Darstellungseinstellungen von HAL-C2 auf Ljós: links die Bereiche der Einstellungen, die Farbschemata System/Light/Dark und eine Liste von Themes, in der HAL-C2 gewählt ist."
+
+#: ../Site/BuiltWith.qml:62
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
+msgstr "Eine Steuerzentrale für die Coding-Agenten auf deinem Rechner, mit einem Terminal, Browser-Tabs und einem QML-Layout, das du im laufenden Betrieb ändern kannst."

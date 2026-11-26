@@ -5,6 +5,10 @@ export interface Made {
   readonly title: string;
   readonly href: string;
   readonly body: string;
+  // The page `body` links to, "" for none, and the words the card has
+  // there instead, without a link to the page the reader is on.
+  readonly bodyAt: string;
+  readonly bodyThere: string;
   readonly picture: string;
   // "" where the capture has no dark one.
   readonly pictureDark: string;
@@ -39,4 +43,10 @@ export function tallest(heights: readonly number[]): number {
 // but four as two rows of two, so no card stands alone under the others.
 export function columns(count: number): number {
   return count === 4 ? 2 : Math.min(3, count);
+}
+
+// A card's words on the page at `route`: on the page its words link to,
+// those that leave the link out.
+export function wordsOn(made: Made, route: string): string {
+  return made.bodyAt !== "" && made.bodyAt === route ? made.bodyThere : made.body;
 }
