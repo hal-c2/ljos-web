@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { PLAY, pinned, projectOf, sha256 } from "../scripts/play.mjs";
+import { PLAY, drifted, pinned, projectOf, sha256 } from "../scripts/play.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(here, "dist");
@@ -191,6 +191,10 @@ test("the example and its engine are ljos-play's files at the commit the entry n
   };
   const changed = Object.entries(pin.files).filter(([path, { sha256: hash }]) => !existsSync(join(here, "bundle", path)) || sha256(held(path)) !== hash);
   expect(changed.map(([path]) => path), "change hal-c2/ljos-play and run scripts/sync-play.mjs").toEqual([]);
+  // The example is pinned as the module is, its dialect copy as the sync
+  // wrote it: the build checks the same before it packs the editor's project.
+  expect(Object.keys(pin.files)).toContain(`${PLAY.example}/Main.qml`);
+  expect(drifted(), "change hal-c2/ljos-play and run scripts/sync-play.mjs").toEqual([]);
   const module = readdirSync(join(here, "bundle", PLAY.module)).filter((name) => name !== "UPSTREAM.json").map((name) => `${PLAY.module}/${name}`);
   expect(module.sort()).toEqual(Object.keys(pin.files).filter((path) => path.startsWith(`${PLAY.module}/`)).sort());
   expect(module).toContain(`${PLAY.module}/LICENSE`);
@@ -209,6 +213,24 @@ test("the editor's project is never packed from a copy that drifted from its pin
   const example = `${PLAY.example}/Main.qml`;
   const edited = (path) => (path === example ? Buffer.from(read(path).toString("utf8").replace("seed: 41", "seed: 42")) : read(path));
   expect(() => projectOf(() => "", edited)).toThrow(example);
+  // A line held in Ljós's dialect is the line the sync wrote, not any
+  // line: changing it is drift too.
+  const [line] = Object.keys(products.find((product) => product.engine?.example?.copy === example).engine.example.upstream);
+  const dialectEdited = (path) => {
+    if (path !== example) return read(path);
+    const lines = read(path).toString("utf8").split("\n");
+    lines[Number(line) - 1] += " // changed here";
+    return Buffer.from(lines.join("\n"));
+  };
+  expect(() => projectOf(() => "", dialectEdited)).toThrow(example);
+  // The example is packed only if the pin names it.
+  const unpinned = (path) => {
+    if (path !== PLAY.pin) return read(path);
+    const pin = JSON.parse(read(path).toString("utf8"));
+    delete pin.files[example];
+    return Buffer.from(JSON.stringify(pin));
+  };
+  expect(() => projectOf(() => "", unpinned)).toThrow(example);
 });
 
 test("with no script, the engine stands in its own words: its lines coloured as code, each linked to them at the commit, its capture beside", async ({ browser }) => {

@@ -40,46 +40,66 @@ export function dialectLines() {
   return Object.fromEntries(products.filter((product) => product.engine?.example?.upstream).map(({ engine: { example } }) => [example.copy, example.upstream]));
 }
 
-// The paths whose copy (`read(path)`, its bytes) is not the file the pin
-// names: absent, or different once its dialect lines are put back.
-export function drifted(read = (path) => readFileSync(join(bundle, path))) {
+// The copy's bytes as ljos-play holds them: the lines `dialect` (line →
+// upstream text) names put back as the repository has them.
+export function asUpstream(bytes, dialect = {}) {
+  const lines = bytes.toString("utf8").split("\n");
+  for (const [line, upstream] of Object.entries(dialect)) lines[Number(line) - 1] = upstream;
+  return Buffer.from(lines.join("\n"), "utf8");
+}
+
+const fromBundle = (path) => readFileSync(join(bundle, path));
+
+// The paths whose copy (`held[path]`, its bytes, or `read(path)`) is not
+// the file the pin names: absent, different from the repository's bytes
+// once its dialect lines are put back, or, for a copy held in Ljós's
+// dialect, different from the bytes the sync wrote (the pin's `copy`), so
+// that a dialect line is the line written there and not any line.
+export function drifted(read = fromBundle, pin = JSON.parse(read(PLAY.pin).toString("utf8")), held = {}) {
   const dialect = dialectLines();
-  const { files } = pinned();
-  return Object.entries(files)
-    .filter(([path, { sha256: hash }]) => {
-      let bytes;
+  const wanted = [...new Set([...Object.keys(pin.files), `${PLAY.example}/Main.qml`])];
+  return wanted.filter((path) => {
+    const entry = pin.files[path];
+    if (!entry) return true;
+    let bytes = held[path];
+    if (bytes === undefined) {
       try {
         bytes = read(path);
       } catch {
         return true;
       }
-      if (Object.hasOwn(dialect, path)) {
-        const lines = bytes.toString("utf8").split("\n");
-        for (const [line, upstream] of Object.entries(dialect[path])) lines[Number(line) - 1] = upstream;
-        bytes = Buffer.from(lines.join("\n"), "utf8");
-      }
-      return sha256(bytes) !== hash;
-    })
-    .map(([path]) => path);
+    }
+    if (!Object.hasOwn(dialect, path)) return sha256(bytes) !== entry.sha256;
+    return sha256(bytes) !== entry.copy || sha256(asUpstream(bytes, dialect[path])) !== entry.sha256;
+  });
 }
 
 // The project the editor compiles: the example as `Main.qml`, at its
 // root, and the module's files under LjosPlay/ (its qmldir too: it is
 // what makes the directory the module the example imports), each with
 // its highlighting (`colour(code, lang)`). Only the example is the
-// reader's to change; the engine is compiled beside it as it is. It is
-// packed only from the files the pin names: a copy that drifted stops
-// the build, named, rather than going out as ljos-play's.
-export function projectOf(colour, read = (path) => readFileSync(join(bundle, path))) {
-  const changed = drifted(read);
-  if (changed.length) throw new Error(`${changed.join(", ")}: not the file ${PLAY.pin} pins; change hal-c2/ljos-play and run scripts/sync-play.mjs`);
-  const { commit, files } = pinned();
+// reader's to change; the engine is compiled beside it as it is. The pin
+// and each file are read once, and packed only if they are what the pin
+// names: a copy that drifted stops the build, named, rather than going
+// out as ljos-play's.
+export function projectOf(colour, read = fromBundle) {
+  const pin = JSON.parse(read(PLAY.pin).toString("utf8"));
   const entry = `${PLAY.example}/Main.qml`;
-  const paths = [entry, ...Object.keys(files).filter((path) => path.startsWith(`${PLAY.module}/`) && (path.endsWith(".qml") || path.endsWith("/qmldir")))];
+  const paths = [entry, ...Object.keys(pin.files).filter((path) => path.startsWith(`${PLAY.module}/`) && (path.endsWith(".qml") || path.endsWith("/qmldir")))];
+  const held = {};
+  for (const path of paths) {
+    try {
+      held[path] = read(path);
+    } catch {
+      // Absent: drifted names it.
+    }
+  }
+  const changed = drifted(read, pin, held);
+  if (changed.length) throw new Error(`${changed.join(", ")}: not the file ${PLAY.pin} pins; change hal-c2/ljos-play and run scripts/sync-play.mjs`);
   return {
-    commit,
+    commit: pin.commit,
     files: paths.map((path) => {
-      const code = read(path).toString("utf8");
+      const code = held[path].toString("utf8");
       const qml = path.endsWith(".qml");
       return { path: path === entry ? "Main.qml" : path, lang: qml ? "qml" : "text", code, rich: path === entry ? colour(code, "qml") : "" };
     }),
