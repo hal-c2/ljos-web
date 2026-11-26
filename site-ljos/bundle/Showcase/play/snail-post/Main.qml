@@ -1,13 +1,13 @@
 import Ljos.Ui
+import Ljos.Core
 import LjosPlay
-
 // Snail Post: a post office under a hedge. Snails fetch letters, carry them
 // to the boxes, nap under toadstools and stop to gossip.
 World {
     id: post
 
     readonly property list<string> shells: ["#c9634f", "#d8a03f", "#7d6bb3", "#4f8fb0", "#b05c86", "#6f9a4c", "#c27f3d", "#8f6f5a"]
-
+    function isDraw(value: unknown): value is () => number { return typeof value === "function"; }
     name: "Snail Post"
     width: 800
     height: 560
@@ -26,7 +26,7 @@ World {
         draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => {
             ctx.fillStyle = "#6f8f4e";
             ctx.fillRect(0, 0, w, h);
-            const draw = post.random(7);
+            const seeded = post.random(7), draw = isDraw(seeded) ? seeded : Math.random;
             for (let i = 0; i < 420; i++) {
                 ctx.fillStyle = post.pick(draw, ["#678748", "#7b9b57", "#86a560"]);
                 ctx.fillRect(Math.floor(draw() * w), Math.floor(draw() * h), 2, 1);
@@ -191,7 +191,7 @@ World {
     }
 
     function gossip(from: Actor): void {
-        const others = Object.values(actors).filter((a: Actor) => a !== from && !a.sleepy);
+        const others = Object.values(actors).filter((a: { sleepy: boolean }) => a !== from && !a.sleepy);
         if (others.length > 0)
             from.tell(pick(rng, others), pick(rng, ["Box three is full of slugs.", "Dew at seven, they say.", "A parcel of lettuce came!", "Have you seen the new toadstool?"]));
     }

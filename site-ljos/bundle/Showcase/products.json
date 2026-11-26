@@ -68,8 +68,12 @@
         "what": "Snail Post",
         "upstream": {
           "1": "import QtQuick",
+          "2": "import LjosPlay",
+          "3": "",
           "9": "    readonly property var shells: [\"#c9634f\", \"#d8a03f\", \"#7d6bb3\", \"#4f8fb0\", \"#b05c86\", \"#6f9a4c\", \"#c27f3d\", \"#8f6f5a\"]",
+          "10": "",
           "26": "        draw: (ctx, w, h) => {",
+          "29": "            const draw = post.random(7);",
           "49": "            draw: (ctx, w, h) => {",
           "51": "                    ctx.fillStyle = x % 24 ? \"#35582f\" : \"#3f6636\";",
           "135": "            reply: talk => post.pick(post.rng, [\"Never!\", \"By rain, you say?\", \"I'll pass it on.\", \"Slowly, now.\"])",

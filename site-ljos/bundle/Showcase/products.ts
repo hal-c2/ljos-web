@@ -36,12 +36,16 @@ export interface Snippet {
 }
 
 // The engine's example: what it is, where it stands, its lines and a
-// capture of it running.
+// capture of it running, and, for one that runs in the page, its name.
 export interface Example {
   readonly about: string;
   readonly path: string;
   readonly snippets: readonly Snippet[];
   readonly capture: Capture;
+  // Its name where it runs in the page (Showcase/later.js), and what its
+  // controls call it: "Run Snail Post".
+  readonly live?: string;
+  readonly what?: string;
 }
 
 // The engine an app is built on, where its entry names one.
