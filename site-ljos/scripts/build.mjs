@@ -13,13 +13,14 @@ import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { docsDir } from "../../scripts/docs-dir.mjs";
 import { chromium } from "@playwright/test";
 import { createRequire } from "node:module";
 import { highlight, readMarkdownSite } from "ljos-web/markdown";
 import { askedJobs, buildSite, pooled } from "ljos-web/site";
+import { measureIn } from "ljos-web/measure";
 import { checkExamplesAll, hashExample, loadHarnesses, loadPrerenders, pruneCache, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { kernelNamed } from "ljos-web/vite";
@@ -706,7 +707,9 @@ const pages = [
     props: { route: "/showcase/" },
   },
   ...Pro.pages(Pro.demos, after),
-  ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), props: { route: page.route, page: slim[i] } })),
+  // A docs page fills its window, its sidebar at the window's edge
+  // (Shells/Elegant.qml): its renders are not centred.
+  ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), centred: false, props: { route: page.route, page: slim[i] } })),
 ];
 // bundle/tokens.js's two tones and each look's, the table Site/Theme.qml reads.
 function tones() {
@@ -785,6 +788,26 @@ function pictured(live, up) {
 // writes beside the pages.
 let looksSheet;
 
+// The site's own faces (bundle/assets/fonts, served at the base's
+// fonts/): the default shell's are fetched with the page, so its first
+// lines are set in them; another shell's come when it shows. Its code
+// too (a front page's hero, a docs page's blocks): the prerender lays
+// code out in JetBrains Mono's measures, so code first drawn in a
+// fallback is narrower than the page it hydrates into, and the replay
+// that types it again paints larger than it first did (SITE-CLS).
+const faces = [
+  { family: "Inter", file: "inter-var.woff2", weight: "100 900", style: "normal", early: true },
+  { family: "JetBrains Mono", file: "jetbrains-mono-var.woff2", weight: "100 800", style: "normal", early: true },
+  { family: "Chakra Petch", file: "chakra-petch-400.woff2", weight: "400", style: "normal" },
+  { family: "Chakra Petch", file: "chakra-petch-600.woff2", weight: "600", style: "normal" },
+];
+const latin = "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD";
+// Their @font-face rules, each face's file at the address `at` gives it.
+const faceRules = (at) =>
+  faces
+    .map((face) => `  @font-face { font-family: "${face.family}"; src: url("${at(face)}") format("woff2"); font-weight: ${face.weight}; font-style: ${face.style}; font-display: swap; unicode-range: ${latin}; }`)
+    .join("\n");
+
 // The site's head, with the colours of bundle/tokens.js (the table
 // Site/Theme.qml reads) written in as CSS custom properties: one table,
 // so the HTML around the app and the app never disagree.
@@ -844,19 +867,7 @@ function siteHead() {
   const ways = readFileSync(join(bundle, "assets/looks.css"), "utf8").replace(/^[ \t]*\/\*[\s\S]*?\*\/\n/gm, "");
   const sheet = `${others}\n${ways}`;
   looksSheet = { name: `looks-${createHash("sha256").update(sheet).digest("hex").slice(0, 10)}.css`, text: sheet };
-  // The site's own faces (bundle/assets/fonts, served at the base's
-  // fonts/): the default shell's are fetched with the page, so its first
-  // lines are set in them; another shell's come when it shows.
-  const faces = [
-    { family: "Inter", file: "inter-var.woff2", weight: "100 900", style: "normal", early: true },
-    { family: "JetBrains Mono", file: "jetbrains-mono-var.woff2", weight: "100 800", style: "normal" },
-    { family: "Chakra Petch", file: "chakra-petch-400.woff2", weight: "400", style: "normal" },
-    { family: "Chakra Petch", file: "chakra-petch-600.woff2", weight: "600", style: "normal" },
-  ];
-  const latin = "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD";
-  const fontFaces = faces
-    .map((face) => `  @font-face { font-family: "${face.family}"; src: url("${base}fonts/${face.file}") format("woff2"); font-weight: ${face.weight}; font-style: ${face.style}; font-display: swap; unicode-range: ${latin}; }`)
-    .join("\n");
+  const fontFaces = faceRules((face) => `${base}fonts/${face.file}`);
   const preloads = faces
     .filter((face) => face.early)
     .map((face) => `<link rel="preload" href="${base}fonts/${face.file}" as="font" type="font/woff2" crossorigin />`)
@@ -900,6 +911,37 @@ process.env.PATH = noQt;
 delete process.env.QT_INSTALL_QML;
 delete process.env.QML_IMPORT_PATH;
 let built;
+// DECISION (SITE-CLS): the renders' text is measured by the Chromium the
+// build draws pictures with, in the site's own faces, so each page's first
+// paint breaks its lines where the reader's browser will and nothing moves
+// as it hydrates. What it measured is kept beside the examples' answers,
+// for the browser and the faces it was measured with, so a build that
+// changes no text asks it nothing.
+const fontsDir = join(bundle, "assets/fonts");
+const measureSource = readFileSync(createRequire(import.meta.url).resolve("ljos-web/measure"), "utf8");
+const measuredBy = createHash("sha256")
+  .update(`${chromium.executablePath()}\n${faceRules((face) => face.file)}\n${measureSource}`)
+  .update(Buffer.concat(faces.map((face) => readFileSync(join(fontsDir, face.file)))))
+  .digest("hex")
+  .slice(0, 12);
+const measuredFile = join(here, ".codeblock-prerenders", `measured-${measuredBy}.json`);
+let measured = [];
+try {
+  measured = JSON.parse(readFileSync(measuredFile, "utf8"));
+} catch {
+  // None kept for this browser and these faces: every question is asked.
+}
+let measuring;
+const measurePage = async () => {
+  measuring ??= (async () => {
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    const data = (face) => `data:font/woff2;base64,${readFileSync(join(fontsDir, face.file)).toString("base64")}`;
+    await page.setContent(`<!doctype html><html><head><style>${faceRules(data)}</style></head><body></body></html>`);
+    return { browser, page };
+  })();
+  return (await measuring).page;
+};
 try {
   // DECISION (site3 design): every page is written for a phone and a
   // desktop, in light and dark, so the first paint is laid out and
@@ -937,10 +979,12 @@ try {
     prerender: {
       sizes: [
         { width: 390, height: 844 },
-        { width: 1440, height: 900, from: 1000 },
+        { width: 1440, height: 900, from: 1000, centred: 1344 },
       ],
       schemes: ["light", "dark"],
       pages,
+      measure: async (keys) => measureIn(await measurePage(), keys),
+      measured,
     },
   });
 } finally {
@@ -949,6 +993,12 @@ try {
     else process.env[name] = value;
   }
   rmSync(noQt, { recursive: true, force: true });
+  if (measuring) await (await measuring).browser.close();
+}
+if (built.measured) {
+  mkdirSync(dirname(measuredFile), { recursive: true });
+  pruneCache(dirname(measuredFile), { keep: new Set([basename(measuredFile)]), pattern: /^measured-[0-9a-f]{12}\.json$/ });
+  writeFileSync(measuredFile, JSON.stringify(built.measured));
 }
 
 writeFileSync(join(out, looksSheet.name), looksSheet.text);
