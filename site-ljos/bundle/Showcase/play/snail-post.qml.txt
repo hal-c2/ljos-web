@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import LjosPlay
 
 // Snail Post: a post office under a hedge. Snails fetch letters, carry them
@@ -6,7 +6,7 @@ import LjosPlay
 World {
     id: post
 
-    readonly property var shells: ["#c9634f", "#d8a03f", "#7d6bb3", "#4f8fb0", "#b05c86", "#6f9a4c", "#c27f3d", "#8f6f5a"]
+    readonly property list<string> shells: ["#c9634f", "#d8a03f", "#7d6bb3", "#4f8fb0", "#b05c86", "#6f9a4c", "#c27f3d", "#8f6f5a"]
 
     name: "Snail Post"
     width: 800
@@ -23,7 +23,7 @@ World {
 
     Art {
         z: -1
-        draw: (ctx, w, h) => {
+        draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => {
             ctx.fillStyle = "#6f8f4e";
             ctx.fillRect(0, 0, w, h);
             const draw = post.random(7);
@@ -46,9 +46,9 @@ World {
         solid: true
 
         Art {
-            draw: (ctx, w, h) => {
+            draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => {
                 for (let x = 0; x < w; x += 8) {
-                    ctx.fillStyle = x % 24 ? "#35582f" : "#3f6636";
+                    ctx.fillStyle = x % 24 !== 0 ? "#35582f" : "#3f6636";
                     ctx.fillRect(x, (x * 5) % 4, 8, h);
                     ctx.fillStyle = "#5b8447";
                     ctx.fillRect(x + 2, (x * 3) % 7 + 2, 3, 2);
@@ -132,7 +132,7 @@ World {
             speed: 25
             walkFrames: [0, 1]
             talkFrame: 2
-            reply: talk => post.pick(post.rng, ["Never!", "By rain, you say?", "I'll pass it on.", "Slowly, now."])
+            reply: (talk: string) => post.pick(post.rng, ["Never!", "By rain, you say?", "I'll pass it on.", "Slowly, now."])
             activities: [
                 Activity {
                     name: "nap"
@@ -177,7 +177,7 @@ World {
                 rows: 3
                 frame: snail.frame
                 facing: snail.dir
-                draw: (frame, row) => post.snailArt(String(snail.shell), frame, row)
+                draw: (frame: number, row: number) => post.snailArt(String(snail.shell), frame, row)
             }
             Art {
                 visible: snail.laden
@@ -190,14 +190,14 @@ World {
         }
     }
 
-    function gossip(from) {
-        const others = Object.values(actors).filter(a => a !== from && !a.sleepy);
-        if (others.length)
+    function gossip(from: Actor): void {
+        const others = Object.values(actors).filter((a: Actor) => a !== from && !a.sleepy);
+        if (others.length > 0)
             from.tell(pick(rng, others), pick(rng, ["Box three is full of slugs.", "Dew at seven, they say.", "A parcel of lettuce came!", "Have you seen the new toadstool?"]));
     }
 
     // frame: 0 rest, 1 stretched, 2 nodding, 3 tucked in. row: 0 down, 1 left, 2 up.
-    function snailArt(shell, frame, row) {
+    function snailArt(shell: string, frame: number, row: number): (number | string)[][][] {
         const skin = "#e8c99c", ink = "#3b2a24", shine = "#f3ddbd";
         const reach = frame === 1 ? 1 : 0, nod = frame === 2 ? 1 : 0;
         if (frame === 3)

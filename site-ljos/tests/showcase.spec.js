@@ -134,16 +134,24 @@ const quoted = (example) => readFileSync(join(here, "bundle", example.copy), "ut
 const prose = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+").replace(/-/g, "-\\s*")}$`);
 const cut = (example, [from, to]) => quoted(example).split("\n").slice(from - 1, to).join("\n");
 
-test("the Office names ljos-play, and the copy of its example is the file at the commit named", () => {
+test("the Office names ljos-play, and the copy of its example is the file at the commit named, in Ljós's dialect", () => {
   const office = products.find((product) => product.id === "office");
   expect(office?.engine?.href).toBe("https://github.com/hal-c2/ljos-play");
   for (const { name, example } of engines) {
     // An engine named is shown in its own words: the build stops on one
     // without an example.
     expect(example, name).toBeTruthy();
-    // Git's own name for the file's bytes: the copy is byte for byte
-    // what the repository holds at that commit.
-    const bytes = readFileSync(join(here, "bundle", example.copy));
+    // Git's own name for the file's bytes: the copy is what the
+    // repository holds at that commit, but for the lines it writes in
+    // Ljós's dialect (`upstream` has each as the repository does), and
+    // no line the page quotes is one of those.
+    const lines = quoted(example).split("\n");
+    for (const [line, upstream] of Object.entries(example.upstream ?? {})) {
+      expect(lines[Number(line) - 1], `line ${line}`).not.toBe(upstream);
+      lines[Number(line) - 1] = upstream;
+      for (const { lines: [from, to] } of example.snippets) expect(Number(line) < from || Number(line) > to, `line ${line}`).toBe(true);
+    }
+    const bytes = Buffer.from(lines.join("\n"), "utf8");
     const blob = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
     expect(blob).toBe(example.blob);
     expect(example.commit).toMatch(/^[0-9a-f]{40}$/);
