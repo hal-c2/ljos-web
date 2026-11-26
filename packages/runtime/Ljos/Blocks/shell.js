@@ -3,7 +3,8 @@
 // expressions as a tier-1 program, which this runs. There is no JavaScript
 // of the shell's to run: what it may do is what the programs can say, and
 // the compiler let them say only what names the shell's own objects, its
-// blocks' state and actions, QtQuick's types and pure builtins.
+// blocks' state and actions, the types of QtQuick or of Ljós's API
+// (`Ljos.Ui`, `Ljos.Layout`) and pure builtins.
 //
 // What is checked here as well, should a program say more than the compiler
 // let it: a read is of a member a QML object has, never a function, a page
@@ -14,6 +15,10 @@
 import { createComponent } from "solid-js";
 import { $bool, $color, $int, $object, $real, $string, slot } from "../../object.ts";
 import * as Quick from "../../QtQuick/index.js";
+// By name, not as namespaces: a namespace would be the whole of Ljos.Ui
+// in the chunk the site's first load shares with it.
+import { Image as UiImage, Item as UiItem, PointerArea, Rectangle as UiRectangle, Text as UiText } from "../Ui/index.js";
+import { Column, Flow, Grid, Row } from "../Layout/index.ts";
 import { Color } from "../../QtQuick/color.ts";
 import { Qt, qsTr, qsTrId, qsTranslate } from "../../QtQml/Qt.ts";
 
@@ -72,8 +77,18 @@ function read(object, name) {
   return readable(object[name]);
 }
 
-const quick = (name) => {
-  const Type = Quick[name];
+// The modules of types a shell may name, as the compiled shell names them,
+// with what the compiler lets a shell make of Ljós's (crates/ljos_web's
+// shell::LJOS). `Ljos.Core` makes no type a shell may: its import gives
+// one nothing here.
+const MODULES = {
+  QtQuick: Quick,
+  "Ljos.Ui": { Item: UiItem, Rectangle: UiRectangle, Text: UiText, Image: UiImage, PointerArea },
+  "Ljos.Layout": { Row, Column, Grid, Flow },
+};
+
+const quick = (name, module = "QtQuick") => {
+  const Type = MODULES[module]?.[name];
   if (typeof Type !== "function" || !Type.proto) throw new Refused(`\`${name}\` is not a type a shell makes`);
   return Type;
 };
@@ -342,7 +357,7 @@ export function shellOf(compiled, blocks, file = "Shell.qml") {
   const programs = compiled.exprs.map((expr) => ({ expr, program: decoded(expr.tier1) }));
   const types = defs.map(({ ty }) => {
     const { module, name } = ty.Native;
-    if (module === "QtQuick") return { Type: quick(name) };
+    if (Object.hasOwn(MODULES, module)) return { Type: quick(name, module) };
     const block = blocks[`${module}/${name}`];
     if (!block) throw new Refused(`${name} is not a block of the page`);
     return { Type: block.component, actions: new Set(block.actions.map((action) => action.name)) };
@@ -356,7 +371,8 @@ export function shellOf(compiled, blocks, file = "Shell.qml") {
     const params = (expr) =>
       expr.params.map(({ arg }) => {
         if (arg.Object) return objects[arg.Object.object];
-        if (arg.Type?.Native?.module === "QtQuick") return quick(arg.Type.Native.name);
+        const type = arg.Type?.Native;
+        if (type && Object.hasOwn(MODULES, type.module)) return quick(type.name, type.module);
         throw new Refused("a parameter a shell does not have");
       });
 
@@ -414,7 +430,7 @@ export function shellOf(compiled, blocks, file = "Shell.qml") {
         props.$declare = { properties: Object.fromEntries(def.properties.map(({ name, ty }) => [name, DECLARED[ty]])) };
       }
       // Rich text loads what an `<img>` in it names.
-      if (Type === Quick.Text) props.textFormat = Quick.Text.PlainText;
+      if (Type === Quick.Text || Type === UiText) props.textFormat = Quick.Text.PlainText;
       if (def.children.length > 0) {
         Object.defineProperty(props, "children", {
           get: () => def.children.map((child) => make(child.Object)),

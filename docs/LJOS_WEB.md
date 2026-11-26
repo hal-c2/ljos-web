@@ -540,7 +540,10 @@ it.
    `eval`, `fetch`, `XMLHttpRequest`, `Qt.openUrlExternally` and
    `Qt.createQmlObject` are all refused, and so are `this`, `new`,
    functions, arrow calls and object literals. A shell may import only
-   `QtQuick` and the block modules the entry uses, without `as`.
+   `QtQuick`, Ljós's API (`Ljos.Ui`, `Ljos.Layout`, `Ljos.Core`) and the
+   block modules the entry uses, without `as`. It makes the same few
+   types either way, by the names its imports give them (`PointerArea`
+   in Ljós's API for QtQuick's `MouseArea`).
 3. *No reflective escape.* A member is read by its name only;
    `x["constructor"]` is refused. At run time, a read never yields a
    function, the page or a DOM node; names starting with `$` or `__`

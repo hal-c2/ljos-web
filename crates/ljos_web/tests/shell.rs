@@ -370,7 +370,7 @@ fn an_import_beyond_qtquick_and_the_blocks_is_refused() {
     says(
         &refused(text),
         2,
-        "a shell may import only `QtQuick`, `Shop`, not `QtQuick.Controls`",
+        "a shell may import only `QtQuick`, `Ljos.Ui`, `Ljos.Layout`, `Ljos.Core`, `Shop`, not `QtQuick.Controls`",
     );
 }
 
@@ -819,4 +819,54 @@ fn a_module_is_the_first_an_import_path_has_as_a_compile_finds_it() {
     let own = asked_of("shell-import-none", true, &[]);
     assert_eq!(own[0]["summary"], "From the app");
     assert_eq!(own[0]["file"], "Shop/Basket.qml");
+}
+
+#[test]
+fn a_shell_in_ljos_s_api_makes_its_types() {
+    let text = r##"import Ljos.Core
+import Ljos.Ui
+import Ljos.Layout
+import Shop
+
+Rectangle {
+    fill: "#171a23"
+    Column {
+        spacing: 12
+        Basket { id: basket }
+        Text { text: "Bought " + basket.count; font.size: 14; align: Text.AlignHCenter }
+        PointerArea { width: 10; height: 10; onClicked: basket.add() }
+    }
+}
+"##;
+    let file = shell::compile(text, &blocks()).unwrap();
+    let objects = &file.components[0].objects;
+    let native = |module: &str, name: &str| ir::TypeRef::Native {
+        module: module.into(),
+        name: name.into(),
+    };
+    let types: Vec<_> = objects.iter().map(|object| object.ty.clone()).collect();
+    assert_eq!(
+        types,
+        [
+            native("Ljos.Ui", "Rectangle"),
+            native("Ljos.Layout", "Column"),
+            native("Shop", "Basket"),
+            native("Ljos.Ui", "Text"),
+            native("Ljos.Ui", "PointerArea"),
+        ]
+    );
+    assert!(
+        objects[0]
+            .members
+            .assignments
+            .iter()
+            .any(|a| a.name == "fill" && a.value == ir::Literal::Color("#171a23".into()))
+    );
+}
+
+#[test]
+fn a_shell_in_ljos_s_api_makes_only_its_names() {
+    let diagnostics =
+        refused("import Ljos.Ui\nimport Shop\n\nItem {\n    MouseArea { onClicked: {} }\n}\n");
+    says(&diagnostics, 5, "PointerArea");
 }
