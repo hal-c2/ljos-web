@@ -743,7 +743,14 @@ function withEngine(product) {
       href: `https://github.com/${example.repository}/blob/${example.commit}/${example.path}#L${from}-L${to}`,
     };
   });
-  return { ...product, engine: { ...product.engine, example: { ...example, snippets, copy: undefined } } };
+  // A quoted line the copy cuts must read as it does at the commit, so
+  // the link under it says what it opens: the copy's lines in Ljós's
+  // dialect (`upstream`, each line as the repository has it) stay out
+  // of every cut.
+  for (const { lines: [from, to] } of example.snippets)
+    for (const line of Object.keys(example.upstream ?? {}))
+      if (Number(line) >= from && Number(line) <= to) throw new Error(`${where} cuts line ${line}, which the copy writes in Ljós's dialect`);
+  return { ...product, engine: { ...product.engine, example: { ...example, snippets, copy: undefined, upstream: undefined } } };
 }
 
 // Whether highlighted lines close each span they open, after opening

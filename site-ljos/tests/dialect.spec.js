@@ -81,9 +81,6 @@ const qtQuick = {
   ...site(["Site/Built", "Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
-  // ljos-play's own example as its repository has it, at the commit
-  // ShowcaseApps names: it changes there, not here.
-  "site-ljos/bundle/Showcase/play/snail-post.qml.txt": "a copy of hal-c2/ljos-play's Snail Post example: it moves there",
   // A visitor's edit to it is compiled in the page and run by
   // Ljos/Blocks/shell.js, which makes QtQuick's types only.
   "site/src/demos/pantry/Shell.qml": "a visitor's edit runs in the page's shell runner, which makes QtQuick's types only",

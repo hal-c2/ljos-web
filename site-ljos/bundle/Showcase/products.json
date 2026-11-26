@@ -64,6 +64,19 @@
         "path": "examples/snail-post/Main.qml",
         "blob": "a35a663615756d62a795b63e6aa5ed5da1fc6bd8",
         "copy": "Showcase/play/snail-post.qml.txt",
+        "upstream": {
+          "1": "import QtQuick",
+          "9": "    readonly property var shells: [\"#c9634f\", \"#d8a03f\", \"#7d6bb3\", \"#4f8fb0\", \"#b05c86\", \"#6f9a4c\", \"#c27f3d\", \"#8f6f5a\"]",
+          "26": "        draw: (ctx, w, h) => {",
+          "49": "            draw: (ctx, w, h) => {",
+          "51": "                    ctx.fillStyle = x % 24 ? \"#35582f\" : \"#3f6636\";",
+          "135": "            reply: talk => post.pick(post.rng, [\"Never!\", \"By rain, you say?\", \"I'll pass it on.\", \"Slowly, now.\"])",
+          "180": "                draw: (frame, row) => post.snailArt(String(snail.shell), frame, row)",
+          "193": "    function gossip(from) {",
+          "194": "        const others = Object.values(actors).filter(a => a !== from && !a.sleepy);",
+          "195": "        if (others.length)",
+          "200": "    function snailArt(shell, frame, row) {"
+        },
         "snippets": [
           {
             "lines": [60, 78],
