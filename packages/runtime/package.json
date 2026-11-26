@@ -49,6 +49,7 @@
     "./inspect": "./inspect.js",
     "./picture": "./picture.js",
     "./files": "./files.js",
+    "./measure": "./server/measure.js",
     "./QtQuick": "./QtQuick/index.js",
     "./QtQuick/Effects": "./QtQuick/Effects/index.js",
     "./QtQuick/Layouts": "./QtQuick/Layouts/index.js",

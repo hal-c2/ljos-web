@@ -363,6 +363,7 @@ function pagesOf(prerender) {
     if (page.title !== undefined && typeof page.title !== "string") throw new SiteError(`the route ${page.route}'s title is not a string`);
     if (page.props !== undefined && (typeof page.props !== "object" || page.props === null || Array.isArray(page.props))) throw new SiteError(`the route ${page.route}'s props are not an object`);
     if (page.description !== undefined && typeof page.description !== "string") throw new SiteError(`the route ${page.route}'s description is not a string`);
+    if (page.centred !== undefined && page.centred !== false) throw new SiteError(`the route ${page.route}'s centred is false (a page that fills its window at every size) or not said, not ${JSON.stringify(page.centred)}`);
   }
   return pages;
 }
@@ -372,6 +373,14 @@ function pagesOf(prerender) {
 // narrowest is shown below its `from` too), picked by the stylesheet, so
 // a reader's first paint is laid out for a window like theirs with no
 // script, and the page hydrates the one shown. One size is a page of one.
+// A size that is `centred` is a page whose content stands in a column
+// that wide in the middle of the window: shown in a window wider or
+// narrower than it was made at, its render stands in the middle too,
+// where the page will put that column as it hydrates, rather than at the
+// window's left — and, in a window narrower than the column, with the
+// column's left edge at the window's. A page that fills its window at
+// every size instead (a docs page, whose sidebar meets the window's
+// edge) says `centred: false`, and its renders stand at the left.
 function sizesOf(prerender) {
   if (typeof prerender !== "object" || prerender === null) return [{}];
   const { width, height, sizes } = prerender;
@@ -392,8 +401,9 @@ function sizesOf(prerender) {
     if (size.from !== undefined && !(typeof size.from === "number" && Number.isFinite(size.from) && size.from >= 0)) throw new SiteError(`prerender.sizes[${index}].from is a width in pixels, not ${JSON.stringify(size.from)}`);
     const from = size.from ?? size.width;
     if (from <= last) throw new SiteError(`prerender.sizes are narrowest first: sizes[${index}] is shown from ${from}px, not past ${last}px`);
+    if (size.centred !== undefined && !(typeof size.centred === "number" && Number.isFinite(size.centred) && size.centred > 0 && size.centred <= size.width)) throw new SiteError(`prerender.sizes[${index}].centred is the width in pixels of the column the page centres, at most the size's width, not ${JSON.stringify(size.centred)}`);
     last = from;
-    return { width: size.width, height: size.height, from };
+    return { width: size.width, height: size.height, from, ...(size.centred === undefined ? {} : { centred: size.centred }) };
   });
 }
 
@@ -416,7 +426,7 @@ function schemesOf(prerender) {
 // asks for — the browser's, or the page's own where its root says one
 // (`<html data-ljos-scheme="dark">`, set before the body is read by a
 // page that lets its reader choose).
-function rendersSheet(renders, sizes) {
+function rendersSheet(renders, sizes, centring) {
   const rules = [];
   for (const [index, { size, scheme }] of renders.entries()) {
     const { from } = sizes[size];
@@ -428,6 +438,14 @@ function rendersSheet(renders, sizes) {
     const when = [above, below].filter(Boolean);
     const at = (media, rule) => (media.length ? `@media ${media.join(" and ")} { ${rule} }` : rule);
     const shown = `[data-ljos-render="${index}"]`;
+    // A render holds its root item (it is the item's containing block),
+    // so a size wider than the window clips at the window's right edge
+    // rather than scrolling the page sideways before it hydrates.
+    // The render's root item is as wide as the size: in the middle of a
+    // window of another width, by half of what the window is wider, and
+    // never further left than puts the column at the window's left edge.
+    const { centred, width } = sizes[size];
+    if (centring && centred !== undefined) rules.push(at(when, `${shown} > .qq { left: max(calc(50% - ${width / 2}px), ${(centred - width) / 2}px); }`));
     if (scheme === undefined || renders.every((other) => other.size !== size || other.scheme === scheme)) {
       rules.push(at(when, `${shown} { display: block; }`));
     } else if (scheme === "light") {
@@ -439,7 +457,7 @@ function rendersSheet(renders, sizes) {
       rules.push(at(when, `:root[data-ljos-scheme="dark"] ${shown} { display: block; }`));
     }
   }
-  return `<style>\n      [data-ljos-render] { display: none; width: 100%; height: 100%; }\n      ${rules.join("\n      ")}\n    </style>`;
+  return `<style>\n      [data-ljos-render] { display: none; position: relative; width: 100%; height: 100%; overflow-x: clip; }\n      ${rules.join("\n      ")}\n    </style>`;
 }
 
 // A page's light and dark renders at one size that differ only in how
@@ -500,7 +518,11 @@ function shareStyle(light, dark, item, named) {
   const drawn = (declaration) => declaration?.replace(COLOUR, "");
   const at = longer.findIndex((declaration, index) => drawn(declaration) !== drawn(shorter[index]));
   if (longer[at] !== HIDDEN) return null;
-  const both = shareColours(longer.toSpliced(at, 1).join("; "), shorter.join("; "), named);
+  // Light first, whichever scheme is the one that hides the item: else
+  // the colours of an item shown in the light scheme alone would be the
+  // dark scheme's in the light.
+  const rest = longer.toSpliced(at, 1).join("; ");
+  const both = ours.length > theirs.length ? shareColours(rest, shorter.join("; "), named) : shareColours(shorter.join("; "), rest, named);
   if (both === null) return null;
   const parts = both.split("; ");
   const display = ours.length > theirs.length ? schemeName(named, "none", "block") : schemeName(named, "block", "none");
@@ -725,6 +747,12 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   // Only a prerendered site runs renders, so only it asks how many: a
   // live shell's build is not refused over a setting it never uses.
   if (prerender) jobs ??= siteJobs();
+  if (prerender && prerender.measure !== undefined && typeof prerender.measure !== "function") {
+    throw new SiteError("prerender.measure is an async function that answers a list of a render's questions of a browser (server/dom.js), not " + JSON.stringify(prerender.measure));
+  }
+  if (prerender && prerender.measured !== undefined && !(Array.isArray(prerender.measured) && prerender.measured.every((pair) => Array.isArray(pair) && pair.length === 2 && typeof pair[0] === "string"))) {
+    throw new SiteError("prerender.measured is what a build gave back as `measured`, a list of [question, answer] pairs");
+  }
   // How long each part of the build took, in milliseconds, for whoever
   // builds a site to say where its time goes. A part under way is null,
   // so a caller that gave `timings` and stops waiting (a test's time ran
@@ -781,6 +809,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   // What Vite builds from: a page that mounts the entry, made apart from
   // the bundle, which holds only what its manifest lists.
   const stage = mkdtempSync(join(tmpdir(), "ljos-site-"));
+  // What the browser measured for the renders, given back to be kept.
+  let measuredOut;
   try {
     const source = languages.source ?? "en";
     writeFileSync(join(stage, "index.html"), PAGE.replace('<html lang="en">', `<html lang="${source.replace(/[^A-Za-z0-9_-]/gu, "")}"${rightToLeft(source) ? ' dir="rtl"' : ""}>`));
@@ -996,27 +1026,60 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       // order: each page is then written from its own, as one at a time
       // wrote it.
       const asked = listed.flatMap((page) => made.map(({ size, scheme }) => ({ page, size, scheme })));
-      const rendered = await timed("prerender", () =>
-        pooled(
-          asked.map(({ page, size, scheme }) => async (signal) => {
-            const { width, height } = sizes[size];
-            const options = {
-              ...(width !== undefined ? { width } : {}),
-              ...(height !== undefined ? { height } : {}),
-              ...(scheme !== undefined ? { scheme } : {}),
-              ...(page.props ? { props: page.props } : {}),
-            };
+      // With a browser to measure for it (`measure`), a render's text is
+      // set as a browser sets it, in the fonts the page shows: each render
+      // says what it asked that was not yet known, the browser is asked
+      // all of it at once, and those renders are made again with the
+      // answers, until none asks anything new (the lines a text breaks
+      // into decide what is asked next) or ROUNDS have been made.
+      const measuring = typeof prerender.measure === "function";
+      const table = new Map(measuring ? prerender.measured ?? [] : []);
+      const answers = join(stage, "measured.json");
+      const rendered = new Array(asked.length);
+      let pending = [...asked.keys()];
+      for (let round = 0; pending.length; round++) {
+        if (measuring) writeFileSync(answers, JSON.stringify([...table]));
+        const misses = new Map();
+        const ran = await timed(round === 0 ? "prerender" : `prerender ${round + 1}`, () =>
+          pooled(
+            pending.map((index) => async (signal) => {
+              const { page, size, scheme } = asked[index];
+              const { width, height } = sizes[size];
+              const missed = join(stage, `misses-${index}.json`);
+              const options = {
+                ...(width !== undefined ? { width } : {}),
+                ...(height !== undefined ? { height } : {}),
+                ...(scheme !== undefined ? { scheme } : {}),
+                ...(page.props ? { props: page.props } : {}),
+                ...(measuring ? { measures: answers, misses: missed } : {}),
+              };
             // On stdin, not as an argument: a page's props are as large as
             // its reading, and one argument has a limit of its own (E2BIG).
-            const ran = await rendering([join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), "-"], JSON.stringify(options), signal);
-            const at = [sizes.length > 1 ? ` at ${width}×${height}` : "", schemes.length > 1 ? ` in ${scheme}` : ""].join("");
-            if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
-            if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
-            return { size, scheme, html: ran.stdout, said: ran.stderr };
-          }),
-          jobs,
-        ),
-      );
+              const ran = await rendering([join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), "-"], JSON.stringify(options), signal);
+              const at = [sizes.length > 1 ? ` at ${width}×${height}` : "", schemes.length > 1 ? ` in ${scheme}` : ""].join("");
+              if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
+              if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
+              if (measuring) {
+                const asks = JSON.parse(readFileSync(missed, "utf8")).filter((key) => !table.has(key));
+                if (asks.length) misses.set(index, asks);
+              }
+              return { index, render: { size, scheme, html: ran.stdout, said: ran.stderr } };
+            }),
+            jobs,
+          ),
+        );
+        for (const { index, render } of ran) rendered[index] = render;
+        if (misses.size === 0 || round + 1 >= ROUNDS) break;
+        const keys = [...new Set([...misses.values()].flat())];
+        const said = await timed(round === 0 ? "measure" : `measure ${round + 1}`, () => prerender.measure(keys));
+        if (!Array.isArray(said) || said.length !== keys.length) throw new SiteError(`prerender.measure gives an answer for each of the ${keys.length} questions it is asked, in order, not ${Array.isArray(said) ? said.length : JSON.stringify(said)}`);
+        // A question the browser has no answer for is answered by the
+        // guess from then on, and not asked again.
+        for (const [index, key] of keys.entries()) table.set(key, said[index]);
+        pending = [...misses.keys()];
+      }
+      if (measuring) timings.measured = table.size;
+      measuredOut = measuring ? [...table].filter(([, answer]) => answer !== null) : undefined;
       timings.renders = rendered.length;
       timings.jobs = Math.min(jobs, rendered.length);
       // What the renders said, in the order they are listed in, whichever
@@ -1037,7 +1100,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           else kept.push({ size, scheme: undefined, html: shared });
         }
         const renders = kept.map((render) => render.html);
-        const sheet = [kept.length > 1 ? rendersSheet(kept, sizes) : "", schemesSheet(named)].filter(Boolean).join("\n    ");
+        const centring = page.centred !== false && sizes.some((size) => size.centred !== undefined);
+        const sheet = [kept.length > 1 || centring ? rendersSheet(kept, sizes, centring) : "", schemesSheet(named)].filter(Boolean).join("\n    ");
         // The rules every render gives the page by a sheet are said once,
         // before the sizes, however many sizes say them.
         const sheets = [];
@@ -1088,7 +1152,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   }
   const written = present(out).filter((path) => path !== STAMP);
   const bytes = written.reduce((sum, path) => sum + lstatSync(join(out, path)).size, 0);
-  return { out, files: written.sort(), bytes, timings };
+  return { out, files: written.sort(), bytes, timings, ...(measuredOut ? { measured: measuredOut } : {}) };
 }
 
 const PAGE = `<!doctype html>
@@ -1116,6 +1180,16 @@ import Entry from "ljos-site:entry";
 mount(Entry, document.getElementById("app"));
 `;
 
+// How many times the renders are made at most, each with what a browser
+// measured for the ones before: the lines a text breaks into decide what
+// it measures next, so a few, and a build's own measures kept, one.
+const ROUNDS = 6;
+
+// How long a prerendered page waits for the fonts its text is set in
+// before it is taken over, in milliseconds: long enough for a font the
+// page preloads, short of holding a slow connection's reader for long.
+const FONTS_WAIT = 2500;
+
 // The page of a prerendered site: its HTML is in the page already, and
 // is taken over — with the props its page of the site was made with,
 // where the build wrote them beside it.
@@ -1125,16 +1199,20 @@ import Entry from "ljos-site:entry";
 
 const carried = document.getElementById("ljos-props");
 const app = document.getElementById("app");
+// The text was set by the fonts the page shows, measured as they are
+// (the build's prerender), so the page is taken over once they are in:
+// measured in a fallback, every line would be laid out again as each
+// came. A font that is slow does not hold the page for long; the page
+// lays its text out again when it comes, as it does for any font.
+if (document.fonts && document.fonts.status !== "loaded") {
+  await Promise.race([document.fonts.ready, new Promise((done) => setTimeout(done, FONTS_WAIT))]);
+}
 // A page prerendered at more than one size or in more than one scheme
 // hydrates the render the reader is shown, and is then that one alone,
 // whatever size the window becomes and whichever scheme is asked for.
 const renders = [...app.querySelectorAll(":scope > [data-ljos-render]")];
 const shown = renders.find((render) => getComputedStyle(render).display !== "none") ?? renders[0];
 for (const render of renders) if (render !== shown) render.remove();
-if (shown) {
-  shown.removeAttribute("data-ljos-render");
-  shown.style.cssText = "width:100%;height:100%";
-}
 // What a render says in the dark scheme where it is one render for both
 // (site.js's shareSchemes), said before it is hydrated, as the sheet
 // decides the scheme: the root's own pick, or else the browser's.
@@ -1147,9 +1225,55 @@ for (const element of (shown ?? app).querySelectorAll("[data-ljos-dark]")) {
   }
   element.removeAttribute("data-ljos-dark");
 }
-const { hydrated } = hydrate(Entry, shown ?? app, carried ? JSON.parse(carried.textContent) : {});
+// Hydration takes the page over in turns, and waits between them for
+// the parts it loads: the browser paints between, and what it would
+// paint is a page half taken over, its parts moving as each is made.
+// So the page as written is shown, over the one being taken over, until
+// the page is live, and is then taken away in one go. It is a picture:
+// out of the reader's way (inert, so a press or a scroll reaches the
+// page under it, which is the page as written too, its links followed
+// with no script) and of no one's reading (aria-hidden). A reader who
+// presses, scrolls or types meanwhile is shown the page they act on.
+const written = shown ?? app;
+const cover = written.cloneNode(true);
+const acts = ["pointerdown", "wheel", "touchstart", "keydown"];
+const uncover = () => {
+  cover.remove();
+  for (const kind of acts) removeEventListener(kind, uncover, true);
+};
+{
+  for (const element of [cover, ...cover.querySelectorAll("[data-hk], [id]")]) {
+    element.removeAttribute("data-hk");
+    element.removeAttribute("id");
+  }
+  // Where the reader scrolled the page as written to before the script came.
+  const from = [written, ...written.querySelectorAll("*")];
+  const to = [cover, ...cover.querySelectorAll("*")];
+  const scrolled = from.flatMap((element, index) => (element.scrollTop || element.scrollLeft ? [[to[index], element.scrollTop, element.scrollLeft]] : []));
+  const at = written.getBoundingClientRect();
+  cover.inert = true;
+  cover.setAttribute("aria-hidden", "true");
+  // On the page's own ground: where a render stands narrower than the
+  // window, the page being taken over is not seen past its sides.
+  cover.style.cssText = \`position:absolute;left:\${at.left + scrollX}px;top:\${at.top + scrollY}px;width:\${at.width}px;height:\${at.height}px;margin:0;z-index:2147483647;pointer-events:none;background:\${getComputedStyle(document.body).backgroundColor}\`;
+  written.after(cover);
+  for (const [element, top, left] of scrolled) element.scrollTo({ top, left, behavior: "instant" });
+  for (const kind of acts) addEventListener(kind, uncover, { capture: true, passive: true });
+}
+if (shown) {
+  shown.removeAttribute("data-ljos-render");
+  shown.style.cssText = "width:100%;height:100%";
+}
+let hydrated;
+try {
+  ({ hydrated } = hydrate(Entry, written, carried ? JSON.parse(carried.textContent) : {}));
+} catch (error) {
+  uncover();
+  throw error;
+}
+hydrated.then(uncover, uncover);
 if (shown) hydrated.finally(() => app.setAttribute("data-ljos-hydrated", "true"));
-`;
+`.replace("FONTS_WAIT", String(FONTS_WAIT));
 
 // How each page starts its languages, after what it does already: a
 // prerendered page once it has been taken over, as it was written.
