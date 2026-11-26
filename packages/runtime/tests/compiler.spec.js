@@ -50,7 +50,8 @@ const show = (page, request) => page.evaluate((request) => window.show(request),
 plain("compiled QML may import every module the runtime package exports", () => {
   const { exports } = JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8"));
   // What no compiled QML imports: the build plugin, the site builder, the
-  // compiler itself, the faces' seam, the prerender's server side, the
+  // compiler itself, the faces' seam, the prerender's server side and
+  // the browser that measures its text for a site's build, the
   // Markdown content source a site's build reads, and what a page's own
   // script asks before any QML runs (whether WebAssembly runs, and the
   // early fetch of View3D's renderer), and the check of a translator's
@@ -60,6 +61,7 @@ plain("compiled QML may import every module the runtime package exports", () => 
     "./vite.js",
     "./site.js",
     "./server.js",
+    "./server/measure.js",
     "./compiler/index.js",
     "./compiler/modules.js",
     "./web/faces.js",
