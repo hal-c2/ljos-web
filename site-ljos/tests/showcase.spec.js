@@ -134,6 +134,13 @@ const quoted = (example) => readFileSync(join(here, "bundle", example.copy), "ut
 // breaks into the text, after a space or a hyphen.
 const prose = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+").replace(/-/g, "-\\s*")}$`);
 const cut = (example, [from, to]) => quoted(example).split("\n").slice(from - 1, to).join("\n");
+// The copy's bytes as the repository holds them: the lines it writes in
+// Ljós's dialect put back as `upstream` has each.
+const asUpstream = (example) => {
+  const lines = quoted(example).split("\n");
+  for (const [line, upstream] of Object.entries(example.upstream ?? {})) lines[Number(line) - 1] = upstream;
+  return Buffer.from(lines.join("\n"), "utf8");
+};
 
 test("the Office names ljos-play, and the copy of its example is the file at the commit named, in Ljós's dialect", () => {
   const office = products.find((product) => product.id === "office");
@@ -149,10 +156,9 @@ test("the Office names ljos-play, and the copy of its example is the file at the
     const lines = quoted(example).split("\n");
     for (const [line, upstream] of Object.entries(example.upstream ?? {})) {
       expect(lines[Number(line) - 1], `line ${line}`).not.toBe(upstream);
-      lines[Number(line) - 1] = upstream;
       for (const { lines: [from, to] } of example.snippets) expect(Number(line) < from || Number(line) > to, `line ${line}`).toBe(true);
     }
-    const bytes = Buffer.from(lines.join("\n"), "utf8");
+    const bytes = asUpstream(example);
     const blob = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
     expect(blob).toBe(example.blob);
     expect(example.commit).toMatch(/^[0-9a-f]{40}$/);
@@ -177,7 +183,13 @@ test("the example and its engine are ljos-play's files at the commit the entry n
     expect(example.commit).toBe(pin.commit);
     expect(example.copy).toBe(`${PLAY.example}/Main.qml`);
   }
-  const changed = Object.entries(pin.files).filter(([path, { sha256: hash }]) => !existsSync(join(here, "bundle", path)) || sha256(readFileSync(join(here, "bundle", path))) !== hash);
+  // The example is held in Ljós's dialect: its bytes are the pin's once
+  // its dialect lines are put back.
+  const held = (path) => {
+    const example = live.find((example) => example.copy === path);
+    return example ? asUpstream(example) : readFileSync(join(here, "bundle", path));
+  };
+  const changed = Object.entries(pin.files).filter(([path, { sha256: hash }]) => !existsSync(join(here, "bundle", path)) || sha256(held(path)) !== hash);
   expect(changed.map(([path]) => path), "change hal-c2/ljos-play and run scripts/sync-play.mjs").toEqual([]);
   const module = readdirSync(join(here, "bundle", PLAY.module)).filter((name) => name !== "UPSTREAM.json").map((name) => `${PLAY.module}/${name}`);
   expect(module.sort()).toEqual(Object.keys(pin.files).filter((path) => path.startsWith(`${PLAY.module}/`)).sort());
