@@ -151,7 +151,7 @@ Rectangle {
         Text {
             id: labelText
             // Before its value, it changes sides with it on a right-to-left page.
-            x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             text: reading.label
             color: reading.colours.muted
             font.family: reading.colours.mono
@@ -165,7 +165,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: reading.stacked ? 0 : labelText.implicitWidth + 8
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: reading.stacked ? 18 : 0
             width: reading.stacked ? reading.width : implicitWidth
             text: reading.value
@@ -224,7 +224,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: -1
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             width: parent.width
             height: parent.height
             fill: "transparent"
@@ -237,7 +237,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 1
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             width: parent.width
             height: parent.height
             fill: "transparent"
@@ -264,7 +264,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 14
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             text: String(channel.number).padStart(2, "0")
             color: channel.current ? channel.colours.link : channel.colours.muted
@@ -276,7 +276,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 44
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             text: channel.label
             color: channel.current ? channel.colours.link : channel.colours.text
@@ -329,7 +329,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: shell.gutter
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 28
 
@@ -380,7 +380,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: parent.width - width - (shell.wide ? shell.gutter : shell.gutter - 8)
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
 
@@ -419,7 +419,7 @@ Rectangle {
         y: hud.height
         width: shell.railWidth
         // Along the page's start, the right on a right-to-left page.
-        x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
         height: parent.height - y
         fill: look.canvas
         Accessible.role: Accessible.Section
@@ -429,7 +429,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: parent.width - 1
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             width: 1
             height: parent.height
             fill: look.divider
@@ -438,7 +438,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: 16
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: 16
             width: parent.width - 32
             spacing: 4
@@ -503,7 +503,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: rail.width
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: hud.height
         width: 264
         height: parent.height - y
@@ -514,7 +514,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: sidebar.startX + sidebar.width
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: hud.height
         width: 1
         height: parent.height - y
@@ -530,7 +530,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: !shell.wide ? 0 : shell.sidebarShown ? sidebar.startX + sidebar.width + 1 : rail.width
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: hud.height
         width: parent.width - startX - (shell.tocShown ? toc.width : 0)
         height: parent.height - y - (shell.wide ? 0 : shell.barHeight)
@@ -547,7 +547,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: parent.width - width
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: hud.height
         width: 224
         height: parent.height - y
@@ -580,7 +580,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: shell.gutter
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
 
@@ -660,7 +660,7 @@ Rectangle {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: shell.gutter
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: 24
                 width: parent.width - 2 * shell.gutter
                 spacing: 24
