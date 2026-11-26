@@ -2,7 +2,8 @@ import Ljos.Ui
 import Ljos.Core
 
 // A note block whose text belongs to the block itself, not the shell around it:
-// rewriting Shell.qml keeps every word the reader typed. Try changing label or
+// rewriting Shell.qml keeps every word the reader typed, as long as the shell
+// gives it `id: note` (a plain `Note {}` starts empty). Try changing label or
 // placeholder below, or binding to note.text from Shell.qml.
 Rectangle {
     id: note
