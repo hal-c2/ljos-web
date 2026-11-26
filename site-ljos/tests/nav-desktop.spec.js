@@ -22,6 +22,8 @@ function desktop({ missing = [] } = {}) {
   const waiting = [];
   const warned = [];
   const shown = [];
+  // Qt.callLater's turns, run when the test says (`later`).
+  const laters = [];
   let scrolled = 0;
   class XMLHttpRequest {
     static DONE = 4;
@@ -50,15 +52,25 @@ function desktop({ missing = [] } = {}) {
     Error,
     XMLHttpRequest,
     console: { warn: (said) => warned.push(said), log() {} },
-    Qt: { application: { arguments: ["ljos", "--site=/site"] }, openUrlExternally() {}, resolvedUrl: (name) => `file:///bundle/${name}` },
+    Qt: {
+      application: { arguments: ["ljos", "--site=/site"] },
+      openUrlExternally() {},
+      resolvedUrl: (name) => `file:///bundle/${name}`,
+      callLater: (fn, ...args) => laters.push(() => fn(...args)),
+    },
   });
   const host = vm.createContext({ ...context });
   vm.runInContext(hostSource, host);
   context.Host = { desktop: host.desktop };
   vm.runInContext(source, context);
-  context.follow("/", shell);
+  let site;
   const settle = () => new Promise((done) => setTimeout(done, 0));
-  return {
+  const later = () => {
+    while (laters.length) laters.shift()();
+  };
+  context.follow("/", shell);
+  later();
+  site = {
     nav: context,
     step: (by) => host.desktop.step(by),
     list: () => {
@@ -68,14 +80,40 @@ function desktop({ missing = [] } = {}) {
     shown,
     warned,
     scroll: (to) => (scrolled = to),
+    laters,
+    later,
     // Answers the reads asked for so far, oldest first, then lets the
-    // promises run.
+    // promises run, and the turns they asked for.
     async answer(count = waiting.length) {
+      await site.read(count);
+      later();
+    },
+    // Answers the reads and lets the promises run, but not the turns
+    // they asked for.
+    async read(count = waiting.length) {
       for (const read of waiting.splice(0, count)) read();
       await settle();
     },
   };
+  return site;
 }
+
+// A promise job may run for one slice of JavaScript, with the native
+// work it asks for counted in it: Ljós cuts a job off there, where a
+// turn of its own gives native work back. Building a page is mostly
+// native work, so on a slow machine a page built in the job that read
+// it was cut off half made, and Back never got there (web #209's
+// site-native run).
+test("on the desktop a page is built in a turn of its own, not in the promise job that read it", async () => {
+  const site = desktop();
+  site.nav.go("/a/");
+  await site.read();
+  expect(site.shown).toEqual([]);
+  expect(site.laters.length).toBe(1);
+  site.later();
+  expect(site.shown.map((page) => page.route)).toEqual(["/a/"]);
+  expect(site.list()).toEqual({ routes: ["/", "/a/"], at: 1, aim: 1 });
+});
 
 test("on the desktop a page that cannot be read leaves the list as it was, and is warned about", async () => {
   const site = desktop({ missing: ["/b/"] });
