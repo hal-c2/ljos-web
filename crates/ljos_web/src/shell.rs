@@ -666,7 +666,9 @@ impl<'s> Shell<'s> {
                 self.imported.push(module.clone());
             }
             // The last import wins, so one imported again moves to the end.
-            if let Some(types) = types {
+            // A module that makes nothing (Ljos.Core) is not one a name is
+            // looked for in, so importing only it leaves QtQuick's default.
+            if let Some(types) = types.filter(|types| !names_in(types).is_empty()) {
                 self.made_from.retain(|made| *made != types);
                 self.made_from.push(types);
             }
