@@ -1,4 +1,5 @@
-pragma Scripts: JavaScript; import Ljos.Ui
+pragma Scripts: JavaScript
+import Ljos.Ui
 import Ljos.Core
 import Site
 import "../nav.js" as Nav

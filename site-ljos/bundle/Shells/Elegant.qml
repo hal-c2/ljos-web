@@ -1,4 +1,5 @@
-pragma Scripts: JavaScript; import Ljos.Ui
+pragma Scripts: JavaScript
+import Ljos.Ui
 import Ljos.Layout
 import Ljos.Core
 import Ljos.Blocks

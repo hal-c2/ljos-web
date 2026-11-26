@@ -1,6 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here.
+pragma Scripts: JavaScript
 import Ljos.Core
-pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Ui
 import Site
 import "code-editor.js" as Editor
 

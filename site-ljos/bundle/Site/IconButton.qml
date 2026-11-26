@@ -1,4 +1,5 @@
-pragma Scripts: JavaScript; import Ljos.Ui
+pragma Scripts: JavaScript
+import Ljos.Ui
 import Site
 
 // A square button of the header, its icon drawn in the theme's own

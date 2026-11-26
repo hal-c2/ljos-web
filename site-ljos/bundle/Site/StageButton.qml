@@ -1,4 +1,5 @@
-pragma Scripts: JavaScript; import Ljos.Ui
+pragma Scripts: JavaScript
+import Ljos.Ui
 import Site
 
 // A button of a stage's toolbar, in the look of Ljós's own controls: a

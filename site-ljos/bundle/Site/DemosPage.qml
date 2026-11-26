@@ -1,7 +1,6 @@
-// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
-// both have stays QtQuick's, the later import.
+pragma Scripts: JavaScript
 import Ljos.Core
-pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Ui
 import Ljos.Layout
 import Ljos.Blocks
 import Site

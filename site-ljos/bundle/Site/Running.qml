@@ -1,5 +1,6 @@
 pragma Singleton
-pragma Scripts: JavaScript; import Ljos.Ui
+pragma Scripts: JavaScript
+import Ljos.Ui
 import Ljos.Core
 
 // What runs on the page. The rule of thumb (site-ljos/README.md):
