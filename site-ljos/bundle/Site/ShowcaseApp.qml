@@ -1,9 +1,11 @@
+import Ljos.Ui
 import Ljos.Core
-import QtQuick
+import Ljos.Layout
 import Site
-import "../Showcase/later.js" as Later
 import "../nav.js" as Nav
 import "../Showcase/media.js" as Media
+import "../Showcase/products.ts" as Products
+import "logic/place.ts" as Place
 
 // One app built with Ljós, as its entry in Showcase/products.json has
 // it: who made it, what it is, a recording of it running, the captures
@@ -18,30 +20,31 @@ import "../Showcase/media.js" as Media
 Column {
     id: app
 
-    required property var product
+    required property Products.Product product
     property string route: "/showcase/"
     property bool wide: true
     // What the page scrolls in, for the engine's code (CodeBlock's).
-    property var scroller: null
+    property Flickable scroller
 
     spacing: Theme.l
 
-    // The reader's own Play or Pause; null until they press one, when
-    // the motion they asked the browser or the site for decides.
-    property var chosen: null
-    readonly property bool wanted: chosen !== null ? chosen : !Theme.calm
+    // Whether the reader pressed Play or Pause, and which: until they
+    // press one, the motion they asked the browser or the site for decides.
+    property bool chose: false
+    property bool chosePlay: false
+    readonly property bool wanted: chose ? chosePlay : !Theme.calm
     property bool onScreen: false
     // Set once the page this was written into is the reader's: the
     // recording is never part of the page the build writes.
     property bool awake: false
 
-    function look() {
+    function look(): void {
         if (!frame.visible || frame.height <= 0) {
             onScreen = false;
             return;
         }
-        var at = frame.mapToItem(null, 0, 0);
-        onScreen = at.y + frame.height > Running.viewTop && at.y < Running.viewBottom;
+        const top = Place.topOf(frame.mapToItem(undefined, 0, 0));
+        onScreen = top + frame.height > Running.viewTop && top < Running.viewBottom;
     }
 
     Connections {
@@ -68,7 +71,7 @@ Column {
             text: app.product.maker
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: Font.DemiBold
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.captionLine
@@ -78,25 +81,25 @@ Column {
             text: app.product.name
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: app.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.size: app.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: app.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
         Text {
-            // Read from the side the page starts on (LayoutMirroring).
-            x: LayoutMirroring.enabled ? parent.width - width : 0
+            // Read from the side the page starts on (App.layoutDirection).
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
             text: app.product.claim
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.subtitleSize
+            font.size: Theme.subtitleSize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -107,7 +110,7 @@ Column {
         width: parent.width
         height: screen.height + bar.height
         radius: Theme.radiusLarge
-        color: Theme.surface
+        fill: Theme.surface
         border.color: Theme.divider
         border.width: 1
         clip: true
@@ -123,26 +126,23 @@ Column {
 
             Text {
                 anchors.fill: parent
-                textFormat: Text.RichText
+                format: Text.RichText
                 text: Media.pictureSet(app.route, "/showcase/media/" + app.product.recording.name + "-poster", parent.width, parent.height, app.product.recording.label, true)
             }
-            Loader {
+            ShowcasePlayer {
                 id: player
                 anchors.fill: parent
                 // Made once the reader would see it play, and kept: a
                 // recording the reader never sees play is never fetched.
                 active: app.awake && ((app.wanted && app.onScreen && Running.shown) || status === Loader.Ready)
-                source: Later.recording
-                opacity: item && item.begun ? 1 : 0
+                video: Nav.at(Built.base, "/showcase/media/" + app.product.recording.name) + Media.recordingFormat()
+                wanted: app.wanted && app.onScreen && Running.shown
+                opacity: begun ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
                         duration: Theme.enterPanel
                         easing.type: Easing.OutCubic
                     }
-                }
-                onLoaded: {
-                    item.source = Nav.at(Content.base, "/showcase/media/" + app.product.recording.name) + Media.recordingFormat();
-                    item.wanted = Qt.binding(() => app.wanted && app.onScreen && Running.shown);
                 }
             }
         }
@@ -152,14 +152,14 @@ Column {
             y: screen.y + screen.height
             width: parent.width
             height: 48
-            color: Theme.surfaceRaised
+            fill: Theme.surfaceRaised
             border.color: Theme.divider
             border.width: 0
 
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
             Row {
                 anchors.left: parent.left
@@ -168,23 +168,23 @@ Column {
                 spacing: Theme.xs
 
                 Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     width: 8
                     height: 8
                     radius: 4
-                    color: app.wanted && app.awake ? Theme.accent : Theme.textMuted
-                    Behavior on color {
+                    fill: app.wanted && app.awake ? Theme.accent : Theme.textMuted
+                    Behavior on fill {
                         ColorAnimation {
                             duration: Theme.moveSmall
                         }
                     }
                 }
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     text: t`Recorded running`
                     color: Theme.textMuted
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.captionLine
                 }
@@ -196,13 +196,17 @@ Column {
                 primary: !app.wanted
                 text: app.wanted ? t`Pause` : t`Play`
                 label: app.wanted ? t`Pause the recording of ${app.product.what}` : t`Play the recording of ${app.product.what}`
-                onPressed: app.chosen = !app.wanted
+                onPressed: {
+                    app.chosePlay = !app.wanted;
+                    app.chose = true;
+                }
             }
         }
     }
 
     // What the app is, and where its source is.
     Grid {
+        id: about
         width: parent.width
         columns: app.wide ? 2 : 1
         columnSpacing: Theme.xxl
@@ -211,7 +215,7 @@ Column {
         readonly property int side: app.wide ? Math.round((width - columnSpacing) * 0.42) : width
 
         Column {
-            width: app.wide ? parent.width - parent.columnSpacing - parent.side : parent.width
+            width: app.wide ? about.width - about.columnSpacing - about.side : about.width
             spacing: Theme.s
 
             Repeater {
@@ -222,15 +226,15 @@ Column {
                     text: modelData
                     color: Theme.text
                     font.family: Theme.sans
-                    font.pixelSize: Theme.bodySize + 1
+                    font.size: Theme.bodySize + 1
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.bodyLine + 4
-                    wrapMode: Text.Wrap
+                    wrap: Text.Wrap
                 }
             }
         }
         Column {
-            width: parent.side
+            width: about.side
             spacing: Theme.m
 
             Text {
@@ -238,10 +242,10 @@ Column {
                 text: app.product.note
                 color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.captionLine
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
             }
             Flow {
                 width: parent.width
@@ -269,7 +273,7 @@ Column {
         height: app.wide ? row.height : column.height
 
         readonly property real gap: Theme.l
-        readonly property real shapes: app.product.captures.reduce((sum, capture) => sum + capture.width / capture.height, 0)
+        readonly property real shapes: app.product.captures.reduce((sum: number, capture: Products.Capture) => sum + capture.width / capture.height, 0)
         readonly property real rowHeight: Math.floor((width - gap * (app.product.captures.length - 1)) / shapes)
 
         Row {
@@ -280,7 +284,7 @@ Column {
             Repeater {
                 model: app.wide ? app.product.captures : []
                 ShowcaseCapture {
-                    required property var modelData
+                    required property Products.Capture modelData
                     capture: modelData
                     route: app.route
                     width: Math.floor(captures.rowHeight * modelData.width / modelData.height)
@@ -296,7 +300,7 @@ Column {
             Repeater {
                 model: app.wide ? [] : app.product.captures
                 ShowcaseCapture {
-                    required property var modelData
+                    required property Products.Capture modelData
                     capture: modelData
                     route: app.route
                     width: column.width
@@ -307,9 +311,9 @@ Column {
 
     // The engine the app is built on, where its entry names one.
     Repeater {
-        model: app.product.engine ? [app.product.engine] : []
+        model: app.product.engine !== undefined ? [app.product.engine] : []
         ShowcaseEngine {
-            required property var modelData
+            required property Products.Engine modelData
             width: app.width
             heading: modelData.heading
             line: modelData.line
