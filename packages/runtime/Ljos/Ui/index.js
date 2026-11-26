@@ -16,8 +16,7 @@
 // a Behavior, a state or an animation that names `fill` moves what
 // `color` reads. The dialect's font size, `font.size`, is a second name
 // for `pixelSize` on every font (`QtQuick/font.ts`), as natively.
-import { defineType, derived, QtObject, slot } from "../../object.ts";
-import { destroying, hostOf, live } from "../Core/controller.js";
+import { face } from "./face.js";
 import { Accessible } from "../../QtQuick/Accessible.ts";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";
 import { Behavior } from "../../QtQuick/animation/Behavior.js";
@@ -33,16 +32,14 @@ import {
   SpringAnimation as SpringAnimationBase,
 } from "../../QtQuick/animation/PropertyAnimation.js";
 import { calmed } from "./motion.js";
-import { Drag as DragAttachedSource, DropArea } from "../../QtQuick/Drag.js";
 import { Flickable } from "../../QtQuick/Flickable.js";
-import { GridView as GridViewBase } from "../../QtQuick/GridView.js";
 import { font } from "../../QtQml/application.ts";
 import { Font as FontEnums } from "../../QtQuick/font.ts";
-import { DragHandler, HoverHandler, PointerDevice, TapHandler, WheelHandler } from "../../QtQuick/handlers.js";
+import { DropArea } from "../../QtQuick/Drag.js";
+import { PointerDevice } from "../../QtQuick/handlers.js";
 import { Image } from "../../QtQuick/Image.js";
 import { Item } from "../../QtQuick/Item.js";
 import { KeyNavigation, Keys, Shortcut } from "../../QtQuick/Keys.js";
-import { ListView as ListViewBase } from "../../QtQuick/ListView.js";
 import { Loader as LoaderBase } from "../../QtQuick/Loader.js";
 import { MouseArea } from "../../QtQuick/MouseArea.js";
 import {
@@ -74,92 +71,6 @@ import { FontMetrics, TextMetrics } from "../../QtQuick/TextMetrics.js";
 import { DoubleValidator, IntValidator, RegularExpressionValidator } from "../../QtQuick/validators.ts";
 import { Screen, Window } from "../../QtQuick/Window.js";
 
-// Puts what `props` says by a dialect name under the name the type has,
-// handler included, keeping the binding (the descriptor) as it is. Runs
-// in the face's `setup`, before anything has read a property of the
-// object, so the slot the value belongs to takes it under its own name.
-function renamed(props, renames) {
-  for (const [dialect, own] of Object.entries(renames)) {
-    for (const [from, to] of [
-      [dialect, own],
-      [`on${dialect[0].toUpperCase()}${dialect.slice(1)}Changed`, `on${own[0].toUpperCase()}${own.slice(1)}Changed`],
-    ]) {
-      const descriptor = Object.getOwnPropertyDescriptor(props, from);
-      if (!descriptor || Object.hasOwn(props, to)) continue;
-      Object.defineProperty(props, to, descriptor);
-      delete props[from];
-    }
-  }
-}
-
-// A face of `Base`, called `name`, with `renames` (Ljós's name: the
-// type's) as its only difference. On its objects each of Ljós's names is
-// the slot of the name it replaces, to read, to write, to hear of and to
-// animate (`slot(item, "fill")` is `slot(item, "color")`).
-function face(name, Base, renames = {}) {
-  const Type = defineType(name, Base, {
-    setup(self, props) {
-      renamed(props, renames);
-    },
-  });
-  for (const [dialect, own] of Object.entries(renames)) {
-    if (!(own in Base.slots)) continue;
-    Type.slots[dialect] = (self) => (self.$slots[dialect] = slot(self, own));
-    Object.defineProperty(Type.proto, dialect, {
-      get() {
-        return this[own];
-      },
-      set(value) {
-        this[own] = value;
-      },
-      enumerable: true,
-      configurable: true,
-    });
-    const changed = `${dialect}Changed`;
-    if (!Object.hasOwn(Type.proto, changed)) {
-      Object.defineProperty(Type.proto, changed, {
-        get() {
-          return this[`${own}Changed`];
-        },
-        configurable: true,
-      });
-    }
-  }
-  if (Base.attached) Type.attached = Base.attached;
-  return Type;
-}
-
-// What a pointer handler accepts is what a gesture takes: the buttons,
-// modifiers, devices and kinds of pointer it answers.
-const GESTURE = {
-  buttons: "acceptedButtons",
-  modifiers: "acceptedModifiers",
-  devices: "acceptedDevices",
-  pointerTypes: "acceptedPointerTypes",
-};
-//
-// A gesture is a Controller: its `host` is the item it acts on, and it is
-// `attached(host)` and `detached()` as one is. It stays the handler it
-// faces, so it listens on the host's element as that handler does.
-function gesture(name, Base) {
-  const Face = face(
-    name,
-    Base,
-    Object.fromEntries(Object.entries(GESTURE).filter(([, own]) => own in Base.slots)),
-  );
-  const Type = defineType(name, Face, {
-    properties: { host: derived((self) => hostOf(self)) },
-    signals: ["attached", "detached", "updated"],
-    methods: { destroy: destroying(Face) },
-    setup(self) {
-      Object.defineProperty(self, "$gesture", { value: true });
-      live(self);
-    },
-  });
-  if (Face.attached) Type.attached = Face.attached;
-  return Type;
-}
-
 // `Rectangle`, with `color` called `fill`: what is inside the outline,
 // beside the `border` around it, where a `color` of `Text` is the glyphs'.
 // Asked for less motion, they move nothing and still fade (motion.js).
@@ -185,49 +96,9 @@ export const Text = /* @__PURE__ */ face("Text", TextBase, {
 // takes a mouse, and the old name says only the one.
 export const PointerArea = /* @__PURE__ */ face("PointerArea", MouseArea);
 
-// `TapHandler`, called `Tap`: a gesture is a child of the item it acts
-// on, and says what it recognises. The others likewise.
-export const Tap = /* @__PURE__ */ gesture("Tap", TapHandler);
-export const Hover = /* @__PURE__ */ gesture("Hover", HoverHandler);
-export const Drag = /* @__PURE__ */ gesture("Drag", DragHandler);
-export const Wheel = /* @__PURE__ */ gesture("Wheel", WheelHandler);
-// Not here: `Pointer`, the face of Qt's PointHandler, which the runtime
-// does not have in `QtQuick` either. A dialect file that names it says
-// so at load, by the import it cannot make.
-
 // `Loader`, with `sourceComponent` called `component`: what it shows is
 // a component. A file named by a string, `source`, stays.
 export const Loader = /* @__PURE__ */ face("Loader", LoaderBase, { component: "sourceComponent" });
-
-// `ListView` as it is. What natively calls its passages `enter` and
-// `exit` (Qt's `add` and `remove` transitions) the runtime's views do
-// not have in either name, so there is nothing here to rename.
-export const ListView = /* @__PURE__ */ face("ListView", ListViewBase);
-// `GridView`, as `ListView` is.
-export const GridView = /* @__PURE__ */ face("GridView", GridViewBase);
-
-// Qt's attached `Drag`, called `DragSource`: what carries data to a
-// `DropArea`, where `Drag` above is the gesture that moves an item. It
-// is the one attached object by both names: what a file says by
-// `DragSource.` is put under `Drag.` before the object is made.
-export const DragSource = /* @__PURE__ */ dragSource();
-function dragSource() {
-  const Type = defineType("DragSource", QtObject, { enums: DragAttachedSource.enums });
-  Type.attached = (self) => {
-    const props = self?.$props;
-    if (props) {
-      for (const key of Object.keys(props)) {
-        if (!key.startsWith("DragSource$")) continue;
-        const own = `Drag$${key.slice("DragSource$".length)}`;
-        if (!Object.hasOwn(props, own)) Object.defineProperty(props, own, Object.getOwnPropertyDescriptor(props, key));
-        delete props[key];
-      }
-      if (props.$attach) props.$attach = props.$attach.map((type) => (type === Type ? DragAttachedSource : type));
-    }
-    return DragAttachedSource.attached(self);
-  };
-  return Type;
-}
 
 // `Font.of({ family, size })` is Qt's `Qt.font`, and `Font.families()` its
 // `Qt.fontFamilies()`, beside the enums of the font value (`Font.Bold`).
@@ -238,6 +109,14 @@ export const Font = /* @__PURE__ */ Object.freeze({
   of: (given) => font(given, "Font.of()"),
   families: () => [...new Set([...(document.fonts ?? [])].map((face) => face.family.replace(/^["']|["']$/g, "")))].sort(),
 });
+
+// Each of these is a module of its own, so a page whose files name none
+// of them loads none of the runtime types they face: a bundler keeps a
+// module whole in one chunk, and one that has them all puts the views'
+// and the pointer handlers' code in the chunk every page loads.
+export { Drag, Hover, Tap, Wheel } from "./gestures.js";
+export { GridView, ListView } from "./views.js";
+export { DragSource } from "./drag-source.js";
 
 export * from "./enums.js";
 
