@@ -1,11 +1,11 @@
 {
   "repository": "hal-c2/ljos-ui",
   "path": "examples/car-cockpit",
-  "commit": "3bc446a177179e68d856c165b1bf5af7c88009bd",
+  "commit": "3bdb194e8bf39774fc5ee0f60ad9a42bd2618be0",
   "files": {
     "AssistView.qml": "3891512d7668f3fcc0f5823aca5a087c0fb91dd3b74373637ca0b991d5fe599f",
     "CarModel.qml": "2e520eb1db8740b10edffff555af225f46a125a08a7ce2751d07293934562de0",
-    "CarPanel.qml": "e76dff4e4e86cb3692c2c7eb76659caaee3eea9c613f15bbe30523d969307d05",
+    "CarPanel.qml": "da4377d2a7d31ca8d41cad8c2983830bb7c413a8682430a55ab7f3e102fd46b2",
     "CarScene.qml": "45e144f13da60f70eef30cd1b91f1683c0df7c8ef0b969ac9b7266cd0476e287",
     "ChaseView.qml": "0fd7c3bdff3460bd2b5ff5163bccdf3fbd53aba5ad2773750d2b4fdfd98a437a",
     "Chip.qml": "f930ef5e95a536917f4e6d0550219457dc2a8ae7af508dc5c938a5cbbecbd42c",
