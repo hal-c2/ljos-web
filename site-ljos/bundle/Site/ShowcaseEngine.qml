@@ -58,7 +58,15 @@ Column {
     // Why an edit cannot run here (no WebAssembly), said apart from what
     // went wrong with an edit, so a Reset leaves it.
     property string why: ""
-    readonly property string notice: [section.why, section.said].filter((line) => line !== "").join("\n")
+    // What the world running names and its project does not have
+    // (Showcase/example-live.js), told as it asks.
+    property string absent: ""
+    readonly property string notice: [section.why, section.said, section.absent].filter((line) => line !== "").join("\n")
+    // Each compile's number, and the one whose world runs: what an older
+    // compile answers, or tells, once a newer one or a Reset has come, is
+    // not the reader's.
+    property int asking: 0
+    property int ran: 0
     // The text last given to the editor by the page, so the editor saying
     // it back is not taken for an edit.
     property string own: ""
@@ -106,20 +114,28 @@ Column {
         if (!section.compiles)
             return;
         const asked = section.edit;
+        section.asking += 1;
+        const turn = section.asking;
         if (!section.touched) {
             section.made = undefined;
+            section.ran = turn;
             section.said = "";
+            section.absent = "";
             section.diagnostics = [];
             return;
         }
-        Example.compile(section.live, section.entry, World.edits(section.entry, asked)).then((made) => {
-            if (!section.touched || asked !== section.edit)
+        Example.compile(section.live, section.entry, World.edits(section.entry, asked), (text: string) => {
+            if (turn === section.asking || turn === section.ran)
+                section.absent = text;
+        }).then((made) => {
+            if (turn !== section.asking)
                 return;
             section.said = "";
             section.made = made;
+            section.ran = turn;
             section.diagnostics = [];
         }, (error) => {
-            if (!section.touched || asked !== section.edit)
+            if (turn !== section.asking)
                 return;
             section.said = World.messageOf(error);
             section.diagnostics = Example.diagnosticsOf(error, section.entry);
@@ -127,6 +143,9 @@ Column {
     }
     function reset(): void {
         debounce.stop();
+        section.asking += 1;
+        section.ran = section.asking;
+        section.absent = "";
         section.edit = "";
         section.touched = false;
         section.made = undefined;

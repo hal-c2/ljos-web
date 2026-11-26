@@ -30,12 +30,38 @@ async function load(name) {
 // The example as `edits` ({ path: text }) make it from `entry`: a
 // function a Loader's source takes, or an Error saying what broke and
 // where, with what was said of each file as its `diagnostics`.
-async function compile(name, entry, edits) {
+//
+// Like a live code block (live.js), the example is a project of only its
+// own files (`closed`), at a root of its own rather than the page's
+// address: what an edit names and the project does not have is never
+// asked of the server, but told, as lines, to `told(text)`; "" once the
+// next compile gives the example its files.
+async function compile(name, entry, edits, told) {
     const state = example(name);
     const files = {};
     for (const file of (await load(name)).files)
         files[file.path] = Object.hasOwn(edits, file.path) ? edits[file.path] : file.code;
-    const made = await (await Live.compileWith(state.own))({ files: files, entry: entry, base: globalThis.location.href });
+    const parse = await import("ljos-web/codeblocks/parse");
+    const display = Object.keys(files).map(function (path) {
+        return { name: path, code: files[path] };
+    });
+    const root = "ljos-example://showcase-" + name + "/";
+    let absent = [];
+    const say = told || function () {};
+    const made = await (await Live.compileWith(state.own))({
+        files: files,
+        entry: entry,
+        base: root,
+        closed: true,
+        enclosed: function () {
+            absent = [];
+            say("");
+        },
+        missing: function (named, url) {
+            absent = absent.concat([parse.notThereLine(display, root, named, url)]);
+            say(absent.join("\n"));
+        }
+    });
     if (made.diagnostics) {
         const said = {};
         made.diagnostics.forEach(function (d) {
