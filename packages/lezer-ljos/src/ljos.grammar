@@ -506,19 +506,22 @@ assignArray[@name=ArrayPattern] { "[" commaSep<("..."? assignElement)?> ~destruc
 
 assignObject[@name=ObjectPattern] { "{" commaSep<assignProperty> ~destructure "}" }
 
-// A member takes no default: `[a.b = 1] = x` reads as an array holding
-// `a.b = 1`, as AssignmentExpression's precedence decides before any
-// ambiguity marker could keep the pattern's reading too.
+// A member's default is read as AssignmentExpression reads `a.b = 1`, at
+// its precedence, so the two readings of `[a.b = 1` stand side by side
+// (~destructure) until what follows the bracket picks one: `= x` the
+// pattern, anything else the array holding an assignment.
 assignDefaulted { VariableDefinition | assignArray | assignObject }
 
-assignElement { assignDefaulted ("=" expressionNoComma)? | MemberExpression ~destructure }
+memberDefault { !assign "=" expressionNoComma ~destructure }
+
+assignElement { assignDefaulted ("=" expressionNoComma)? | MemberExpression ~destructure memberDefault? }
 
 assignProperty[@name=PatternProperty] {
   "..." (assignDefaulted | MemberExpression ~destructure) |
   (VariableDefinition { word ~propName } |
    (PropertyName | Number | String | "[" expression "]") ~destructure ":" assignDefaulted)
   ("=" expressionNoComma)? |
-  (PropertyName | Number | String | "[" expression "]") ~destructure ":" MemberExpression ~destructure
+  (PropertyName | Number | String | "[" expression "]") ~destructure ":" MemberExpression ~destructure memberDefault?
 }
 
 MemberExpression {

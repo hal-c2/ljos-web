@@ -47,7 +47,7 @@ Script(
     VariableName,
     ";"))
 
-# A member target takes no default: the array holds an assignment, so the outer one is an error {"top":"Script","dialect":"ts"}
+# A member target takes a default, in an array pattern {"top":"Script","dialect":"ts"}
 
 [a.b = 1] = x;
 
@@ -55,9 +55,40 @@ Script(
 
 Script(
   ExpressionStatement(
+    AssignmentExpression(
+      ArrayPattern("[",MemberExpression(VariableName,".",PropertyName),Equals,Number,"]"),
+      Equals,
+      VariableName),
+    ";"))
+
+# A member target takes a default, in an object pattern {"top":"Script","dialect":"ts"}
+
+({ a: o.x = 1, b: o[k] } = p);
+
+==>
+
+Script(
+  ExpressionStatement(
+    ParenthesizedExpression("(",
+      AssignmentExpression(
+        ObjectPattern("{",
+          PatternProperty(PropertyName,":",MemberExpression(VariableName,".",PropertyName),Equals,Number),",",
+          PatternProperty(PropertyName,":",MemberExpression(VariableName,"[",VariableName,"]")),"}"),
+        Equals,
+        VariableName),
+      ")"),
+    ";"))
+
+# With no `=` after it, the same brackets are an array holding an assignment {"top":"Script","dialect":"ts"}
+
+[a.b = 1];
+
+==>
+
+Script(
+  ExpressionStatement(
     ArrayExpression("[",AssignmentExpression(MemberExpression(VariableName,".",PropertyName),Equals,Number),"]"),
-    ⚠(Equals)),
-  ExpressionStatement(VariableName,";"))
+    ";"))
 
 # A name target and a member target side by side, the name with a default {"top":"Script","dialect":"ts"}
 
