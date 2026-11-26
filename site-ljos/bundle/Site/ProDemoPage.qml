@@ -292,15 +292,15 @@ Column {
                     // A file chosen by pointer takes the stop too, so Tab comes
                     // back to the open file and not to one the keyboard left;
                     // and the keyboard with it while it is in the row, as the
-                    // tab it was on is no stop now.
-                    onChosenChanged: {
-                        if (!chosen)
-                            return;
+                    // tab it was on is no stop now. The open file's tab clicked
+                    // again changes no file, so the click takes it as well.
+                    function take() {
                         const had = fileTabs.itemAt(fileTabs.stopAt);
                         fileTabs.stop = index;
                         if (had && had !== tab && had.activeFocus)
                             tab.forceActiveFocus(Qt.OtherFocusReason);
                     }
+                    onChosenChanged: if (chosen) take()
                     Accessible.role: Accessible.PageTab
                     Accessible.name: modelData + (changed ? ", changed" : "")
                     Accessible.selected: chosen
@@ -332,7 +332,10 @@ Column {
                         hoverEnabled: true
                         Accessible.ignored: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: page.show(tab.modelData)
+                        onClicked: {
+                            page.show(tab.modelData);
+                            tab.take();
+                        }
                     }
                 }
             }
