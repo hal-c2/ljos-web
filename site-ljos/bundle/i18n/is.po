@@ -2466,3 +2466,7 @@ msgstr "HAL-C2"
 #: ../Site/BuiltWith.qml:57
 msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
 msgstr "Útlitsstillingar HAL-C2 á Ljós: hlutar stillinganna vinstra megin, litastefin System/Light/Dark og listi af þemum þar sem HAL-C2 er valið."
+
+#: ../Site/BuiltWith.qml:62
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
+msgstr "Stjórnborð fyrir forritunarfulltrúana á vélinni þinni, með skjáhermi, vafraflipum og QML-útliti sem þú getur breytt á meðan það keyrir."

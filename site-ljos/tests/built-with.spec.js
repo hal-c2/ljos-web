@@ -99,6 +99,7 @@ test("with no script, the front page shows what is built with Ljós, each at its
     const section = page.locator("#app");
     for (const { name, href } of built) await expect(section.getByRole("link", { name, exact: true }).first()).toHaveAttribute("href", href);
     await expect(section.getByRole("link", { name: "showcase", exact: true }).first()).toHaveAttribute("href", `${base}showcase/`);
+    await expect(section.getByRole("link", { name: "Office plugin", exact: true }).first()).toHaveAttribute("href", `${base}showcase/`);
     // The words over the cards say what the showcase has of each tool.
     await expect(section.getByText(/^Apps and tools made with Ljós/u).first()).toContainText("HAL-C2");
     const pictures = await picturesIn(page);
@@ -145,6 +146,10 @@ test("with no script, the showcase names the tools built with Ljós after its ap
     for (const { name, href } of built.filter(({ name }) => !recorded.includes(name))) await expect(app.getByRole("link", { name, exact: true }).first()).toHaveAttribute("href", href);
     const pictures = await picturesIn(page);
     for (const picture of ["built-studio", "built-eldur", "built-halc2"]) expect(pictureOf(pictures, picture), picture).toBeTruthy();
+    // A card's words send the reader to the showcase from elsewhere, not
+    // to the page they are on.
+    await expect(app.getByRole("link", { name: "Office plugin", exact: true })).toHaveCount(0);
+    await expect(app.getByText(/coding agents on your machine/u).first()).not.toContainText("in the showcase");
   } finally {
     await context.close();
   }
