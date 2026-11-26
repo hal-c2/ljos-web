@@ -231,6 +231,12 @@ test("the editor's project is never packed from a copy that drifted from its pin
     return Buffer.from(JSON.stringify(pin));
   };
   expect(() => projectOf(() => "", unpinned)).toThrow(example);
+  // The build reads the module's folder as it stands, so a file in it the
+  // pin does not name stops the build too, before anything is built.
+  const list = (dir) => readdirSync(join(here, "bundle", dir));
+  const stray = (dir) => (dir === PLAY.module ? [...list(dir), "Stray.qml"] : list(dir));
+  expect(() => projectOf(() => "", read, stray)).toThrow(`${PLAY.module}/Stray.qml`);
+  expect(() => projectOf(() => "", read, list)).not.toThrow();
 });
 
 test("with no script, the engine stands in its own words: its lines coloured as code, each linked to them at the commit, its capture beside", async ({ browser }) => {
