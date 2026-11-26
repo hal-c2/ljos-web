@@ -3,4 +3,5 @@ module QtQuick.Controls
 optional import QtQuick.Controls.Fusion auto
 optional import QtQuick.Controls.Material auto
 optional import QtQuick.Controls.Universal auto
+optional import QtQuick.Controls.macOS auto
 default import QtQuick.Controls.Basic
