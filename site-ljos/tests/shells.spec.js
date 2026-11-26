@@ -888,6 +888,48 @@ test("the demos page comes on Try again when its chunk could not be fetched", as
   }
 });
 
+// Try again pressed from the keyboard keeps the keyboard's place: on
+// the button again when the page fails once more, on the page when it
+// comes. The keyboard's place is read from the ring drawn round the
+// button (its border, two pixels wide while it has the focus).
+test("Try again from the keyboard keeps the focus on the button, then gives it to the page", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    let down = true;
+    await page.route("**/DemosPage-*.js", (route) => (down ? route.abort("connectionreset") : route.continue()));
+    await open(page, "/start/first-app/");
+    await press(page.getByRole("link", { name: "Demos", exact: true }).filter({ visible: true }).first());
+    await page.waitForURL("**/demos/");
+    const again = page.getByRole("button", { name: "Try again", exact: true });
+    await expect(again).toBeVisible({ timeout: 30_000 });
+    const ringed = () => again.evaluate((button) => /^(?!transparent).* 2px inset/u.test(button.style.boxShadow));
+    for (let n = 0; !(await ringed()); n++) {
+      expect(n, "Tab comes to Try again").toBeLessThan(80);
+      await page.keyboard.press("Tab");
+    }
+    const failed = page.waitForEvent("requestfailed", (request) => /DemosPage-/.test(request.url()));
+    await page.keyboard.press("Enter");
+    await failed;
+    await expect(again, "the page fails once more").toBeVisible({ timeout: 30_000 });
+    await expect.poll(ringed, { message: "and the keyboard is on Try again again" }).toBe(true);
+
+    down = false;
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(again).toHaveCount(0);
+    // The button is gone from sight, but an item keeps the focus it had
+    // while hidden: the page that came must have taken it from it.
+    await expect
+      .poll(() => page.locator('[aria-label="Try again"]').evaluateAll((all) => all.filter((one) => /^(?!transparent).* 2px inset/u.test(one.style.boxShadow)).length), {
+        message: "the keyboard is on the page that came, not left on the button gone",
+      })
+      .toBe(0);
+  } finally {
+    await context.close();
+  }
+});
+
 test("a reader with no script gets the Elegant shell, whatever is kept", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop", javaScriptEnabled: false });
   try {
