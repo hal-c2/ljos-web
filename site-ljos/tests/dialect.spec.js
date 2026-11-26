@@ -59,8 +59,6 @@ const qtQuick = {
   ...site(
     [
       "Demos/AgentLogRow", "Demos/AgentView", "Demos/DispatchCard", "Demos/FieldGuide", "Demos/WatchDemo", "Shells/Desktop", "Shells/Workbench",
-      "Site/Capability", "Site/FeatureCard", "Site/Hero", "Site/HeroApp", "Site/HeroStage", "Site/Landing", "Site/LiveSource", "Site/Panel",
-      "Site/ShellChoices", "Site/ShowcasePage",
     ],
     "Ljos.Ui has no LayoutMirroring",
   ),
@@ -103,7 +101,8 @@ const qtQuickModules = {
     "site/src/demos/pantry/Pantry/Note.qml": "the Pantry demo's in-page compile maps QtQuick.Controls; Ljos.Controls would bring QtQuick.Shapes and Binding with it",
   },
   "QtQuick.Effects": {
-    ...site(["Site/CodeBlock", "Site/FeatureCard", "Site/Panel"], "no Ljós module has RectangularShadow or MultiEffect"),
+    ...site(["Site/CodeBlock"], "no Ljós module has RectangularShadow or MultiEffect"),
+    ...site(["Site/FeatureCard", "Site/Panel"], "needs RectangularShadow: in ljos-ui PR launch-dialect2-ui, reaches ljos-web with the crates pin bump"),
     ...site(["Demos/Cockpit/Neon", "Demos/Watch/Neon"], synced),
   },
 };

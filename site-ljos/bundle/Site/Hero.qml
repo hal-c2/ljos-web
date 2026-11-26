@@ -1,5 +1,4 @@
 import Ljos.Ui
-import QtQuick as Q
 import Ljos.Core
 import Ljos.Layout
 import Site
@@ -66,14 +65,14 @@ Item {
         id: words
         // The words stand first in the way the page is read: on the
         // left, and on the right of a right-to-left page.
-        x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
         y: hero.beside ? Theme.xl : 0
         width: hero.wordsWidth
         spacing: Theme.l
 
         // The eyebrow, a pill with the accent's dot.
         Rectangle {
-            x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             visible: hero.eyebrow !== ""
             width: pill.implicitWidth + Theme.m + 14
             height: 30
@@ -84,9 +83,9 @@ Item {
 
             Rectangle {
                 // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
+                // sets it as far from the right (App.layoutDirection).
                 readonly property real startX: Theme.s
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 width: 6
                 height: 6
@@ -96,9 +95,9 @@ Item {
             Text {
                 id: pill
                 // Where it starts, read from the left; a right-to-left page
-                // sets it as far from the right (LayoutMirroring).
+                // sets it as far from the right (App.layoutDirection).
                 readonly property real startX: Theme.s + 6 + Theme.xs
-                x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 text: hero.eyebrow
                 color: Theme.text
@@ -108,14 +107,14 @@ Item {
             }
         }
         Heading {
-            x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             width: parent.width - (hero.roomy ? Theme.l : 0)
             level: "hero"
             wide: hero.wide
             text: hero.title
         }
         Text {
-            x: Q.LayoutMirroring.enabled ? parent.width - width : 0
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             width: Math.min(parent.width - (hero.roomy ? Theme.xl : 0), Theme.measure)
             format: Text.RichText
             text: Nav.linked(Built.base, hero.subtitle)
@@ -140,9 +139,9 @@ Item {
     Item {
         id: deviceSide
         // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
+        // sets it as far from the right (App.layoutDirection).
         readonly property real startX: hero.beside ? hero.width - hero.deviceWidth : -hero.bleed
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: hero.beside ? Theme.xs : words.implicitHeight + Theme.xl
         width: hero.deviceWidth + 2 * hero.bleed
         height: caption.y + caption.height
@@ -167,9 +166,9 @@ Item {
         Column {
             id: stageArea
             // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
+            // sets it as far from the right (App.layoutDirection).
             readonly property real startX: wash.reach
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: wash.reach
             width: hero.stageWidth
         }
@@ -177,9 +176,9 @@ Item {
             id: caption
             // On the page's column, where the wash runs into the gutter.
             // Where it starts, read from the left; a right-to-left page
-            // sets it as far from the right (LayoutMirroring).
+            // sets it as far from the right (App.layoutDirection).
             readonly property real startX: hero.bleeds ? hero.bleed : wash.reach
-            x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: wash.height + (hero.wide ? Theme.m : Theme.s)
             width: Math.min(parent.width - 2 * startX, Theme.measure)
             visible: text !== ""
