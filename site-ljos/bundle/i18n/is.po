@@ -187,8 +187,8 @@ msgid "Apps"
 msgstr "Forrit"
 
 #: ../Site/Landing.qml:262
-msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio and Eldur."
-msgstr "Forrit og verkfæri gerð með Ljós, öll opinber á GitHub. Í <a href=\"/showcase/\">sýningarglugganum</a> er upptaka af Hof og myndir af Studio og Eldur."
+msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio, Eldur and HAL-C2."
+msgstr "Forrit og verkfæri gerð með Ljós, öll opinber á GitHub. Í <a href=\"/showcase/\">sýningarglugganum</a> er upptaka af Hof og myndir af Studio, Eldur og HAL-C2."
 
 #: ../Site/ShowcasePage.qml:46
 msgid "Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source."

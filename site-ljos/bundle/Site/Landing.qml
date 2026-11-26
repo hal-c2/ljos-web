@@ -259,7 +259,7 @@ Column {
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.bodyLine
                 wrap: Text.Wrap
-                text: Nav.linked(Built.base, t`Apps and tools made with Ljós, all public on GitHub. The <a href="/showcase/">showcase</a> has a recording of Hof and pictures of Studio and Eldur.`)
+                text: Nav.linked(Built.base, t`Apps and tools made with Ljós, all public on GitHub. The <a href="/showcase/">showcase</a> has a recording of Hof and pictures of Studio, Eldur and HAL-C2.`)
                 onLinkActivated: (link) => landing.follow(link)
             }
             BuiltWith {

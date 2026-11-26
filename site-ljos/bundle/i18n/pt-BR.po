@@ -187,8 +187,8 @@ msgid "Apps"
 msgstr "Apps"
 
 #: ../Site/Landing.qml:262
-msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio and Eldur."
-msgstr "Apps e ferramentas feitos com Ljós, todos públicos no GitHub. A <a href=\"/showcase/\">vitrine</a> tem uma gravação do Hof e imagens do Studio e do Eldur."
+msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio, Eldur and HAL-C2."
+msgstr "Apps e ferramentas feitos com Ljós, todos públicos no GitHub. A <a href=\"/showcase/\">vitrine</a> tem uma gravação do Hof e imagens do Studio, do Eldur e do HAL-C2."
 
 #: ../Site/ShowcasePage.qml:46
 msgid "Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source."
