@@ -343,3 +343,41 @@ test("asked for less motion, a file of Ljós's API moves nothing and still fades
   expect(qt.soon.open).toBeGreaterThan(0);
   expect(qt.soon.open).toBeLessThan(1);
 });
+
+// What Ljós's `Ljos.Ui` has of Qt Quick as Qt Quick has it (ljos-ui's
+// type table maps each to its QtQuick type), so a file of Ljós's API
+// mirrors, counts frames and draws effects with no `QtQuick` import; and
+// the `MotionPreference` enum, whose keys are Ljós's.
+test("Ljos.Ui has LayoutMirroring, FrameAnimation, RectangularShadow, MultiEffect and MotionPreference", async ({ page }) => {
+  await open(page, "ljosuieffects");
+  const read = () =>
+    page.evaluate(() => {
+      const { mirrored, leading, frames, shadow, effect, ticks, reduced, motion, mirroring } = window.scene;
+      const box = (item) => item.$node.getBoundingClientRect();
+      return {
+        // Mirrored, what is anchored to the left is at the right.
+        right: Math.round(box(leading).right - box(mirrored).left),
+        mirroring,
+        running: frames.running,
+        ticks,
+        shadow: [shadow.width, shadow.height, shadow.blur],
+        effect: [effect.width, effect.height, effect.colorization],
+        reduced,
+        motion,
+      };
+    });
+  await expect.poll(async () => (await read()).ticks).toBeGreaterThan(0);
+  expect(await read()).toMatchObject({
+    right: 200,
+    mirroring: true,
+    running: true,
+    shadow: [60, 40, 10],
+    effect: [40, 40, 1],
+    reduced: false,
+    motion: [0, 1],
+  });
+  // Asked for less motion, the hint is the enum's `Reduced`.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, "ljosuieffects");
+  expect(await page.evaluate(() => window.scene.reduced)).toBe(true);
+});

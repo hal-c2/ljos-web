@@ -21,6 +21,9 @@ import { Accessible } from "../../QtQuick/Accessible.ts";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";
 import { Behavior } from "../../QtQuick/animation/Behavior.js";
 import { Canvas } from "../../QtQuick/Canvas.js";
+import { MultiEffect } from "../../QtQuick/Effects/MultiEffect.js";
+import { RectangularShadow } from "../../QtQuick/Effects/RectangularShadow.js";
+import { FrameAnimation } from "../../QtQuick/animation/Timer.js";
 import { Easing } from "../../QtQuick/animation/easing.js";
 import {
   ColorAnimation as ColorAnimationBase,
@@ -40,6 +43,7 @@ import { PointerDevice } from "../../QtQuick/handlers.js";
 import { Image } from "../../QtQuick/Image.js";
 import { Item } from "../../QtQuick/Item.js";
 import { KeyNavigation, Keys, Shortcut } from "../../QtQuick/Keys.js";
+import { LayoutMirroring } from "../../QtQuick/LayoutMirroring.ts";
 import { Loader as LoaderBase } from "../../QtQuick/Loader.js";
 import { MouseArea } from "../../QtQuick/MouseArea.js";
 import {
@@ -121,7 +125,8 @@ export { DragSource } from "./drag-source.js";
 export * from "./enums.js";
 
 // The types Ljós's API keeps as they are: what a file names by them is
-// what `QtQuick` has. What arranges children is `Ljos.Layout`'s.
+// what `QtQuick` has (`QtQuick.Effects`' for the two effects). What
+// arranges children is `Ljos.Layout`'s.
 export {
   Accessible,
   Animation,
@@ -133,6 +138,7 @@ export {
   Easing,
   Flickable,
   FontMetrics,
+  FrameAnimation,
   Gradient,
   GradientStop,
   Image,
@@ -140,7 +146,9 @@ export {
   Item,
   KeyNavigation,
   Keys,
+  LayoutMirroring,
   LinearGradient,
+  MultiEffect,
   ParallelAnimation,
   Path,
   PathAngleArc,
@@ -162,6 +170,7 @@ export {
   PropertyAction,
   PropertyChanges,
   RadialGradient,
+  RectangularShadow,
   RegularExpressionValidator,
   Repeater,
   Rotation,
