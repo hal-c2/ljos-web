@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import Ljos.Core
 import "../nav.js" as Nav
@@ -20,14 +20,14 @@ Rectangle {
     implicitWidth: Theme.target
     implicitHeight: Theme.target
     radius: Theme.radiusSmall
-    color: area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : "transparent"
+    fill: area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : "transparent"
 
     activeFocusOnTab: true
     Accessible.role: Accessible.Link
     Accessible.name: t`Ljós on GitHub`
     Accessible.onPressAction: () => Nav.go(link.href)
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             Nav.go(link.href);
             event.accepted = true;
         }
@@ -46,7 +46,7 @@ Rectangle {
         y: Math.round((link.height - link.size) / 2)
         width: link.size
         height: link.size
-        textFormat: Text.RichText
+        format: Text.RichText
         text: Nav.picture(link.route, link.picture + ".svg", link.size, link.size, "")
         Accessible.ignored: true
     }
@@ -56,16 +56,16 @@ Rectangle {
         y: Math.round((link.height - link.size) / 2)
         width: link.size
         height: link.size
-        textFormat: Text.RichText
+        format: Text.RichText
         text: Nav.picture(link.route, link.picture + "-dark.svg", link.size, link.size, "")
         Accessible.ignored: true
     }
-    MouseArea {
+    PointerArea {
         id: area
         anchors.fill: parent
         Accessible.ignored: true
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         onClicked: Nav.go(link.href)
     }
 }

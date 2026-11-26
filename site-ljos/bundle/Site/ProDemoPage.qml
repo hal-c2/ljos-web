@@ -1,6 +1,7 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import "../Demos/pro-live.js" as Live
 import "../nav.js" as Nav
@@ -81,6 +82,14 @@ Column {
         });
     }
 
+    // The app loaded in the frame (`running`) follows its host and the
+    // page's edits. It is here, not in the Loader's handler, because the
+    // compiler reads `bind` in a component as a model's role.
+    function hand(app, host) {
+        app.active = bind(() => host.active);
+        app.calm = bind(() => host.calm);
+        app.live = bind(() => page.live);
+    }
     function show(next) {
         path = next;
         const text = Object.hasOwn(edits, next) ? edits[next] : (file ? file.code : "");
@@ -146,25 +155,25 @@ Column {
             text: page.demo.title
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: page.wide ? Theme.displaySize : Theme.compactDisplaySize
+            font.size: page.wide ? Theme.displaySize : Theme.compactDisplaySize
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: page.wide ? Theme.displayLine : Theme.compactDisplayLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
             readonly property int headingLevel: 1
             Accessible.role: Accessible.Heading
         }
         Text {
             // Read from the side the page starts on (LayoutMirroring).
-            x: LayoutMirroring.enabled ? parent.width - width : 0
+            Layout.alignment: App.layoutDirection === Direction.RightToLeft ? Align.Right : Align.Left
             width: Math.min(parent.width, Theme.measure)
             text: page.words.summary
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.subtitleSize - 1
+            font.size: Theme.subtitleSize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine - 2
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -198,11 +207,7 @@ Column {
                 id: app
                 anchors.fill: parent
                 source: Live.app(page.demo.name)
-                onLoaded: {
-                    item.active = Qt.binding(() => host.active);
-                    item.calm = Qt.binding(() => host.calm);
-                    item.live = Qt.binding(() => page.live);
-                }
+                onLoaded: page.hand(item, host)
             }
         }
     }
@@ -211,15 +216,15 @@ Column {
     Text {
         visible: (page.words.use ?? "") !== ""
         // Read from the side the page starts on (LayoutMirroring).
-        x: LayoutMirroring.enabled ? parent.width - width : 0
+        Layout.alignment: App.layoutDirection === Direction.RightToLeft ? Align.Right : Align.Left
         width: Math.min(parent.width, Theme.measure)
         text: page.words.use ?? ""
         color: Theme.textMuted
         font.family: Theme.sans
-        font.pixelSize: Theme.bodySize
+        font.size: Theme.bodySize
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.bodyLine
-        wrapMode: Text.Wrap
+        wrap: Text.Wrap
     }
 
     Column {
@@ -231,7 +236,7 @@ Column {
             text: t`Its files`
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: page.wide ? Theme.titleSize + 1 : Theme.titleSize - 1
+            font.size: page.wide ? Theme.titleSize + 1 : Theme.titleSize - 1
             font.weight: Font.Bold
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.titleLine + 4
@@ -240,15 +245,15 @@ Column {
         }
         Text {
             // Read from the side the page starts on (LayoutMirroring).
-            x: LayoutMirroring.enabled ? parent.width - width : 0
+            Layout.alignment: App.layoutDirection === Direction.RightToLeft ? Align.Right : Align.Left
             width: Math.min(parent.width, Theme.measure)
             text: page.words.tryThis
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
+            font.size: Theme.bodySize
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
 
         Flow {
@@ -273,7 +278,7 @@ Column {
                 function focusAt(at) {
                     const next = fileTabs.itemAt((at + fileTabs.count) % fileTabs.count);
                     if (next)
-                        next.forceActiveFocus(Qt.TabFocusReason);
+                        next.forceActiveFocus(FocusReason.Tab);
                 }
                 delegate: Rectangle {
                     id: tab
@@ -284,7 +289,7 @@ Column {
                     width: name.implicitWidth + 2 * Theme.xs
                     height: name.implicitHeight + Theme.xs
                     radius: Theme.radiusSmall
-                    color: chosen ? Theme.surfaceSelected : press.containsMouse ? Theme.surfaceHover : Theme.surface
+                    fill: chosen ? Theme.surfaceSelected : press.containsMouse ? Theme.surfaceHover : Theme.surface
                     border.color: activeFocus ? Theme.focusRing : chosen ? Theme.accent : Theme.border
                     border.width: activeFocus ? 2 : 1
                     activeFocusOnTab: index === fileTabs.stopAt
@@ -298,7 +303,7 @@ Column {
                         const had = fileTabs.itemAt(fileTabs.stopAt);
                         fileTabs.stop = index;
                         if (had && had !== tab && had.activeFocus)
-                            tab.forceActiveFocus(Qt.OtherFocusReason);
+                            tab.forceActiveFocus(FocusReason.Other);
                     }
                     onChosenChanged: if (chosen) take()
                     Accessible.role: Accessible.PageTab
@@ -306,13 +311,13 @@ Column {
                     Accessible.selected: chosen
                     Accessible.onPressAction: () => page.show(modelData)
                     Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Right || event.key === Qt.Key_Left) {
+                        if (event.key === Key.Right || event.key === Key.Left) {
                             // Along the row as it is drawn: on a right-to-left
                             // page Right goes back. Past either end, round.
-                            const forward = (event.key === Qt.Key_Right) !== LayoutMirroring.enabled;
+                            const forward = (event.key === Key.Right) !== (App.layoutDirection === Direction.RightToLeft);
                             fileTabs.focusAt(tab.index + (forward ? 1 : -1));
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        } else if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                             page.show(tab.modelData);
                             event.accepted = true;
                         }
@@ -324,14 +329,14 @@ Column {
                         text: tab.modelData + (tab.changed ? " •" : "")
                         color: tab.chosen ? Theme.text : Theme.textMuted
                         font.family: Theme.mono
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                     }
-                    MouseArea {
+                    PointerArea {
                         id: press
                         anchors.fill: parent
                         hoverEnabled: true
                         Accessible.ignored: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.PointingHand
                         onClicked: {
                             page.show(tab.modelData);
                             tab.take();
@@ -344,7 +349,7 @@ Column {
         Rectangle {
             width: parent.width
             height: head.implicitHeight + Theme.xs
-            color: Theme.panel
+            fill: Theme.panel
             border.color: Theme.border
             border.width: 1
 
@@ -356,44 +361,44 @@ Column {
                 spacing: Theme.m
 
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     text: page.path
                     color: Theme.muted
                     font.family: Theme.mono
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                 }
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     visible: Object.keys(page.edits).length > 0
                     text: t`Reset every file`
                     color: Theme.link
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
+                    font.size: Theme.captionSize
                     activeFocusOnTab: visible
                     Accessible.role: Accessible.Button
                     Accessible.name: text
                     Accessible.onPressAction: () => page.reset()
                     Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                             page.reset();
                             event.accepted = true;
                         }
                     }
-                    MouseArea {
+                    PointerArea {
                         anchors.fill: parent
                         Accessible.ignored: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.PointingHand
                         onClicked: page.reset()
                     }
                 }
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Align.VCenter
                     text: "<a href=\"" + page.sourceBase + page.path + "\" download>Download it</a>"
-                    textFormat: Text.RichText
+                    format: Text.RichText
                     linkColor: Theme.link
                     font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
-                    onLinkActivated: (link) => Qt.openUrlExternally(link)
+                    font.size: Theme.captionSize
+                    onLinkActivated: (link) => App.openUrlExternally(link)
                 }
             }
         }
@@ -401,7 +406,7 @@ Column {
         Rectangle {
             width: parent.width
             height: page.wide ? 420 : 320
-            color: Theme.codeBg
+            fill: Theme.codeBg
             border.color: editor.activeFocus ? Theme.focusRing : Theme.border
             border.width: editor.activeFocus ? 2 : 1
 
@@ -436,8 +441,8 @@ Column {
             text: page.said
             color: Theme.danger
             font.family: Theme.mono
-            font.pixelSize: Theme.captionSize
-            wrapMode: Text.Wrap
+            font.size: Theme.captionSize
+            wrap: Text.Wrap
         }
     }
 }

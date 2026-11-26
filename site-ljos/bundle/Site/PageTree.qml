@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import Ljos.Core
 
@@ -12,7 +12,7 @@ Flickable {
 
     width: parent ? parent.width : 0
     height: parent ? parent.height : 0
-    acceptedButtons: Qt.NoButton
+    acceptedButtons: MouseButton.None
     contentWidth: width
     contentHeight: map.implicitHeight + 2 * Theme.l
     clip: true
@@ -24,7 +24,7 @@ Flickable {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: Theme.m
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: Theme.m
         width: tree.width - 2 * Theme.m
         route: tree.router ? tree.router.route : "/"

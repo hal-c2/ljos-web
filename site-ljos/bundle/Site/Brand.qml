@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import Ljos.Core
 import "../nav.js" as Nav
@@ -25,7 +25,7 @@ Item {
     Accessible.name: t`Ljós, home`
     Accessible.onPressAction: () => Nav.go(home.href)
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             Nav.go(home.href);
             event.accepted = true;
         }
@@ -36,14 +36,14 @@ Item {
         height: home.logoHeight
         width: Math.round(height * Theme.logoAspect)
         anchors.verticalCenter: parent.verticalCenter
-        textFormat: Text.RichText
+        format: Text.RichText
         text: Nav.picture(home.route, "/ljos.svg", width, height, "")
         Accessible.ignored: true
     }
-    MouseArea {
+    PointerArea {
         anchors.fill: parent
         Accessible.ignored: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         onClicked: Nav.go(home.href)
     }
 }

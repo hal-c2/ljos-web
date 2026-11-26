@@ -1,7 +1,9 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and a name
 // both have (Timer) stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
+import QtQuick as Q
 import QtQuick.Effects
 import Ljos.Blocks
 import Site
@@ -41,8 +43,8 @@ Column {
     // Code is read from the left in every language, and so is the block
     // it stands in, with the result its code makes beside it, on a page
     // that runs from the right too.
-    LayoutMirroring.enabled: false
-    LayoutMirroring.childrenInherit: true
+    Q.LayoutMirroring.enabled: false
+    Q.LayoutMirroring.childrenInherit: true
 
     property string lang: ""
     property string code: ""
@@ -414,7 +416,7 @@ Column {
         width: parent.width
         height: cardColumn.height + 2
         radius: Theme.radius
-        color: Theme.codeBg
+        fill: Theme.codeBg
         border.color: Theme.divider
         border.width: 1
         clip: true
@@ -434,7 +436,7 @@ Column {
                 id: head
                 width: parent.width
                 height: Math.max(named.height, copyButton.height) + 2 * Theme.xs
-                color: Theme.surface
+                fill: Theme.surface
 
                 Flow {
                     id: named
@@ -456,7 +458,7 @@ Column {
                         contentHeight: height
                         flickableDirection: Flickable.HorizontalFlick
                         boundsBehavior: Flickable.StopAtBounds
-                        acceptedButtons: Qt.NoButton
+                        acceptedButtons: MouseButton.None
                         clip: true
 
                         Row {
@@ -488,7 +490,7 @@ Column {
                                     Accessible.selected: current
                                     Accessible.onPressAction: () => block.currentFile = index
                                     Keys.onPressed: (event) => {
-                                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
                                             block.currentFile = index;
                                             event.accepted = true;
                                         }
@@ -502,7 +504,7 @@ Column {
                                         text: tab.modelData.name
                                         color: tab.current ? Theme.text : Theme.textMuted
                                         font.family: Theme.mono
-                                        font.pixelSize: Theme.captionSize
+                                        font.size: Theme.captionSize
                                         font.weight: tab.current ? Font.DemiBold : Font.Normal
                                     }
                                     // The file shown: underlined in the accent.
@@ -512,20 +514,20 @@ Column {
                                         width: parent.width
                                         height: 2
                                         radius: 1
-                                        color: Theme.accent
+                                        fill: Theme.accent
                                     }
                                     Rectangle {
                                         visible: tab.activeFocus
                                         anchors.fill: parent
                                         radius: Theme.radiusSmall
-                                        color: "transparent"
+                                        fill: "transparent"
                                         border.color: Theme.focusRing
                                         border.width: 2
                                     }
-                                    MouseArea {
+                                    PointerArea {
                                         anchors.fill: parent
                                         Accessible.ignored: true
-                                        cursorShape: Qt.PointingHandCursor
+                                        cursorShape: Cursor.PointingHand
                                         onClicked: block.currentFile = tab.index
                                     }
                                 }
@@ -539,7 +541,7 @@ Column {
                         text: block.fileShown
                         color: Theme.text
                         font.family: Theme.mono
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                         font.weight: Font.DemiBold
                     }
                     // The language, and an example that is the "before"
@@ -558,7 +560,7 @@ Column {
                                 width: chipWords.implicitWidth + 2 * Theme.xs
                                 height: chipWords.implicitHeight + Theme.xxs
                                 radius: height / 2
-                                color: Theme.surfaceSelected
+                                fill: Theme.surfaceSelected
 
                                 Text {
                                     id: chipWords
@@ -566,7 +568,7 @@ Column {
                                     text: modelData
                                     color: Theme.text
                                     font.family: Theme.sans
-                                    font.pixelSize: Theme.captionSize
+                                    font.size: Theme.captionSize
                                 }
                             }
                         }
@@ -578,7 +580,7 @@ Column {
                         text: t`in the ${block.harnessName} harness`
                         color: Theme.textMuted
                         font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
+                        font.size: Theme.captionSize
                     }
                 }
                 StageButton {
@@ -594,7 +596,7 @@ Column {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
 
             // Plain code: highlighted at build time, as written, every
@@ -618,7 +620,7 @@ Column {
                 contentHeight: block.scrollsFolded ? body.height + 2 * Theme.s : height
                 flickableDirection: block.scrollsFolded ? Flickable.AutoFlickIfNeeded : Flickable.HorizontalFlick
                 boundsBehavior: Flickable.StopAtBounds
-                acceptedButtons: Qt.NoButton
+                acceptedButtons: MouseButton.None
                 clip: true
 
                 Text {
@@ -627,13 +629,13 @@ Column {
                     y: Theme.s
                     color: Theme.codeFg
                     font.family: Theme.mono
-                    font.pixelSize: Theme.codeSize
+                    font.size: Theme.codeSize
                     // As a live block's editor sets its lines (CodeEditor): a
                     // height the build and the browser agree on.
                     lineHeightMode: Text.FixedHeight
                     lineHeight: Theme.codeLine
-                    textFormat: Text.RichText
-                    wrapMode: Text.NoWrap
+                    format: Text.RichText
+                    wrap: Text.NoWrap
                     // The colouring (packed by the build) as rich text
                     // shows it: lines are breaks, and every space stays.
                     text: Editor.shownAs(block.rich, block.code, block.code)
@@ -651,7 +653,7 @@ Column {
                 active: block.isLive
                 visible: block.isLive
                 width: parent.width
-                sourceComponent: Item {
+                component: Item {
                     property alias editors: editors
                     property alias editorBox: editorBox
                     property alias stage: stage
@@ -695,7 +697,7 @@ Column {
                                     enabled: folding.running && !Theme.calm
                                     NumberAnimation { duration: Theme.enterPanel; easing.type: Easing.OutCubic }
                                 }
-                                color: Theme.codeBg
+                                fill: Theme.codeBg
                                 border.color: Theme.focusRing
                                 border.width: block.editing ? 2 : 0
 
@@ -707,7 +709,7 @@ Column {
                                     contentHeight: editorBox.height
                                     flickableDirection: block.scrollsFolded ? Flickable.AutoFlickIfNeeded : Flickable.HorizontalFlick
                                     boundsBehavior: Flickable.StopAtBounds
-                                    acceptedButtons: Qt.NoButton
+                                    acceptedButtons: MouseButton.None
                                     clip: true
 
                                     Column {
@@ -776,7 +778,7 @@ Column {
                                 visible: block.phone || block.sourceShown
                                 width: parent.width
                                 height: visible ? 1 : 0
-                                color: Theme.divider
+                                fill: Theme.divider
                             }
 
                             // The stage's toolbar: what the reader can do with it, never
@@ -785,7 +787,7 @@ Column {
                                 objectName: "codeToolbar"
                                 width: parent.width
                                 height: Math.max(48, controls.height + 2 * Theme.xs)
-                                color: Theme.surface
+                                fill: Theme.surface
 
                                 // On a narrow phone the controls wrap, beside the word
                                 // that says the code is edited and never under it.
@@ -860,14 +862,14 @@ Column {
                                     width: editedWords.implicitWidth + 2 * Theme.xs
                                     height: editedWords.implicitHeight + Theme.xxs
                                     radius: height / 2
-                                    color: Theme.surfaceSelected
+                                    fill: Theme.surfaceSelected
                                     Text {
                                         id: editedWords
                                         anchors.centerIn: parent
                                         text: t`Edited`
                                         color: Theme.text
                                         font.family: Theme.sans
-                                        font.pixelSize: Theme.captionSize
+                                        font.size: Theme.captionSize
                                     }
                                 }
                             }
@@ -875,7 +877,7 @@ Column {
                                 visible: !block.phone || block.sourceShown
                                 width: parent.width
                                 height: visible ? 1 : 0
-                                color: Theme.divider
+                                fill: Theme.divider
                             }
                         }
 
@@ -914,7 +916,7 @@ Column {
                                     return "<img loading=\"lazy\" src=\"" + src + "\" width=\"" + pictureWidth + "\" height=\"" + Math.round(pictureHeight) + "\" alt=\"What this example draws\">";
                                 }
                                 height: frame.height + 2 * pad
-                                color: Theme.stage
+                                fill: Theme.stage
 
                                 RectangularShadow {
                                     x: frame.x
@@ -935,9 +937,9 @@ Column {
                                     width: frame.width + 2
                                     height: frame.height + 2
                                     radius: frame.radius + 1
-                                    color: runner.hovered ? Theme.accent : Theme.stageEdge
+                                    fill: runner.hovered ? Theme.accent : Theme.stageEdge
 
-                                    Behavior on color {
+                                    Behavior on fill {
                                         ColorAnimation {
                                             duration: Theme.moveSmall
                                             easing.type: Easing.OutCubic
@@ -959,7 +961,7 @@ Column {
                                     width: Math.max(stageBox.leastWide, appWidth)
                                     height: Math.max(stageBox.least, appHeight)
                                     radius: Theme.radiusSmall
-                                    color: Theme.paper
+                                    fill: Theme.paper
                                     clip: true
 
                                     Text {
@@ -979,7 +981,7 @@ Column {
                                         visible: block.isLive && stage.status !== ShellLoader.Ready && !(Theme.dark && block.live.pictureDark)
                                         x: frame.appX
                                         y: frame.appY
-                                        textFormat: Text.RichText
+                                        format: Text.RichText
                                         text: block.isLive ? stageBox.pictureOf(block.live.picture) : ""
                                     }
                                     // The dark scheme's picture, and below the words for a
@@ -993,10 +995,10 @@ Column {
                                     Loader {
                                         active: block.isLive && !!block.live.pictureDark
                                         visible: active && stage.status !== ShellLoader.Ready && Theme.dark
-                                        sourceComponent: Text {
+                                        component: Text {
                                             x: frame.appX
                                             y: frame.appY
-                                            textFormat: Text.RichText
+                                            format: Text.RichText
                                             text: stageBox.pictureOf(block.live.pictureDark)
                                         }
                                     }
@@ -1011,21 +1013,21 @@ Column {
                                         anchors.fill: parent
                                         active: block.isLive && (!!block.live.blank || !!block.live.blankDark)
                                         visible: active && !!(Theme.dark ? block.live.blankDark : block.live.blank) && stage.status !== ShellLoader.Ready
-                                        sourceComponent: Rectangle {
+                                        component: Rectangle {
                                             radius: frame.radius
-                                            color: Theme.paper
+                                            fill: Theme.paper
 
                                             Text {
                                                 x: Theme.s
                                                 width: frame.width - 2 * Theme.s
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                horizontalAlignment: Text.AlignHCenter
-                                                wrapMode: Text.Wrap
+                                                align: Text.AlignHCenter
+                                                wrap: Text.Wrap
                                                 // It asks for a Run only where there is one to press.
                                                 text: runner.phase === "picture" ? t`Nothing drawn yet. Run it to see what it does.` : t`Nothing drawn yet.`
                                                 color: Theme.textMuted
                                                 font.family: Theme.sans
-                                                font.pixelSize: Theme.captionSize
+                                                font.size: Theme.captionSize
                                                 lineHeight: Theme.captionLine
                                                 lineHeightMode: Text.FixedHeight
                                             }
@@ -1053,7 +1055,7 @@ Column {
                                     // Shown only when it holds a window: an empty one would
                                     // lie over the example the stage runs and take a
                                     // reader's press from its text fields.
-                                    WindowContainer {
+                                    Q.WindowContainer {
                                         visible: window !== null
                                         x: frame.appX
                                         y: frame.appY
@@ -1092,7 +1094,7 @@ Column {
                                 visible: told.text !== ""
                                 width: parent.width
                                 height: visible ? told.implicitHeight + 2 * Theme.xs : 0
-                                color: Theme.surface
+                                fill: Theme.surface
 
                                 Text {
                                     id: told
@@ -1102,10 +1104,10 @@ Column {
                                     text: [block.said || stage.error, block.absent].filter(function (line) { return line !== ""; }).join("\n")
                                     color: Theme.danger
                                     font.family: Theme.mono
-                                    font.pixelSize: Theme.captionSize
+                                    font.size: Theme.captionSize
                                     lineHeight: Theme.captionLine
                                     lineHeightMode: Text.FixedHeight
-                                    wrapMode: Text.Wrap
+                                    wrap: Text.Wrap
                                 }
                             }
 
@@ -1115,14 +1117,14 @@ Column {
                                 visible: block.isLive && (block.declaredNames.length > 0 || block.lines.length > 0)
                                 width: parent.width
                                 height: visible ? valuesColumn.implicitHeight + 2 * Theme.xs + 1 : 0
-                                color: Theme.surface
+                                fill: Theme.surface
                                 Accessible.role: Accessible.Grouping
                                 Accessible.name: t`Values`
 
                                 Rectangle {
                                     width: parent.width
                                     height: 1
-                                    color: Theme.divider
+                                    fill: Theme.divider
                                 }
                                 Column {
                                     id: valuesColumn
@@ -1139,7 +1141,7 @@ Column {
                                             text: t`Values`
                                             color: Theme.textMuted
                                             font.family: Theme.sans
-                                            font.pixelSize: Theme.captionSize
+                                            font.size: Theme.captionSize
                                             font.weight: Font.DemiBold
                                         }
                                         Repeater {
@@ -1149,7 +1151,7 @@ Column {
                                                 required property string modelData
                                                 color: Theme.text
                                                 font.family: Theme.mono
-                                                font.pixelSize: Theme.captionSize
+                                                font.size: Theme.captionSize
                                                 text: modelData + ": " + Observed.show(stage.item ? stage.item[modelData] : undefined)
                                             }
                                         }
@@ -1160,10 +1162,10 @@ Column {
                                         Text {
                                             required property var modelData
                                             width: valuesColumn.width
-                                            wrapMode: Text.Wrap
+                                            wrap: Text.Wrap
                                             color: modelData.level === "warn" || modelData.level === "error" ? Theme.danger : modelData.level === "signal" ? Theme.link : Theme.text
                                             font.family: Theme.mono
-                                            font.pixelSize: Theme.captionSize
+                                            font.size: Theme.captionSize
                                             text: (modelData.level === "signal" ? "↯ " : "› ") + modelData.message
                                         }
                                     }
@@ -1180,7 +1182,7 @@ Column {
             Loader {
                 active: block.mayFold
                 width: parent.width
-                sourceComponent: Rectangle {
+                component: Rectangle {
                     id: foldBar
                     visible: block.foldable && (!block.isLive || block.sourceShown)
                     // The fold goes when the card widens past a phone's (a phone
@@ -1203,12 +1205,12 @@ Column {
                     }
                     width: parent.width
                     height: visible ? 48 : 0
-                    color: Theme.codeBg
+                    fill: Theme.codeBg
 
                     Rectangle {
                         width: parent.width
                         height: 1
-                        color: Theme.divider
+                        fill: Theme.divider
                     }
                     StageButton {
                         id: foldButton

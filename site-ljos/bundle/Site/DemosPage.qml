@@ -1,7 +1,8 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and any name
 // both have stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Ljos.Blocks
 import Site
 import Demos
@@ -46,15 +47,15 @@ Column {
         }
         Text {
             // Read from the side the page starts on (LayoutMirroring).
-            x: LayoutMirroring.enabled ? parent.width - width : 0
+            Layout.alignment: App.layoutDirection === Direction.RightToLeft ? Align.Right : Align.Left
             width: Math.min(parent.width, Theme.measure)
             text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs.`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.subtitleSize - 1
+            font.size: Theme.subtitleSize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine - 2
-            wrapMode: Text.Wrap
+            wrap: Text.Wrap
         }
     }
 
@@ -96,13 +97,13 @@ Column {
                     width: parent.width
                     height: Math.round(width * card.modelData.height / card.modelData.width)
                     radius: Theme.radiusLarge
-                    color: Theme.stage
+                    fill: Theme.stage
                     clip: true
 
                     Text {
                         width: parent.width
                         height: parent.height
-                        textFormat: Text.RichText
+                        format: Text.RichText
                         text: Nav.picture("/demos/", Nav.proPicture(card.modelData, Theme.picked, Theme.dark), width, height, card.modelData.cardAlt)
                     }
                 }

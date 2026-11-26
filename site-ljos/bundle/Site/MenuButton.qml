@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import Site
 import Ljos.Core
 
@@ -22,7 +22,7 @@ IconButton {
             width: 18
             height: 2
             radius: 1
-            color: Theme.text
+            fill: Theme.text
             opacity: menu.open && index === 1 ? 0 : 1
             rotation: menu.open ? (index === 0 ? 45 : index === 2 ? -45 : 0) : 0
             Behavior on y { NumberAnimation { duration: Theme.calm ? 0 : Theme.moveSmall; easing.type: Easing.OutCubic } }

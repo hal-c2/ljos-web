@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Core
 import Site
 import "../nav.js" as Nav
 
@@ -18,21 +19,21 @@ Rectangle {
     implicitWidth: words.implicitWidth + 2 * (quiet ? Theme.m : Theme.l)
     implicitHeight: 48
     radius: Theme.brackets ? Theme.radiusSmall : Math.min(Theme.radius, height / 2)
-    color: primary ? (area.pressed ? Theme.accentPressed : area.containsMouse ? Theme.accentHover : Theme.accent) : (area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : "transparent")
+    fill: primary ? (area.pressed ? Theme.accentPressed : area.containsMouse ? Theme.accentHover : Theme.accent) : (area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : "transparent")
     border.color: primary || quiet ? "transparent" : Theme.border
     border.width: primary || quiet ? 0 : 1
 
-    Behavior on color {
+    Behavior on fill {
         ColorAnimation {
             duration: Theme.moveSmall
         }
     }
 
-    MouseArea {
+    PointerArea {
         id: area
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         Accessible.ignored: true
         onClicked: Nav.go(Nav.at(Content.base, button.href))
     }
@@ -44,14 +45,14 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: button.quiet && button.x === 0 ? 0 : Math.round((parent.width - width) / 2)
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         anchors.verticalCenter: parent.verticalCenter
-        textFormat: Text.RichText
+        format: Text.RichText
         text: Nav.anchor(Nav.at(Content.base, button.href), button.label, false, color)
         color: button.primary ? Theme.textOnAccent : button.quiet ? Theme.link : Theme.text
         linkColor: color
         font.family: Theme.sans
-        font.pixelSize: Theme.bodySize - 1
+        font.size: Theme.bodySize - 1
         font.weight: Font.DemiBold
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.bodyLine

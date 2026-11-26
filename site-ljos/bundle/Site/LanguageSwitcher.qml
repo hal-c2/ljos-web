@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Site
 import Ljos.Core
 import "later.js" as Later
@@ -43,7 +44,7 @@ Rectangle {
     width: implicitWidth
     height: implicitHeight
     radius: Theme.radiusSmall
-    color: hit.pressed ? Theme.surfacePressed : hit.containsMouse || switcher.opened ? Theme.surfaceHover : ground
+    fill: hit.pressed ? Theme.surfacePressed : hit.containsMouse || switcher.opened ? Theme.surfaceHover : ground
     border.width: activeFocus ? 2 : 0
     border.color: Theme.focusRing
 
@@ -58,7 +59,7 @@ Rectangle {
     Accessible.name: shortName + " · " + t`Language: ${preferences ? preferences.languageName : "English"}`
     Accessible.onPressAction: () => switcher.toggle(true)
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             switcher.toggle(true);
             event.accepted = true;
         }
@@ -72,14 +73,14 @@ Rectangle {
 
         // A globe: a ring, its meridian and its equator.
         Item {
-            anchors.verticalCenter: parent.verticalCenter
+            Layout.alignment: Align.VCenter
             width: 18
             height: 18
 
             Rectangle {
                 anchors.fill: parent
                 radius: 9
-                color: "transparent"
+                fill: "transparent"
                 border.width: 2
                 border.color: Theme.text
             }
@@ -88,7 +89,7 @@ Rectangle {
                 width: 8
                 height: 18
                 radius: 4
-                color: "transparent"
+                fill: "transparent"
                 border.width: 2
                 border.color: Theme.text
             }
@@ -96,16 +97,16 @@ Rectangle {
                 anchors.centerIn: parent
                 width: 18
                 height: 2
-                color: Theme.text
+                fill: Theme.text
             }
         }
         // The language's short name, as its tag starts: EN, AR, ZH.
         Text {
-            anchors.verticalCenter: parent.verticalCenter
+            Layout.alignment: Align.VCenter
             text: switcher.shortName
             color: Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
+            font.size: Theme.captionSize
             font.weight: Font.DemiBold
         }
     }
@@ -116,17 +117,17 @@ Rectangle {
         active: false
         source: Later.languageChoices
         onLoaded: {
-            item.preferences = Qt.binding(() => switcher.preferences);
+            item.preferences = bind(() => switcher.preferences);
             item.leftByKeys.connect(() => switcher.forceActiveFocus());
             item.toggle(switcher.byKeys);
         }
     }
-    MouseArea {
+    PointerArea {
         id: hit
         anchors.fill: parent
         hoverEnabled: true
         Accessible.ignored: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         onClicked: switcher.toggle()
     }
 }

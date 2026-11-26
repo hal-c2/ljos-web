@@ -1,4 +1,4 @@
-import QtQuick
+import Ljos.Ui
 import Site
 
 // A page's or a section's headline, in the shell's own voice: the
@@ -20,7 +20,7 @@ Text {
 
     color: Theme.onCanvasStrong
     font.family: big ? Theme.display : Theme.sans
-    font.pixelSize: size
+    font.size: size
     font.weight: big ? Theme.displayWeight : Font.DemiBold
     font.capitalization: big && Theme.displayUpper ? Font.AllUppercase : Font.MixedCase
     // Tracking is the look's at the hero's size, in proportion below it;
@@ -28,6 +28,6 @@ Text {
     font.letterSpacing: big ? Theme.displayTracking * size / Theme.heroSize : -0.01 * size
     lineHeightMode: Text.FixedHeight
     lineHeight: line
-    wrapMode: Text.Wrap
+    wrap: Text.Wrap
     Accessible.role: Accessible.Heading
 }

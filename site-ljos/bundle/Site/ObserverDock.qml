@@ -1,7 +1,7 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and a name
 // both have (Timer) stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import "../observing.js" as Observing
 import "../host.js" as Host
@@ -57,7 +57,7 @@ Item {
         if (key === "" || madeFor === "" || key === madeFor)
             return;
         renewing = true;
-        Qt.callLater(() => dock.renewing = false);
+        later(() => dock.renewing = false);
     }
 
     // Docked, it is never narrower than Ljós's Observer lays its pages out
@@ -84,7 +84,7 @@ Item {
         width: dock.room
         height: dock.roomHeight
         visible: dock.sheet && dock.held
-        color: Theme.scrim
+        fill: Theme.scrim
         opacity: dock.open ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
@@ -94,7 +94,7 @@ Item {
         // A press beside the sheet closes it, as a phone's sheets do. It
         // is no control of its own: the sheet's Close button is the one
         // a keyboard and a screen reader reach.
-        MouseArea {
+        PointerArea {
             anchors.fill: parent
             enabled: dock.open
             Accessible.ignored: true
@@ -111,11 +111,11 @@ Item {
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: dock.sheet ? 0 : dock.open || dock.still ? dock.room - width : dock.room
         // Set in the dock's room: the dock itself is no wider than nothing.
-        x: LayoutMirroring.enabled ? dock.room - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? dock.room - width - startX : startX
         y: dock.sheet ? (dock.open || dock.still ? dock.roomHeight - height : dock.roomHeight) : 0
         opacity: dock.still && !dock.open ? 0 : 1
         radius: dock.sheet ? Theme.radiusLarge : 0
-        color: Theme.surface
+        fill: Theme.surface
         border.color: Theme.divider
         border.width: 1
         Accessible.role: Accessible.Pane
@@ -162,7 +162,7 @@ Item {
                 width: 36
                 height: 4
                 radius: 2
-                color: Theme.border
+                fill: Theme.border
             }
             Text {
                 anchors.left: parent.left
@@ -174,7 +174,7 @@ Item {
                 text: dock.shown && dock.shown.title ? t`Observer · ${dock.shown.title}` : t`Observer`
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: 14
+                font.size: 14
                 font.weight: Font.DemiBold
             }
             StageButton {
@@ -190,7 +190,7 @@ Item {
                 anchors.bottom: parent.bottom
                 width: parent.width
                 height: 1
-                color: Theme.divider
+                fill: Theme.divider
             }
         }
 
@@ -208,9 +208,9 @@ Item {
                 item.minimumWidth = Theme.observerWidth;
                 // The log and title before the target: the target is
                 // served with what it is given then.
-                item.logs = Qt.binding(() => dock.shown ? dock.shown.logs : null);
-                item.title = Qt.binding(() => dock.shown ? dock.shown.title : "");
-                item.target = Qt.binding(() => dock.shown ? dock.shown.target : null);
+                item.logs = bind(() => dock.shown ? dock.shown.logs : null);
+                item.title = bind(() => dock.shown ? dock.shown.title : "");
+                item.target = bind(() => dock.shown ? dock.shown.target : null);
             }
         }
     }

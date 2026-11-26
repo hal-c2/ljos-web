@@ -1,4 +1,6 @@
-import QtQuick
+import Ljos.Ui
+import Ljos.Layout
+import Ljos.Core
 import Site
 
 // A demo's place on the demos page: its name, what it shows, and the
@@ -18,7 +20,7 @@ Column {
     Rectangle {
         width: parent.width
         height: 1
-        color: Theme.divider
+        fill: Theme.divider
         Accessible.ignored: true
     }
     Item {
@@ -34,17 +36,17 @@ Column {
     }
     Text {
         // Read from the side the page starts on (LayoutMirroring).
-        x: LayoutMirroring.enabled ? parent.width - width : 0
+        Layout.alignment: App.layoutDirection === Direction.RightToLeft ? Align.Right : Align.Left
         width: Math.min(parent.width, Theme.measure)
         text: section.body
-        textFormat: Text.RichText
+        format: Text.RichText
         color: Theme.textMuted
         linkColor: Theme.link
         font.family: Theme.sans
-        font.pixelSize: Theme.bodySize
+        font.size: Theme.bodySize
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.bodyLine
-        wrapMode: Text.Wrap
+        wrap: Text.Wrap
     }
     Item {
         width: 1

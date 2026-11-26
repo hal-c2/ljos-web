@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import "../nav.js" as Nav
 
@@ -40,7 +40,7 @@ Item {
     Accessible.selected: current
     Accessible.onPressAction: () => link.follow()
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             link.follow();
             event.accepted = true;
         }
@@ -53,19 +53,19 @@ Item {
         text: link.label
         color: link.current ? Theme.link : link.muted ? Theme.textMuted : Theme.text
         font.family: Theme.sans
-        font.pixelSize: link.size
+        font.size: link.size
         font.weight: link.current ? Font.DemiBold : Font.Normal
         font.underline: area.containsMouse
         lineHeightMode: Text.FixedHeight
         lineHeight: link.line
-        wrapMode: Text.Wrap
+        wrap: Text.Wrap
     }
-    MouseArea {
+    PointerArea {
         id: area
         anchors.fill: parent
         Accessible.ignored: true
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.PointingHand
         onClicked: link.follow()
     }
 }

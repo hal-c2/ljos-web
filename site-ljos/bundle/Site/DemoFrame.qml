@@ -1,7 +1,7 @@
 // Ljós's Core before QtQuick: only its t`` is wanted here, and a name
 // both have (Timer) stays QtQuick's, the later import.
 import Ljos.Core
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 import "../nav.js" as Nav
 import "../observing.js" as Observing
@@ -134,7 +134,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Theme.radius
-        color: Theme.surface
+        fill: Theme.surface
         border.color: Theme.divider
         border.width: 1
         clip: true
@@ -153,12 +153,12 @@ Item {
                 // Where it starts, read from the left; a right-to-left page
                 // sets it as far from the right (LayoutMirroring).
                 readonly property real startX: 1
-                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                 y: 1 + Math.round((frame.surfaceHeight - frame.pictureHeight) / 2)
                 width: frame.width - 2
                 height: frame.pictureHeight - 1
                 visible: modelData !== "" && (frame.pictureDark === "" || (index === 1) === Theme.dark) && !(frame.drawn && loader.opacity === 1)
-                textFormat: Text.RichText
+                format: Text.RichText
                 text: modelData === "" ? "" : Nav.picture(frame.route, modelData, frame.width - 2, frame.pictureHeight - 1, frame.description)
             }
         }
@@ -170,11 +170,11 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Theme.s
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             y: frame.surfaceHeight + 1
             width: parent.width - 2 * Theme.s
             height: frame.barHeight - 1
-            color: "transparent"
+            fill: "transparent"
 
             Text {
                 id: why
@@ -187,10 +187,10 @@ Item {
                 text: Host.desktop ? Host.desktop.noDemo : "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.wasm === -1 ? "WebAssembly" : frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
                 color: Theme.text
                 font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
+                font.size: Theme.captionSize
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.captionLine
-                wrapMode: Text.Wrap
+                wrap: Text.Wrap
             }
         }
     }
@@ -207,7 +207,7 @@ Item {
         // nears the screen: a demo the reader never asks for costs them
         // no GPU device, and one the budget stops gives its device back.
         active: frame.runnable && runner.started
-        sourceComponent: frame.demo
+        component: frame.demo
         source: frame.demo ? "" : frame.source
         opacity: frame.drawn ? 1 : 0
         Behavior on opacity {
@@ -217,8 +217,8 @@ Item {
             }
         }
         onLoaded: {
-            item.active = Qt.binding(() => runner.running);
-            item.calm = Qt.binding(() => Theme.calm);
+            item.active = bind(() => runner.running);
+            item.calm = bind(() => Theme.calm);
         }
     }
 
@@ -236,12 +236,12 @@ Item {
         y: frame.surfaceHeight
         width: frame.width
         height: frame.barHeight
-        color: "transparent"
+        fill: "transparent"
 
         Rectangle {
             width: parent.width
             height: 1
-            color: Theme.divider
+            fill: Theme.divider
         }
 
         // One button through the run's phases, so the focus a keyboard
@@ -250,7 +250,7 @@ Item {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: Theme.s
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             visible: runner.phase !== ""
             primary: runner.phase === "picture"

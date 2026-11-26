@@ -1,4 +1,6 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
+import Ljos.Core
 import Site
 import "../nav.js" as Nav
 
@@ -33,7 +35,7 @@ Item {
     Component.onCompleted: {
         if (!Nav.inBrowser())
             return;
-        Qt.callLater(() => {
+        later(() => {
             var at = rise.mapToItem(null, 0, 0);
             armed = Running.viewBottom > 0 && at.y >= Running.viewBottom;
         });
@@ -57,13 +59,6 @@ Item {
             easing.type: Easing.OutQuart
         }
     }
-    Behavior on shown {
-        enabled: rise.seen
-        NumberAnimation {
-            duration: Theme.enterSection
-            easing.type: Easing.OutQuart
-        }
-    }
 
     Column {
         id: holder
@@ -72,5 +67,15 @@ Item {
         y: rise.lift
         width: rise.width
         opacity: rise.shown
+        // On the opacity itself, not on `shown`: asked for less motion, an
+        // animation of Ljós's API puts a number at its end at once and
+        // still fades what fades.
+        Behavior on opacity {
+            enabled: rise.seen
+            NumberAnimation {
+                duration: Theme.enterSection
+                easing.type: Easing.OutQuart
+            }
+        }
     }
 }

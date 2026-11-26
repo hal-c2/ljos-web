@@ -1,4 +1,4 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
 import Site
 
 // A button of a stage's toolbar, in the look of Ljós's own controls: a
@@ -38,12 +38,12 @@ Rectangle {
     // A finger's target on a phone; a pointer's, a little less, beside it.
     implicitHeight: Theme.narrow ? Theme.target : primary ? 36 : 32
     radius: Theme.radiusSmall
-    color: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse && live ? Theme.surfaceHover : checked ? Theme.surfaceSelected : Theme.surfaceRaised)
+    fill: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse && live ? Theme.surfaceHover : checked ? Theme.surfaceSelected : Theme.surfaceRaised)
     border.color: primary ? "transparent" : Theme.border
     border.width: primary ? 0 : 1
     opacity: enabled ? 1 : 0.45
 
-    Behavior on color {
+    Behavior on fill {
         ColorAnimation {
             duration: Theme.moveSmall
             easing.type: Easing.OutCubic
@@ -61,7 +61,7 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: -3
         radius: button.radius + 3
-        color: "transparent"
+        fill: "transparent"
         border.color: Theme.focusRing
         border.width: 2
     }
@@ -76,7 +76,7 @@ Rectangle {
             button.pressed();
     }
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+        if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             if (button.live)
                 button.pressed();
             event.accepted = true;
@@ -89,17 +89,17 @@ Rectangle {
         text: button.text
         color: button.primary ? Theme.textOnAccent : Theme.text
         font.family: Theme.sans
-        font.pixelSize: button.primary ? Theme.uiSize : Theme.captionSize
+        font.size: button.primary ? Theme.uiSize : Theme.captionSize
         font.weight: Font.DemiBold
     }
 
-    MouseArea {
+    PointerArea {
         id: hit
         anchors.fill: parent
         enabled: button.enabled
         hoverEnabled: true
         Accessible.ignored: true
-        cursorShape: button.busy ? Qt.BusyCursor : button.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        cursorShape: button.busy ? Cursor.Busy : button.enabled ? Cursor.PointingHand : Cursor.Arrow
         onContainsMouseChanged: {
             if (containsMouse)
                 button.approached();
