@@ -72,7 +72,15 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 // by too: a request started near it cannot run on past it. A request
 // outside a wait (a click) is a step of its own.
 let end = null;
-const left = () => AbortSignal.timeout(end === null ? STEP_MS : Math.max(1, end - Date.now()));
+// The inspector at the pinned ljos now and then leaves a request
+// unanswered while the app is idle: in CI its last turn had ended and the
+// watchdog told of no stuck turn, yet app_find sat out the whole step. So
+// a request in a wait has a bound of its own, below the step's; one left
+// unanswered is told, with what it was, and asked again on a new session.
+// The step fails only when its end comes with no answer.
+const ASK_MS = Number(process.env.LJOS_SITE_NATIVE_ASK_MS || 20000);
+let asking = null;
+const left = () => AbortSignal.timeout(end === null ? STEP_MS : Math.max(1, Math.min(ASK_MS, end - Date.now())));
 async function until(what, test) {
   end = Date.now() + STEP_MS;
   try {
@@ -81,8 +89,11 @@ async function until(what, test) {
       // A request the step's end cut short is that step not done, said
       // as one, not as the fetch's own abort.
       const got = await Promise.resolve().then(test).catch((error) => {
-        if (error?.name === "TimeoutError") throw new Error(`no ${what} after ${STEP_MS} ms (a request to it was still unanswered); its log is ${logPath}`);
-        throw error;
+        if (error?.name !== "TimeoutError") throw error;
+        if (Date.now() >= end) throw new Error(`no ${what} after ${STEP_MS} ms (a request to it was still unanswered); its log is ${logPath}`);
+        console.log(`site:native: the inspector left ${asking} unanswered for ${ASK_MS} ms while waiting for ${what}; asking again`);
+        session = null;
+        return null;
       });
       if (got) return got;
       if (Date.now() > end) throw new Error(`no ${what} after ${STEP_MS} ms; its log is ${logPath}`);
@@ -96,6 +107,7 @@ async function until(what, test) {
 const tokenFile = join(scratch, "target", "ljos", `mcp-${app.pid}.json`);
 let session = null;
 async function call(name, args) {
+  asking = name;
   const { url, token } = JSON.parse(readFileSync(tokenFile, "utf8"));
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" };
   if (!session) {

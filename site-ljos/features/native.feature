@@ -11,7 +11,9 @@ Feature: ljos.dev runs on Ljós on the desktop
   native-check.mjs), and by the site-native job in
   .github/workflows/site.yml. The desktop's back and forward, a page
   that cannot be read among them, are also run in node by
-  site-ljos/tests/nav-desktop.spec.js.
+  site-ljos/tests/nav-desktop.spec.js. The check's own
+  handling of its inspector is run against a stand-in for ljos by
+  site-ljos/tests/native-check.spec.js.
 
   Scenario: The front page, a docs page and the showcase open
     Given the site runs on Ljós off-screen at 1280 by 800
@@ -67,6 +69,13 @@ Feature: ljos.dev runs on Ljós on the desktop
     When a page holds live editing, the Observer or a demo's frame
     Then a placeholder stands in its place and names what it waits for
     And the rest of the page works
+
+  Scenario: A request the inspector leaves unanswered is asked again
+    Given the site runs on Ljós off-screen
+    When the inspector leaves a request unanswered for a while, the app idle
+    Then the check says which request it was and what it waited for
+    And it asks again within the same step
+    And the step fails only when its end comes with no answer
 
   Scenario: The task explains itself and runs in a quick mode
     When `mise run site:native --help` runs
