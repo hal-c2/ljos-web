@@ -12,6 +12,11 @@ const MAIN = readFileSync(new URL("../bundle/Showcase/play/snail-post/Main.qml",
 // Its lawn, and the one an edit gives it, as the page draws them.
 const LAWN = { file: '"#2f4233"', drawn: "rgb(47, 66, 51)" };
 const EDITED = { file: '"#5a2f6a"', drawn: "rgb(90, 47, 106)" };
+// How often a walking world steps (LjosPlay/World.qml's 40 ms timer).
+const BEATS = 25;
+// What the compiler says of an emptied file (CodeMirror's one line ends
+// in a newline): that nothing it expects comes.
+const EMPTIED = /^Main\.qml:\d+:\d+: Unexpected token$/;
 // What the world is made of, fetched only once it runs.
 const OWN = /\/(SnailPostDemo|snail-post-project)-[\w-]+\.js$/;
 
@@ -187,6 +192,17 @@ test.describe("Snail Post on /showcase/", () => {
     await expect(lawn(EDITED.drawn).first(), "the world runs as edited").toBeAttached({ timeout: 30_000 });
     expect(await walked(page, 1500), "and its snails walk").toBeGreaterThan(4);
 
+    // The window turned to a phone's and back: the editor is made again in
+    // the other place, with the reader's text, not the file's.
+    const size = page.viewportSize();
+    for (const width of [600, size.width]) {
+      await page.setViewportSize({ width, height: size.height });
+      await expect(code, `the edit, in an editor ${width} px wide`).toContainText(EDITED.file, { timeout: 30_000 });
+      await expect(page.getByRole("button", { name: "Reset Snail Post to its file" }), "still a change").toBeVisible();
+      await expect(lawn(EDITED.drawn).first(), "and still the world it made").toBeAttached();
+    }
+    await press(code);
+
     // An edit that does not compile is said, and the last world goes on.
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.insertText("\n}\n");
@@ -194,11 +210,17 @@ test.describe("Snail Post on /showcase/", () => {
     await expect(lawn(EDITED.drawn).first(), "the last world stays").toBeAttached();
     expect(await walked(page, 1500), "and goes on").toBeGreaterThan(4);
 
-    // No text at all is an edit too: said, with the last world going on.
+    // An edit that compiles again takes what was said away.
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.insertText(MAIN.replace(LAWN.file, EDITED.file));
+    await expect(page.locator("#app").getByText(/Main\.qml:\d+/), "nothing is wrong now").toHaveCount(0, { timeout: 30_000 });
+
+    // No text at all is an edit too: compiled and said, with the last world
+    // going on.
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.press("Delete");
     await expect(page.locator(".cm-editor .cm-content"), "the file is emptied").toHaveText("");
-    await page.waitForTimeout(1500);
+    await expect(page.locator("#app").getByText(EMPTIED).first(), "what an empty file is").toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("button", { name: "Reset Snail Post to its file" }), "an emptied file is a change").toBeVisible();
     await expect(lawn(EDITED.drawn).first(), "the last world stays when emptied").toBeAttached();
 
@@ -233,9 +255,14 @@ test.describe("Snail Post on /showcase/", () => {
         framesDuring(other, () => walked(other, 2000, { wall: true })),
       ]);
       await context.close();
-      const drawn = `the pages drew ${calmFrames} and ${fullFrames} frames a second, of the world's 25 beats`;
-      expect(calm, `slower than ${full} px with no preference; ${drawn}`).toBeLessThan(full * 0.8);
-      expect(calm, `and not still; ${drawn}`).toBeGreaterThan(full * 0.2);
+      // Each by the steps its world took: one a frame at most, at most
+      // its 25 beats a second, so a page that drew fewer frames walked
+      // less for that alone.
+      const steps = (frames) => Math.max(1, Math.min(frames, BEATS));
+      const [calmStep, fullStep] = [calm / steps(calmFrames), full / steps(fullFrames)];
+      const drawn = `${calm} and ${full} px; the pages drew ${calmFrames} and ${fullFrames} frames a second, of the world's ${BEATS} beats`;
+      expect(calmStep, `slower a step than with no preference; ${drawn}`).toBeLessThan(fullStep * 0.8);
+      expect(calmStep, `and not still; ${drawn}`).toBeGreaterThan(fullStep * 0.2);
       expect(unexpected(errors)).toEqual([]);
     });
   });
