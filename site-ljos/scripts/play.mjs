@@ -6,7 +6,7 @@
 // (scripts/sync-play.mjs writes it); the project the showcase's editor
 // compiles is those files as they are (`projectOf`).
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -74,6 +74,14 @@ export function drifted(read = fromBundle, pin = JSON.parse(read(PLAY.pin).toStr
   });
 }
 
+// The files in the vendored folders (the module's and the example's) the
+// pin does not name, by their path in the bundle: the build reads those
+// folders as they stand, so one would be built in unchecked.
+export function strays(pin, list = (dir) => readdirSync(join(bundle, dir))) {
+  const named = new Set([...Object.keys(pin.files), PLAY.pin]);
+  return [PLAY.module, PLAY.example].flatMap((dir) => list(dir).map((name) => `${dir}/${name}`)).filter((path) => !named.has(path));
+}
+
 // The project the editor compiles: the example as `Main.qml`, at its
 // root, and the module's files under LjosPlay/ (its qmldir too: it is
 // what makes the directory the module the example imports), each with
@@ -81,8 +89,10 @@ export function drifted(read = fromBundle, pin = JSON.parse(read(PLAY.pin).toStr
 // reader's to change; the engine is compiled beside it as it is. The pin
 // and each file are read once, and packed only if they are what the pin
 // names: a copy that drifted stops the build, named, rather than going
-// out as ljos-play's.
-export function projectOf(colour, read = fromBundle) {
+// out as ljos-play's. So does a file in the vendored folders it does not
+// name (`strays`): the build calls this before it builds the bundle, so
+// the demo and the editor are built from the same checked files.
+export function projectOf(colour, read = fromBundle, list = undefined) {
   const pin = JSON.parse(read(PLAY.pin).toString("utf8"));
   const entry = `${PLAY.example}/Main.qml`;
   const paths = [entry, ...Object.keys(pin.files).filter((path) => path.startsWith(`${PLAY.module}/`) && (path.endsWith(".qml") || path.endsWith("/qmldir")))];
@@ -94,7 +104,7 @@ export function projectOf(colour, read = fromBundle) {
       // Absent: drifted names it.
     }
   }
-  const changed = drifted(read, pin, held);
+  const changed = [...drifted(read, pin, held), ...strays(pin, list)];
   if (changed.length) throw new Error(`${changed.join(", ")}: not the file ${PLAY.pin} pins; change hal-c2/ljos-play and run scripts/sync-play.mjs`);
   return {
     commit: pin.commit,
