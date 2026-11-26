@@ -282,6 +282,7 @@ test.describe("Snail Post on /showcase/", () => {
     const code = page.getByRole("textbox", { name: /^Edit .*\bMain\.qml of Snail Post$/ });
     await expect(code).toContainText("seed: 41", { timeout: 30_000 });
     await press(code);
+    await expect(page.locator(".cm-editor.cm-focused"), "the code editor has the keyboard").toBeVisible({ timeout: 30_000 });
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.insertText(MAIN.replace(LAWN.file, EDITED.file).replace("    id: post\n", '    id: post\n    Image { source: "../outside.png" }\n'));
     await expect(page.locator(`#app div[style*="${EDITED.drawn}"]`).first(), "the edit runs").toBeAttached({ timeout: 30_000 });
