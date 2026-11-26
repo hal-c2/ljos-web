@@ -1,7 +1,6 @@
 pragma Scripts: JavaScript
 import Ljos.Ui
 import Ljos.Layout
-import QtQuick as Q
 import Site
 import Shells
 import Ljos.Core
@@ -45,8 +44,8 @@ Rectangle {
     fill: Theme.canvas
     // A language written from the right lays the site out from the right:
     // every anchor, row and list of it, the shell's and the page's.
-    Q.LayoutMirroring.enabled: App.layoutDirection === Direction.RightToLeft
-    Q.LayoutMirroring.childrenInherit: true
+    LayoutMirroring.enabled: App.layoutDirection === Direction.RightToLeft
+    LayoutMirroring.childrenInherit: true
 
     // What a shell is given as `site`: the state, and what it may ask.
     readonly property var router: siteRouter

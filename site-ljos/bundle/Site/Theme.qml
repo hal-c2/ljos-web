@@ -1,5 +1,6 @@
 pragma Singleton
-import QtQuick
+import Ljos.Ui
+import Ljos.Core
 import "../motion.js" as Motion
 import "../scheme.js" as Scheme
 import "../tokens.js" as Tokens
@@ -18,12 +19,12 @@ import "../tokens.js" as Tokens
 // kept (scheme.js, under the one key the head's script reads) and said
 // on the page's root before the body is read, so the page is first
 // painted in it.
-QtObject {
+Object {
     id: theme
 
     // "light", "dark", or "" for the browser's own.
     property string picked: Scheme.picked()
-    readonly property bool dark: picked === "dark" || (picked !== "light" && Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
+    readonly property bool dark: picked === "dark" || (picked !== "light" && App.hints.colorScheme === ColorScheme.Dark)
 
     function toggle() {
         var next = dark ? "light" : "dark";
@@ -46,7 +47,7 @@ QtObject {
     // and what fades still fades; a demo moves slower and softer, never
     // stops. It is the browser's prefers-reduced-motion until the reader
     // says otherwise for this site in the header, which is kept.
-    readonly property bool systemCalm: Application.styleHints.accessibility.motionPreference === Qt.MotionPreference.ReducedMotion
+    readonly property bool systemCalm: App.hints.accessibility.motionPreference === MotionPreference.Reduced
     // "calm", "full", or "" for the browser's own (motion.js).
     property string motion: Motion.picked()
     readonly property bool calm: motion === "calm" || (motion !== "full" && systemCalm)

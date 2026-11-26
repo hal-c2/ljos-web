@@ -1,7 +1,5 @@
 import Ljos.Ui
 import Ljos.Core
-// Ljos.Ui has no `FrameAnimation` yet: it comes from QtQuick, by name.
-import QtQuick as Q
 import Ljos.Layout
 import Ljos.Blocks
 import "logic/cyberpunk.ts" as P
@@ -108,7 +106,7 @@ Rectangle {
         id: minute
         onTriggered: shell.tick()
     }
-    Q.FrameAnimation {
+    FrameAnimation {
         id: frames
         onTriggered: {
             if (frames.smoothFrameTime > 0)

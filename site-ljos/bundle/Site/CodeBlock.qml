@@ -3,7 +3,6 @@ import Ljos.Core
 import Ljos.Ui
 import Ljos.Layout
 import QtQuick as Q
-import QtQuick.Effects
 import Ljos.Blocks
 import Site
 import "../live.js" as Live
@@ -42,8 +41,8 @@ Column {
     // Code is read from the left in every language, and so is the block
     // it stands in, with the result its code makes beside it, on a page
     // that runs from the right too.
-    Q.LayoutMirroring.enabled: false
-    Q.LayoutMirroring.childrenInherit: true
+    LayoutMirroring.enabled: false
+    LayoutMirroring.childrenInherit: true
 
     property string lang: ""
     property string code: ""

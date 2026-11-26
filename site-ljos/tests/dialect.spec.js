@@ -32,8 +32,6 @@ const files = roots
 const firstLoad = "on every page's first load, where Ljos.Ui and Ljos.Layout add about 23 kB gzip to a docs page; it moves over on its own";
 // A copy of hal-c2/ljos-ui's examples, pinned to the commit it names
 // (pro.spec.js): it changes there and comes over by scripts/sync-demo.mjs.
-// A Qt type the chrome still names, which Ljos.Ui gains in ljos-ui.
-const coming = "in ljos-ui PR launch-dialect2-ui, reaches ljos-web with the crates pin bump";
 const synced = "a copy of hal-c2/ljos-ui's examples: it moves there";
 // A copy of hal-c2/ljos-play, its engine and the showcase's example,
 // pinned to the commit it names (showcase.spec.js): it changes there and
@@ -45,17 +43,13 @@ const site = (names, reason) => Object.fromEntries(names.map((name) => [`site-lj
 // Files that import QtQuick itself, and why.
 const qtQuick = {
   ...site(["Site/MotionToggle"], firstLoad),
-  // By name only (`import QtQuick as Q`), for the one Qt type each still
-  // sets or makes.
-  ...site(["Main"], `needs LayoutMirroring: ${coming}`),
-  ...site(["Site/CodeBlock"], `needs LayoutMirroring and WindowContainer: ${coming}`),
-  ...site(["Site/Theme"], `needs MotionPreference: ${coming}`),
+  // By name only (`import QtQuick as Q`), for the one Qt type it still
+  // makes: the window that holds what an example opens.
+  ...site(["Site/CodeBlock"], "Ljos.Ui has no WindowContainer"),
   ...site(["Activity", "Actor", "Art", "Crowd", "Pose", "Sheet", "Spot", "Talks", "Thing", "Touchable", "World"].map((name) => `LjosPlay/${name}`), played),
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
-  ...site(["Demos/Orbit"], `needs FrameAnimation: ${coming}`),
   ...site(["Demos/Lottie"], "Ljos.Ui has no Item.TopLeft for the transformOrigin its avatars scale about"),
-  ...site(["Shells/Cyberpunk"], `needs FrameAnimation: ${coming}`),
   ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
   // ShowcaseApp's recording, loaded when a reader asks (Loader.source given
   // an import), with what it sets on the item loaded and reads of it;
@@ -78,8 +72,6 @@ const qtQuickModules = {
     "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
   },
   "QtQuick.Effects": {
-    ...site(["Site/CodeBlock"], "no Ljós module has RectangularShadow or MultiEffect"),
-    ...site(["Site/FeatureCard", "Site/Panel"], "needs RectangularShadow: in ljos-ui PR launch-dialect2-ui, reaches ljos-web with the crates pin bump"),
     ...site(["Demos/Cockpit/Neon", "Demos/Watch/Neon"], synced),
   },
 };

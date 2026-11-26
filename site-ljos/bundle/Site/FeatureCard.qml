@@ -1,7 +1,6 @@
 import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
-import QtQuick.Effects
 import Site
 import "../nav.js" as Nav
 
