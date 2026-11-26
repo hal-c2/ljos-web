@@ -207,4 +207,42 @@ test("the watch's file tabs are one tab stop, and the arrows go along them", asy
   await expect.poll(ringed).toEqual([first]);
   await page.keyboard.press("Tab");
   await expect.poll(ringed, { message: "still one stop" }).toEqual([]);
+
+  // A file chosen by pointer takes the stop: Tab back in lands on it.
+  await tabs.nth(1).click();
+  await expect.poll(chosen).toEqual([second]);
+  for (let n = 0; (await ringed()).length === 0; n++) {
+    expect(n, "Tab comes back to the file tabs").toBeLessThan(60);
+    await page.keyboard.press("Shift+Tab");
+  }
+  expect(await ringed(), "the stop is the file chosen by pointer").toEqual([second]);
+
+  // The pro demos are one page given the other demo: the cockpit comes in
+  // at its own entry file on Tab, not at the place the watch's keyboard had.
+  // The watch is on Main.qml, as the cockpit starts, with the keyboard
+  // on the first tab; it leaves the row, so it is Tab that brings it back.
+  await tabs.nth(names.indexOf("Main.qml")).click();
+  await expect.poll(chosen).toEqual(["Main.qml"]);
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(ringed).toEqual([]);
+  await page.keyboard.press("Tab");
+  await expect.poll(ringed).toEqual(["Main.qml"]);
+  for (let at = names.indexOf("Main.qml"); at > 0; at--) await page.keyboard.press("ArrowLeft");
+  await expect.poll(ringed).toEqual([first]);
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(ringed).toEqual([]);
+  await page.evaluate(() => {
+    history.pushState({}, "", "/demos/cockpit/");
+    dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+  });
+  await expect.poll(() => tabs.evaluateAll((all) => all.length)).not.toBe(names.length);
+  const entry = (await chosen())[0];
+  expect(entry).toBeTruthy();
+  const at = await tabs.evaluateAll((all, entry) => all.findIndex((tab) => tab.getAttribute("aria-label") === entry), entry);
+  expect(at, "the cockpit's entry is not where the watch's stop was").not.toBe(0);
+  for (let n = 0; (await ringed()).length === 0; n++) {
+    expect(n, "Tab comes to the cockpit's file tabs").toBeLessThan(80);
+    await page.keyboard.press("Tab");
+  }
+  expect(await ringed(), "a new demo's stop is its entry file").toEqual([entry]);
 });
