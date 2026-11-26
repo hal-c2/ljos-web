@@ -60,6 +60,9 @@ Rectangle {
         TextInput {
             id: field
             objectName: "noteField"
+            // A bare TextInput is no tab stop of its own, as the
+            // TextField it replaced was: a reader on keys reaches it too.
+            activeFocusOnTab: true
             anchors.fill: parent
             anchors.leftMargin: 10
             anchors.rightMargin: 10

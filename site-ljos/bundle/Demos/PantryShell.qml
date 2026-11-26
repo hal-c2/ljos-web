@@ -150,7 +150,10 @@ Rectangle {
             objectName: "basket"
             width: 444
         }
+        // By its id, as the basket is, a shell that moves the note
+        // elsewhere keeps what was typed in it.
         Note {
+            id: note
             objectName: "note"
             width: 444
         }
