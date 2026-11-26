@@ -1,7 +1,5 @@
 import Ljos.Ui
 import Ljos.Core
-// Ljos.Ui has no `FrameAnimation` yet: it comes from QtQuick, by name.
-import QtQuick as Q
 import QtQuick3D
 // By name: unqualified, its types stand over Ljos.Core's `App`.
 import QtQuick3D.Helpers as Helpers
@@ -38,7 +36,7 @@ Rectangle {
 
     // FrameAnimation advances by elapsed time rather than interpolating from/to,
     // so changing pace or resuming from pause never jumps back to the start.
-    Q.FrameAnimation {
+    FrameAnimation {
         running: true
         paused: !root.turning
         onTriggered: root.turn = OrbitLogic.advance(root.turn, frameTime, root.pace, root.startAngle)

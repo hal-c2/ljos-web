@@ -1,7 +1,6 @@
 import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
-import QtQuick.Effects
 import Site
 
 // A surface that stands off the page in the shell's own way: rounded
