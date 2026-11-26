@@ -143,6 +143,21 @@ try {
   await call("app_click", { target: await find("text=Showcase >> nth=0") });
   await until("showcase", () => find("text=Built with Ljós"));
   console.log("site:native: the showcase is up");
+  // Snail Post, the example that runs in the page: Run makes its world
+  // (Showcase/later.native.js), the pane ljos-play's World names.
+  // Its entry is below the fold: the page is wheeled down until Run is in
+  // the window, as a reader scrolls to it.
+  const run = `role=button[name="Run Snail Post"] >> nth=0`;
+  await until("Run Snail Post in the window", async () => {
+    const answer = await call("app_click", { target: await find(run) });
+    if (!answer.includes("not_actionable")) return true;
+    await call("app_scroll", { dy: -5 });
+    return false;
+  });
+  await until("Snail Post's world", () => find(`[name="Snail Post"] >> nth=0`));
+  await sleep(3000);
+  if (exited !== null) throw new Error(`ljos ended (${exited}) while Snail Post ran; its log is ${logPath}`);
+  console.log("site:native: Snail Post runs");
   // Each shell in turn, picked from the header's switcher as a reader
   // picks it, with the showcase still standing in it.
   let current = "Elegant";
