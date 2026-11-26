@@ -81,6 +81,7 @@ Column {
             return;
         Example.load(section.live).then((project) => {
             section.file = World.fileIn(project, section.entry);
+            section.said = "";
             section.own = section.code;
             section.retyped(section.code);
         }, (error) => {
@@ -303,8 +304,13 @@ Column {
         id: editorView
 
         Column {
+            id: editorColumn
             width: parent.width
             spacing: Theme.s
+            // What the editor says as it is made (its first text, the
+            // file's) is not the reader's: only what it says once made, with
+            // their draft written back, is.
+            property bool made: false
 
             Connections {
                 target: section
@@ -368,10 +374,16 @@ Column {
                         lang: "qml"
                         label: t`Edit ${section.path} of ${section.what}`
                         errors: told
-                        onTextChanged: section.edited(text)
+                        onTextChanged: if (editorColumn.made) section.edited(text)
                         // Made again in the other place (the window turned): as
                         // the reader left it.
-                        Component.onCompleted: if (section.touched) text = section.edit
+                        Component.onCompleted: {
+                            if (section.touched) {
+                                section.own = section.edit;
+                                text = section.edit;
+                            }
+                            editorColumn.made = true;
+                        }
                     }
                 }
             }
