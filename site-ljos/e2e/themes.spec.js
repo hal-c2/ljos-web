@@ -217,18 +217,24 @@ test("a scheme picked in the header reaches the demos that are running", async (
 // nothing under it on an empty field's placeholder, in any colour.
 for (const colorScheme of SCHEMES) {
   test(`in ${colorScheme} Ljós's placeholder meets AA`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme });
+    await page.emulateMedia({ colorScheme });
+    // An empty field: one with words in it shows them, not its
+    // placeholder. Its placeholder's words are read from that field's
+    // own body, not from the first placeholder in the example.
+    const PLACEHOLDER_WORDS = /placeholderText:\s*(?:qsTr\()?"([^"]+)"/;
     const example = livePages()
       .flatMap(({ route, examples }) => examples.map((each) => ({ route, ...each })))
-      // An empty one: a field with words in it shows them, not its
-      // placeholder.
-      .find(({ code }) => [...code.matchAll(/\b(TextField|TextArea)\s*\{([^}]*)\}/gs)].some(([, , body]) => body.includes("placeholderText:") && !/(^|\s)text:/.test(body)));
+      .map((each) => {
+        const empty = [...each.code.matchAll(/\b(TextField|TextArea)\s*\{([^}]*)\}/gs)].find(([, , body]) => PLACEHOLDER_WORDS.test(body) && !/(^|\s)text:/.test(body));
+        return empty && { ...each, words: PLACEHOLDER_WORDS.exec(empty[2])[1] };
+      })
+      .find(Boolean);
     expect(example, "an example with an empty Ljós field and a placeholder").toBeTruthy();
     await open(page, example.route);
     const block = await run(page, example.index);
     await sceneRuns(page, 400, "the example settles");
     // It is drawn, so axe has it to read: an empty list below says it met AA.
-    const [, words] = /placeholderText:\s*(?:qsTr\()?"([^"]+)"/.exec(example.code);
+    const { words } = example;
     await expect(block.running.locator(".qq-text").filter({ hasText: words }).first(), "the placeholder is drawn").toBeVisible();
     await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
     const placeholders = [];
