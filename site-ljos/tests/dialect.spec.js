@@ -51,7 +51,6 @@ const qtQuick = {
   ...site(["Site/CodeBlock"], `needs LayoutMirroring and WindowContainer: ${coming}`),
   ...site(["Site/Theme"], `needs MotionPreference: ${coming}`),
   ...site(["Activity", "Actor", "Art", "Crowd", "Pose", "Sheet", "Spot", "Talks", "Thing", "Touchable", "World"].map((name) => `LjosPlay/${name}`), played),
-  ...site(["Showcase/play/snail-post/Main"], played),
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
   ...site(["Demos/Orbit"], `needs FrameAnimation: ${coming}`),
