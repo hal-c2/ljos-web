@@ -105,8 +105,9 @@ Item {
             y += item.y;
         return y;
     }
-    readonly property real top: scroller ? offset() - scroller.contentY : 0
-    readonly property bool onScreen: !scroller || (top < scroller.height && top + surfaceHeight > 0)
+    // Where it stands in the scroller's view (Item's own `top` is final).
+    readonly property real viewTop: scroller ? offset() - scroller.contentY : 0
+    readonly property bool onScreen: !scroller || (viewTop < scroller.height && viewTop + surfaceHeight > 0)
     readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
 
     // The Observer on what runs here: the demo, or the app a demo holds
