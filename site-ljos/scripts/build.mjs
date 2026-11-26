@@ -935,10 +935,15 @@ let measuring;
 const measurePage = async () => {
   measuring ??= (async () => {
     const browser = await chromium.launch();
-    const page = await browser.newPage();
-    const data = (face) => `data:font/woff2;base64,${readFileSync(join(fontsDir, face.file)).toString("base64")}`;
-    await page.setContent(`<!doctype html><html><head><style>${faceRules(data)}</style></head><body></body></html>`);
-    return { browser, page };
+    try {
+      const page = await browser.newPage();
+      const data = (face) => `data:font/woff2;base64,${readFileSync(join(fontsDir, face.file)).toString("base64")}`;
+      await page.setContent(`<!doctype html><html><head><style>${faceRules(data)}</style></head><body></body></html>`);
+      return { browser, page };
+    } catch (error) {
+      await browser.close();
+      throw error;
+    }
   })();
   return (await measuring).page;
 };
@@ -993,7 +998,8 @@ try {
     else process.env[name] = value;
   }
   rmSync(noQt, { recursive: true, force: true });
-  if (measuring) await (await measuring).browser.close();
+  // One that failed to start has closed its browser and says why itself.
+  if (measuring) await measuring.then(({ browser }) => browser.close(), () => {});
 }
 if (built.measured) {
   mkdirSync(dirname(measuredFile), { recursive: true });

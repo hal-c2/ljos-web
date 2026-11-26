@@ -15,30 +15,33 @@ const SIZES = [
 // Rounding, and a hairline a browser may draw a line's box at.
 const NEAR = 2;
 
-// Each line of text in the window, by its words, where it stands: a
-// text written twice is left out, as it cannot be told which is which.
-// Text in a live example or a 3D scene moves as the example runs.
+// Each line of text on the page, by its words, where it stands, and
+// whether it is in the window: a text written twice stands nowhere
+// (null), as it cannot be told which is which. Text in a live example or
+// a 3D scene moves as the example runs.
 function texts() {
   const found = new Map();
   for (const element of document.querySelectorAll("#app .qq-text")) {
     if (element.closest("[inert], canvas, [data-demo-live]") || !element.checkVisibility()) continue;
     const words = element.textContent.trim();
     const box = element.getBoundingClientRect();
-    if (!words || box.width < 4 || box.bottom < 0 || box.top > innerHeight) continue;
-    found.set(words, found.has(words) ? null : [box.x, box.y, box.width, box.height]);
+    if (!words || box.width < 4) continue;
+    const seen = box.bottom >= 0 && box.top <= innerHeight;
+    found.set(words, found.has(words) ? null : [[box.x, box.y, box.width, box.height], seen]);
   }
-  return [...found].filter(([, box]) => box);
+  return [...found];
 }
 
 for (const size of SIZES) {
   for (const route of PAGES) {
-    test(`${route} at ${size.width} wide keeps each line where the page as written put it`, async ({ browser, page, wasm }) => {
-      test.skip(!wasm, "the page as written is the same with or without WebAssembly");
+    // With and without WebAssembly: the page as written is the same, the
+    // page that takes it over is each kernel's.
+    test(`${route} at ${size.width} wide keeps each line where the page as written put it`, async ({ browser, page }) => {
       const still = await browser.newContext({ viewport: size, javaScriptEnabled: false });
       const written = await still.newPage();
       await written.goto(url(route));
       await written.evaluate(() => document.fonts.ready);
-      const before = new Map(await written.evaluate(texts));
+      const before = new Map((await written.evaluate(texts)).filter(([, at]) => at?.[1]).map(([words, [box]]) => [words, box]));
       await still.close();
 
       await page.setViewportSize(size);
@@ -46,12 +49,17 @@ for (const size of SIZES) {
       await page.waitForSelector(HYDRATED, { timeout: 40_000 });
       // The page as written stays over the live one until it is live.
       await expect(page.locator("#app [inert]")).toHaveCount(0);
-      const after = await page.evaluate(texts);
+      const after = new Map((await page.evaluate(texts)).map(([words, at]) => [words, at?.[0] ?? null]));
 
-      const both = after.filter(([words]) => before.has(words));
-      expect(both.length, "lines of text in both pages").toBeGreaterThan(3);
-      const moved = both
-        .map(([words, box]) => [words.slice(0, 40), box.map((value, index) => Math.round(value - before.get(words)[index]))])
+      expect(before.size, "lines of text in the window").toBeGreaterThan(3);
+      // Every line that was in the window is on the live page: one moved
+      // out of the window, or laid out differently, is still found here.
+      // One the live page shows twice (a replay's stages, crossing over)
+      // is there, but cannot be said to stand anywhere.
+      expect([...before.keys()].filter((words) => !after.has(words)), "lines in the window that the live page lost").toEqual([]);
+      const moved = [...before]
+        .filter(([words]) => after.get(words))
+        .map(([words, box]) => [words.slice(0, 40), after.get(words).map((value, index) => Math.round(value - box[index]))])
         .filter(([, by]) => by.some((value) => Math.abs(value) > NEAR));
       expect(moved, "lines that moved (x, y, width, height) as the page went live").toEqual([]);
     });
