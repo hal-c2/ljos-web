@@ -46,3 +46,29 @@ Script(
     Equals,
     VariableName,
     ";"))
+
+# A member target takes no default: the array holds an assignment, so the outer one is an error {"top":"Script","dialect":"ts"}
+
+[a.b = 1] = x;
+
+==>
+
+Script(
+  ExpressionStatement(
+    ArrayExpression("[",AssignmentExpression(MemberExpression(VariableName,".",PropertyName),Equals,Number),"]"),
+    ⚠(Equals)),
+  ExpressionStatement(VariableName,";"))
+
+# A name target and a member target side by side, the name with a default {"top":"Script","dialect":"ts"}
+
+[a = 1, o.x] = p;
+
+==>
+
+Script(
+  ExpressionStatement(
+    AssignmentExpression(
+      ArrayPattern("[",VariableDefinition,Equals,Number,",",MemberExpression(VariableName,".",PropertyName),"]"),
+      Equals,
+      VariableName),
+    ";"))
