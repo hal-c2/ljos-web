@@ -1117,7 +1117,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // reader is the one who opens a heading's link with script off;
         // a phone's lands at the top of the page.
         const order = [...kept.keys()].sort((a, b) => kept[b].size - kept[a].size || a - b);
-        const written = renders.length > 1 ? sheets.join("") + order.map((index) => `<div data-ljos-render="${index}">${bodies[index]}</div>`).join("") : renders[0];
+        const written = renders.length > 1 || centring ? sheets.join("") + order.map((index) => `<div data-ljos-render="${index}">${bodies[index]}</div>`).join("") : renders[0];
         // The page at its route asks for the one build's assets from
         // its own depth, carries the props it was made with for its
         // script to hydrate it by, and is titled as its own page.

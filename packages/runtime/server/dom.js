@@ -158,22 +158,27 @@ function advance(text, size, font) {
 
 // The font an element's text is set in, as a CSS `font`: the nearest one
 // said, from the element up, made bold or italic where markup between
-// says so. None where none is said.
+// says so, and at the size an element between says (rich text's
+// `<font size>` under its root's font), as that is the size it is drawn
+// at. None where none is said.
 function fontOf(element) {
   let bold = false;
   let italic = false;
+  let size = null;
   for (let at = element; at; at = at.parentElement) {
     const font = at.style?.getPropertyValue?.("font");
     if (font) {
-      if (!bold && !italic) return font;
+      if (!bold && !italic && size === null) return font;
       // What stands before the size (style, variant, weight), and the rest.
       const sized = /^(.*?)(\S*\d(?:\.\d+)?px\b.*)$/.exec(font);
       if (!sized) return font;
       let lead = sized[1].trim().split(/\s+/).filter(Boolean);
       if (bold) lead = [...lead.filter((word) => !/^(\d{3}|bold|bolder|lighter|normal)$/.test(word)), "bold"];
       if (italic && !lead.includes("italic")) lead = ["italic", ...lead];
-      return `${lead.join(" ")} ${sized[2]}`;
+      const rest = size === null ? sized[2] : sized[2].replace(/^\d+(?:\.\d+)?px/, `${size}px`);
+      return [...lead, rest].join(" ");
     }
+    size ??= ownSizeOf(at);
     if (at.localName === "b" || at.localName === "strong" || /^h[1-6]$/.test(at.localName ?? "")) bold = true;
     if (at.localName === "i" || at.localName === "em") italic = true;
   }
@@ -182,16 +187,32 @@ function fontOf(element) {
 
 // How many lines `text` takes in `width`, broken between words as a
 // browser breaks them: a word that is wider than the line is a line of
-// its own, or more.
-function linesIn(text, width, size, font) {
+// its own, or more. Spaces collapse to one between words, unless the
+// white space is kept (`pre-wrap`, `break-spaces`): then each is as wide
+// as a space, hanging past a line's end in `pre-wrap` and wrapping like
+// a letter in `break-spaces`.
+function linesIn(text, width, size, font, whiteSpace = "normal") {
   if (!(width > 0)) return 1;
   if (!font) return Math.max(1, Math.ceil(guess(text, size) / width));
   const space = advance(" ", size, font);
+  const kept = whiteSpace === "pre-wrap" || whiteSpace === "break-spaces";
   let lines = 1;
   let at = 0;
-  for (const word of text.split(/ +/)) {
-    if (word === "") continue;
-    const wide = advance(word, size, font);
+  for (const part of text.split(kept ? /( +)/ : / +/)) {
+    if (part === "") continue;
+    if (part[0] === " ") {
+      if (whiteSpace === "pre-wrap") at += part.length * space;
+      else
+        for (let left = part.length; left > 0; left--) {
+          if (at > 0 && at + space > width + 0.01) {
+            lines++;
+            at = 0;
+          }
+          at += space;
+        }
+      continue;
+    }
+    const wide = advance(part, size, font);
     if (at > 0 && at + wide > width + 0.01) {
       lines++;
       at = 0;
@@ -200,7 +221,7 @@ function linesIn(text, width, size, font) {
       lines += Math.ceil(wide / width) - 1;
       at = wide % width;
     } else at += wide;
-    at += space;
+    if (!kept) at += space;
   }
   return lines;
 }
@@ -218,11 +239,34 @@ function lengthOf(element, value) {
 
 function fontSizeOf(element) {
   for (let at = element; at; at = at.parentElement) {
-    const size = at.style?.getPropertyValue?.("font-size") || at.style?.getPropertyValue?.("--qq-size");
-    if (size) return parseFloat(size) || 16;
+    const own = ownSizeOf(at);
+    if (own) return own;
     const font = at.style?.getPropertyValue?.("font");
     const said = font && /(\d+(?:\.\d+)?)px/.exec(font)?.[1];
     if (said) return parseFloat(said);
+  }
+  return 16;
+}
+
+// The size an element itself sets its font at, in pixels, or null: in
+// pixels, or in its parent's (`em`, `%`), or markup's (rich text's
+// `<font size>`, a part of the text's font size, `--qq-size`).
+function ownSizeOf(at) {
+  const said = at.style?.getPropertyValue?.("font-size") ?? "";
+  const parent = () => (at.parentElement ? fontSizeOf(at.parentElement) : 16);
+  let part;
+  if ((part = /^(\d+(?:\.\d+)?)px$/.exec(said))) return Number(part[1]);
+  if ((part = /^(\d+(?:\.\d+)?)em$/.exec(said))) return Number(part[1]) * parent();
+  if ((part = /^(\d+(?:\.\d+)?)%$/.exec(said))) return (Number(part[1]) / 100) * parent();
+  if ((part = /^calc\(var\(--qq-size\)\s*\*\s*(\d+(?:\.\d+)?)\)$/.exec(said))) return Number(part[1]) * markupSizeOf(at);
+  const markup = parseFloat(at.style?.getPropertyValue?.("--qq-size"));
+  return markup > 0 ? markup : null;
+}
+
+function markupSizeOf(element) {
+  for (let at = element; at; at = at.parentElement) {
+    const size = parseFloat(at.style?.getPropertyValue?.("--qq-size"));
+    if (size > 0) return size;
   }
   return 16;
 }
@@ -254,11 +298,12 @@ function rect(element) {
   if (h === 0 && element.textContent) {
     const size = fontSizeOf(element);
     const pitch = pitchOf(element, size);
-    const wraps = !/^(nowrap|pre)$/.test(element.style?.getPropertyValue?.("white-space") ?? "");
+    const whiteSpace = element.style?.getPropertyValue?.("white-space") || "normal";
+    const wraps = !/^(nowrap|pre)$/.test(whiteSpace);
     const set = element._lines?.() ?? [element.textContent];
     const font = fontOf(element);
     let lines = 0;
-    for (const line of set) lines += wraps && w > 0 ? linesIn(line, w, size, font) : 1;
+    for (const line of set) lines += wraps && w > 0 ? linesIn(line, w, size, font, whiteSpace) : 1;
     h = lines * pitch;
   }
   return { x: 0, y: 0, left: 0, top: 0, right: w, bottom: h, width: w, height: h, toJSON: () => ({}) };

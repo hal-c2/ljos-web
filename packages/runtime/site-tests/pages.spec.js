@@ -318,6 +318,35 @@ test.describe("a site prerendered at more than one size", () => {
   });
 });
 
+// One size, centred: its one render is still written in a render of its
+// own, as the sheet that centres its column names it, and it hydrates.
+test("a site prerendered at one centred size stands its column in the middle with JavaScript off, and hydrates", async ({ browser }) => {
+  const made = bundle("pages");
+  let server;
+  try {
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { sizes: [{ width: 1200, height: 800, centred: 1000 }], pages: [{ route: "/", props: { route: "/" } }] } }));
+    server = await part("serve it", () => serve(made.out));
+    for (const javaScriptEnabled of [false, true]) {
+      const context = await browser.newContext({ javaScriptEnabled, viewport: { width: 1600, height: 800 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${server.origin}/`);
+        if (javaScriptEnabled) {
+          await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+          continue;
+        }
+        const render = page.locator('#app > [data-ljos-render="0"] > .qq');
+        expect(await render.evaluate((node) => node.getBoundingClientRect().left)).toBe(200);
+      } finally {
+        await context.close();
+      }
+    }
+  } finally {
+    await server?.stop();
+    made.remove();
+  }
+});
+
 // A page in the reader's colour scheme from its first paint: it is
 // prerendered as a browser asking for each scheme would have it, the
 // stylesheet shows the one asked for — the browser's, or the page's own
