@@ -24,10 +24,10 @@ function frameOf(page) {
   return runButton(page, RUN).locator("xpath=ancestor::div[.//img[contains(@src, 'snail-post')]][1]");
 }
 
-// Where every canvas in the world stands, by its order in the page: the
-// actors are canvases that walk.
-// Measured from the first, which stands still, so that the page scrolling
-// moves none of them.
+// Where every canvas in the world that is drawn stands, by a name each is
+// given the first time it is seen: a canvas that shows or hides (a
+// letter a snail carries) moves no other in the list.
+// Measured from the world, so that the page scrolling moves none of them.
 function places(page) {
   return page.evaluate(() => {
     const canvases = [...document.querySelectorAll("#app canvas.qq-canvas")];
@@ -35,7 +35,14 @@ function places(page) {
     let world = canvases[0]?.parentElement;
     while (world && !canvases.every((canvas) => world.contains(canvas))) world = world.parentElement;
     const origin = world ? at(world) : { x: 0, y: 0 };
-    return canvases.map((canvas) => [at(canvas).x - origin.x, at(canvas).y - origin.y]);
+    const shown = {};
+    for (const canvas of canvases) {
+      canvas.dataset.walker ??= String((window.__walkers = (window.__walkers ?? 0) + 1));
+      const box = at(canvas);
+      if (box.width === 0 || box.height === 0) continue;
+      shown[canvas.dataset.walker] = [box.x - origin.x, box.y - origin.y];
+    }
+    return shown;
   });
 }
 
@@ -57,14 +64,16 @@ async function walked(page, ms, { wall = false } = {}) {
   const start = await clockOf(page);
   const began = Date.now();
   let last = await places(page);
-  const paths = last.map(() => 0);
+  const paths = {};
   for (;;) {
     await animationFrames(page, 3);
     const now = await places(page);
-    for (let i = 0; i < Math.min(now.length, last.length); i++) paths[i] += Math.abs(now[i][0] - last[i][0]) + Math.abs(now[i][1] - last[i][1]);
+    for (const [name, [x, y]] of Object.entries(now)) {
+      if (last[name]) paths[name] = (paths[name] ?? 0) + Math.abs(x - last[name][0]) + Math.abs(y - last[name][1]);
+    }
     last = now;
     const clock = await clockOf(page);
-    if (wall ? Date.now() - began >= ms : clock.time - start.time >= ms || !clock.jobs) return Math.max(0, ...paths);
+    if (wall ? Date.now() - began >= ms : clock.time - start.time >= ms || !clock.jobs) return Math.max(0, ...Object.values(paths));
   }
 }
 
