@@ -24,25 +24,37 @@ function frameOf(page) {
   return runButton(page, RUN).locator("xpath=ancestor::div[.//img[contains(@src, 'snail-post')]][1]");
 }
 
-// Where every canvas in the world that is drawn stands, by a name each is
-// given the first time it is seen: a canvas that shows or hides (a
-// letter a snail carries) moves no other in the list.
+// Where every walker in the world that is drawn stands, by a name each is
+// given the first time it is seen: a walker that shows or hides (a
+// letter a snail carries) moves no other in the list. A walker is a
+// canvas, or the clip it is drawn in: a pose's sheet (LjosPlay/Sheet.qml)
+// is one canvas of all its frames, moved a cell under its clip for each
+// frame it shows, and the clip is where the snail stands.
 // Measured from the world, so that the page scrolling moves none of them.
 function places(page) {
   return page.evaluate(() => {
     const canvases = [...document.querySelectorAll("#app canvas.qq-canvas")];
-    const at = (canvas) => canvas.getBoundingClientRect();
+    const at = (element) => element.getBoundingClientRect();
     let world = canvases[0]?.parentElement;
     while (world && !canvases.every((canvas) => world.contains(canvas))) world = world.parentElement;
+    // The nearest clip round a canvas, short of the world: a sheet's.
+    const clipped = (canvas) => {
+      for (let clip = canvas.parentElement; clip && clip !== world; clip = clip.parentElement) if (getComputedStyle(clip).overflow !== "visible") return clip;
+      return canvas;
+    };
     const origin = world ? at(world) : { x: 0, y: 0 };
     const shown = {};
     for (const canvas of canvases) {
       canvas.dataset.walker ??= String((window.__walkers = (window.__walkers ?? 0) + 1));
-      const box = at(canvas);
+      const walker = clipped(canvas);
+      const box = at(walker);
       if (box.width === 0 || box.height === 0) continue;
-      shown[canvas.dataset.walker] = [box.x - origin.x, box.y - origin.y];
+      // The page's pixels to one of the walker's own, as the world and
+      // the frame scale it.
+      const scale = walker.offsetWidth > 0 ? box.width / walker.offsetWidth : 1;
+      shown[canvas.dataset.walker] = [box.x - origin.x, box.y - origin.y, scale];
     }
-    return shown;
+    return { at: performance.now(), shown };
   });
 }
 
@@ -56,18 +68,20 @@ async function awayFrom(page) {
   }, "the world is scrolled off screen").toPass();
 }
 
-// Farther than a walker goes between two readings (a few frames: a few
-// steps of 2 px, at the scale the frame draws the world): a canvas put
-// somewhere else, which is not walking. A pose's sheet (LjosPlay/Sheet.qml)
-// is one canvas of all its frames, moved a cell (18 px) under its clip for
-// each frame it shows; a snail that naps nods, and would walk as far.
-const JUMP = 12;
+// How far a walker can go in `ms`, in the page's pixels at its `scale`:
+// LjosPlay's actors walk at most 50 of their own pixels a second
+// (LjosPlay/Actor.qml's `speed`, which Snail Post only lowers), and a
+// step's rounding on top. A move farther than that is a walker put
+// somewhere else, which is not walking. Bound by the time between the two
+// readings, not their frames, so that a loaded page, which reads less
+// often, has its walkers' longer moves between readings counted.
+const reach = (ms, scale) => ((ms * 50) / 1000 + 4) * scale;
 
 // How far the farthest walker went while the scene's clock gave `ms`, or,
 // with `wall`, while `ms` went by on the test's own clock: the path of each
-// canvas, read every few frames, summed. A walker stops at its goal, so the
-// farthest of them says how fast they walk. A move farther than `JUMP` is
-// left out, and counted in `seen.jumps`.
+// walker, read every few frames, summed. A walker stops at its goal, so the
+// farthest of them says how fast they walk. A move farther than its
+// `reach` is left out, and counted in `seen.jumps`.
 async function walked(page, ms, { wall = false, seen = {} } = {}) {
   const start = await clockOf(page);
   const began = Date.now();
@@ -77,10 +91,11 @@ async function walked(page, ms, { wall = false, seen = {} } = {}) {
   for (;;) {
     await animationFrames(page, 3);
     const now = await places(page);
-    for (const [name, [x, y]] of Object.entries(now)) {
-      if (!last[name]) continue;
-      const moved = Math.abs(x - last[name][0]) + Math.abs(y - last[name][1]);
-      if (moved > JUMP) seen.jumps++;
+    for (const [name, [x, y, scale]] of Object.entries(now.shown)) {
+      const before = last.shown[name];
+      if (!before) continue;
+      const moved = Math.abs(x - before[0]) + Math.abs(y - before[1]);
+      if (moved > reach(now.at - last.at, scale)) seen.jumps++;
       else paths[name] = (paths[name] ?? 0) + moved;
     }
     last = now;
@@ -152,9 +167,9 @@ test.describe("Snail Post on /showcase/", () => {
 
     await awayFrom(page);
     await animationFrames(page, 10);
-    const away = await places(page);
+    const away = (await places(page)).shown;
     await page.waitForTimeout(1500);
-    expect(await places(page), "nothing walks out of sight").toEqual(away);
+    expect((await places(page)).shown, "nothing walks out of sight").toEqual(away);
 
     await centre(page.locator("#app canvas.qq-canvas").first());
     expect(await walked(page, 1000), "it walks again in sight").toBeGreaterThan(4);
@@ -165,9 +180,9 @@ test.describe("Snail Post on /showcase/", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await animationFrames(page, 5);
-    const hidden = await places(page);
+    const hidden = (await places(page)).shown;
     await page.waitForTimeout(1500);
-    expect(await places(page), "nothing walks in a hidden tab").toEqual(hidden);
+    expect((await places(page)).shown, "nothing walks in a hidden tab").toEqual(hidden);
     await page.evaluate(() => {
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
       Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
