@@ -5,6 +5,7 @@ import Site
 import Demos
 import "../Showcase/example-live.js" as Example
 import "../Showcase/logic/world.ts" as World
+import "../Showcase/products.ts" as Products
 
 // The engine an app is built on, as its entry in Showcase/products.json
 // names it (ShowcaseApp hands its fields in): a line that says so and
@@ -30,7 +31,7 @@ Column {
     required property string about
     required property string path
     required property unknown snippets
-    required property unknown capture
+    required property Products.Capture capture
     // The example's name where it runs in the page (Showcase/later.js),
     // and what it is called, for its controls' names: "Run Snail Post".
     property string live: ""
@@ -46,7 +47,7 @@ Column {
     // of it, and the world that made, as the frame's host gives it.
     readonly property string entry: "Main.qml"
     property bool editing: false
-    property unknown file: null
+    property unknown file: undefined
     property string edit: ""
     property unknown made: undefined
     property string said: ""
@@ -54,16 +55,22 @@ Column {
     // The text last given to the editor by the page, so the editor saying
     // it back is not taken for an edit.
     property string own: ""
-    readonly property bool changed: section.file !== null && section.edit !== "" && section.edit !== section.code
+    readonly property bool changed: section.file !== undefined && section.edit !== "" && section.edit !== section.code
     readonly property string code: World.codeOf(section.file)
     // The compiler's squiggles on the reader's text.
     property unknown diagnostics: []
     // Writing the editor's text (a Reset): to whichever editor is open.
     signal retyped(string text)
 
+    // Bound here, not in the inline component that calls it: Ljós on the
+    // desktop has no `bind` in an inline component's scope yet.
+    function follow(item: unknown, name: string, value: () => unknown): void {
+        item[name] = bind(value);
+    }
+
     function openEditor(): void {
         section.editing = !section.editing;
-        if (!section.editing || section.file !== null)
+        if (!section.editing || section.file !== undefined)
             return;
         Example.load(section.live).then((project) => {
             section.file = World.fileIn(project, section.entry);
@@ -78,7 +85,7 @@ Column {
         });
     }
     function edited(text: string): void {
-        if (text === section.own || section.file === null)
+        if (text === section.own || section.file === undefined)
             return;
         section.own = text;
         section.edit = text === section.code ? "" : text;
@@ -104,17 +111,8 @@ Column {
             if (asked !== section.edit)
                 return;
             section.said = World.messageOf(error);
-            section.diagnostics = World.diagnosticsOf(error, section.entry);
+            section.diagnostics = Example.diagnosticsOf(error, section.entry);
         });
-    }
-    // The world follows its frame and the reader's edits. Bound as
-    // DemoFrame binds its demo's: a Binding would be on every visit's first
-    // load (tests/payload.spec.js). Written here, not in the component it
-    // is for, where `bind` would be read as a model's role first.
-    function follow(world: unknown, host: unknown): void {
-        world.active = bind(() => host.active);
-        world.calm = bind(() => host.calm);
-        world.live = bind(() => section.made);
     }
     function reset(): void {
         debounce.stop();
@@ -195,7 +193,7 @@ Column {
                 width: parent.width
                 active: section.editing && section.wide
                 visible: active
-                sourceComponent: editorView
+                component: editorView
             }
             Repeater {
                 model: section.editing && section.wide ? [] : section.snippets
@@ -250,15 +248,17 @@ Column {
                 width: parent.width
                 scroller: section.scroller
                 route: section.route
-                aspect: World.aspectOf(section.capture)
-                picture: "/showcase/media/" + World.nameOf(section.capture) + ".png"
-                description: World.altOf(section.capture)
+                aspect: section.capture.height / section.capture.width
+                picture: "/showcase/media/" + section.capture.name + ".png"
+                description: section.capture.alt
                 what: section.what
-                demo: section.live !== "" ? running : null
+                // Showcase/later.native.js gives it on the desktop.
+                desktop: true
+                demo: running
             }
             Text {
                 width: parent.width
-                text: World.showsOf(section.capture)
+                text: section.capture.shows
                 color: Theme.text
                 font.family: Theme.sans
                 font.size: Theme.bodySize
@@ -285,7 +285,7 @@ Column {
         width: parent.width
         active: section.editing && !section.wide
         visible: active
-        sourceComponent: editorView
+        component: editorView
     }
 
     Component {
@@ -297,7 +297,7 @@ Column {
 
             Connections {
                 target: section
-                function onRetyped(text) {
+                function onRetyped(text: string): void {
                     editor.text = text;
                 }
             }
@@ -316,14 +316,14 @@ Column {
                     spacing: Theme.m
 
                     Text {
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Align.VCenter
                         text: section.path
                         color: Theme.muted
                         font.family: Theme.mono
                         font.size: Theme.captionSize
                     }
                     StageButton {
-                        anchors.verticalCenter: parent.verticalCenter
+                        Layout.alignment: Align.VCenter
                         visible: section.changed
                         text: t`Reset`
                         label: t`Reset ${section.what} to its file`
@@ -391,7 +391,14 @@ Column {
                 id: app
                 anchors.fill: parent
                 module: Example.app(section.live)
-                onLoaded: section.follow(app.item, host)
+                // The world follows its frame and the reader's edits, bound
+                // as DemoFrame binds its demo's: a Binding would be on every
+                // visit's first load (tests/payload.spec.js).
+                onLoaded: {
+                    section.follow(item, "active", () => host.active);
+                    section.follow(item, "calm", () => host.calm);
+                    section.follow(item, "live", () => section.made);
+                }
             }
         }
     }

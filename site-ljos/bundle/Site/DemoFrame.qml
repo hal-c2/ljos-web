@@ -48,6 +48,10 @@ Item {
     // False for a demo offered only where WebAssembly is, that compiles
     // none of its own: a page's policy on compiling takes nothing from it.
     property bool compiles: true
+    // True for a demo with a desktop copy of its own (an `X.native.js`
+    // beside the module that loads it), which runs where the site runs on
+    // the desktop too; there it needs nothing a browser has.
+    property bool desktop: false
     // The flickable the page scrolls in, so the frame knows when it is
     // near the screen and when it is on it.
     property var scroller: null
@@ -90,8 +94,9 @@ Item {
             Nav.wasmRuns().then((runs) => frame.wasmFound = runs ? 1 : -1);
     }
     onNeedsChanged: frame.askWasm()
-    readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1 && wasm === 1
-    readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1 || wasm === -1)
+    readonly property bool runsHere: Nav.canRun(needs) || (desktop && needs === "" && Nav.onDesktop())
+    readonly property bool runnable: awake && runsHere && adapter === 1 && wasm === 1
+    readonly property bool cannot: awake && (!runsHere || adapter === -1 || wasm === -1)
 
     function offset() {
         var y = 0;

@@ -69,3 +69,10 @@ function app(name) {
 function needsWasm() {
     return Live.needsWasm();
 }
+
+// What the compiler said of `path` in an error `compile` gave, for the
+// editor's squiggles.
+function diagnosticsOf(error, path) {
+    const said = error && error.diagnostics;
+    return (said && said[path]) || [];
+}
