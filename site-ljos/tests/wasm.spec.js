@@ -229,7 +229,15 @@ for (const path of PAGES) {
       expect(readOff.words, "the same words").toEqual(readOn.words);
       expect(readOff.tree, "the same elements").toBe(readOn.tree);
       const above = Math.min(await firstBlockAt(on.page), await firstBlockAt(off.page));
-      expect(await differing(on.page, await shot(on.page, above), await shot(off.page, above)), "the same picture").toEqual({ count: 0 });
+      const [pictureOn, pictureOff] = [await shot(on.page, above), await shot(off.page, above)];
+      const picture = await differing(on.page, pictureOn, pictureOff);
+      // Pictures that differ go with the failure, so who reads it sees
+      // what differed, not only where.
+      if (picture.count !== 0) {
+        await test.info().attach("with WebAssembly", { body: pictureOn, contentType: "image/png" });
+        await test.info().attach("without it", { body: pictureOff, contentType: "image/png" });
+      }
+      expect(picture, "the same picture").toEqual({ count: 0 });
 
       if (live) {
         // Both are the build's picture until the reader reaches for a
