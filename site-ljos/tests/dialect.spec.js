@@ -32,33 +32,30 @@ const files = roots
 const firstLoad = "on every page's first load, where Ljos.Ui and Ljos.Layout add about 23 kB gzip to a docs page; it moves over on its own";
 // A copy of hal-c2/ljos-ui's examples, pinned to the commit it names
 // (pro.spec.js): it changes there and comes over by scripts/sync-demo.mjs.
+// A Qt type the chrome still names, which Ljos.Ui gains in ljos-ui.
+const coming = "in ljos-ui PR launch-dialect2-ui, reaches ljos-web with the crates pin bump";
 const synced = "a copy of hal-c2/ljos-ui's examples: it moves there";
 
 const site = (names, reason) => Object.fromEntries(names.map((name) => [`site-ljos/bundle/${name}.qml`, reason]));
 
 // Files that import QtQuick itself, and why.
 const qtQuick = {
-  ...site(["Main", "Shells/Elegant"], firstLoad),
-  ...site(
-    [
-      "Brand", "CodeBlock", "CodeEditor", "ControlsHost", "DemoFrame", "DemoSection", "DemosPage", "DocPage", "DocsMap", "Footer",
-      "GitHubMark", "Heading", "IconButton", "LanguageSwitcher", "LinkButton", "MenuButton", "MotionToggle", "NavLink", "ObserverButton", "ObserverDock",
-      "PageSource", "PageTree", "PageView", "Preferences", "ProDemoPage", "ReplayFrame", "Rise", "Router", "Runner", "Running",
-      "Search", "SearchResults", "ShellSwitcher", "StageButton", "ThemeToggle", "Toc",
-    ].map((name) => `Site/${name}`),
-    firstLoad,
-  ),
-  ...site(["Site/Theme"], `${firstLoad}; and Ljos.Ui has no MotionPreference to compare styleHints.accessibility.motionPreference with`),
+  ...site(["Site/MotionToggle"], firstLoad),
+  // By name only (`import QtQuick as Q`), for the one Qt type each still
+  // sets or makes.
+  ...site(["Main"], `needs LayoutMirroring: ${coming}`),
+  ...site(["Site/CodeBlock"], `needs LayoutMirroring and WindowContainer: ${coming}`),
+  ...site(["Site/Theme"], `needs MotionPreference: ${coming}`),
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
   ...site(["Demos/Orbit"], "Ljos.Ui has no FrameAnimation"),
   ...site(["Demos/Lottie"], "Ljos.Ui has no Item.TopLeft for the transformOrigin its avatars scale about"),
-  ...site(["Shells/Cyberpunk"], "Ljos.Ui has no FrameAnimation or LayoutMirroring"),
+  ...site(["Shells/Cyberpunk"], `needs FrameAnimation: ${coming}`),
   // A right-to-left page reads LayoutMirroring.enabled to set from the
   // right what these place from the left; Ljos.Ui has no LayoutMirroring.
   ...site(
     [
-      "Demos/AgentLogRow", "Demos/AgentView", "Demos/DispatchCard", "Demos/FieldGuide", "Demos/WatchDemo", "Shells/Desktop", "Shells/Workbench",
+      "Demos/AgentLogRow", "Demos/AgentView", "Demos/DispatchCard", "Demos/FieldGuide", "Demos/WatchDemo",
     ],
     "Ljos.Ui has no LayoutMirroring",
   ),
@@ -78,7 +75,7 @@ const qtQuick = {
   // What the build writes (Content, ShowcaseApps, DispatchSource, PantryProject)
   // is not in a checkout until it runs, and CI's ljos check runs before it: these
   // read those singletons by name for the typed files that use them.
-  ...site(["Site/Built", "Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
+  ...site(["Demos/DispatchBuilt", "Demos/PantryBuilt"], "they read singletons the build writes, which a checkout has not got when ljos check runs"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
   // A visitor's edit to it is compiled in the page and run by
