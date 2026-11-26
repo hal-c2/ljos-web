@@ -268,6 +268,28 @@ test.describe("Snail Post on /showcase/", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
+  // An edit is compiled as a project of the example's files alone, at a
+  // root of its own, as a live code block's is (live.js): a file it names
+  // and does not have is said, never asked of the site.
+  test("an edit reaches only its own project's files", async ({ page, errors, wasm }) => {
+    test.skip(!wasm, "without WebAssembly no edit is compiled");
+    const asked = [];
+    page.on("request", (request) => {
+      if (/outside\.png/.test(request.url())) asked.push(request.url());
+    });
+    await started(page);
+    await press(page.getByRole("button", { name: "Edit Snail Post" }));
+    const code = page.getByRole("textbox", { name: /^Edit .*\bMain\.qml of Snail Post$/ });
+    await expect(code).toContainText("seed: 41", { timeout: 30_000 });
+    await press(code);
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.insertText(MAIN.replace(LAWN.file, EDITED.file).replace("    id: post\n", '    id: post\n    Image { source: "../outside.png" }\n'));
+    await expect(page.locator(`#app div[style*="${EDITED.drawn}"]`).first(), "the edit runs").toBeAttached({ timeout: 30_000 });
+    await expect(page.locator("#app").getByText(/outside\.png: No such file or directory/).first(), "what it named and does not have").toBeVisible({ timeout: 30_000 });
+    expect(asked, "nothing outside its project is asked for").toEqual([]);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   test("says why when its file cannot be fetched", async ({ page }) => {
     await started(page);
     await page.route(/\/snail-post-project-[\w-]+\.js$/, (route) => route.abort());
