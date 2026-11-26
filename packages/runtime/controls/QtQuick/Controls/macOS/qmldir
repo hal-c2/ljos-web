@@ -1,0 +1,4 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module QtQuick.Controls.macOS
+Button 6.0 Button.qml
+import QtQuick.Controls.Basic auto

@@ -117,11 +117,13 @@ impl<'p> Types<'p> {
 }
 
 pub(crate) fn qt_property(property: &'static qt_types::Property) -> Property {
+    // Qt's table and Ljós's own each name the classes their way.
+    use qt_types::class;
     Property {
         is_component: property.is_component,
-        is_url: property.type_name == "QUrl" && !property.is_list,
-        is_text: property.type_name == "QString" && !property.is_list,
-        is_script: property.type_name == "QQmlScriptString" && property.name == "script",
+        is_url: class::URL.contains(&property.type_name) && !property.is_list,
+        is_text: class::STRING.contains(&property.type_name) && !property.is_list,
+        is_script: property.is_script,
         takes_key: !property.is_list
             && (property.type_name == "int"
                 || qt_types::is_enum_name(
@@ -133,6 +135,7 @@ pub(crate) fn qt_property(property: &'static qt_types::Property) -> Property {
                 )),
         is_list: property.is_list,
         is_readonly: property.is_readonly,
+        is_final: property.is_final,
         value: property.value_type().map(QtType),
     }
 }
@@ -148,6 +151,7 @@ pub(crate) fn no_property() -> Property {
         takes_key: false,
         is_list: false,
         is_readonly: false,
+        is_final: false,
         value: None,
     }
 }
