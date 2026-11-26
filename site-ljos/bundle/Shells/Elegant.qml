@@ -1,4 +1,5 @@
-import QtQuick
+pragma Scripts: JavaScript; import Ljos.Ui
+import Ljos.Layout
 import Ljos.Core
 import Ljos.Blocks
 
@@ -40,7 +41,7 @@ Rectangle {
 
     // The colours the site draws in, for this shell's own lines: none of
     // its own before it is given the site.
-    QtObject {
+    Object {
         id: look
         readonly property color canvas: shell.site ? shell.site.theme.canvas : "transparent"
         readonly property color divider: shell.site ? shell.site.theme.divider : "transparent"
@@ -48,7 +49,7 @@ Rectangle {
 
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
-    color: look.canvas
+    fill: look.canvas
 
     // The header. Each part of the shell is a landmark, so a reader goes
     // to the page, the docs or the menu as a sighted one looks.
@@ -57,7 +58,7 @@ Rectangle {
         z: 3
         width: parent.width
         height: 64
-        color: look.canvas
+        fill: look.canvas
         Accessible.role: Accessible.Section
         Accessible.name: "Ljós"
 
@@ -65,7 +66,7 @@ Rectangle {
             y: parent.height - 1
             width: parent.width
             height: 1
-            color: look.divider
+            fill: look.divider
         }
         // The brand and the sections, each on the header's middle line:
         // the row is the header's height so each part centres on it,
@@ -74,17 +75,17 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: shell.inset
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             height: header.height
             spacing: 32
 
             Row {
-                y: Math.round((header.height - height) / 2)
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.brand" }
             }
             Row {
                 visible: shell.wide
-                y: Math.round((header.height - height) / 2)
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.nav" }
             }
         }
@@ -92,7 +93,7 @@ Rectangle {
             // Where it starts, read from the left; a right-to-left page
             // sets it as far from the right (LayoutMirroring).
             readonly property real startX: parent.width - width - (shell.wide ? shell.inset : shell.gutter - 8)
-            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
 
@@ -104,23 +105,23 @@ Rectangle {
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.github" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.switcher" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.preferences" }
             }
             // A phone's one control: the menu.
             Row {
                 visible: !shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Align.VCenter
                 Slot { name: "site.menu" }
             }
         }
@@ -136,14 +137,14 @@ Rectangle {
         y: header.height
         width: 264
         // Beside the page, it changes sides with it on a right-to-left page.
-        x: LayoutMirroring.enabled ? parent.width - width : 0
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
         height: parent.height - y
         // Made where it shows: a narrow page would carry the docs' whole
         // list, hidden, in its first load.
         Loader {
             anchors.fill: parent
             active: shell.sidebarShown
-            sourceComponent: Component {
+            component: Component {
                 Item {
                     Slot { name: "site.sidebar" }
                 }
@@ -155,11 +156,11 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: sidebar.width
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: header.height
         width: 1
         height: parent.height - y
-        color: look.divider
+        fill: look.divider
     }
 
     // The page itself, the footer under it.
@@ -171,7 +172,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: shell.sidebarShown ? sidebar.width + 1 : 0
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: header.height
         width: parent.width - startX - (shell.tocShown ? toc.width : 0)
         height: parent.height - y
@@ -188,7 +189,7 @@ Rectangle {
         // Where it starts, read from the left; a right-to-left page
         // sets it as far from the right (LayoutMirroring).
         readonly property real startX: parent.width - width
-        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
         y: header.height
         width: 224
         height: parent.height - y
@@ -208,7 +209,7 @@ Rectangle {
         height: parent.height - header.height
         visible: !shell.wide && (shell.menuOpen || opacity > 0)
         opacity: shell.menuOpen ? 1 : 0
-        color: look.canvas
+        fill: look.canvas
         Behavior on opacity {
             NumberAnimation {
                 duration: shell.menuOpen ? 250 : 100
@@ -228,7 +229,7 @@ Rectangle {
         Loader {
             anchors.fill: parent
             active: shell.menuOpen || menu.opacity > 0
-            sourceComponent: Component {
+            component: Component {
                 Flickable {
                     anchors.fill: parent
                     contentWidth: width
@@ -240,7 +241,7 @@ Rectangle {
                         // Where it starts, read from the left; a right-to-left page
                         // sets it as far from the right (LayoutMirroring).
                         readonly property real startX: shell.gutter
-                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+                        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width - startX : startX
                         y: 24
                         width: parent.width - 2 * shell.gutter
                         spacing: 24
@@ -271,7 +272,7 @@ Rectangle {
                         Rectangle {
                             width: parent.width
                             height: 1
-                            color: look.divider
+                            fill: look.divider
                         }
                         Column {
                             width: parent.width
