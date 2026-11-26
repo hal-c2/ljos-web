@@ -19,7 +19,7 @@ Feature: The site shows what is built with Ljós
     Then a section "Built with Ljós" has a card each for Ljós Studio, Eldur, Ljós Hof and HAL-C2
     And each card's title links to its repository
     And each card has a capture of it running, as WebP with a PNG for a browser without, sized and fetched lazily
-    And the section links to the showcase
+    And the section links to the showcase, naming what it has of each, HAL-C2 too
 
   Scenario Outline: A capture is the reader's scheme's, where the program has one for each
     Given a reader whose browser prefers <scheme>
