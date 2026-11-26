@@ -169,6 +169,12 @@ test.describe("Snail Post on /showcase/", () => {
       await page.waitForTimeout(1500);
       await expect(lawn(LAWN.drawn).first(), "the world as it was").toBeAttached();
       expect(await walked(page, 1500), "and it goes on").toBeGreaterThan(4);
+      // Reset takes the reader's text back, not the reason.
+      await press(page.getByRole("button", { name: "Reset Snail Post to its file" }));
+      await press(code);
+      await page.keyboard.press("ControlOrMeta+End");
+      await page.keyboard.insertText("\n");
+      await expect(page.locator("#app").getByText(NEEDS_WASM).first(), "still why, after Reset").toBeVisible();
       expect(unexpected(errors)).toEqual([]);
       return;
     }
@@ -186,12 +192,28 @@ test.describe("Snail Post on /showcase/", () => {
     await expect(lawn(EDITED.drawn).first(), "the last world stays").toBeAttached();
     expect(await walked(page, 1500), "and goes on").toBeGreaterThan(4);
 
+    // No text at all is an edit too: said, with the last world going on.
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Delete");
+    await expect(page.locator(".cm-editor .cm-content"), "the file is emptied").toHaveText("");
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole("button", { name: "Reset Snail Post to its file" }), "an emptied file is a change").toBeVisible();
+    await expect(lawn(EDITED.drawn).first(), "the last world stays when emptied").toBeAttached();
+
     await press(page.getByRole("button", { name: "Reset Snail Post to its file" }));
     await expect(lawn(LAWN.drawn).first(), "Reset gives the file's world back").toBeAttached({ timeout: 30_000 });
     // CodeMirror holds only the lines in sight: what Reset wrote back is
     // read as the page reads it, as nothing changed.
     await expect(page.getByRole("button", { name: "Reset Snail Post to its file" }), "nothing is changed now").toBeHidden();
     expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("says why when its file cannot be fetched", async ({ page }) => {
+    await started(page);
+    await page.route(/\/snail-post-project-[\w-]+\.js$/, (route) => route.abort());
+    await press(page.getByRole("button", { name: "Edit Snail Post" }));
+    await expect(page.locator("#app").getByText(/dynamically imported module/i).first(), "what went wrong").toBeVisible({ timeout: 30_000 });
+    expect(await walked(page, 1500), "the world goes on").toBeGreaterThan(4);
   });
 
   test.describe("under reduced motion", () => {

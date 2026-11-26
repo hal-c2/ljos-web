@@ -49,13 +49,20 @@ Column {
     property bool editing: false
     property unknown file: undefined
     property string edit: ""
+    // The reader changed the file: the edit is theirs, whatever it is,
+    // an empty one too.
+    property bool touched: false
     property unknown made: undefined
     property string said: ""
     property bool compiles: true
+    // Why an edit cannot run here (no WebAssembly), said apart from what
+    // went wrong with an edit, so a Reset leaves it.
+    property string why: ""
+    readonly property string notice: [section.why, section.said].filter((line) => line !== "").join("\n")
     // The text last given to the editor by the page, so the editor saying
     // it back is not taken for an edit.
     property string own: ""
-    readonly property bool changed: section.file !== undefined && section.edit !== "" && section.edit !== section.code
+    readonly property bool changed: section.file !== undefined && section.touched
     readonly property string code: World.codeOf(section.file)
     // The compiler's squiggles on the reader's text.
     property unknown diagnostics: []
@@ -76,11 +83,13 @@ Column {
             section.file = World.fileIn(project, section.entry);
             section.own = section.code;
             section.retyped(section.code);
+        }, (error) => {
+            section.said = World.messageOf(error);
         });
         Example.needsWasm().then((why) => {
             if (why !== "") {
                 section.compiles = false;
-                section.said = why;
+                section.why = why;
             }
         });
     }
@@ -88,27 +97,28 @@ Column {
         if (text === section.own || section.file === undefined)
             return;
         section.own = text;
-        section.edit = text === section.code ? "" : text;
+        section.edit = text;
+        section.touched = text !== section.code;
         debounce.restart();
     }
     function apply(): void {
         if (!section.compiles)
             return;
         const asked = section.edit;
-        if (asked === "") {
+        if (!section.touched) {
             section.made = undefined;
             section.said = "";
             section.diagnostics = [];
             return;
         }
         Example.compile(section.live, section.entry, World.edits(section.entry, asked)).then((made) => {
-            if (asked !== section.edit)
+            if (!section.touched || asked !== section.edit)
                 return;
             section.said = "";
             section.made = made;
             section.diagnostics = [];
         }, (error) => {
-            if (asked !== section.edit)
+            if (!section.touched || asked !== section.edit)
                 return;
             section.said = World.messageOf(error);
             section.diagnostics = Example.diagnosticsOf(error, section.entry);
@@ -117,6 +127,7 @@ Column {
     function reset(): void {
         debounce.stop();
         section.edit = "";
+        section.touched = false;
         section.made = undefined;
         section.said = "";
         section.own = section.code;
@@ -360,15 +371,15 @@ Column {
                         onTextChanged: section.edited(text)
                         // Made again in the other place (the window turned): as
                         // the reader left it.
-                        Component.onCompleted: if (section.edit !== "") text = section.edit
+                        Component.onCompleted: if (section.touched) text = section.edit
                     }
                 }
             }
             Text {
                 id: told
-                visible: section.said !== ""
+                visible: section.notice !== ""
                 width: parent.width
-                text: section.said
+                text: section.notice
                 color: Theme.danger
                 font.family: Theme.mono
                 font.size: Theme.captionSize
