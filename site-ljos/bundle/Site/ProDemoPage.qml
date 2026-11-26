@@ -64,6 +64,9 @@ Column {
         runs = true;
         own = "";
         path = page.demo.entry;
+        // A new demo comes in at its own entry file on Tab, not at the
+        // place the keyboard had in the last one.
+        fileTabs.stop = -1;
         Live.load(name).then((project) => {
             if (page.demo.name !== name)
                 return;
@@ -286,6 +289,18 @@ Column {
                     border.width: activeFocus ? 2 : 1
                     activeFocusOnTab: index === fileTabs.stopAt
                     onActiveFocusChanged: if (activeFocus) fileTabs.stop = index
+                    // A file chosen by pointer takes the stop too, so Tab comes
+                    // back to the open file and not to one the keyboard left;
+                    // and the keyboard with it while it is in the row, as the
+                    // tab it was on is no stop now.
+                    onChosenChanged: {
+                        if (!chosen)
+                            return;
+                        const had = fileTabs.itemAt(fileTabs.stopAt);
+                        fileTabs.stop = index;
+                        if (had && had !== tab && had.activeFocus)
+                            tab.forceActiveFocus(Qt.OtherFocusReason);
+                    }
                     Accessible.role: Accessible.PageTab
                     Accessible.name: modelData + (changed ? ", changed" : "")
                     Accessible.selected: chosen
