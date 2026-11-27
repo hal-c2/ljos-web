@@ -2968,6 +2968,29 @@ test("the arrows go along Desktop's menu bar", async ({ browser }) => {
   }
 });
 
+// With a menu of Desktop's bar open, the pointer resting on another
+// title opens that one's menu instead, as a desktop's menu bar does:
+// the bar hears which menu opened (a Popup's `opened`).
+test("an open menu of Desktop's bar follows the pointer to another title", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    const warned = [];
+    page.on("console", (message) => /Connections/.test(message.text()) && warned.push(message.text()));
+    await open(page, "/start/first-app/");
+    const bar = page.getByRole("menubar", { name: "Menu bar", exact: true });
+    await press(bar.getByRole("menuitem", { name: "File", exact: true }));
+    const openDemos = page.getByRole("menuitem", { name: "Open demos", exact: true }).filter({ visible: true });
+    await expect(openDemos).toBeVisible();
+    await bar.getByRole("menuitem", { name: "Help", exact: true }).hover();
+    await expect(page.getByRole("menuitem", { name: "About ljos.dev", exact: true }).filter({ visible: true }), "Help's menu opens").toBeVisible();
+    await expect(openDemos, "and File's shuts").toBeHidden();
+    expect(warned, "every Connections of the bar finds its signal").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("Desktop's toolbar says what each button does, and its status bar what runs", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop" });
   try {

@@ -275,3 +275,20 @@ test("a Connections whose target binding is moved in a script does not hear the 
   await open(page, "connectionflush");
   expect(await page.evaluate(() => window.scene.rebindThenChange())).toEqual([]);
 });
+
+// A type keeps the signal of a name that is a property too apart from the
+// property (`$opened`, `$pressed`): a Connections' handler of that name is
+// the signal's all the same, as an `onOpened:` on the object is.
+test("a Connections hears a signal that has a property's name: opened, pressed", async ({ page }) => {
+  await open(page, "connectionkept");
+  const heard = () => page.evaluate(() => window.scene.heard.splice(0));
+  await page.evaluate(() => window.scene.openPopup());
+  await expect.poll(heard).toEqual(["popup opened true"]);
+  const box = await page.evaluate(() => {
+    const { x, y } = window.scene.$node.getBoundingClientRect();
+    return { x, y };
+  });
+  await page.mouse.click(box.x + 50, box.y + 50);
+  await page.mouse.click(box.x + 250, box.y + 50);
+  await expect.poll(heard).toEqual(["area pressed true", "button pressed true"]);
+});

@@ -3037,6 +3037,18 @@ function first(self: QObject, name: string, key: string, value: unknown, firsts:
 // change is the listener's own, and is. `signalled` is what settles
 // nothing, so a listener can tell the two apart.
 export const signalled = (): void => {};
+
+// The signal `name` of `target`. One whose name is a property's too (a
+// Popup's `opened`, a MouseArea's `pressed`) is kept apart from it, as
+// `$name`.
+export function signalOf(target: QObject, name: string): Signal | undefined {
+  const object = dynamic(target);
+  for (const emitted of [object[name], object[`$${name}`]] as (Partial<Signal> | null | undefined)[]) {
+    if (typeof emitted?.connect === "function" && typeof emitted.disconnect === "function") return emitted as Signal;
+  }
+  return undefined;
+}
+
 export function connect(target: QObject, name: string, listener: Handler): () => void {
   const property = /^(\w+)Changed$/.exec(name)?.[1];
   // A list the type computes (`children`) has a change signal, which it
@@ -3044,8 +3056,8 @@ export function connect(target: QObject, name: string, listener: Handler): () =>
   // listening in the flush would not hear it. Heard as its own change, it
   // can be told it as it stops.
   if (property && computed(target, property)) return onChange(target, property, listener);
-  const emitted = dynamic(target)[name] as Signal | null | undefined;
-  if (typeof emitted?.connect === "function") {
+  const emitted = signalOf(target, name);
+  if (emitted) {
     emitted.connect(listener);
     onCleanup(() => emitted.disconnect(listener));
     return signalled;
