@@ -238,14 +238,16 @@ function follow(window: FocusWindow, reason: number): void {
     // A text box's own field is what a reader types in: it takes the
     // page's focus itself as its item gains the keys.
     if ((item as { $input?: unknown }).$input || node.querySelector("input.qq-edit, textarea.qq-edit")) return;
-    // The style draws focus as it wants to (`visualFocus`): the browser's
-    // outline would be a second ring.
+    // A control's style draws focus as it wants to (`visualFocus`): the
+    // browser's outline would be a second ring. Any other item draws
+    // nothing of its own, and the browser's ring is all a reader who can
+    // see has of where they are.
     if (!ringless) {
       ringless = true;
-      rules("[data-qq-focus]:focus { outline: none; }");
+      rules('[data-qq-focus="styled"]:focus { outline: none; }');
     }
     if (!node.hasAttribute("tabindex")) node.tabIndex = -1;
-    node.dataset.qqFocus = "";
+    node.dataset.qqFocus = "visualFocus" in (item as object) ? "styled" : "";
     node.focus({ preventScroll: true });
   });
 }

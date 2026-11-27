@@ -36,12 +36,18 @@ test("Tab and Shift+Tab move the page's focus to the stop they reach", async ({ 
   expect(await page.evaluate(() => window.objects.two.activeFocus)).toBe(true);
 });
 
-test("the keys still reach the item, and the browser draws no ring of its own", async ({ page }) => {
+test("the keys still reach the item, and the browser rings only what draws no focus of its own", async ({ page }) => {
   await open(page, "tabdom");
+  // An item that is no control shows nothing of its own as it has focus:
+  // the browser's ring is all a reader who can see has of where they are.
+  await page.keyboard.press("Shift+Tab");
+  expect(await focused(page)).toEqual({ owner: "link", tag: "A" });
+  await expect(page.locator(":focus")).toHaveRole("link");
+  expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).not.toBe("none");
   await page.keyboard.press("Tab");
   expect(await focused(page)).toEqual({ owner: "one", tag: "DIV" });
-  // The style draws focus as it wants to: the browser's outline on top of
-  // it would be a second ring.
+  // A control's style draws focus as it wants to (`visualFocus`): the
+  // browser's outline on top of it would be a second ring.
   expect(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)).toBe("none");
   await page.evaluate(() => {
     window.clicked = 0;
