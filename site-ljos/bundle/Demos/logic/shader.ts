@@ -63,8 +63,8 @@ void main() {
     float a = SWIRL * near;
     p = m + mat2(cos(a), sin(a), -sin(a), cos(a)) * d;
 
-    // A tap's ripple: a ring that runs out and fades.
-    vec2 q = p - place(tap);
+    // A tap's ripple: a ring that runs out from the pixel tapped, before the vortex moved it, and fades.
+    vec2 q = place(qt_TexCoord0) - place(tap);
     float ring = exp(-pow((length(q) - ripple * 2.2) * 5.0, 2.0)) * exp(-ripple * 1.4);
     p += normalize(q + 1e-4) * ring * 0.6;
 

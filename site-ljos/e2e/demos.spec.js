@@ -181,15 +181,18 @@ test.describe("/demos/", () => {
       });
     // Whether the picture is red at a point of it, as the screen shows it
     // (the canvas's own pixels leave it for the screen and are not kept).
-    const red = async (point) => {
+    const colour = async (point) => {
       const png = await page.screenshot({ clip: { x: point.x, y: point.y, width: 1, height: 1 } });
-      const [r, g, b] = await page.evaluate(async (data) => {
+      return page.evaluate(async (data) => {
         const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
         const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
         const copy = new OffscreenCanvas(1, 1).getContext("2d");
         copy.drawImage(bitmap, 0, 0);
         return [...copy.getImageData(0, 0, 1, 1).data];
       }, png.toString("base64"));
+    };
+    const red = async (point) => {
+      const [r, g, b] = await colour(point);
       return r > 235 && g < 20 && b < 20;
     };
     await expect.poll(async () => (await state()).drawn, { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
@@ -237,8 +240,16 @@ test.describe("/demos/", () => {
     expect(await red(shown), "and what it draws is the red edit, not the shader as written").toBe(true);
 
     await press(slot.getByRole("button", { name: "Reset the shader's source" }));
-    await expect(slot.getByText(/^Not drawn/)).toBeHidden({ timeout: 10_000 });
+    await expect(slot.getByText(/^Did not compile; keeping the last working version:/), "Reset clears the compiler's complaint").toBeHidden({ timeout: 10_000 });
+    const drawnReset = await canvas.evaluate((canvas) => canvas.$effect.$shader.drawn());
+    await expect.poll(() => canvas.evaluate((canvas) => canvas.$effect.$shader.drawn()), { message: "the effect itself draws again" }).toBeGreaterThan(drawnReset + 5);
     await expect.poll(() => red(shown), { message: "Reset draws the shader as written" }).toBe(false);
+    // Not a blank canvas either: its place looks different with it hidden.
+    const drawnColour = await colour(shown);
+    await canvas.evaluate((canvas) => (canvas.style.visibility = "hidden"));
+    const withoutColour = await colour(shown);
+    await canvas.evaluate((canvas) => (canvas.style.visibility = ""));
+    expect(drawnColour, "the picture after Reset is the shader's, not the page behind it").not.toEqual(withoutColour);
     expect(unexpected(errors)).toEqual([]);
   });
 
