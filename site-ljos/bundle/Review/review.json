@@ -1,0 +1,1793 @@
+{
+  "intro": {
+    "placeholder": true,
+    "text": "Placeholder: this review is written by fans, one for each framework. The bias is the point: each one shows what its fans love, then says plainly where it is not as strong."
+  },
+  "app": {
+    "name": "team inbox",
+    "about": "One app, written once in each framework from the same spec: 10 000 issues in a virtualised list, search, a validated edit form, a weekly chart, light and dark, English and Japanese. Every implementation was driven by the same scripted session on the same machine."
+  },
+  "picked": [
+    "ljos",
+    "qt",
+    "slint",
+    "egui"
+  ],
+  "frameworks": [
+    {
+      "id": "ljos",
+      "name": "Ljós",
+      "kind": "native",
+      "language": "Ljós's QML dialect and TypeScript, on Rust",
+      "version": "ljos-ui 33a6bf8",
+      "licence": "MIT",
+      "links": {
+        "site": "https://ljos.dev/",
+        "docs": "https://ljos.dev/start/",
+        "repo": "https://github.com/hal-c2/ljos-ui"
+      },
+      "source": {
+        "root": "ljos-ui:bench/inbox",
+        "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Ljós are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a keyed, virtualised ListView",
+            "file": "IssueList.qml",
+            "lines": "50-71",
+            "lang": "qml",
+            "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`\n\n    onCurrentIndexChanged: {\n        if (view.currentIndex >= 0) {\n            view.positionViewAtIndex(view.currentIndex, ListView.Contain)\n        }\n    }",
+            "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/IssueList.qml#L50-L71"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ljos-web",
+      "name": "Ljós web",
+      "kind": "web",
+      "language": "Ljós's QML dialect and TypeScript, compiled to Solid",
+      "version": "ljos-web e7fa0c3",
+      "licence": "MIT",
+      "links": {
+        "site": "https://ljos.dev/",
+        "docs": "https://github.com/hal-c2/ljos-web/blob/main/docs/LJOS_WEB.md",
+        "repo": "https://github.com/hal-c2/ljos-web"
+      },
+      "source": {
+        "root": "compare:ljos-web/app",
+        "published": "ljos-ui:bench/inbox",
+        "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Ljós web are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "The list: a keyed ListView over slim keys",
+            "file": "IssueList.qml",
+            "lines": "50-71",
+            "lang": "qml",
+            "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`\n\n    onCurrentIndexChanged: {\n        if (view.currentIndex >= 0) {\n            view.positionViewAtIndex(view.currentIndex, ListView.Contain)\n        }\n    }",
+            "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/IssueList.qml#L50-L71"
+          }
+        ]
+      }
+    },
+    {
+      "id": "qt",
+      "name": "Qt Quick",
+      "kind": "native",
+      "language": "QML and C++",
+      "version": "Qt 6.12.0",
+      "licence": "LGPLv3, GPLv3 or commercial",
+      "links": {
+        "site": "https://www.qt.io/",
+        "docs": "https://doc.qt.io/qt-6/qtquick-index.html",
+        "repo": "https://github.com/qt/qtdeclarative"
+      },
+      "source": {
+        "root": "compare:qt"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Qt Quick are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a ListView delegate with required properties and accessibility",
+            "file": "qml/IssueRow.qml",
+            "lines": "5-34",
+            "lang": "qml",
+            "code": "required property int index\nrequired property int issueId\nrequired property string key\nrequired property string title\nrequired property string author\nrequired property string avatar\nrequired property int priority\nrequired property var tags\nrequired property bool starred\nrequired property int comments\nrequired property var updated\n\nreadonly property bool selected: Inbox.currentId === issueId\nwidth: ListView.view.width\nheight: 64\n\n// With reduced motion a removed row fades, then the gap closes at once.\nListView.onRemove: if (Inbox.animateRows && Inbox.reduceMotion) fadeOut.start()\nSequentialAnimation {\n    id: fadeOut\n    PropertyAction { target: row; property: \"ListView.delayRemove\"; value: true }\n    NumberAnimation { target: row; property: \"opacity\"; to: 0; duration: 200 }\n    PropertyAction { target: row; property: \"ListView.delayRemove\"; value: false }\n}\nListView.onReused: opacity = 1\n\nAccessible.role: Accessible.ListItem\nAccessible.name: title\nAccessible.description: key + \" · \" + author\nAccessible.selected: selected"
+          }
+        ]
+      }
+    },
+    {
+      "id": "slint",
+      "name": "Slint",
+      "kind": "native",
+      "language": "Slint markup and Rust",
+      "version": "Slint 1.19.1",
+      "licence": "GPLv3, royalty-free or commercial",
+      "links": {
+        "site": "https://slint.dev/",
+        "docs": "https://docs.slint.dev/",
+        "repo": "https://github.com/slint-ui/slint"
+      },
+      "source": {
+        "root": "compare:slint"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Slint are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a virtualised ListView over a Rust model",
+            "file": "ui/main.slint",
+            "lines": "405-421",
+            "lang": "slint",
+            "code": "list := ListView {\n    width: parent.width;\n    height: parent.height;\n    accessible-role: AccessibleRole.list;\n    accessible-label: @tr(\"Inbox\");\n    for rd[i] in root.rows: IssueRow {\n        width: parent.width;\n        data: rd;\n        index: i;\n        total: root.count;\n        selected: rd.id == root.selected-id;\n        clicked => {\n            list-focus.focus();\n            root.select-index(i);\n        }\n    }\n}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "egui",
+      "name": "egui",
+      "kind": "native",
+      "language": "Rust",
+      "version": "egui 0.37.0",
+      "licence": "MIT or Apache-2.0",
+      "links": {
+        "site": "https://www.egui.rs/",
+        "docs": "https://docs.rs/egui/",
+        "repo": "https://github.com/emilk/egui"
+      },
+      "source": {
+        "root": "compare:egui"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for egui are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: egui's own virtual list, and the hand-written path beside it",
+            "file": "src/views.rs",
+            "lines": "196-214",
+            "lang": "rust",
+            "code": "let mut area = egui::ScrollArea::vertical().id_salt(\"rows\").auto_shrink([false, false]);\nif let Some(y) = self.scroll_to.take() {\n    area = area.vertical_scroll_offset(y);\n}\nlet out = ui\n    .scope_builder(UiBuilder::new().max_rect(body).accessibility_parent(list_id), |ui| {\n        ui.spacing_mut().item_spacing = vec2(0.0, 0.0);\n        if anim.is_none() {\n            // The usual case: egui's own virtual list, fixed row height.\n            area.show_rows(ui, ROW_H, disp_len, |ui, range| {\n                for k in range {\n                    let issue = &issues[disp(k)];\n                    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());\n                    let resp = draw_row(ui, p, issue, &uris[issue.avatar as usize], r, ROW_H, 1.0, selected == Some(issue.id), k, disp_len);\n                    if resp.clicked() {\n                        clicked = Some(issue.id);\n                    }\n                }\n            })"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gpui",
+      "name": "gpui",
+      "kind": "native",
+      "language": "Rust",
+      "version": "gpui-kit 0.11.0",
+      "licence": "Apache-2.0",
+      "links": {
+        "site": "https://www.gpui.rs/",
+        "docs": "https://docs.rs/gpui/",
+        "repo": "https://github.com/zed-industries/zed/tree/main/crates/gpui"
+      },
+      "source": {
+        "root": "compare:gpui"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for gpui are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a virtual list with per-row sizes and key handling",
+            "file": "src/main.rs",
+            "lines": "834-863",
+            "lang": "rust",
+            "code": "    v_virtual_list(cx.entity().clone(), \"issues\", self.sizes.clone(), |this, range, _window, cx| {\n        range.map(|pos| this.row(pos, cx)).collect()\n    })\n    .track_scroll(&self.scroll)\n    .into_any_element()\n};\nv_flex()\n    .id(\"list\")\n    .role(Role::List)\n    .aria_label(self.count_text())\n    .absolute()\n    .left(px(220.))\n    .top(px(56.))\n    .w(px(LIST_W))\n    .h(px(744.))\n    .border_r_1()\n    .border_color(cx.theme().border)\n    .track_focus(&self.list_focus)\n    .key_context(\"IssueList\")\n    .on_key_down(cx.listener(|this, ev: &KeyDownEvent, window, cx| {\n        let k = ev.keystroke.key.as_str();\n        let d: Option<isize> = match k {\n            \"down\" => Some(1),\n            \"up\" => Some(-1),\n            \"pagedown\" => Some(10),\n            \"pageup\" => Some(-10),\n            \"home\" => Some(-(this.view.len() as isize)),\n            \"end\" => Some(this.view.len() as isize),\n            _ => None,\n        };"
+          }
+        ]
+      }
+    },
+    {
+      "id": "iced",
+      "name": "Iced",
+      "kind": "native",
+      "language": "Rust",
+      "version": "Iced 0.14.0",
+      "licence": "MIT",
+      "links": {
+        "site": "https://iced.rs/",
+        "docs": "https://docs.rs/iced/",
+        "repo": "https://github.com/iced-rs/iced"
+      },
+      "source": {
+        "root": "compare:iced"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Iced are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a hand-made window inside a scrollable",
+            "file": "src/ui.rs",
+            "lines": "315-340",
+            "lang": "rust",
+            "code": "let n = app.display_len();\nlet body: Element<'_, Message> = if n == 0 {\n    container(text(tr(\"empty\")).size(14).color(p.muted)).width(Length::Fill).height(Length::Fixed(LIST_H)).center_x(Length::Fill).center_y(Length::Fixed(LIST_H)).into()\n} else {\n    let first = app.first_visible(app.scroll_y);\n    let last = (first + (LIST_H / ROW_H).ceil() as usize + 3).min(n);\n    let mut col = column![];\n    let top = app.geometry(first).0;\n    col = col.push(Space::new().height(Length::Fixed(top)));\n    let mut end = top;\n    for i in first..last {\n        let (idx, animated) = app.item(i);\n        let (_, h) = app.geometry(i);\n        end += h;\n        let el = row_view(app, p, idx, animated);\n        col = col.push(container(el).height(Length::Fixed(h)).width(Length::Fill).clip(true));\n    }\n    let rest = (app.content_h() - end).max(0.0);\n    col = col.push(Space::new().height(Length::Fixed(rest)));\n    scrollable(col.width(Length::Fill))\n        .id(iced::widget::Id::new(LIST_ID))\n        .on_scroll(|v| Message::Scrolled(v.absolute_offset().y))\n        .height(Length::Fixed(LIST_H))\n        .width(Length::Fill)\n        .into()\n};"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flutter",
+      "name": "Flutter",
+      "kind": "native",
+      "language": "Dart",
+      "version": "Flutter 3.50.1",
+      "licence": "BSD-3-Clause",
+      "links": {
+        "site": "https://flutter.dev/",
+        "docs": "https://docs.flutter.dev/",
+        "repo": "https://github.com/flutter/flutter"
+      },
+      "source": {
+        "root": "compare:flutter"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Flutter are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: an AnimatedList inside a Semantics container",
+            "file": "lib/list_pane.dart",
+            "lines": "182-203",
+            "lang": "dart",
+            "code": "child: Semantics(\n  container: true,\n  explicitChildNodes: true,\n  child: AnimatedList(\n    key: _listKey,\n    controller: _scroll,\n    initialItemCount: total,\n    itemBuilder: (context, index, animation) {\n      if (index >= store.view.length) return const SizedBox.shrink();\n      final issue = store.view[index];\n      return _AnimatedRow(\n        animation: animation,\n        reduce: _reduce,\n        child: IssueRow(\n          issue: issue,\n          selected: issue.id == store.selectedId,\n          position: index + 1,\n          total: store.view.length,\n        ),\n      );\n    },\n  ),"
+          }
+        ]
+      }
+    },
+    {
+      "id": "declare",
+      "name": "Declare",
+      "kind": "web",
+      "language": "Declare and TypeScript",
+      "version": "Declare 0.7.1",
+      "licence": "MIT",
+      "links": {
+        "site": "https://davidtemkin.github.io/declarelang/",
+        "docs": "https://davidtemkin.github.io/declarelang/",
+        "repo": "https://github.com/davidtemkin/declarelang"
+      },
+      "source": {
+        "root": "compare:declare"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Declare are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a library Table with a virtualized row class",
+            "file": "app/inbox.declare",
+            "lines": "364-377",
+            "lang": "declare",
+            "code": "list: Table [ x = 220, y = 88, width = 480, height = 712,\n    accessibilityLabel = { tr(app.lang, \"list\") },\n    datapath = { app.shown.value },\n    selects = \"single\",\n    selectedItem = { app.selRow },\n    commit(sel: array) { app.select(sel != null && sel.length > 0 ? sel[0] : null) },\n    // a \"page\" is exactly 10 rows\n    onKeyDown(e: KeyEvent) {\n        if (e.key == \"PageDown\") this.step(Math.max(0, this.activeIndex) + 10, e, 1)\n        else if (e.key == \"PageUp\") this.step(Math.max(0, this.activeIndex) - 10, e, -1)\n        else super.onKeyDown(e)\n        },\n    IssueRow [ datapath = :rows[], virtualize = true ]\n    ],"
+          }
+        ]
+      }
+    },
+    {
+      "id": "solid",
+      "name": "Solid",
+      "kind": "web",
+      "language": "TypeScript and JSX",
+      "version": "Solid 2.0.4",
+      "licence": "MIT",
+      "links": {
+        "site": "https://www.solidjs.com/",
+        "docs": "https://docs.solidjs.com/",
+        "repo": "https://github.com/solidjs/solid"
+      },
+      "source": {
+        "root": "compare:solid"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Solid are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: the virtualised listbox",
+            "file": "src/IssueList.tsx",
+            "lines": "44-71",
+            "lang": "tsx",
+            "code": "  const rows = createMemo(() => {\n    const list = visible();\n    return v.items().flatMap((vi) => (list[vi.index] ? [{ issue: list[vi.index], index: vi.index }] : []));\n  });\n\n  return (\n    <section class=\"list\" aria-label={t(\"list\")}>\n      <div class=\"list-head\">\n        <span>{t(visible().length === 1 ? \"count.one\" : \"count.other\", { n: nf().format(visible().length) })}</span>\n        <span class=\"muted\">{t(`sort.${state.sort()}`)}</span>\n      </div>\n      <div\n        class=\"scroller\" ref={(el) => (scroller = el)} tabindex=\"0\" role=\"listbox\"\n        aria-label={t(\"list\")} onKeyDown={onKeyDown}\n        aria-activedescendant={selIndex() >= 0 ? `opt-${selectedId()}` : undefined}\n      >\n        <div class={[\"inner\", { sliding: state.sliding() && !state.reduce() }]} style={{ height: `${v.total()}px` }}>\n          <For each={rows()} keyed={(r) => r.issue.id}>\n            {(item) => <Row item={item} count={visible().length} retireAt={retireAt()} />}\n          </For>\n        </div>\n        <Show when={visible().length === 0}>\n          <div class=\"empty\">{t(\"empty\")}</div>\n        </Show>\n      </div>\n    </section>\n  );\n}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "leptos",
+      "name": "Leptos",
+      "kind": "web",
+      "language": "Rust to WebAssembly",
+      "version": "Leptos 0.8.23",
+      "licence": "MIT",
+      "links": {
+        "site": "https://leptos.dev/",
+        "docs": "https://book.leptos.dev/",
+        "repo": "https://github.com/leptos-rs/leptos"
+      },
+      "source": {
+        "root": "compare:leptos"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Leptos are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "The windowed list: a reactive count, <Show>, and a keyed <For>",
+            "file": "src/main.rs",
+            "lines": "274-303",
+            "lang": "rust",
+            "code": "view! {\n    <div class=\"listpane\">\n        <div class=\"listhead\">\n            <span>{move || {\n                let n = total.get();\n                // Reading the locale makes this closure rerun on a language change.\n                let _ = i18n.get_locale();\n                t!(i18n, count, count = move || n as i32, s = fmt_num(n as i64))\n            }}</span>\n            <span>{move || sort_name(i18n, st.sort.get())}</span>\n        </div>\n        <div class=\"listbox\" id=\"listbox\" role=\"listbox\" tabindex=\"0\"\n            aria-label=move || t_string!(i18n, app_title)\n            on:scroll=move |e| {\n                let el = event_target::<web_sys::HtmlElement>(&e);\n                st.scroll.set(el.scroll_top() as f64);\n            }\n            on:keydown=move |e| list_key(st, e)>\n            <Show when=move || total.get() == 0>\n                <div class=\"empty\">{t!(i18n, empty)}</div>\n            </Show>\n            <div class=\"sizer\" style:height=move || format!(\"{}px\", total.get() as f64 * ROW_H)>\n                <For each=move || window.get() key=|id| *id children=move |id| view! { <Row id /> } />\n                {move || st.ghost.get().map(|(issue, pos)| view! {\n                    <div class=format!(\"row ghost p{}\", issue.raw.priority)\n                        style=format!(\"transform: translateY({}px)\", pos as f64 * ROW_H) aria-hidden=\"true\">\n                        <span class=\"t\">{issue.raw.title.clone()}</span>\n                    </div>\n                })}\n            </div>"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dioxus",
+      "name": "Dioxus",
+      "kind": "web",
+      "language": "Rust to WebAssembly",
+      "version": "Dioxus 0.7.10",
+      "licence": "MIT or Apache-2.0",
+      "links": {
+        "site": "https://dioxuslabs.com/",
+        "docs": "https://dioxuslabs.com/learn/0.7/",
+        "repo": "https://github.com/DioxusLabs/dioxus"
+      },
+      "source": {
+        "root": "compare:dioxus"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Dioxus are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "The windowed list: rows near the viewport, keyed, in a full-height sizer",
+            "file": "src/main.rs",
+            "lines": "256-285",
+            "lang": "rust",
+            "code": "let total = view.read().len();\nlet top = scroll();\nlet first = ((top / ROW_H) as usize).saturating_sub(OVERSCAN);\nlet last = (((top + 760.0) / ROW_H) as usize + 1 + OVERSCAN).min(total);\nlet ids: Vec<(usize, u32)> = view.read()[first.min(total)..last].iter().copied().enumerate().map(|(k, id)| (first + k, id)).collect();\nlet cursor = (st.cursor)();\nlet ghost = st.ghost.read().clone();\nrsx! {\n    div { class: \"listpane\",\n        div { class: \"listhead\", span { {count_text(total)} } span { {t!(&format!(\"sort-{}\", (st.sort)().code()))} } }\n        div {\n            class: \"listbox\", id: \"listbox\", role: \"listbox\", tabindex: \"0\",\n            \"aria-label\": t!(\"app-title\"),\n            onscroll: move |e| scroll.set(e.data().scroll_top()),\n            onkeydown: move |e| list_key(st, e),\n            if total == 0 {\n                div { class: \"empty\", {t!(\"empty\")} }\n            }\n            div { class: \"sizer\", style: \"height: {total as f64 * ROW_H}px\",\n                for (k, id) in ids {\n                    Row { key: \"{id}\", issue: issues.read()[id as usize - 1].clone(), index: k, total, selected: cursor == Some(id) }\n                }\n                if let Some((issue, pos)) = ghost {\n                    div { class: \"row ghost p{issue.raw.priority}\", style: \"transform: translateY({pos as f64 * ROW_H}px)\", \"aria-hidden\": \"true\",\n                        span { class: \"t\", \"{issue.raw.title}\" }\n                    }\n                }\n            }\n        }\n    }"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sycamore",
+      "name": "Sycamore",
+      "kind": "web",
+      "language": "Rust to WebAssembly",
+      "version": "Sycamore 0.9.4",
+      "licence": "MIT",
+      "links": {
+        "site": "https://sycamore.dev/",
+        "docs": "https://sycamore.dev/book/introduction",
+        "repo": "https://github.com/sycamore-rs/sycamore"
+      },
+      "source": {
+        "root": "compare:sycamore"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Sycamore are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: the window as a memo",
+            "file": "src/list.rs",
+            "lines": "107-133",
+            "lang": "rust",
+            "code": "let layout = create_memo(move || {\n    let view = store.view.get_clone();\n    let issues = store.issues.get_clone();\n    let len = view.len();\n    let ghost = store.ghost.get_clone();\n    let entering = store.entering.get();\n    // Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\n    let hold_gap = store.reduced.get() && ghost.is_some();\n    let ghost_at = ghost.as_ref().map(|g| g.index);\n    let first_row = first.get().min(len.saturating_sub(1));\n    let lo = first_row.saturating_sub(OVERSCAN);\n    let hi = (first_row + height.get() / ROW + 2 + OVERSCAN).min(len);\n    let mut rows: Vec<RowData> = (lo..hi)\n        .map(|pos| {\n            let issue = issues[view[pos]].clone();\n            let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n            RowData { entering: entering == Some(issue.id), issue, pos, y, leaving: false }\n        })\n        .collect();\n    if let Some(g) = ghost {\n        rows.push(RowData { y: g.index * ROW, pos: g.index, issue: g.issue, leaving: true, entering: false });\n    }\n    rows\n});\nlet total_h = create_memo(move || (store.view.with(|v| v.len()) + usize::from(store.reduced.get() && store.ghost.with(|g| g.is_some()))) * ROW);\nlet slide = create_memo(move || !store.reduced.get() && (store.ghost.with(|g| g.is_some()) || store.entering.get().is_some()));\nlet empty = create_memo(move || store.view.with(|v| v.is_empty()) && store.ghost.with(|g| g.is_none()));"
+          }
+        ]
+      }
+    },
+    {
+      "id": "yew",
+      "name": "Yew",
+      "kind": "web",
+      "language": "Rust to WebAssembly",
+      "version": "Yew 0.23.0",
+      "licence": "MIT or Apache-2.0",
+      "links": {
+        "site": "https://yew.rs/",
+        "docs": "https://yew.rs/docs/getting-started/introduction",
+        "repo": "https://github.com/yewstack/yew"
+      },
+      "source": {
+        "root": "compare:yew"
+      },
+      "prose": {
+        "placeholder": true,
+        "fan": "Placeholder: the fan's words for Yew are written from its fact sheet once it lands.",
+        "cool": [
+          "Placeholder: what a fan shows first."
+        ],
+        "limits": [
+          "Placeholder: where it is not as strong, from the measurements."
+        ],
+        "shows": [
+          {
+            "n": 1,
+            "caption": "List: a hand-written window over 10 000 rows",
+            "file": "src/list.rs",
+            "lines": "136-160",
+            "lang": "rust",
+            "code": "let len = p.view.len();\n// Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\nlet hold_gap = p.reduced && p.ghost.is_some();\nlet ghost_at = p.ghost.as_ref().map(|g| g.index);\nlet first_row = (*first).min(len.saturating_sub(1));\nlet lo = first_row.saturating_sub(OVERSCAN);\nlet hi = (first_row + *height / ROW + 2 + OVERSCAN).min(len);\nlet total_h = (len + usize::from(hold_gap)) * ROW;\nlet slide = !p.reduced && (p.ghost.is_some() || p.entering.is_some());\n\nlet rows = (lo..hi).map(|pos| {\n    let issue = p.issues[p.view[pos]].clone();\n    let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n    let class = if p.entering == Some(issue.id) { \"entering\" } else { \"\" };\n    html! {\n        <Row key={issue.id} issue={issue.clone()} {pos} {y} total={len} selected={p.selected_pos == Some(pos)}\n             {class} dispatch={p.dispatch.clone()} />\n    }\n});\nlet ghost = p.ghost.as_ref().map(|g| {\n    html! {\n        <Row key={g.issue.id} issue={g.issue.clone()} pos={g.index} y={g.index * ROW} total={len} selected={false}\n             class=\"leaving\" dispatch={p.dispatch.clone()} />\n    }\n});"
+          }
+        ]
+      }
+    }
+  ],
+  "features": [
+    {
+      "id": "list",
+      "label": "Virtualised list",
+      "about": "10 000 issues, and rows made only for the ones in view.",
+      "excerpts": {
+        "ljos": {
+          "file": "IssueList.qml",
+          "lines": "50-65",
+          "lang": "qml",
+          "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/IssueList.qml#L50-L65"
+        },
+        "ljos-web": {
+          "file": "IssueList.qml",
+          "lines": "50-65",
+          "lang": "qml",
+          "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/IssueList.qml#L50-L65"
+        },
+        "qt": {
+          "file": "qml/ListPane.qml",
+          "lines": "23-36",
+          "lang": "qml",
+          "code": "ListView {\n    id: view\n    y: 32; width: parent.width; height: parent.height - 32\n    focus: true\n    activeFocusOnTab: true\n    clip: true\n    model: Inbox.model\n    cacheBuffer: 128\n    boundsBehavior: Flickable.StopAtBounds\n    ScrollBar.vertical: ScrollBar {}\n    Accessible.role: Accessible.List\n    Accessible.name: qsTr(\"Issues\")\n\n    delegate: IssueRow {}"
+        },
+        "slint": {
+          "file": "ui/main.slint",
+          "lines": "405-421",
+          "lang": "slint",
+          "code": "list := ListView {\n    width: parent.width;\n    height: parent.height;\n    accessible-role: AccessibleRole.list;\n    accessible-label: @tr(\"Inbox\");\n    for rd[i] in root.rows: IssueRow {\n        width: parent.width;\n        data: rd;\n        index: i;\n        total: root.count;\n        selected: rd.id == root.selected-id;\n        clicked => {\n            list-focus.focus();\n            root.select-index(i);\n        }\n    }\n}"
+        },
+        "egui": {
+          "file": "src/views.rs",
+          "lines": "205-214",
+          "lang": "rust",
+          "code": "area.show_rows(ui, ROW_H, disp_len, |ui, range| {\n    for k in range {\n        let issue = &issues[disp(k)];\n        let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());\n        let resp = draw_row(ui, p, issue, &uris[issue.avatar as usize], r, ROW_H, 1.0, selected == Some(issue.id), k, disp_len);\n        if resp.clicked() {\n            clicked = Some(issue.id);\n        }\n    }\n})"
+        },
+        "gpui": {
+          "file": "src/main.rs",
+          "lines": "823-839",
+          "lang": "rust",
+          "code": "fn list(&self, cx: &mut Context<Self>) -> impl IntoElement {\n    let body = if self.view.is_empty() {\n        div()\n            .size_full()\n            .flex()\n            .items_center()\n            .justify_center()\n            .text_color(cx.theme().muted_foreground)\n            .child(t!(\"empty\").to_string())\n            .into_any_element()\n    } else {\n        v_virtual_list(cx.entity().clone(), \"issues\", self.sizes.clone(), |this, range, _window, cx| {\n            range.map(|pos| this.row(pos, cx)).collect()\n        })\n        .track_scroll(&self.scroll)\n        .into_any_element()\n    };"
+        },
+        "iced": {
+          "file": "src/ui.rs",
+          "lines": "319-339",
+          "lang": "rust",
+          "code": "let first = app.first_visible(app.scroll_y);\nlet last = (first + (LIST_H / ROW_H).ceil() as usize + 3).min(n);\nlet mut col = column![];\nlet top = app.geometry(first).0;\ncol = col.push(Space::new().height(Length::Fixed(top)));\nlet mut end = top;\nfor i in first..last {\n    let (idx, animated) = app.item(i);\n    let (_, h) = app.geometry(i);\n    end += h;\n    let el = row_view(app, p, idx, animated);\n    col = col.push(container(el).height(Length::Fixed(h)).width(Length::Fill).clip(true));\n}\nlet rest = (app.content_h() - end).max(0.0);\ncol = col.push(Space::new().height(Length::Fixed(rest)));\nscrollable(col.width(Length::Fill))\n    .id(iced::widget::Id::new(LIST_ID))\n    .on_scroll(|v| Message::Scrolled(v.absolute_offset().y))\n    .height(Length::Fixed(LIST_H))\n    .width(Length::Fill)\n    .into()"
+        },
+        "flutter": {
+          "file": "lib/list_pane.dart",
+          "lines": "185-203",
+          "lang": "dart",
+          "code": "child: AnimatedList(\n  key: _listKey,\n  controller: _scroll,\n  initialItemCount: total,\n  itemBuilder: (context, index, animation) {\n    if (index >= store.view.length) return const SizedBox.shrink();\n    final issue = store.view[index];\n    return _AnimatedRow(\n      animation: animation,\n      reduce: _reduce,\n      child: IssueRow(\n        issue: issue,\n        selected: issue.id == store.selectedId,\n        position: index + 1,\n        total: store.view.length,\n      ),\n    );\n  },\n),"
+        },
+        "declare": {
+          "file": "app/inbox.declare",
+          "lines": "364-377",
+          "lang": "declare",
+          "code": "list: Table [ x = 220, y = 88, width = 480, height = 712,\n    accessibilityLabel = { tr(app.lang, \"list\") },\n    datapath = { app.shown.value },\n    selects = \"single\",\n    selectedItem = { app.selRow },\n    commit(sel: array) { app.select(sel != null && sel.length > 0 ? sel[0] : null) },\n    // a \"page\" is exactly 10 rows\n    onKeyDown(e: KeyEvent) {\n        if (e.key == \"PageDown\") this.step(Math.max(0, this.activeIndex) + 10, e, 1)\n        else if (e.key == \"PageUp\") this.step(Math.max(0, this.activeIndex) - 10, e, -1)\n        else super.onKeyDown(e)\n        },\n    IssueRow [ datapath = :rows[], virtualize = true ]\n    ],"
+        },
+        "solid": {
+          "file": "src/IssueList.tsx",
+          "lines": "74-94",
+          "lang": "tsx",
+          "code": "let el!: HTMLDivElement;\nconst issue = () => props.item().issue;\nconst index = () => props.item().index;\nconst leaving = () => state.retiring() === issue().id;\n// while a row leaves, the rows after it slide up into its place\nconst y = () => (index() - (props.retireAt >= 0 && index() > props.retireAt && !state.reduce() ? 1 : 0)) * ROW;\nconst dur = 200;\n\nonSettled(() => {\n  if (state.inserted() === issue().id) {\n    const frames: Keyframe[] = state.reduce()\n      ? [{ opacity: 0 }, { opacity: 1 }]\n      : [{ opacity: 0, height: \"0px\" }, { opacity: 1, height: `${ROW}px` }];\n    el.animate(frames, { duration: dur, easing: \"ease-out\" });\n  }\n});\ncreateEffect(leaving, (on) => {\n  if (!on) return;\n  const frames: Keyframe[] = state.reduce()\n    ? [{ opacity: 1 }, { opacity: 0 }]\n    : [{ opacity: 1, height: `${ROW}px` }, { opacity: 0, height: \"0px\" }];"
+        },
+        "leptos": {
+          "file": "src/main.rs",
+          "lines": "265-273",
+          "lang": "rust",
+          "code": "let first = Memo::new(move |_| ((st.scroll.get() / ROW_H) as usize).saturating_sub(OVERSCAN));\nlet window = Memo::new(move |_| {\n    let f = first.get();\n    st.view.with(|v| {\n        let start = f.min(v.len());\n        v[start..(f + 13 + 2 * OVERSCAN).min(v.len())].to_vec()\n    })\n});\nlet total = Memo::new(move |_| st.view.with(|v| v.len()));"
+        },
+        "dioxus": {
+          "file": "src/main.rs",
+          "lines": "256-277",
+          "lang": "rust",
+          "code": "let total = view.read().len();\nlet top = scroll();\nlet first = ((top / ROW_H) as usize).saturating_sub(OVERSCAN);\nlet last = (((top + 760.0) / ROW_H) as usize + 1 + OVERSCAN).min(total);\nlet ids: Vec<(usize, u32)> = view.read()[first.min(total)..last].iter().copied().enumerate().map(|(k, id)| (first + k, id)).collect();\nlet cursor = (st.cursor)();\nlet ghost = st.ghost.read().clone();\nrsx! {\n    div { class: \"listpane\",\n        div { class: \"listhead\", span { {count_text(total)} } span { {t!(&format!(\"sort-{}\", (st.sort)().code()))} } }\n        div {\n            class: \"listbox\", id: \"listbox\", role: \"listbox\", tabindex: \"0\",\n            \"aria-label\": t!(\"app-title\"),\n            onscroll: move |e| scroll.set(e.data().scroll_top()),\n            onkeydown: move |e| list_key(st, e),\n            if total == 0 {\n                div { class: \"empty\", {t!(\"empty\")} }\n            }\n            div { class: \"sizer\", style: \"height: {total as f64 * ROW_H}px\",\n                for (k, id) in ids {\n                    Row { key: \"{id}\", issue: issues.read()[id as usize - 1].clone(), index: k, total, selected: cursor == Some(id) }\n                }"
+        },
+        "sycamore": {
+          "file": "src/list.rs",
+          "lines": "107-128",
+          "lang": "rust",
+          "code": "let layout = create_memo(move || {\n    let view = store.view.get_clone();\n    let issues = store.issues.get_clone();\n    let len = view.len();\n    let ghost = store.ghost.get_clone();\n    let entering = store.entering.get();\n    // Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\n    let hold_gap = store.reduced.get() && ghost.is_some();\n    let ghost_at = ghost.as_ref().map(|g| g.index);\n    let first_row = first.get().min(len.saturating_sub(1));\n    let lo = first_row.saturating_sub(OVERSCAN);\n    let hi = (first_row + height.get() / ROW + 2 + OVERSCAN).min(len);\n    let mut rows: Vec<RowData> = (lo..hi)\n        .map(|pos| {\n            let issue = issues[view[pos]].clone();\n            let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n            RowData { entering: entering == Some(issue.id), issue, pos, y, leaving: false }\n        })\n        .collect();\n    if let Some(g) = ghost {\n        rows.push(RowData { y: g.index * ROW, pos: g.index, issue: g.issue, leaving: true, entering: false });\n    }"
+        },
+        "yew": {
+          "file": "src/list.rs",
+          "lines": "136-154",
+          "lang": "rust",
+          "code": "let len = p.view.len();\n// Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\nlet hold_gap = p.reduced && p.ghost.is_some();\nlet ghost_at = p.ghost.as_ref().map(|g| g.index);\nlet first_row = (*first).min(len.saturating_sub(1));\nlet lo = first_row.saturating_sub(OVERSCAN);\nlet hi = (first_row + *height / ROW + 2 + OVERSCAN).min(len);\nlet total_h = (len + usize::from(hold_gap)) * ROW;\nlet slide = !p.reduced && (p.ghost.is_some() || p.entering.is_some());\n\nlet rows = (lo..hi).map(|pos| {\n    let issue = p.issues[p.view[pos]].clone();\n    let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n    let class = if p.entering == Some(issue.id) { \"entering\" } else { \"\" };\n    html! {\n        <Row key={issue.id} issue={issue.clone()} {pos} {y} total={len} selected={p.selected_pos == Some(pos)}\n             {class} dispatch={p.dispatch.clone()} />\n    }\n});"
+        }
+      }
+    },
+    {
+      "id": "search",
+      "label": "Search",
+      "about": "The search field, and the filter each key it types runs.",
+      "excerpts": {
+        "ljos": {
+          "file": "TopBar.qml",
+          "lines": "28-47",
+          "lang": "qml",
+          "code": "TextField {\n    id: search\n    objectName: \"search\"\n    x: 236\n    y: 12\n    width: 400\n    height: 32\n    placeholderText: t`Search issues`\n    Accessible.name: t`Search issues`\n    onTextChanged: bar.inbox.query = search.text\n    Keys.onPressed: (event: KeyEvent) => {\n        if (event.key === Key.Escape) {\n            search.text = \"\"\n            event.accepted = true\n        } else if (event.key === Key.Down) {\n            bar.down()\n            event.accepted = true\n        }\n    }\n}",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/TopBar.qml#L28-L47"
+        },
+        "ljos-web": {
+          "file": "TopBar.qml",
+          "lines": "28-47",
+          "lang": "qml",
+          "code": "TextField {\n    id: search\n    objectName: \"search\"\n    x: 236\n    y: 12\n    width: 400\n    height: 32\n    placeholderText: t`Search issues`\n    Accessible.name: t`Search issues`\n    onTextChanged: bar.inbox.query = search.text\n    Keys.onPressed: (event: KeyEvent) => {\n        if (event.key === Key.Escape) {\n            search.text = \"\"\n            event.accepted = true\n        } else if (event.key === Key.Down) {\n            bar.down()\n            event.accepted = true\n        }\n    }\n}",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/TopBar.qml#L28-L47"
+        },
+        "qt": {
+          "file": "src/issuemodel.cpp",
+          "lines": "110-131",
+          "lang": "cpp",
+          "code": "void IssueFilterModel::setSearch(const QString &text) {\n    beginFilterChange();\n    m_words = text.toLower().split(QRegularExpression(\"\\\\s+\"), Qt::SkipEmptyParts);\n    endFilterChange();\n}\n\nvoid IssueFilterModel::setSortKey(int key) { m_sort = key; invalidate(); }\nvoid IssueFilterModel::setCollation(const QLocale &l) { m_collator = QCollator(l); m_keys.clear(); if (m_sort == 3) invalidate(); }\n\nbool IssueFilterModel::filterAcceptsRow(int row, const QModelIndex &) const {\n    const Issue &i = m_src->at(row);\n    switch (m_view) {\n    case 0: if (i.closed) return false; break;\n    case 1: if (i.closed || i.assignee != QLatin1String(\"Ada Okafor\")) return false; break;\n    case 2: if (!i.starred) return false; break;\n    case 3: if (!i.closed) return false; break;\n    case 4: if (i.closed || !i.tags.contains(m_tag)) return false; break;\n    }\n    for (const QString &w : m_words)\n        if (!i.hay.contains(w)) return false;\n    return true;\n}"
+        },
+        "slint": {
+          "file": "ui/main.slint",
+          "lines": "198-206",
+          "lang": "slint",
+          "code": "search-box := LineEdit {\n    x: 236px;\n    y: 12px;\n    width: 400px;\n    height: 32px;\n    placeholder-text: @tr(\"Search issues\");\n    accessible-label: @tr(\"Search issues\");\n    text <=> root.search-text;\n    edited(text) => { root.search(text); }"
+        },
+        "egui": {
+          "file": "src/main.rs",
+          "lines": "463-481",
+          "lang": "rust",
+          "code": "let resp = ui.put(\n    sr,\n    TextEdit::singleline(&mut self.search)\n        .id(search_id)\n        .hint_text(t!(\"search.placeholder\"))\n        .vertical_align(Align::Center)\n        .margin(egui::Margin::symmetric(8, 6))\n        .desired_width(400.0),\n);\nname(&ctx, &resp, &t!(\"search.placeholder\"));\nlet mut changed = resp.changed();\nif esc && !self.search.is_empty() {\n    self.search.clear();\n    changed = true;\n}\nif changed {\n    self.refresh_view();\n    self.scroll_to = Some(0.0);\n}"
+        },
+        "gpui": {
+          "file": "src/main.rs",
+          "lines": "163-170",
+          "lang": "rust",
+          "code": "let mut subs = Vec::new();\nsubs.push(cx.subscribe_in(&search, window, |this, state, ev: &InputEvent, _w, cx| {\n    if matches!(ev, InputEvent::Change) {\n        this.words = query_words(&state.read(cx).value());\n        this.rebuild_view(None);\n        cx.notify();\n    }\n}));"
+        },
+        "iced": {
+          "file": "src/main.rs",
+          "lines": "517-531",
+          "lang": "rust",
+          "code": "Message::Search(s) => {\n    self.search = s;\n    self.refresh_view();\n    self.scroll_to(0.0)\n}\nMessage::SearchFocus => {\n    self.search_focus = true;\n    operation::focus(iced::widget::Id::new(\"search\"))\n}\nMessage::SearchSubmit => {\n    if let Some(id) = self.selected {\n        self.set_opened(id);\n    }\n    Task::none()\n}"
+        },
+        "flutter": {
+          "file": "lib/main.dart",
+          "lines": "136-149",
+          "lang": "dart",
+          "code": "child: TextField(\n  controller: _search,\n  focusNode: _node,\n  onChanged: store.setQuery,\n  style: const TextStyle(fontSize: 14),\n  decoration: InputDecoration(\n    isDense: true,\n    hintText: l.searchPlaceholder,\n    prefixIcon: const Icon(Icons.search, size: 18),\n    prefixIconConstraints: const BoxConstraints(minWidth: 36),\n    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),\n    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16))),\n  ),\n),"
+        },
+        "declare": {
+          "file": "app/inbox.declare",
+          "lines": "301-311",
+          "lang": "declare",
+          "code": "search: SearchField [ x = 16, y = 12, width = 400, height = 32,\n    accessibilityLabel = { tr(app.lang, \"search.placeholder\") },\n    placeholder = { tr(app.lang, \"search.placeholder\") },\n    value = { app.query },\n    commit(t: string) { app.query = t },\n    onKeyDown(e: KeyEvent) {\n        if (e.key == \"Escape\") app.query = \"\"\n        else if (e.key == \"ArrowDown\") app.firstHit()\n        else super.onKeyDown(e)\n        }\n    ],"
+        },
+        "solid": {
+          "file": "src/state.ts",
+          "lines": "48-64",
+          "lang": "ts",
+          "code": "const matchesFilter = (i: Issue, f: FilterKey) => {\n  switch (f) {\n    case \"inbox\": return i.status === \"open\";\n    case \"assigned\": return i.status === \"open\" && i.assignee === ME;\n    case \"starred\": return i.starred;\n    case \"closed\": return i.status === \"closed\";\n    default: return i.status === \"open\" && i.tags.includes(f.slice(4));\n  }\n};\n\nconst visible = createMemo(() => {\n  const f = filter(), keep = retiring();\n  const words = query().toLowerCase().split(/\\s+/).filter(Boolean);\n  return sorted().filter(\n    (i) => i.id === keep || (matchesFilter(i, f) && words.every((w) => i.hay.includes(w))),\n  );\n});"
+        },
+        "leptos": {
+          "file": "src/main.rs",
+          "lines": "194-207",
+          "lang": "rust",
+          "code": "<input class=\"search\" type=\"search\" id=\"search\"\n    placeholder=move || t_string!(i18n, search_placeholder)\n    aria-label=move || t_string!(i18n, search_placeholder)\n    prop:value=move || st.query.get()\n    on:input=move |e| st.query.set(event_target_value(&e))\n    on:keydown=move |e: KeyboardEvent| match e.key().as_str() {\n        \"Escape\" => st.query.set(String::new()),\n        \"ArrowDown\" => {\n            e.prevent_default();\n            step_cursor(st, 1, true);\n            if let Some(el) = by_id(\"listbox\") { let _ = el.focus(); }\n        }\n        _ => {}\n    } />"
+        },
+        "dioxus": {
+          "file": "src/main.rs",
+          "lines": "156-176",
+          "lang": "rust",
+          "code": "fn TopBar() -> Element {\n    let st = use_context::<St>();\n    let mut query = st.query;\n    let mut sort = st.sort;\n    rsx! {\n        div { class: \"topbar\",\n            input {\n                class: \"search\", r#type: \"search\", id: \"search\",\n                placeholder: t!(\"search-placeholder\"), \"aria-label\": t!(\"search-placeholder\"),\n                value: \"{query}\",\n                oninput: move |e| query.set(e.value()),\n                onkeydown: move |e| match e.key() {\n                    Key::Escape => query.set(String::new()),\n                    Key::ArrowDown => {\n                        e.prevent_default();\n                        step_cursor(st, 1, true);\n                        if let Some(el) = by_id(\"listbox\") { let _ = el.focus(); }\n                    }\n                    _ => {}\n                },\n            }"
+        },
+        "sycamore": {
+          "file": "src/state.rs",
+          "lines": "80-89",
+          "lang": "rust",
+          "code": "let query = create_signal(String::new());\nlet sort = create_signal(Sort::Updated);\nlet lang = create_signal(Lang::En);\nlet selected = create_signal(None::<u32>);\nlet view = create_memo(move || {\n    // Memos are read through clones, never inside another signal's `with`: that would hold\n    // the runtime's borrow while a dirty memo tries to recompute.\n    let (is, q, f, o, l) = (issues.get_clone(), query.get_clone(), filter.get_clone(), sort.get(), lang.get());\n    Rc::new(build_view(&is, &f, &q, o, l.tag()))\n});"
+        },
+        "yew": {
+          "file": "src/app.rs",
+          "lines": "66-80",
+          "lang": "rust",
+          "code": "let on_search = {\n    let d = dispatch.clone();\n    Callback::from(move |e: InputEvent| d.dispatch(Action::SetQuery(e.target_unchecked_into::<HtmlInputElement>().value())))\n};\nlet on_search_key = {\n    let d = dispatch.clone();\n    Callback::from(move |e: KeyboardEvent| {\n        if e.key() == \"Escape\" {\n            d.dispatch(Action::SetQuery(String::new()));\n        } else if let Some(m) = nav_move(&e, true) {\n            e.prevent_default();\n            d.dispatch(Action::Move(m));\n        }\n    })\n};"
+        }
+      }
+    },
+    {
+      "id": "validation",
+      "label": "Validation",
+      "about": "The edit form: Title is required, and Save waits until it is given.",
+      "excerpts": {
+        "ljos": {
+          "file": "EditForm.qml",
+          "lines": "10-17",
+          "lang": "qml",
+          "code": "id: form\nrequired property Store inbox\nrequired property bool open\n\nreadonly property Inbox.TitleError titleError: Inbox.titleError(title.text)\nreadonly property Inbox.TagsError tagsError: Inbox.tagsError(tags.text)\nreadonly property Inbox.BodyError bodyError: Inbox.bodyError(body.text)\nreadonly property bool valid: form.titleError === \"\" && form.tagsError === \"\" && form.bodyError === \"\"",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/EditForm.qml#L10-L17"
+        },
+        "ljos-web": {
+          "file": "EditForm.qml",
+          "lines": "10-17",
+          "lang": "qml",
+          "code": "id: form\nrequired property Store inbox\nrequired property bool open\n\nreadonly property Inbox.TitleError titleError: Inbox.titleError(title.text)\nreadonly property Inbox.TagsError tagsError: Inbox.tagsError(tags.text)\nreadonly property Inbox.BodyError bodyError: Inbox.bodyError(body.text)\nreadonly property bool valid: form.titleError === \"\" && form.tagsError === \"\" && form.bodyError === \"\"",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/EditForm.qml#L10-L17"
+        },
+        "qt": {
+          "file": "qml/EditForm.qml",
+          "lines": "10-17",
+          "lang": "qml",
+          "code": "readonly property string titleError:\n    title.text.trim() === \"\" ? qsTr(\"Title is required\")\n    : title.text.length > 120 ? qsTr(\"At most 120 characters\") : \"\"\nreadonly property string tagsError:\n    words.some(w => !/^[a-z0-9-]+$/.test(w)) ? qsTr(\"Tags are lowercase words\")\n    : words.length > 6 ? qsTr(\"At most 6 tags\") : \"\"\nreadonly property string bodyError: body.length > 10000 ? qsTr(\"At most 10 000 characters\") : \"\"\nreadonly property bool valid: titleError === \"\" && tagsError === \"\" && bodyError === \"\""
+        },
+        "slint": {
+          "file": "ui/main.slint",
+          "lines": "633-650",
+          "lang": "slint",
+          "code": "title-edit := LineEdit {\n    x: 20px;\n    y: 40px;\n    width: 540px;\n    height: 40px;\n    text <=> root.edit-title;\n    accessible-label: @tr(\"Title\");\n    accessible-description: title-error.text;\n}\ntitle-error := Text {\n    x: 20px;\n    y: 84px;\n    width: 440px;\n    height: 20px;\n    text: root.errs.title == 1 ? @tr(\"Title is required\") : root.errs.title == 2 ? @tr(\"At most 120 characters\") : \"\";\n    color: Theme.error;\n    font-size: 12px;\n}"
+        },
+        "egui": {
+          "file": "src/views.rs",
+          "lines": "450-459",
+          "lang": "rust",
+          "code": "let valid = terr.is_none() && gerr.is_none() && berr.is_none();\nlet cancel = ui.put(Rect::from_center_size(pos2(1090.0, 660.0), vec2(100.0, 32.0)), egui::Button::new(t!(\"cancel\").to_string()));\nlet save = ui.put(\n    Rect::from_center_size(pos2(1196.0, 660.0), vec2(100.0, 32.0)),\n    egui::Button::new(RichText::new(t!(\"save\").to_string()).color(if valid { p.on_accent } else { p.muted })).fill(if valid { p.accent } else { p.chip }),\n);\nlet save_ok = valid && save.clicked();\nif !valid {\n    ctx.accesskit_node_builder(save.id, |b| b.set_disabled());\n}"
+        },
+        "gpui": {
+          "file": "src/main.rs",
+          "lines": "374-383",
+          "lang": "rust",
+          "code": "fn form_errors(&self, cx: &App) -> (Option<String>, Option<String>, Option<String>, usize) {\n    let title = self.title_in.read(cx).value();\n    let n = title.chars().count();\n    let e_title = if title.trim().is_empty() {\n        Some(t!(\"err.title.required\").to_string())\n    } else if n > 120 {\n        Some(t!(\"err.title.long\").to_string())\n    } else {\n        None\n    };"
+        },
+        "iced": {
+          "file": "src/main.rs",
+          "lines": "436-456",
+          "lang": "rust",
+          "code": "pub fn errors(&self) -> (Option<String>, Option<String>, Option<String>) {\n    let Some(e) = &self.edit else { return (None, None, None) };\n    let tlen = e.title.chars().count();\n    let title = if e.title.trim().is_empty() {\n        Some(t!(\"err.title.required\").to_string())\n    } else if tlen > 120 {\n        Some(t!(\"err.title.long\").to_string())\n    } else {\n        None\n    };\n    let words: Vec<&str> = e.tags.split_whitespace().collect();\n    let tags = if words.iter().any(|w| !w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')) {\n        Some(t!(\"err.tags\").to_string())\n    } else if words.len() > 6 {\n        Some(t!(\"err.tags.many\").to_string())\n    } else {\n        None\n    };\n    let body = if e.body.text().chars().count() > 10_000 { Some(t!(\"err.body.long\").to_string()) } else { None };\n    (title, tags, body)\n}"
+        },
+        "flutter": {
+          "file": "lib/detail_pane.dart",
+          "lines": "294-309",
+          "lang": "dart",
+          "code": "return Form(\n  key: _formKey,\n  autovalidateMode: AutovalidateMode.always,\n  child: Stack(\n    children: [\n      Positioned(\n        left: 20,\n        top: 40,\n        width: 540,\n        height: 80,\n        child: TextFormField(\n          controller: _title,\n          style: const TextStyle(fontSize: 14),\n          decoration: deco(l.fieldTitle, counter: len > 100 ? '$len/120' : ''),\n          validator: (_) => _titleError(l),\n        ),"
+        },
+        "declare": {
+          "file": "app/inbox.declare",
+          "lines": "208-226",
+          "lang": "declare",
+          "code": "dTitle: string = \"\", dTags: string = \"\", dBody: string = \"\", dPrio: number = 2, dAssignee: string = \"\",\nerrTitle: string = { titleError(app.lang, app.dTitle) },\nerrTags: string = { tagsError(app.lang, app.dTags) },\nerrBody: string = { bodyError(app.lang, app.dBody) },\nvalid: boolean = { app.errTitle == \"\" && app.errTags == \"\" && app.errBody == \"\" },\n\nseedDraft() {\n    const r = this.selRec\n    if (r == null) return\n    dTitle = r.title; dTags = (r.tags ?? []).join(\" \"); dBody = r.body\n    dPrio = r.priority; dAssignee = r.assignee ?? \"\"\n    },\n\nsaveDraft() {\n    if (!valid || selId == 0) return\n    issues.save(selId, dTitle.trim(), splitTags(dTags), dBody, dPrio, dAssignee)\n    rev = rev + 1\n    this.setTab(\"conversation\")\n    },"
+        },
+        "solid": {
+          "file": "src/Detail.tsx",
+          "lines": "89-101",
+          "lang": "tsx",
+          "code": "const [title, setTitle] = createSignal(start.title);\nconst [tags, setTags] = createSignal(start.tags.join(\" \"));\nconst [priority, setPriority] = createSignal(start.priority);\nconst [assignee, setAssignee] = createSignal(start.assignee);\nconst [body, setBody] = createSignal(start.body);\n\nconst words = createMemo(() => tags().split(/\\s+/).filter(Boolean));\nconst titleErr = createMemo(() => (title().trim() === \"\" ? \"err.title.required\" : title().length > 120 ? \"err.title.long\" : null));\nconst tagsErr = createMemo(() => (words().some((w) => !TAG.test(w)) ? \"err.tags.bad\" : words().length > 6 ? \"err.tags.many\" : null));\nconst bodyErr = createMemo(() => (body().length > 10_000 ? \"err.body.long\" : null));\nconst valid = () => !titleErr() && !tagsErr() && !bodyErr();\n\nconst save = () => valid() && state.save(props.issue.id, { title: title().trim(), tags: words(), priority: priority(), assignee: assignee(), body: body() });"
+        },
+        "leptos": {
+          "file": "src/main.rs",
+          "lines": "538-558",
+          "lang": "rust",
+          "code": "let title = RwSignal::new(issue.raw.title.clone());\nlet tags = RwSignal::new(issue.raw.tags.join(\" \"));\nlet body = RwSignal::new(issue.raw.body.clone());\nlet prio = RwSignal::new(issue.raw.priority);\nlet assignee = RwSignal::new(issue.raw.assignee.clone());\nlet people = st.issues.with_untracked(|v| people(v));\nlet te = move || title_err(&title.read());\nlet ge = move || tags_err(&tags.read());\nlet be = move || body_err(&body.read());\nlet valid = move || te().is_none() && ge().is_none() && be().is_none();\nlet tlen = move || title.read().chars().count();\nview! {\n    <div class=\"form fade\">\n        <label class=\"l\" for=\"f-title\" style=\"top: 12px\">{t!(i18n, field_title)}</label>\n        <input class=\"f\" id=\"f-title\" style=\"top: 40px; height: 40px\" prop:value=move || title.get()\n            aria-invalid=move || te().is_some().to_string() aria-describedby=\"e-title\"\n            on:input=move |e| title.set(event_target_value(&e)) />\n        <div class=\"err\" id=\"e-title\" style=\"top: 84px\">\n            <span>{move || te().map(|e| err_text(i18n, e))}</span>\n            {move || (tlen() > 100).then(|| view! { <span class=\"counter\">{format!(\"{}/120\", tlen())}</span> })}\n        </div>"
+        },
+        "dioxus": {
+          "file": "src/main.rs",
+          "lines": "532-550",
+          "lang": "rust",
+          "code": "let mut title = use_signal(|| issue.raw.title.clone());\nlet mut tags = use_signal(|| issue.raw.tags.join(\" \"));\nlet mut body = use_signal(|| issue.raw.body.clone());\nlet mut prio = use_signal(|| issue.raw.priority);\nlet mut assignee = use_signal(|| issue.raw.assignee.clone());\nlet people = people(&st.issues.read());\nlet (te, ge, be) = (title_err(&title.read()), tags_err(&tags.read()), body_err(&body.read()));\nlet valid = te.is_none() && ge.is_none() && be.is_none();\nlet tlen = title.read().chars().count();\nrsx! {\n    div { class: \"form fade\",\n        label { class: \"l\", r#for: \"f-title\", style: \"top: 12px\", {t!(\"field-title\")} }\n        input { class: \"f\", id: \"f-title\", style: \"top: 40px; height: 40px\", value: \"{title}\",\n            \"aria-invalid\": \"{te.is_some()}\", \"aria-describedby\": \"e-title\",\n            oninput: move |e| title.set(e.value()) }\n        div { class: \"err\", id: \"e-title\", style: \"top: 84px\",\n            span { if let Some(e) = te { {err_text(e)} } else if tlen > 120 { {err_text(FieldErr::TitleLong)} } }\n            if tlen > 100 { span { class: \"counter\", \"{tlen}/120\" } }\n        }"
+        },
+        "sycamore": {
+          "file": "src/detail.rs",
+          "lines": "118-126",
+          "lang": "rust",
+          "code": "let title = create_signal(i.title.clone());\nlet tags = create_signal(i.tags.join(\" \"));\nlet body = create_signal(i.body.clone());\nlet priority = create_signal(i.priority);\nlet assignee = create_signal(i.assignee.clone());\nlet problems = create_memo(move || validate(&title.get_clone(), &tags.get_clone(), &body.get_clone()));\nlet t = move |k: &str| cat.with(|c| c.t(k));\nlet msg = move |pick: fn(&Problems) -> Option<&'static str>| move || problems.with(|p| pick(p)).map(|k| t(k)).unwrap_or_default();\nlet title_len = create_memo(move || title.with(|s| s.chars().count()));"
+        },
+        "yew": {
+          "file": "src/model.rs",
+          "lines": "247-266",
+          "lang": "rust",
+          "code": "pub fn validate(title: &str, tags: &str, body: &str) -> Problems {\n    let words: Vec<&str> = tags.split_whitespace().collect();\n    Problems {\n        title: if title.trim().is_empty() {\n            Some(\"err-title-required\")\n        } else if title.chars().count() > 120 {\n            Some(\"err-title-long\")\n        } else {\n            None\n        },\n        tags: if words.iter().any(|w| w.is_empty() || !w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')) {\n            Some(\"err-tags\")\n        } else if words.len() > 6 {\n            Some(\"err-tags-many\")\n        } else {\n            None\n        },\n        body: if body.chars().count() > 10_000 { Some(\"err-body-long\") } else { None },\n    }\n}"
+        }
+      }
+    },
+    {
+      "id": "chart",
+      "label": "Chart",
+      "about": "The insights chart: twelve weekly bars, drawn with what each framework has.",
+      "excerpts": {
+        "ljos": {
+          "file": "Insights.qml",
+          "lines": "63-80",
+          "lang": "qml",
+          "code": "Repeater {\n    model: page.weeks\n    delegate: Item {\n        id: bar\n        required property Inbox.Week modelData\n        required property int index\n        readonly property real h: page.scaleTop > 0 ? page.chartH * modelData.count / page.scaleTop : 0\n\n        x: page.chartX + bar.index * page.slot\n        y: page.chartY\n        width: page.slot\n        height: page.chartH + 40\n        Accessible.role: Accessible.StaticText\n        Accessible.name: {\n            const week = page.inbox.week(bar.modelData.start)\n            const n = bar.modelData.count\n            return plural(n, { one: `${week}: # issue`, other: `${week}: # issues` })\n        }",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/Insights.qml#L63-L80"
+        },
+        "ljos-web": {
+          "file": "Insights.qml",
+          "lines": "63-80",
+          "lang": "qml",
+          "code": "Repeater {\n    model: page.weeks\n    delegate: Item {\n        id: bar\n        required property Inbox.Week modelData\n        required property int index\n        readonly property real h: page.scaleTop > 0 ? page.chartH * modelData.count / page.scaleTop : 0\n\n        x: page.chartX + bar.index * page.slot\n        y: page.chartY\n        width: page.slot\n        height: page.chartH + 40\n        Accessible.role: Accessible.StaticText\n        Accessible.name: {\n            const week = page.inbox.week(bar.modelData.start)\n            const n = bar.modelData.count\n            return plural(n, { one: `${week}: # issue`, other: `${week}: # issues` })\n        }",
+          "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/Insights.qml#L63-L80"
+        },
+        "qt": {
+          "file": "qml/Insights.qml",
+          "lines": "25-40",
+          "lang": "qml",
+          "code": "Repeater {\n    model: root.chartData.values\n    Item {\n        id: bar\n        required property int index\n        required property int modelData\n        x: 56 + index * 42; width: 42\n        readonly property real h: root.max > 0 ? (root.plotBottom - root.plotTop) * modelData / root.max : 0\n        Rectangle { x: 7; y: root.plotBottom - bar.h; width: 28; height: bar.h; radius: 3; color: Theme.accent }\n        Text { x: 0; width: 42; horizontalAlignment: Text.AlignHCenter; y: root.plotBottom - bar.h - 18\n            text: Fmt.number(bar.modelData, Inbox.language); font.pixelSize: 11; color: Theme.text }\n        Text { x: 0; width: 42; horizontalAlignment: Text.AlignHCenter; y: root.plotBottom + 6\n            text: Fmt.week(root.chartData.months[bar.index], root.chartData.days[bar.index], Inbox.language)\n            font.pixelSize: 11; color: Theme.muted }\n    }\n}"
+        },
+        "slint": {
+          "file": "ui/main.slint",
+          "lines": "802-817",
+          "lang": "slint",
+          "code": "for bar[i] in root.chart: Rectangle {\n    x: i * 45px;\n    width: 45px;\n    height: parent.height;\n    accessible-role: list-item;\n    accessible-label: @tr(\"week label\" => \"{0}/{1}\", bar.month, bar.day) + \": \" + bar.value;\n    property <length> bar-height: root.chart-max > 0 ? 222px * bar.value / root.chart-max : 0px;\n    Rectangle {\n        x: 9px;\n        y: 240px - parent.bar-height;\n        width: 27px;\n        height: parent.bar-height;\n        background: Theme.bar;\n        border-top-left-radius: 3px;\n        border-top-right-radius: 3px;\n    }"
+        },
+        "egui": {
+          "file": "src/views.rs",
+          "lines": "486-500",
+          "lang": "rust",
+          "code": "let slot = (right - left) / 12.0;\nlet first = crate::data::first_week_start();\nfor (k, &v) in c.weeks.iter().enumerate() {\n    let x = left + slot * k as f32 + slot * 0.15;\n    let h = (base - top) * v as f32 / ymax;\n    painter.rect_filled(Rect::from_min_max(pos2(x, base - h), pos2(x + slot * 0.7, base)), 3.0, p.accent);\n    painter.text(pos2(x + slot * 0.35, base - h - 9.0), Align2::CENTER_CENTER, v.to_string(), FontId::proportional(11.0), p.text);\n    painter.text(\n        pos2(x + slot * 0.35, base + 15.0),\n        Align2::CENTER_CENTER,\n        crate::data::fmt_md(first + k as i64 * 7 * 86400, self.ja),\n        FontId::proportional(11.0),\n        p.muted,\n    );\n}"
+        },
+        "gpui": {
+          "file": "src/main.rs",
+          "lines": "1191-1205",
+          "lang": "rust",
+          "code": "v_flex()\n    .size_full()\n    .p_5()\n    .gap_3()\n    .child(div().text_sm().font_semibold().child(t!(\"chart.title\").to_string()))\n    .child(\n        div().h(px(380.)).w_full().child(\n            BarChart::new(data)\n                .band(|d| d.label.clone())\n                .value(|d| d.count)\n                .label(|d| format!(\"{}\", d.count as u32))\n                .fill(|_, _, _, _| Hsla::from(rgb(0x2f6df6)))\n                .appear(false),\n        ),\n    )"
+        },
+        "iced": {
+          "file": "src/ui.rs",
+          "lines": "542-563",
+          "lang": "rust",
+          "code": "let (l, r, top, bot) = (36.0_f32, 8.0_f32, 24.0_f32, 28.0_f32);\nlet w = bounds.width - l - r;\nlet h = bounds.height - top - bot;\nlet max = data::nice(*self.counts.iter().max().unwrap_or(&1)).max(1) as f32;\nfor k in 0..=2 {\n    let y = top + h - h * k as f32 / 2.0;\n    f.fill_rectangle(Point::new(l, y), Size::new(w, 1.0), with_alpha(self.p.border, if k == 0 { 1.0 } else { 0.6 }));\n    f.fill_text(canvas::Text {\n        content: format!(\"{}\", (max * k as f32 / 2.0) as u32),\n        position: Point::new(l - 6.0, y),\n        color: self.p.muted,\n        size: 11.0.into(),\n        align_x: iced::alignment::Horizontal::Right.into(),\n        align_y: iced::alignment::Vertical::Center,\n        ..Default::default()\n    });\n}\nlet slot = w / 12.0;\nfor (k, &c) in self.counts.iter().enumerate() {\n    let bh = h * c as f32 / max;\n    let x = l + slot * k as f32 + slot * 0.18;\n    f.fill_rectangle(Point::new(x, top + h - bh), Size::new(slot * 0.64, bh), self.p.accent);"
+        },
+        "flutter": {
+          "file": "lib/detail_pane.dart",
+          "lines": "511-530",
+          "lang": "dart",
+          "code": "@override\nvoid paint(Canvas canvas, Size size) {\n  const top = 24.0, bottom = 24.0;\n  final maxV = niceMax(values.fold(0, math.max));\n  final h = size.height - top - bottom;\n  final slot = size.width / values.length;\n  final base = size.height - bottom;\n  canvas.drawLine(Offset(0, base), Offset(size.width, base), Paint()..color = line);\n  for (var i = 0; i < values.length; i++) {\n    final bh = h * values[i] / maxV;\n    final x = i * slot + slot * 0.2;\n    canvas.drawRRect(\n      RRect.fromRectAndCorners(Rect.fromLTWH(x, base - bh, slot * 0.6, bh),\n          topLeft: const Radius.circular(3), topRight: const Radius.circular(3)),\n      Paint()..color = bar,\n    );\n    _text(canvas, numbers.format(values[i]), Offset(i * slot + slot / 2, base - bh - 16), text, 12);\n    _text(canvas, labels[i], Offset(i * slot + slot / 2, base + 6), muted, 11);\n  }\n}"
+        },
+        "declare": {
+          "file": "app/inbox.declare",
+          "lines": "462-478",
+          "lang": "declare",
+          "code": "chart: Dataset [ schema = [ bars[]: [ i: number, n: number, h: number, label: string ], counts: string ],\n    contents = { app.tab == \"insights\" ? chartOf(app.lang, app.shown.value?.rows ?? []) : ({ bars: [], counts: \"\" }) } ],\nins: View [ x = { 700 + (app.reduce ? 0 : (1 - app.tabT) * 24 * app.tabDir) }, y = 100, width = 580, height = 700,\n    opacity = { app.tabT },\n    visible = { app.tab == \"insights\" },\n    accessibilityRole = tabPanel,\n    h: Text [ x = 20, y = 14, fontSize = 15, fontWeight = semibold, wrap = false, text = { tr(app.lang, \"chart.title\") } ],\n    base: View [ x = 20, y = 288, width = 540, height = 1, fill = { provided(\"theme\").line } ],\n    bars: View [ x = 20, y = 0, width = 540, height = 320, datapath = { app.chart.value },\n        View [ datapath = :bars[], x = { 8 + :i * 44 }, width = 32, y = { 288 - :h }, height = { :h },\n            fill = { provided(\"theme\").accent }, cornerRadius = 3,\n            accessibilityRole = image, accessibilityLabel = { :label + \": \" + :n } ],\n        Text [ datapath = :bars[], x = { 2 + :i * 44 }, width = 44, textAlign = center,\n            y = { 288 - :h - 18 }, fontSize = 11, wrap = false, text = { \"\" + :n } ],\n        Text [ datapath = :bars[], x = { 2 + :i * 44 }, width = 44, textAlign = center,\n            y = 296, fontSize = 10.5, wrap = false, textColor = { provided(\"theme\").textMuted }, text = { :label } ]\n        ],"
+        },
+        "solid": {
+          "file": "src/Detail.tsx",
+          "lines": "159-177",
+          "lang": "tsx",
+          "code": "const W = 540, H = 250, L = 8, B = 28, T = 24, bw = (W - L) / 12;\nconst y = (v: number) => T + (H - T - B) * (1 - v / stats().top);\nreturn (\n  <div class=\"insights\">\n    <h3 class=\"chart-title\">{t(\"chart.title\")}</h3>\n    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role=\"img\" aria-label={t(\"chart.title\")}>\n      <For each={[0, 0.5, 1]} keyed={false}>{(f) => <line class=\"grid\" x1={L} x2={W} y1={y(stats().top * f())} y2={y(stats().top * f())} />}</For>\n      <For each={stats().weeks} keyed={false}>\n        {(n, i) => (\n          <g>\n            <rect class=\"bar\" x={L + i * bw + 6} width={bw - 12} y={y(n())} height={H - B - y(n())} rx=\"2\" />\n            <text class=\"val\" x={L + i * bw + bw / 2} y={y(n()) - 5} text-anchor=\"middle\">{nf().format(n())}</text>\n            <text class=\"wk\" x={L + i * bw + bw / 2} y={H - 8} text-anchor=\"middle\">{weekLabel(lastMonday + (i - 11) * WEEK)}</text>\n          </g>\n        )}\n      </For>\n      <line class=\"axis\" x1={L} x2={W} y1={H - B} y2={H - B} />\n      <text class=\"wk\" x={L} y={12}>{nf().format(stats().top)}</text>\n    </svg>"
+        },
+        "leptos": {
+          "file": "src/main.rs",
+          "lines": "613-631",
+          "lang": "rust",
+          "code": "let max = nice_max(*cw.iter().max().unwrap_or(&1));\nlet bars = (0..12usize).map(|k| {\n    let h = (base - topy) * cw[k] as f64 / max as f64;\n    let cx = x0 + slot * k as f64 + slot / 2.0 + 4.0;\n    view! {\n        <g>\n            <rect class=\"bar\" x=cx - 14.0 y=base - h width=\"28\" height=h rx=\"3\" />\n            <text x=cx y=base - h - 6.0 text-anchor=\"middle\">{fmt_num(cw[k] as i64)}</text>\n            <text class=\"ax\" x=cx y=base + 16.0 text-anchor=\"middle\">{fmt_week(days[k], ja)}</text>\n        </g>\n    }\n}).collect_view();\nview! {\n    <svg width=\"540\" height=\"290\" viewBox=\"0 0 540 290\" role=\"img\" aria-label=t_string!(i18n, chart_title)>\n        <line x1=x0 x2=\"538\" y1=topy y2=topy stroke=\"var(--line)\" />\n        <text class=\"ax\" x=x0 - 6.0 y=topy + 4.0 text-anchor=\"end\">{fmt_num(max as i64)}</text>\n        <line x1=x0 x2=\"538\" y1=base y2=base stroke=\"var(--muted)\" />\n        {bars}\n    </svg>"
+        },
+        "dioxus": {
+          "file": "src/main.rs",
+          "lines": "599-617",
+          "lang": "rust",
+          "code": "svg { width: \"540\", height: \"290\", view_box: \"0 0 540 290\", role: \"img\", \"aria-label\": t!(\"chart-title\"),\n    line { x1: \"{x0}\", x2: \"538\", y1: \"{topy}\", y2: \"{topy}\", stroke: \"var(--line)\" }\n    text { class: \"ax\", x: \"{x0 - 6.0}\", y: \"{topy + 4.0}\", \"text-anchor\": \"end\", \"{fmt_num(max as i64)}\" }\n    line { x1: \"{x0}\", x2: \"538\", y1: \"{base}\", y2: \"{base}\", stroke: \"var(--muted)\" }\n    for k in 0..12usize {\n        {\n            let v = counts_w[k];\n            let h = (base - topy) * v as f64 / max as f64;\n            let cx = x0 + slot * k as f64 + slot / 2.0 + 4.0;\n            rsx! {\n                g { key: \"{k}\",\n                    rect { class: \"bar\", x: \"{cx - 14.0}\", y: \"{base - h}\", width: \"28\", height: \"{h}\", rx: \"3\" }\n                    text { x: \"{cx}\", y: \"{base - h - 6.0}\", \"text-anchor\": \"middle\", \"{fmt_num(v as i64)}\" }\n                    text { class: \"ax\", x: \"{cx}\", y: \"{base + 16.0}\", \"text-anchor\": \"middle\", \"{fmt_week(days[k], ja)}\" }\n                }\n            }\n        }\n    }\n}"
+        },
+        "sycamore": {
+          "file": "src/detail.rs",
+          "lines": "203-220",
+          "lang": "rust",
+          "code": "let bars: Vec<View> = bins\n    .iter()\n    .enumerate()\n    .map(|(k, &(day, n))| {\n        let bh = plot * f64::from(n) / f64::from(max);\n        let x = left + slot * k as f64 + slot * 0.15;\n        let (_, m, d) = civil_from_days(day);\n        let label = if ja { format!(\"{m}月{d}日\") } else { format!(\"{m}/{d}\") };\n        let (x1, x2) = ((x + slot * 0.35).to_string(), (x + slot * 0.35).to_string());\n        view! {\n            g {\n                rect(class=\"bar\", x=x.to_string(), y=(top + plot - bh).to_string(), width=(slot * 0.7).to_string(), height=bh.to_string())\n                text(x=x1, y=(top + plot - bh - 5.0).to_string(), text-anchor=\"middle\") { (format_number(tag, f64::from(n))) }\n                text(x=x2, y=(h - 10.0).to_string(), text-anchor=\"middle\") { (label) }\n            }\n        }\n    })\n    .collect();"
+        },
+        "yew": {
+          "file": "src/detail.rs",
+          "lines": "199-216",
+          "lang": "rust",
+          "code": "let bins = use_memo((p.issues.clone(), p.view.clone()), |(issues, view)| weekly(issues, view));\nlet max = nice_ceiling(bins.iter().map(|b| b.1).max().unwrap_or(0));\nlet (w, h, left, top, bottom) = (540.0, 280.0, 8.0, 28.0, 28.0);\nlet slot = (w - left * 2.0) / bins.len() as f64;\nlet plot = h - top - bottom;\nlet bars = bins.iter().enumerate().map(|(k, &(day, n))| {\n    let bh = plot * f64::from(n) / f64::from(max);\n    let x = left + slot * k as f64 + slot * 0.15;\n    let (_, m, d) = civil_from_days(day);\n    let label = if ja { format!(\"{m}月{d}日\") } else { format!(\"{m}/{d}\") };\n    html! {\n        <g key={k}>\n            <rect class=\"bar\" x={x.to_string()} y={(top + plot - bh).to_string()} width={(slot * 0.7).to_string()} height={bh.to_string()} />\n            <text x={(x + slot * 0.35).to_string()} y={(top + plot - bh - 5.0).to_string()} text-anchor=\"middle\">{ format_number(tag, f64::from(n)) }</text>\n            <text x={(x + slot * 0.35).to_string()} y={(h - 10.0).to_string()} text-anchor=\"middle\">{ label }</text>\n        </g>\n    }\n});"
+        }
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "startup",
+      "label": "Startup",
+      "unit": "ms",
+      "lower": true,
+      "how": "Native: process start to the first drawn frame. Web: navigation start to the first contentful paint.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 517,
+          "min": 476,
+          "max": 559,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 257,
+          "min": 236,
+          "max": 277,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 668,
+          "min": 614,
+          "max": 721,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 866,
+          "min": 797,
+          "max": 936,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 612,
+          "min": 563,
+          "max": 661,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 785,
+          "min": 722,
+          "max": 848,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 221,
+          "min": 203,
+          "max": 238,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 438,
+          "min": 403,
+          "max": 473,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 105,
+          "min": 96,
+          "max": 113,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 372,
+          "min": 342,
+          "max": 402,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 647,
+          "min": 595,
+          "max": 699,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 762,
+          "min": 701,
+          "max": 822,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 386,
+          "min": 355,
+          "max": 417,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 843,
+          "min": 776,
+          "max": 911,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "memory",
+      "label": "Memory when idle",
+      "unit": "MiB",
+      "lower": true,
+      "how": "Native: proportional set size after the session. Web: the tab's heap after the session.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 357,
+          "min": 328,
+          "max": 386,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 66,
+          "min": 60,
+          "max": 71,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 235,
+          "min": 216,
+          "max": 254,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 31,
+          "min": 29,
+          "max": 34,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 378,
+          "min": 347,
+          "max": 408,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 193,
+          "min": 177,
+          "max": 208,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 123,
+          "min": 113,
+          "max": 132,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 194,
+          "min": 179,
+          "max": 210,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 35,
+          "min": 32,
+          "max": 38,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 259,
+          "min": 239,
+          "max": 280,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 150,
+          "min": 138,
+          "max": 162,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 237,
+          "min": 218,
+          "max": 256,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 37,
+          "min": 34,
+          "max": 40,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 66,
+          "min": 61,
+          "max": 72,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "idle-cpu",
+      "label": "CPU when idle",
+      "unit": "%",
+      "lower": true,
+      "how": "Over the last 8 s of a 10 s wait after the session. Anything above 0 is work done while nothing changes.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 0.9,
+          "min": 0.9,
+          "max": 1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 2.9,
+          "min": 2.7,
+          "max": 3.2,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 2.5,
+          "min": 2.3,
+          "max": 2.7,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 2.9,
+          "min": 2.7,
+          "max": 3.2,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 1.9,
+          "min": 1.7,
+          "max": 2,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 1.9,
+          "min": 1.7,
+          "max": 2,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 0.1,
+          "min": 0.1,
+          "max": 0.1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 2.2,
+          "min": 2,
+          "max": 2.3,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 0.5,
+          "min": 0.5,
+          "max": 0.5,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 1.8,
+          "min": 1.7,
+          "max": 1.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 0.9,
+          "min": 0.9,
+          "max": 1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 0.8,
+          "min": 0.8,
+          "max": 0.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 1.8,
+          "min": 1.6,
+          "max": 1.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 1.1,
+          "min": 1,
+          "max": 1.1,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "scroll",
+      "label": "Frame time while scrolling, p95",
+      "unit": "ms",
+      "lower": true,
+      "how": "The 95th percentile frame interval while PageDown scrolls 2 000 rows.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 16.3,
+          "min": 15,
+          "max": 17.6,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 18.8,
+          "min": 17.3,
+          "max": 20.3,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 13,
+          "min": 12,
+          "max": 14.1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 15.6,
+          "min": 14.4,
+          "max": 16.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 5.3,
+          "min": 4.8,
+          "max": 5.7,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 16.5,
+          "min": 15.2,
+          "max": 17.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 11.7,
+          "min": 10.7,
+          "max": 12.6,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 10.5,
+          "min": 9.6,
+          "max": 11.3,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 17.7,
+          "min": 16.3,
+          "max": 19.1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 9.6,
+          "min": 8.9,
+          "max": 10.4,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 11.6,
+          "min": 10.7,
+          "max": 12.5,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 11.1,
+          "min": 10.2,
+          "max": 11.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 7.8,
+          "min": 7.2,
+          "max": 8.4,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 6,
+          "min": 5.6,
+          "max": 6.5,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "search",
+      "label": "Search latency",
+      "unit": "ms",
+      "lower": true,
+      "how": "From the last key of \"render crash\" to the frame whose count is final.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 10.5,
+          "min": 9.6,
+          "max": 11.3,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 15.5,
+          "min": 14.3,
+          "max": 16.8,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 3.8,
+          "min": 3.5,
+          "max": 4.1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 58,
+          "min": 53.4,
+          "max": 62.7,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 40.5,
+          "min": 37.3,
+          "max": 43.8,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 31.4,
+          "min": 28.9,
+          "max": 33.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 8.4,
+          "min": 7.8,
+          "max": 9.1,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 30.5,
+          "min": 28.1,
+          "max": 33,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 50.5,
+          "min": 46.4,
+          "max": 54.5,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 3.2,
+          "min": 3,
+          "max": 3.5,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 7.3,
+          "min": 6.7,
+          "max": 7.9,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 7,
+          "min": 6.4,
+          "max": 7.5,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 59.7,
+          "min": 54.9,
+          "max": 64.5,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 3.5,
+          "min": 3.2,
+          "max": 3.7,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "binary",
+      "label": "Binary size, stripped",
+      "unit": "MB",
+      "lower": true,
+      "only": "native",
+      "how": "Native only: the stripped release binary, without shared system libraries.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 40,
+          "min": 36.8,
+          "max": 43.2,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": null,
+        "qt": {
+          "median": 28.3,
+          "min": 26,
+          "max": 30.6,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 24.4,
+          "min": 22.4,
+          "max": 26.3,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 39.4,
+          "min": 36.3,
+          "max": 42.6,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 32.6,
+          "min": 30,
+          "max": 35.3,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 56.8,
+          "min": 52.3,
+          "max": 61.4,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 51.6,
+          "min": 47.5,
+          "max": 55.8,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": null,
+        "solid": null,
+        "leptos": null,
+        "dioxus": null,
+        "sycamore": null,
+        "yew": null
+      }
+    },
+    {
+      "id": "transfer",
+      "label": "Transfer size, gzip",
+      "unit": "kB",
+      "lower": true,
+      "only": "web",
+      "how": "Web only: everything a cold load fetches, gzip, data and avatars included.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": null,
+        "ljos-web": {
+          "median": 710,
+          "min": 653,
+          "max": 767,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": null,
+        "slint": null,
+        "egui": null,
+        "gpui": null,
+        "iced": null,
+        "flutter": null,
+        "declare": {
+          "median": 140,
+          "min": 128,
+          "max": 151,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 752,
+          "min": 692,
+          "max": 812,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 1858,
+          "min": 1709,
+          "max": 2007,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 1576,
+          "min": 1450,
+          "max": 1702,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 1919,
+          "min": 1766,
+          "max": 2073,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 1297,
+          "min": 1193,
+          "max": 1401,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "build",
+      "label": "Clean release build",
+      "unit": "s",
+      "lower": true,
+      "how": "A clean release build, dependencies included, on the same machine.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 322,
+          "min": 296,
+          "max": 348,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 100,
+          "min": 92,
+          "max": 108,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 88,
+          "min": 81,
+          "max": 95,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 158,
+          "min": 146,
+          "max": 171,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 287,
+          "min": 264,
+          "max": 310,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 301,
+          "min": 277,
+          "max": 325,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 40,
+          "min": 37,
+          "max": 43,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 354,
+          "min": 326,
+          "max": 382,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 58,
+          "min": 53,
+          "max": 62,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 114,
+          "min": 105,
+          "max": 123,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 37,
+          "min": 34,
+          "max": 40,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 294,
+          "min": 270,
+          "max": 317,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 65,
+          "min": 60,
+          "max": 70,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 11,
+          "min": 10,
+          "max": 12,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    },
+    {
+      "id": "loc",
+      "label": "Lines of code",
+      "unit": "lines",
+      "lower": true,
+      "how": "Code lines only, by tokei or its equivalent, the fixture left out.",
+      "command": "placeholder: the command comes from RESULTS.md",
+      "values": {
+        "ljos": {
+          "median": 1888,
+          "min": 1737,
+          "max": 2039,
+          "runs": 0,
+          "placeholder": true
+        },
+        "ljos-web": {
+          "median": 1502,
+          "min": 1382,
+          "max": 1622,
+          "runs": 0,
+          "placeholder": true
+        },
+        "qt": {
+          "median": 1738,
+          "min": 1599,
+          "max": 1877,
+          "runs": 0,
+          "placeholder": true
+        },
+        "slint": {
+          "median": 952,
+          "min": 876,
+          "max": 1028,
+          "runs": 0,
+          "placeholder": true
+        },
+        "egui": {
+          "median": 2316,
+          "min": 2131,
+          "max": 2501,
+          "runs": 0,
+          "placeholder": true
+        },
+        "gpui": {
+          "median": 2386,
+          "min": 2195,
+          "max": 2577,
+          "runs": 0,
+          "placeholder": true
+        },
+        "iced": {
+          "median": 2442,
+          "min": 2247,
+          "max": 2637,
+          "runs": 0,
+          "placeholder": true
+        },
+        "flutter": {
+          "median": 1652,
+          "min": 1520,
+          "max": 1784,
+          "runs": 0,
+          "placeholder": true
+        },
+        "declare": {
+          "median": 1380,
+          "min": 1270,
+          "max": 1490,
+          "runs": 0,
+          "placeholder": true
+        },
+        "solid": {
+          "median": 1334,
+          "min": 1227,
+          "max": 1441,
+          "runs": 0,
+          "placeholder": true
+        },
+        "leptos": {
+          "median": 1666,
+          "min": 1533,
+          "max": 1799,
+          "runs": 0,
+          "placeholder": true
+        },
+        "dioxus": {
+          "median": 1064,
+          "min": 979,
+          "max": 1149,
+          "runs": 0,
+          "placeholder": true
+        },
+        "sycamore": {
+          "median": 866,
+          "min": 797,
+          "max": 935,
+          "runs": 0,
+          "placeholder": true
+        },
+        "yew": {
+          "median": 1118,
+          "min": 1029,
+          "max": 1207,
+          "runs": 0,
+          "placeholder": true
+        }
+      }
+    }
+  ]
+}
