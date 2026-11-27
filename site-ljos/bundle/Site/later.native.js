@@ -9,6 +9,7 @@ var shellSource = Qt.resolvedUrl("ShellSource.qml");
 var controlsLook = Qt.resolvedUrl("ControlsLook.qml");
 var landing = Qt.resolvedUrl("Landing.qml");
 var showcase = Qt.resolvedUrl("ShowcasePage.qml");
+var review = Qt.resolvedUrl("ReviewPage.qml");
 var demosPage = Qt.resolvedUrl("DemosPage.qml");
 var proDemo = Qt.resolvedUrl("ProDemoPage.qml");
 var liveSource = Qt.resolvedUrl("LiveSource.qml");

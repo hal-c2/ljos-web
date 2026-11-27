@@ -6,6 +6,8 @@ singleton ShowcaseApps 1.0 ShowcaseApps.qml
 singleton ProText 1.0 ProText.qml
 singleton Built 1.0 Built.qml
 singleton ShowcaseBuilt 1.0 ShowcaseBuilt.qml
+singleton ReviewData 1.0 ReviewData.qml
+singleton ReviewBuilt 1.0 ReviewBuilt.qml
 singleton LandingCopy 1.0 LandingCopy.qml
 singleton LandingCode 1.0 LandingCode.qml
 DocPage 1.0 DocPage.qml
@@ -52,6 +54,11 @@ ShowcaseApp 1.0 ShowcaseApp.qml
 ShowcasePlayer 1.0 ShowcasePlayer.qml
 ShowcaseCapture 1.0 ShowcaseCapture.qml
 ShowcaseEngine 1.0 ShowcaseEngine.qml
+ReviewPage 1.0 ReviewPage.qml
+ReviewChart 1.0 ReviewChart.qml
+ReviewTable 1.0 ReviewTable.qml
+ReviewCode 1.0 ReviewCode.qml
+ReviewSection 1.0 ReviewSection.qml
 Heading 1.0 Heading.qml
 Panel 1.0 Panel.qml
 DeviceFrame 1.0 DeviceFrame.qml

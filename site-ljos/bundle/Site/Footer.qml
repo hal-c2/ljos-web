@@ -102,6 +102,7 @@ Rectangle {
                     NavLink { label: t`Docs`; to: "/start/"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                     NavLink { label: t`Demos`; to: "/demos/"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                     NavLink { label: t`Showcase`; to: "/showcase/"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
+                    NavLink { label: t`Framework review`; to: "/review/"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                     NavLink { label: t`Your first app`; to: "/start/first-app/"; size: Theme.captionSize + 1; line: Theme.captionLine + 4 }
                 }
                 Column {

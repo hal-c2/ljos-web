@@ -982,7 +982,7 @@ Rectangle {
                                 width: shell.wide ? 200 : documents.width
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
-                                icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : "file-text"
+                                icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : modelData === "/review/" ? "bar-chart" : "file-text"
                                 label: shell.router !== undefined && L.given(shell.router) ? shell.router.nameOf(modelData) : modelData
                                 current: modelData === shell.route
                                 onPressed: modelData !== shell.route ? shell.go(modelData) : (shell.view = 0)

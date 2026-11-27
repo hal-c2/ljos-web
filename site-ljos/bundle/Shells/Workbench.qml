@@ -583,7 +583,7 @@ Rectangle {
                     onPressed: shell.fold("Site/", !open)
                 }
                 Repeater {
-                    model: siteFolder.open ? ["/", "/demos/", "/showcase/"] : []
+                    model: siteFolder.open ? ["/", "/demos/", "/showcase/", "/review/"] : []
                     Entry {
                         required property string modelData
                         host: shell
