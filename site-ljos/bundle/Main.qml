@@ -597,6 +597,17 @@ Rectangle {
             }
         }
     }
+    // The language alone, for a shell whose toolbar has its own scheme
+    // and motion controls (Desktop).
+    Contribution {
+        slot: "site.language"
+        delegate: Component {
+            LanguageSwitcher {
+                preferences: sitePreferences
+                onChoosing: main.controlsShown = true
+            }
+        }
+    }
     Contribution {
         slot: "site.source.live"
         delegate: Component {

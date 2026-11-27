@@ -769,6 +769,12 @@ Rectangle {
                         y: 38
                     }
                 }
+                // The language: the site's own button, which names the
+                // language shown and opens every one the site has.
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Slot { name: "site.language" }
+                }
                 Tool {
                     iconName: shell.dark ? "sun" : "moon"
                     text: t`Scheme`
