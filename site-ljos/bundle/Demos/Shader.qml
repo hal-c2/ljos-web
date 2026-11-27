@@ -41,14 +41,20 @@ Rectangle {
     property string draft: ShaderLogic.SOURCE
     property string good: ShaderLogic.SOURCE
     readonly property bool broken: effect.status === Q.ShaderEffect.Error
-    readonly property var diagnostics: broken ? ShaderLogic.diagnosticsOf(effect.log, draft) : []
+    readonly property list<ShaderLogic.Diagnostic> diagnostics: broken ? ShaderLogic.diagnosticsOf(effect.log, draft) : ShaderLogic.NO_DIAGNOSTICS
     property bool editing: false
     readonly property bool beside: width >= besideFrom
 
     // Where the vortex is led: the pointer while one is over the
     // picture, its own slow path while none is.
     property bool led: false
-    property var aim: ShaderLogic.wander(0)
+    property ShaderLogic.Point aim: ShaderLogic.wander(0)
+
+    // A shader as an address the effect reads it from: the text itself,
+    // so an edit needs no file and no server.
+    function addressOf(source: string): string {
+        return "data:text/plain;charset=utf-8," + encodeURIComponent(source);
+    }
 
     onDraftChanged: later(root.settle)
     function settle(): void {
@@ -100,7 +106,7 @@ Rectangle {
         // An edit that does not compile draws nothing here: the last that
         // did is drawn under it instead.
         visible: !root.broken
-        fragmentShader: ShaderLogic.addressOf(root.draft)
+        fragmentShader: root.addressOf(root.draft)
         onStatusChanged: root.settle()
 
         // Paused off screen so an idle card runs at 0 % CPU and resumes in phase.
@@ -112,7 +118,7 @@ Rectangle {
                 if (effect.ripple < ShaderLogic.RIPPLE_DONE)
                     effect.ripple = ShaderLogic.advanceRipple(effect.ripple, frameTime, root.calm);
                 const target = root.led ? root.aim : ShaderLogic.wander(effect.time);
-                const next = ShaderLogic.follow(effect.pointer, target, frameTime, root.calm);
+                const next = ShaderLogic.follow({ x: effect.pointer.x, y: effect.pointer.y }, target, frameTime, root.calm);
                 effect.pointer = point(next.x, next.y);
             }
         }
@@ -130,7 +136,7 @@ Rectangle {
         property real palette: effect.palette
         property real dark: effect.dark
         property point resolution: effect.resolution
-        fragmentShader: ShaderLogic.addressOf(root.good)
+        fragmentShader: root.addressOf(root.good)
     }
 
     PointerArea {
@@ -256,7 +262,7 @@ Rectangle {
                         width: 14
                         height: 14
                         radius: 7
-                        fill: ["#1af2bf", "#ff521f", "#0dbfff"][chip.index]
+                        fill: ShaderLogic.swatchOf(chip.index)
                     }
                     Text {
                         id: chipLabel
