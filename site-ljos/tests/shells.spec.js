@@ -2946,8 +2946,9 @@ test("the arrows go along Desktop's menu bar", async ({ browser }) => {
 });
 
 // With a menu of Desktop's bar open, the pointer resting on another
-// title opens that one's menu instead, as a desktop's menu bar does:
-// the bar hears which menu opened (a Popup's `opened`).
+// title opens that one's menu instead, as a desktop's menu bar does, even
+// while the first menu is still on its way in. The pointer moves there
+// as soon as the menu shows, before its transition is done.
 test("an open menu of Desktop's bar follows the pointer to another title", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop" });
   try {

@@ -153,7 +153,10 @@ Rectangle {
         }
         Connections {
             target: title.menu
-            function onOpened() { title.host.openTitle = title.label; }
+            // As it starts to show, not once its transition is done
+            // (`opened`): a pointer moving on to the next title in that
+            // time takes the bar with it.
+            function onAboutToShow() { title.host.openTitle = title.label; }
             function onClosed() { if (title.host.openTitle === title.label) title.host.openTitle = ""; }
         }
 
