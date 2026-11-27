@@ -1184,6 +1184,29 @@ test("the Workbench offers only what it can show", async ({ browser }) => {
   }
 });
 
+// The language is a choice in every shell at a desktop's width, on the
+// page as it opens or one press away (Workbench keeps it with the
+// appearance settings): not only in a phone's menu.
+for (const shell of SHELLS) {
+  test(`${LABEL[shell]} offers the language on a desktop`, async ({ browser }) => {
+    const context = await reader(browser, { kept: shell });
+    try {
+      const page = await context.newPage();
+      await open(page, "/");
+      if ((await showing(page)) !== shell) await pick(page, shell);
+      if (shell === "workbench") await page.getByRole("button", { name: "Appearance settings" }).filter({ visible: true }).click();
+      const button = page.getByRole("button", { name: /Language: English/ }).filter({ visible: true });
+      await expect(button).toHaveCount(1);
+      await button.click();
+      await page.getByRole("radio", { name: "Deutsch", exact: true }).click();
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe("de");
+      await expect(page.getByRole("button", { name: /Sprache: Deutsch/ }).filter({ visible: true })).toHaveCount(1);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 // What `data-ljos-swap` was set to, each time (shells.js `swap`).
 const swaps = () => {
   const seen = (window.__swaps = []);
