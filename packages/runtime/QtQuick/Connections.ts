@@ -2,10 +2,10 @@
 // it. `function onFoo(a) {}` arrives as the prop `onFoo`; the object is
 // `target`, the Connections' parent when it names none.
 import { createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
-import { connect, defineType, onEveryWrite, QtObject, readsAny, signalled, slot, whenComplete, whenCompleted } from "../object.ts";
+import { connect, defineType, onEveryWrite, QtObject, readsAny, signalled, signalOf, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
-import type { Dynamic, Handler, QObject, Signal } from "../object.ts";
+import type { Dynamic, Handler, QObject } from "../object.ts";
 
 // What a Connections is, beyond its properties: whether it was given a
 // `target` at all.
@@ -30,10 +30,8 @@ const signalName = (handler: string): string => handler[2]!.toLowerCase() + hand
 // False when the target has neither; otherwise what tells of a change the
 // flush made to the target and has not told yet.
 function listen(target: Dynamic, name: string, listener: Handler): (() => void) | false {
-  const emitted = target[name] as Partial<Signal> | undefined;
-  const isSignal = typeof emitted?.connect === "function" && typeof emitted.disconnect === "function";
   const property = /^(\w+)Changed$/.exec(name)?.[1];
-  if (!isSignal && (property === undefined || !(property in target))) return false;
+  if (!signalOf(target as QObject, name) && (property === undefined || !(property in target))) return false;
   return connect(target, name, listener);
 }
 
