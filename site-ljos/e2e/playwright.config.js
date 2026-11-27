@@ -35,6 +35,12 @@ export default defineConfig({
     // none runs. Left out rather than skipped in each test, so the run
     // lists only the tests it runs.
     { name: "no-webassembly", use: { wasm: false }, testIgnore: ["themes.spec.js"] },
+    // Firefox, where a reader opens the site as often as anywhere: the
+    // specs of what Firefox has broken before. Only when LJOS_E2E_FIREFOX
+    // is set, since it needs Playwright's Firefox installed (`pnpm exec
+    // playwright install firefox`), which the Chromium runs do not:
+    //   LJOS_E2E_FIREFOX=1 pnpm test:e2e --project firefox
+    ...(process.env.LJOS_E2E_FIREFOX ? [{ name: "firefox", use: { browserName: "firefox", wasm: true }, testMatch: ["lines.spec.js"] }] : []),
   ],
   webServer: {
     command: "node scripts/serve.mjs dist 4471",

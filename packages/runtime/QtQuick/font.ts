@@ -457,16 +457,33 @@ export function advance(spec: FontSpec, text: string): number {
 
 // A face's ascent, descent and letter heights as fractions of its size. The
 // browser rounds what it reports to whole pixels, so they are read at a size
-// where that no longer matters.
-const LARGE = 10000;
+// where that no longer matters: the largest of these the browser keeps.
+// Firefox sets no font larger than 2000px, in a canvas or in CSS, so a face
+// read at 10000px there was read at a fifth of it, and every line came out a
+// fifth as tall as its text.
+const SIZES = [10000, 2000, 1000];
+let large: number | undefined;
+
+function largest(): number {
+  if (large === undefined) {
+    const unit = select("1000px sans-serif").measureText("x").width / 1000;
+    large =
+      SIZES.find((size) => {
+        const each = select(`${size}px sans-serif`).measureText("x").width / size;
+        return Math.abs(each - unit) <= unit * 0.01;
+      }) ?? 1000;
+  }
+  return large;
+}
 
 function proportions(spec: FontSpec): Face {
   const key = `${spec.italic ? "italic " : ""}${spec.weight} ${spec.family}`;
   let known = faces.get(key);
   if (!known) {
-    const canvas = select(`${spec.italic ? "italic " : ""}${spec.weight} ${LARGE}px ${spec.family}`);
+    const size = largest();
+    const canvas = select(`${spec.italic ? "italic " : ""}${spec.weight} ${size}px ${spec.family}`);
     const box = canvas.measureText("x");
-    known = { ascent: box.fontBoundingBoxAscent / LARGE, descent: box.fontBoundingBoxDescent / LARGE, letters: null };
+    known = { ascent: box.fontBoundingBoxAscent / size, descent: box.fontBoundingBoxDescent / size, letters: null };
     faces.set(key, known);
   }
   return known;
@@ -501,11 +518,12 @@ export function letters(spec: FontSpec): Letters {
       gauge.style.cssText = "position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;width:1ex;height:1cap";
       document.body.append(gauge);
     }
-    gauge.style.font = `${spec.italic ? "italic " : ""}${spec.weight} ${LARGE}px ${spec.family}`;
+    const size = largest();
+    gauge.style.font = `${spec.italic ? "italic " : ""}${spec.weight} ${size}px ${spec.family}`;
     const box = gauge.getBoundingClientRect();
     // A browser without the `cap` unit: the height of an H is the next best.
     const capital = box.height || select(gauge.style.font).measureText("H").actualBoundingBoxAscent;
-    face.letters = { xHeight: box.width / LARGE, capitalHeight: capital / LARGE };
+    face.letters = { xHeight: box.width / size, capitalHeight: capital / size };
   }
   const { xHeight, capitalHeight } = face.letters;
   return { xHeight: Math.round(xHeight * spec.size * 64) / 64, capitalHeight: Math.round(capitalHeight * spec.size * 64) / 64 };
