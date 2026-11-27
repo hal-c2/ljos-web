@@ -453,6 +453,15 @@ export function rehover() {
   }
 }
 
+// A pointer that is gone for good, as a driven click's is once it is done:
+// what it was over is left, and nothing asks after it again.
+export function forget(id) {
+  const point = points.get(id);
+  if (!point) return;
+  if (point.hovered.length) hover(point, NONE);
+  points.delete(id);
+}
+
 // Where the mouse was last, in the page: Qt's `QCursor::pos()`.
 export function cursor() {
   for (const point of points.values()) {

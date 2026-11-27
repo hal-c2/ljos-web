@@ -86,6 +86,28 @@ test("a click at a point lands on what is drawn there", async ({ page }) => {
   expect(await ask(page, () => window.inspector.read("root", ["count", "presses"]))).toEqual({ count: 1, presses: 0 });
 });
 
+// A driven click is not the reader's mouse: what the mouse rests on stays
+// hovered while an agent clicks somewhere else, and nothing is left hovered
+// where the driven click was once it is done.
+test("a driven click leaves the reader's mouse where it is", async ({ page }) => {
+  await opened(page, "inspectrested");
+  const box = await page.locator("#scene").boundingBox();
+  await page.mouse.move(box.x + 50, box.y + 50);
+  expect(await ask(page, () => window.inspector.read("rested", ["containsMouse"]))).toEqual({ containsMouse: true });
+  expect(await ask(page, () => window.inspector.click("driven"))).toEqual({ at: [250, 50] });
+  expect(await ask(page, () => window.inspector.read("root", ["clicks"]))).toEqual({ clicks: 1 });
+  expect(await ask(page, () => window.inspector.read("rested", ["containsMouse"]))).toEqual({ containsMouse: true });
+  expect(await ask(page, () => window.inspector.read("driven", ["containsMouse"]))).toEqual({ containsMouse: false });
+  // The page laying itself out again asks what each pointer is over: the
+  // mouse is still on `rested`.
+  await ask(page, () => {
+    window.scene.width = 401;
+    window.flush();
+  });
+  expect(await ask(page, () => window.inspector.read("rested", ["containsMouse"]))).toEqual({ containsMouse: true });
+  expect(await ask(page, () => window.inspector.read("driven", ["containsMouse"]))).toEqual({ containsMouse: false });
+});
+
 test("a click outside the root, or at its right or bottom edge, is not actionable", async ({ page }) => {
   await opened(page, "inspected");
   for (const at of [[400, 10], [10, 300], [-1, 10]]) {
