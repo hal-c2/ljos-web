@@ -102,3 +102,47 @@ plain("an item says what it is drawn with, in Qt's names for it", async ({ page 
     renderables: [0, 1, 2],
   });
 });
+
+// What the effects of a page draw with, from the page's own ShaderEffect.
+async function heldIn(page) {
+  return page.evaluateHandle(async () => {
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/ShaderEffect\.js(\?|$)/.test(name)).name;
+    return (await import(address)).held;
+  });
+}
+
+// A reader editing a shader gives the effect a new source at each pause
+// in their typing. What it drew with before is let go once no effect
+// draws with it: a visit spent editing keeps the sources and programs in
+// use, not every one typed on the way. One still drawn with elsewhere
+// stays, and is not compiled again.
+plain("a shader no effect draws with any more is let go", async ({ page }) => {
+  await open(page, "shaderedits");
+  const held = await heldIn(page);
+  const count = () => page.evaluate((held) => held(), held);
+  await page.evaluate(() => window.scene.keep(0.5));
+  for (let edit = 1; edit <= 12; edit++) {
+    await page.evaluate((shade) => window.scene.edit(shade), edit / 100);
+    await expect.poll(() => page.evaluate(() => window.scene.status())).toBe(Compiled);
+  }
+  expect(await count(), "the edit drawn now and the source the other effect keeps").toEqual({ texts: 2, programs: 2 });
+  // Edited back to what the other effect draws with: one source, one program.
+  await page.evaluate(() => window.scene.edit(0.5));
+  await expect.poll(count).toEqual({ texts: 1, programs: 1 });
+});
+
+// A source written into its address is the shader the page was given:
+// no server answered with a page of its own for it. Junk above its first
+// line is the GLSL compiler's to say, with the line it is on; the message
+// is the compiler's, not the address, which is the whole source again.
+plain("a shader in its address with junk first is the compiler's to complain of", async ({ page }) => {
+  const warnings = [];
+  page.on("console", (message) => message.type() === "warning" && !message.text().includes("GL Driver Message") && warnings.push(message.text()));
+  await open(page, "shaderedits");
+  await page.evaluate(() => window.scene.editTo(`junk\n${window.scene.source(0.2)}`));
+  await expect.poll(() => page.evaluate(() => window.scene.status())).toBe(Failed);
+  const log = await page.evaluate(() => window.scene.log());
+  expect(log).toMatch(/\b0:1\b/);
+  expect(log).not.toContain("data:");
+  expect(warnings).toEqual([`ShaderEffect: ${log}`]);
+});
