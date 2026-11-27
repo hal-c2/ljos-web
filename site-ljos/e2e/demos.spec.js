@@ -181,7 +181,9 @@ test.describe("/demos/", () => {
       });
     // Whether the picture is red at a point of it, as the screen shows it
     // (the canvas's own pixels leave it for the screen and are not kept).
-    const colour = async (point) => {
+    // `where` gives the point when it is read, as the canvas stands then.
+    const colour = async (where) => {
+      const point = await where();
       const png = await page.screenshot({ clip: { x: point.x, y: point.y, width: 1, height: 1 } });
       return page.evaluate(async (data) => {
         const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
@@ -197,16 +199,22 @@ test.describe("/demos/", () => {
     };
     await expect.poll(async () => (await state()).drawn, { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
     await centre(canvas);
-    const box = await canvas.boundingBox();
-    const at = (x, y) => ({ x: box.x + box.width * x, y: box.y + box.height * y });
+    // Each press centres what it presses, which can scroll the canvas, so
+    // its box is measured each time a point of it is wanted: the box of the
+    // picture shown then, the effect or, while an edit is broken, the
+    // last one that compiled in its place.
+    const at = async (x, y) => {
+      const box = await slot.locator("canvas.qq-shader").filter({ visible: true }).first().boundingBox();
+      return { x: box.x + box.width * x, y: box.y + box.height * y };
+    };
 
-    const to = at(0.82, 0.35);
+    const to = await at(0.82, 0.35);
     await page.mouse.move(to.x, to.y, { steps: 8 });
     await expect
       .poll(async () => { const { x, y } = await state(); return x > 0.75 && y < 0.45 ? "there" : `at ${x.toFixed(2)}, ${y.toFixed(2)}`; }, { message: "the light's vortex goes where the pointer is" })
       .toBe("there");
 
-    const tap = at(0.25, 0.6);
+    const tap = await at(0.25, 0.6);
     const before = Date.now();
     await page.mouse.click(tap.x, tap.y);
     const tapped = await state();
@@ -228,7 +236,7 @@ test.describe("/demos/", () => {
     expect(source).toContain("fragColor = vec4(mix(day, night, dark), 1.0);");
     await editor.fill(source.replace("fragColor = vec4(mix(day, night, dark), 1.0);", "fragColor = vec4(1.0, 0.0, 0.0, 1.0);"));
     // Left of the middle: the source is open over the right of it.
-    const shown = at(0.2, 0.5);
+    const shown = () => at(0.2, 0.5);
     await expect.poll(() => red(shown), { message: "the edited shader is the picture", timeout: 10_000 }).toBe(true);
 
     await editor.fill(source.replace("fragColor = vec4(mix(day, night, dark), 1.0);", "fragColor = vec4(1.0, 0.0, 0.0, 1.0)\nwhat;"));
@@ -245,9 +253,10 @@ test.describe("/demos/", () => {
     await expect.poll(() => canvas.evaluate((canvas) => canvas.$effect.$shader.drawn()), { message: "the effect itself draws again" }).toBeGreaterThan(drawnReset + 5);
     await expect.poll(() => red(shown), { message: "Reset draws the shader as written" }).toBe(false);
     // Not a blank canvas either: its place looks different with it hidden.
-    const drawnColour = await colour(shown);
+    const behind = await shown();
+    const drawnColour = await colour(() => behind);
     await canvas.evaluate((canvas) => (canvas.style.visibility = "hidden"));
-    const withoutColour = await colour(shown);
+    const withoutColour = await colour(() => behind);
     await canvas.evaluate((canvas) => (canvas.style.visibility = ""));
     expect(drawnColour, "the picture after Reset is the shader's, not the page behind it").not.toEqual(withoutColour);
     expect(unexpected(errors)).toEqual([]);
