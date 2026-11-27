@@ -111,6 +111,26 @@ for (const kept of ["workbench", "desktop"]) {
   }
 }
 
+// The page for an address with no page is plain HTML of its own, written
+// by the build rather than prerendered from the shell, so the pages
+// above say nothing of it.
+for (const viewport of SIZES) {
+  for (const colorScheme of ["light", "dark"]) {
+    test(`the 404 page at ${viewport.width} in ${colorScheme} gives a reader all axe asks`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport, colorScheme, reducedMotion: "reduce" });
+      try {
+        const page = await context.newPage();
+        const response = await page.goto("/no-such-page/");
+        expect(response?.status()).toBe(404);
+        await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+        expect(await violations(page)).toEqual([]);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}
+
 test("the phone's menu, open, and the search results it finds give a reader all axe asks", async ({ browser }) => {
   for (const colorScheme of ["light", "dark"]) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme, reducedMotion: "reduce" });

@@ -1082,7 +1082,7 @@ const notFound = `<!doctype html>
       main .go { display: inline-block; padding: 10px 14px; background: var(--accent); color: var(--on-accent); font-weight: bold; font-size: 15px; text-decoration: none; }
       main .docs { margin-left: 12px; color: var(--accent); font-size: 15px; }
       footer { padding: 12px 20px; border-top: 1px solid var(--border); background: var(--panel); color: var(--muted); font-size: 12px; text-align: center; }
-      footer a { color: var(--ink); text-decoration: none; }
+      footer a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
     </style>
   </head>
   <body>
