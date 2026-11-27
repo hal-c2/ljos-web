@@ -13,7 +13,12 @@
 // object of such a file is listed and clicked all the same, with no place.
 import { flush, native } from "./object.ts";
 import { drawn as drawnOf } from "./QtQuick/drawn.ts";
+import { forget } from "./QtQuick/pointer.js";
 import { driving, inRoot, receiverOf } from "./QtQuick/receivers.js";
+
+// The id of a driven click's pointer: browsers number their own from 0
+// up, and -1 is theirs for a click no pointer made (a key's).
+const DRIVEN = -2;
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says
 // `console.log` is a debug message and `console.error` a critical one.
@@ -302,7 +307,10 @@ export function inspect(root) {
         // in (a menu over the whole window) is out of a person's reach:
         // the press would go to the page, which is not the app's to press.
         if (!ours(element)) return failed("not_actionable", node ? `\`${target}\` is covered by something outside the root` : `[${at}] is covered by what is not in the root`);
-        const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true };
+        // A pointer of its own, no device's: with the mouse's id the click
+        // would move the reader's mouse there, and what it rests on would
+        // stop being hovered.
+        const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: DRIVEN, pointerType: "mouse", isPrimary: true };
         const pressed = { ...pointer, button: 0, buttons: 1, detail: 1 };
         const released = { ...pointer, button: 0, buttons: 0, detail: 1 };
         driving(item, () => {
@@ -322,6 +330,8 @@ export function inspect(root) {
           up.dispatchEvent(new MouseEvent("mouseup", released));
           up.dispatchEvent(new MouseEvent("click", released));
         });
+        // Nothing is left hovered where no mouse is.
+        forget(DRIVEN);
         flush();
       } finally {
         back?.();
