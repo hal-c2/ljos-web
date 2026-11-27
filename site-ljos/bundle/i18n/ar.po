@@ -10,7 +10,7 @@ msgstr ""
 msgid "1 h ago"
 msgstr "منذ ساعة واحدة"
 
-#: ../Site/HeroStage.qml:43
+#: ../Site/HeroStage.qml:42
 msgid "1 match"
 msgstr "تطابق واحد"
 
@@ -18,7 +18,7 @@ msgstr "تطابق واحد"
 msgid "10:00 Design review"
 msgstr "10:00 مراجعة التصميم"
 
-#: ../Site/DemosPage.qml:120
+#: ../Site/DemosPage.qml:135
 msgid "3D you can orbit"
 msgstr "مشهد ثلاثي الأبعاد قابل للتدوير"
 
@@ -26,9 +26,17 @@ msgstr "مشهد ثلاثي الأبعاد قابل للتدوير"
 msgid "<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it."
 msgstr "<b>جرّبه على هذا المتجر.</b> أضف شيئًا إلى السلة، ثم حرّك <code>StatusSlot</code> في الشيفرة أدناه. سيتغير التخطيط وتحتفظ السلة بمحتوياتها. ارتكب خطأً إملائيًا وسيواصل المتجر العمل بينما تصلحه."
 
-#: ../Site/DemosPage.qml:169
+#: ../Site/DemosPage.qml:184
 msgid "A bird field guide. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection."
 msgstr "دليل ميداني للطيور. عند تشغيله، صفِّ القائمة بالكتابة في البحث، واختر نوعًا لقراءة ملاحظاته، وحدد الطيور التي شاهدتها لتحديث العداد، وبدّل بين المظهرين الفاتح والداكن مع الاحتفاظ باختيارك."
+
+#: ../Site/BuiltWith.qml:62
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
+msgstr "سطح تحكم لوكلاء البرمجة على جهازك، مع طرفية وألسنة متصفح وتخطيط QML يمكنك تعديله أثناء تشغيله."
+
+#: ../Site/BuiltWith.qml:60
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
+msgstr "سطح تحكم لوكلاء البرمجة على جهازك، مع طرفية وألسنة متصفح وتخطيط QML يمكنك تعديله أثناء تشغيله. <a href=\"/showcase/\">إضافة Office</a> الخاصة به موجودة في المعرض."
 
 #: ../Demos/Shader.qml:107
 msgid "A custom fragment shader"
@@ -38,19 +46,19 @@ msgstr "مظلِّل شظايا مخصص"
 msgid "A door is open"
 msgstr "أحد الأبواب مفتوح"
 
-#: ../Site/DemosPage.qml:185
+#: ../Site/DemosPage.qml:200
 msgid "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
 msgstr "دليل ميداني للطيور: قائمة بالأنواع إلى جانب النوع المختار، مع ملاحظات وعدد الطيور التي تمت مشاهدتها."
 
-#: ../Site/DemosPage.qml:134
+#: ../Site/DemosPage.qml:149
 msgid "A lit 3D scene of shapes on a floor. Drag to turn it."
 msgstr "مشهد ثلاثي الأبعاد مضاء لأشكال على أرضية. اسحب لتدويره."
 
-#: ../Site/DemosPage.qml:121
+#: ../Site/DemosPage.qml:136
 msgid "A lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Once it runs, drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt."
 msgstr "مشهد ثلاثي الأبعاد مضاء يعرضه المحرك نفسه الذي يعمل أصليًا على سطح المكتب والهاتف. عند تشغيله، اسحب للدوران، ومرّر أو قرّب بإصبعين للتكبير، وبدّل بين المظهرين الفاتح والداكن لترى المشهد يتكيف."
 
-#: ../Site/BuiltWith.qml:39
+#: ../Site/BuiltWith.qml:43
 msgid "A recipe card for red lentil soup, converted from a web page by Eldur and running on Ljós."
 msgstr "بطاقة وصفة لشوربة العدس الأحمر، حُوّلت من صفحة ويب بواسطة Eldur وتعمل على Ljós."
 
@@ -58,7 +66,7 @@ msgstr "بطاقة وصفة لشوربة العدس الأحمر، حُوّلت 
 msgid "A round smartwatch face with neon rings beside the same watch in 3D, in its case on a linked band, its screen's ring glowing."
 msgstr "واجهة ساعة ذكية دائرية ذات حلقات نيون بجانب الساعة نفسها ثلاثية الأبعاد، في هيكلها وعلى سوار ذي وصلات، بينما تتوهج حلقة شاشتها."
 
-#: ../Site/DemosPage.qml:144
+#: ../Site/DemosPage.qml:159
 msgid "A shader effect"
 msgstr "تأثير مظلِّل"
 
@@ -70,7 +78,7 @@ msgstr "برمجيات ساعة ذكية بجانب الساعة ثلاثية ا
 msgid "A ten-minute walk after lunch would close your move ring."
 msgstr "المشي لعشر دقائق بعد الغداء سيُكمل حلقة الحركة لديك."
 
-#: ../Site/BuiltWith.qml:45
+#: ../Site/BuiltWith.qml:49
 msgid "A terminal for Linux and macOS, with tabs, splits and one small config file. It tells you when an agent in a pane is waiting for you. The <a href=\"/showcase/\">showcase</a> shows it running."
 msgstr "طرفية لنظامي Linux و macOS، مع ألسنة وتقسيمات وملف إعداد واحد صغير. تخبرك عندما ينتظرك وكيل في أحد الأجزاء. يعرضها <a href=\"/showcase/\">المعرض</a> أثناء التشغيل."
 
@@ -78,7 +86,7 @@ msgstr "طرفية لنظامي Linux و macOS، مع ألسنة وتقسيما�
 msgid "A visual designer where the design is the app’s own QML. A change on the canvas leaves the rest of the file as it was, and agents drive Studio through MCP."
 msgstr "مصمم مرئي يكون فيه التصميم هو شيفرة QML الخاصة بالتطبيق نفسه. أي تغيير على لوحة التصميم يترك بقية الملف كما هو، ويتحكم الوكلاء في Studio عبر MCP."
 
-#: ../Site/DemosPage.qml:168
+#: ../Site/DemosPage.qml:183
 msgid "A whole app"
 msgstr "تطبيق كامل"
 
@@ -90,23 +98,39 @@ msgstr "أبر"
 msgid "AUG"
 msgstr "أغس"
 
-#: ../Shells/Desktop.qml:630 ../Shells/Desktop.qml:1154
+#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1153
 msgid "About ljos.dev"
 msgstr "حول ljos.dev"
 
-#: ../Shells/Workbench.qml:413
+#: ../Shells/Workbench.qml:412
 msgid "Activity"
 msgstr "النشاط"
 
-#: ../Shells/Workbench.qml:418
+#: ../Shells/Workbench.qml:417
 msgid "Activity bar"
 msgstr "شريط النشاط"
 
-#: ../Demos/Lottie.qml:194
+#: ../Demos/PantryShell.qml:163
+msgid "Add an item, then edit the code. Your basket stays."
+msgstr "أضف منتجًا، ثم عدّل الشيفرة. تبقى سلتك كما هي."
+
+#: ../Demos/PantryShell.qml:107
+msgid "Add bread"
+msgstr "أضف خبزًا"
+
+#: ../Demos/PantryShell.qml:140
+msgid "Add jam"
+msgstr "أضف مربى"
+
+#: ../Demos/PantryShell.qml:74
+msgid "Add tea"
+msgstr "أضف شايًا"
+
+#: ../Demos/Lottie.qml:203
 msgid "Again"
 msgstr "مجددًا"
 
-#: ../Demos/AgentView.qml:330 ../Site/HeroStage.qml:26
+#: ../Demos/AgentView.qml:329 ../Site/HeroStage.qml:25
 msgid "Agent"
 msgstr "الوكيل"
 
@@ -114,11 +138,11 @@ msgstr "الوكيل"
 msgid "Agent MCP stream"
 msgstr "بث MCP للوكيل"
 
-#: ../Demos/AgentView.qml:390
+#: ../Demos/AgentView.qml:389
 msgid "Agent log"
 msgstr "سجل الوكيل"
 
-#: ../Demos/AgentView.qml:144
+#: ../Demos/AgentView.qml:143
 msgid "Agent: make this a board"
 msgstr "الوكيل: حوّل هذه إلى لوحة"
 
@@ -126,7 +150,7 @@ msgstr "الوكيل: حوّل هذه إلى لوحة"
 msgid "All caught up"
 msgstr "لا توجد إشعارات جديدة"
 
-#: ../Shells/Desktop.qml:854
+#: ../Shells/Desktop.qml:853
 msgid "All demos"
 msgstr "جميع العروض"
 
@@ -134,7 +158,7 @@ msgstr "جميع العروض"
 msgid "All doors closed"
 msgstr "جميع الأبواب مغلقة"
 
-#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:219
+#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:218
 msgid "Always on"
 msgstr "تشغيل دائم"
 
@@ -154,7 +178,7 @@ msgstr "يحوّل الوكيل قائمة إلى لوحة أثناء عمل ا�
 msgid "An app’s layout doesn’t have to be fixed. Let people, or their agents, replace it live, without losing their work. If an edit won’t compile, the last working layout stays."
 msgstr "لا يجب أن يكون تخطيط التطبيق ثابتًا. دَع المستخدمين، أو وكلاءهم، يستبدلونه مباشرة دون فقدان عملهم. وإذا لم ينجح تصريف تعديل ما، يبقى آخر تخطيط يعمل."
 
-#: ../Shells/Workbench.qml:476
+#: ../Shells/Workbench.qml:475
 msgid "Appearance settings"
 msgstr "إعدادات المظهر"
 
@@ -166,11 +190,11 @@ msgstr "تطبيق"
 msgid "Apps"
 msgstr "التطبيقات"
 
-#: ../Site/Landing.qml:262
+#: ../Site/Landing.qml:292
 msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio, Eldur and HAL-C2."
 msgstr "تطبيقات وأدوات مصنوعة باستخدام Ljós، وجميعها متاحة للعامة على GitHub. يضم <a href=\"/showcase/\">المعرض</a> تسجيلًا لـ Hof وصورًا لـ Studio و Eldur و HAL-C2."
 
-#: ../Site/ShowcasePage.qml:46
+#: ../Site/ShowcasePage.qml:45
 msgid "Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source."
 msgstr "تطبيقات تعمل على Ljós اليوم، مسجّلة أثناء تشغيلها. يوضح كل تسجيل ما يُبرزه حول Ljós، ويرتبط كل تطبيق بشيفرته المصدرية."
 
@@ -182,11 +206,11 @@ msgstr "هل ما زلنا على موعدنا الليلة؟"
 msgid "As the system"
 msgstr "حسب النظام"
 
-#: ../Demos/DispatchCard.qml:361
+#: ../Demos/DispatchCard.qml:360
 msgid "Assign crew"
 msgstr "إسناد فريق"
 
-#: ../Demos/DispatchCard.qml:362
+#: ../Demos/DispatchCard.qml:361
 msgid "Assign crew to {0}"
 msgstr "إسناد فريق إلى {0}"
 
@@ -198,11 +222,11 @@ msgstr "البطارية {0} %"
 msgid "BPM"
 msgstr "BPM"
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:567 ../Shells/Desktop.qml:690
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:566 ../Shells/Desktop.qml:689
 msgid "Back"
 msgstr "رجوع"
 
-#: ../Pantry/Basket.qml:85
+#: ../Pantry/Basket.qml:82
 msgid "Basket"
 msgstr "السلة"
 
@@ -214,27 +238,35 @@ msgstr "البطارية عند 20 %"
 msgid "Before"
 msgstr "قبل"
 
-#: ../Shells/Desktop.qml:721 ../Shells/Desktop.qml:845
+#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:844
 msgid "Benchmarks"
 msgstr "المقاييس"
 
-#: ../Site/HeroStage.qml:35
+#: ../Site/HeroStage.qml:34
 msgid "Beta week"
 msgstr "أسبوع النسخة التجريبية"
 
-#: ../Demos/AgentView.qml:170
+#: ../Demos/AgentView.qml:169
 msgid "Board"
 msgstr "لوحة"
 
-#: ../Demos/AgentView.qml:171
+#: ../Demos/AgentView.qml:170
 msgid "Board layout"
 msgstr "تخطيط اللوحة"
 
-#: ../Shells/Workbench.qml:883
+#: ../Shells/Workbench.qml:882
 msgid "Bottom panel"
 msgstr "اللوحة السفلية"
 
-#: ../Shells/Desktop.qml:715
+#: ../Demos/Motion.qml:26
+msgid "Bouncy"
+msgstr "النطّاطة"
+
+#: ../Demos/PantryShell.qml:92
+msgid "Bread · £{0}"
+msgstr "خبز · £{0}"
+
+#: ../Shells/Desktop.qml:714
 msgid "Browse all interactive demos"
 msgstr "تصفح جميع العروض التفاعلية"
 
@@ -242,11 +274,11 @@ msgstr "تصفح جميع العروض التفاعلية"
 msgid "Built for agents"
 msgstr "مبني للوكلاء"
 
-#: ../Site/Landing.qml:317
+#: ../Site/Landing.qml:347
 msgid "Built together"
 msgstr "نُبنيه معًا"
 
-#: ../Site/Footer.qml:126 ../Site/Landing.qml:250 ../Site/ShowcasePage.qml:31
+#: ../Site/Footer.qml:128 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
 msgid "Built with Ljós"
 msgstr "مبني باستخدام Ljós"
 
@@ -254,27 +286,27 @@ msgstr "مبني باستخدام Ljós"
 msgid "Cancel timer"
 msgstr "إلغاء المؤقت"
 
-#: ../Shells/Desktop.qml:586
+#: ../Shells/Desktop.qml:585
 msgid "Capability: agentic first"
 msgstr "القدرة: الوكلاء أولًا"
 
-#: ../Shells/Desktop.qml:585
+#: ../Shells/Desktop.qml:584
 msgid "Capability: descriptive language"
 msgstr "القدرة: لغة وصفية"
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:587
 msgid "Capability: live updates"
 msgstr "القدرة: تحديثات فورية"
 
-#: ../Shells/Desktop.qml:590
+#: ../Shells/Desktop.qml:589
 msgid "Capability: malleable"
 msgstr "القدرة: قابل للتشكيل"
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:586
 msgid "Capability: several renderers"
 msgstr "القدرة: عدة محركات عرض"
 
-#: ../Shells/Desktop.qml:589
+#: ../Shells/Desktop.qml:588
 msgid "Capability: tools"
 msgstr "القدرة: أدوات"
 
@@ -314,7 +346,7 @@ msgstr "تحقق من أن التطبيق قيد التشغيل."
 msgid "Check what still needs a crew."
 msgstr "تحقق مما لا يزال بحاجة إلى فريق."
 
-#: ../Site/Preferences.qml:31
+#: ../Site/Preferences.qml:32
 msgid "Classic desktop application window with menu bar, toolbar, sidebar, and status bar."
 msgstr "نافذة تطبيق سطح مكتب كلاسيكية تضم شريط قوائم وشريط أدوات وشريطًا جانبيًا وشريط حالة."
 
@@ -322,7 +354,7 @@ msgstr "نافذة تطبيق سطح مكتب كلاسيكية تضم شريط �
 msgid "Clear all"
 msgstr "مسح الكل"
 
-#: ../Shells/Workbench.qml:1044
+#: ../Shells/Workbench.qml:1043
 msgid "Clear log"
 msgstr "مسح السجل"
 
@@ -334,19 +366,19 @@ msgstr "المناخ"
 msgid "Climate off"
 msgstr "المناخ متوقف"
 
-#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
+#: ../Shells/Cyberpunk.qml:352 ../Shells/Cyberpunk.qml:616
 msgid "Clock"
 msgstr "الساعة"
 
-#: ../Shells/Cyberpunk.qml:356 ../Shells/Cyberpunk.qml:620
+#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
 msgid "Clock {0}"
 msgstr "الساعة {0}"
 
-#: ../Shells/Desktop.qml:1180
+#: ../Shells/Desktop.qml:1179
 msgid "Close"
 msgstr "إغلاق"
 
-#: ../Site/ObserverDock.qml:185
+#: ../Site/ObserverDock.qml:184
 msgctxt "observer"
 msgid "Close"
 msgstr "إغلاق"
@@ -359,15 +391,23 @@ msgstr "إغلاق القائمة"
 msgid "Close shell source"
 msgstr "إغلاق مصدر الغلاف"
 
-#: ../Site/ObserverDock.qml:186
+#: ../Site/ObserverDock.qml:185
 msgid "Close the Observer"
 msgstr "إغلاق المراقب"
 
-#: ../Shells/Desktop.qml:994 ../Shells/Workbench.qml:745
+#: ../Site/ShowcaseEngine.qml:311
+msgid "Close the editor"
+msgstr "إغلاق المحرر"
+
+#: ../Site/ShowcaseEngine.qml:312
+msgid "Close the editor of {0}"
+msgstr "إغلاق محرر {0}"
+
+#: ../Shells/Desktop.qml:993 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr "إغلاق {0}"
 
-#: ../Demos/DispatchCard.qml:332
+#: ../Demos/DispatchCard.qml:331
 msgid "Closed"
 msgstr "مغلق"
 
@@ -379,15 +419,15 @@ msgstr "الشيفرة"
 msgid "Code: {0}"
 msgstr "الشيفرة: {0}"
 
-#: ../Shells/Workbench.qml:849
+#: ../Shells/Workbench.qml:848
 msgid "Collapse inspector"
 msgstr "طيّ الفاحص"
 
-#: ../Site/Footer.qml:119
+#: ../Site/Footer.qml:121
 msgid "Community principles"
 msgstr "مبادئ المجتمع"
 
-#: ../Shells/Cyberpunk.qml:51
+#: ../Shells/Cyberpunk.qml:49
 msgid "Console"
 msgstr "وحدة التحكم"
 
@@ -408,19 +448,19 @@ msgstr "نسخ"
 msgid "Copy {0}"
 msgstr "نسخ {0}"
 
-#: ../Demos/WatchDemo.qml:176
+#: ../Demos/WatchDemo.qml:175
 msgid "Crown ▲"
 msgstr "التاج ▲"
 
-#: ../Demos/WatchDemo.qml:183
+#: ../Demos/WatchDemo.qml:182
 msgid "Crown ▼"
 msgstr "التاج ▼"
 
-#: ../Site/ShellSwitcher.qml:54
+#: ../Site/ShellSwitcher.qml:56
 msgid "Current shell: {label}"
 msgstr "الغلاف الحالي: {label}"
 
-#: ../Site/Preferences.qml:29
+#: ../Site/Preferences.qml:30
 msgid "Cyberpunk"
 msgstr "سايبربانك"
 
@@ -428,15 +468,15 @@ msgstr "سايبربانك"
 msgid "DEC"
 msgstr "ديس"
 
-#: ../Demos/Lottie.qml:98
+#: ../Demos/Lottie.qml:97
 msgid "Dance (loops)"
 msgstr "الرقص (متكرر)"
 
-#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:36
+#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:37
 msgid "Dark"
 msgstr "داكن"
 
-#: ../Shells/Desktop.qml:506
+#: ../Shells/Desktop.qml:505
 msgid "Dark colour scheme"
 msgstr "المظهر الداكن"
 
@@ -444,11 +484,11 @@ msgstr "المظهر الداكن"
 msgid "Defrost"
 msgstr "إزالة الضباب"
 
-#: ../Shells/Cyberpunk.qml:52 ../Shells/Desktop.qml:714 ../Shells/Desktop.qml:849 ../Site/Footer.qml:101 ../Site/Router.qml:39 ../Site/Router.qml:47 ../Site/Router.qml:83
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:848 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
 msgid "Demos"
 msgstr "العروض"
 
-#: ../Shells/Workbench.qml:604
+#: ../Shells/Workbench.qml:603
 msgid "Demos/"
 msgstr "العروض/"
 
@@ -456,11 +496,11 @@ msgstr "العروض/"
 msgid "Design review at 10:00"
 msgstr "مراجعة التصميم الساعة 10:00"
 
-#: ../Site/Preferences.qml:31
+#: ../Site/Preferences.qml:32
 msgid "Desktop"
 msgstr "سطح المكتب"
 
-#: ../Shells/Workbench.qml:1169
+#: ../Shells/Workbench.qml:1168
 msgid "Diagnostics: {0}"
 msgstr "التشخيصات: {0}"
 
@@ -480,31 +520,35 @@ msgstr "المسافة"
 msgid "Do not disturb"
 msgstr "عدم الإزعاج"
 
-#: ../Shells/Cyberpunk.qml:57 ../Site/Footer.qml:100 ../Site/Router.qml:38
+#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:39
 msgid "Docs"
 msgstr "التوثيق"
 
-#: ../Shells/Desktop.qml:943
+#: ../Shells/Desktop.qml:942
 msgid "Documents"
 msgstr "المستندات"
 
-#: ../Demos/AgentView.qml:187 ../Demos/Watch/WorkoutPage.qml:169
+#: ../Demos/AgentView.qml:186 ../Demos/Watch/WorkoutPage.qml:169
 msgid "Done"
 msgstr "تم"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Done. Try Assign crew or List / Board."
 msgstr "تم. جرّب إسناد فريق أو قائمة / لوحة."
 
-#: ../Demos/Orbit.qml:273
+#: ../Demos/Motion.qml:66
+msgid "Drag the ring · three springs chase it"
+msgstr "اسحب الحلقة · ثلاثة نوابض تطاردها"
+
+#: ../Demos/Orbit.qml:271
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "اسحب للدوران · مرّر أو قرّب للتكبير"
 
-#: ../Demos/WatchDemo.qml:343
+#: ../Demos/WatchDemo.qml:342
 msgid "Drag to turn it"
 msgstr "اسحب لتدويره"
 
-#: ../Demos/Orbit.qml:290
+#: ../Demos/Orbit.qml:288
 msgid "Drawn by Ljós's 3D renderer"
 msgstr "مرسوم بمحرك العرض ثلاثي الأبعاد في Ljós"
 
@@ -524,28 +568,28 @@ msgstr "ضبط السائق على {0}"
 msgid "Driver warmer"
 msgstr "تدفئة جهة السائق"
 
-#: ../Site/DemosPage.qml:51
+#: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "كل عرض تطبيق Ljós كامل يجتاز ljos check، مُصرَّف مسبقًا ومُركَّب في هذه الصفحة. عندما يعمل عرض، بدِّل بين السمة الفاتحة والداكنة في الترويسة لتراه يتبعها. حرِّر الشيفرة الحية في صفحتي قمرة القيادة والساعة الذكية، وأعد كتابة واجهة متجر وهو يعمل في {shopLink}. يحتفظ العرض بصورته ووصفه حيث يفتقر المتصفح إلى WebAssembly أو WebGL 2 الذي يحتاجه."
-
-#: ../Site/DemosPage.qml:48
-msgid "front page"
-msgstr "الصفحة الرئيسية"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"
 msgstr "كل جهة على حدة"
+
+#: ../Site/ShowcaseEngine.qml:311
+msgid "Edit"
+msgstr "تعديل"
 
 #: ../Site/CodeBlock.qml:812
 msgctxt "stage"
 msgid "Edit"
 msgstr "تعديل"
 
-#: ../Demos/PantryDemo.qml:287
+#: ../Demos/PantryDemo.qml:280
 msgid "Edit the Pantry's Shell.qml"
 msgstr "تعديل Shell.qml في Pantry"
 
-#: ../Site/LiveSource.qml:210
+#: ../Site/LiveSource.qml:209
 msgid "Edit the running shell's QML"
 msgstr "تعديل QML للغلاف الجاري تشغيله"
 
@@ -553,11 +597,11 @@ msgstr "تعديل QML للغلاف الجاري تشغيله"
 msgid "Edit this shell's QML"
 msgstr "تعديل QML لهذا الغلاف"
 
-#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813
+#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813 ../Site/ShowcaseEngine.qml:312
 msgid "Edit {0}"
 msgstr "تعديل {0}"
 
-#: ../Site/ProDemoPage.qml:382
+#: ../Site/ProDemoPage.qml:430 ../Site/ShowcaseEngine.qml:401
 msgid "Edit {0} of {1}"
 msgstr "تعديل {0} في {1}"
 
@@ -565,19 +609,19 @@ msgstr "تعديل {0} في {1}"
 msgid "Edited"
 msgstr "مُعدَّل"
 
-#: ../Shells/Workbench.qml:693
+#: ../Shells/Workbench.qml:692
 msgid "Editor"
 msgstr "المحرر"
 
-#: ../Site/Preferences.qml:28
+#: ../Site/Preferences.qml:29
 msgid "Editorial layout for reading, trying demos, and comparing specs."
 msgstr "تخطيط تحريري للقراءة وتجربة العروض ومقارنة المواصفات."
 
-#: ../Site/BuiltWith.qml:34 ../Site/Footer.qml:136
+#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:138
 msgid "Eldur"
 msgstr "Eldur"
 
-#: ../Site/Preferences.qml:28
+#: ../Site/Preferences.qml:29
 msgid "Elegant"
 msgstr "أنيق"
 
@@ -585,11 +629,11 @@ msgstr "أنيق"
 msgid "End"
 msgstr "إنهاء"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "End result, not run"
 msgstr "النتيجة النهائية، غير مشغّلة"
 
-#: ../Site/Capability.qml:100
+#: ../Site/Capability.qml:99
 msgid "Example"
 msgstr "مثال"
 
@@ -597,11 +641,11 @@ msgstr "مثال"
 msgid "Exercise"
 msgstr "تمرين"
 
-#: ../Shells/Workbench.qml:761
+#: ../Shells/Workbench.qml:760
 msgid "Expand inspector"
 msgstr "توسيع الفاحص"
 
-#: ../Shells/Workbench.qml:431 ../Shells/Workbench.qml:518 ../Shells/Workbench.qml:1102
+#: ../Shells/Workbench.qml:430 ../Shells/Workbench.qml:517 ../Shells/Workbench.qml:1101
 msgid "Explorer"
 msgstr "المستكشف"
 
@@ -641,32 +685,32 @@ msgstr "سريع، وهادئ عند السكون"
 msgid "Feeder 12 needs a crew. Find its button."
 msgstr "يحتاج Feeder 12 إلى فريق. ابحث عن زره."
 
-#: ../Demos/FieldGuide.qml:89
+#: ../Demos/FieldGuide.qml:88
 msgid "Field guide"
 msgstr "الدليل الميداني"
 
-#: ../Shells/Desktop.qml:441
+#: ../Shells/Desktop.qml:440
 msgctxt "menu bar"
 msgid "File"
 msgstr "ملف"
 
-#: ../Shells/Desktop.qml:512
+#: ../Shells/Desktop.qml:511
 msgid "Follow system colour scheme"
 msgstr "اتباع مظهر النظام"
 
-#: ../Shells/Desktop.qml:572 ../Shells/Desktop.qml:696
+#: ../Shells/Desktop.qml:571 ../Shells/Desktop.qml:695
 msgid "Forward"
 msgstr "للأمام"
 
-#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
+#: ../Shells/Cyberpunk.qml:364 ../Shells/Cyberpunk.qml:607
 msgid "Frame rate"
 msgstr "معدل الإطارات"
 
-#: ../Shells/Cyberpunk.qml:368 ../Shells/Cyberpunk.qml:611
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate not measured yet"
 msgstr "لم يُقَس معدل الإطارات بعد"
 
-#: ../Shells/Cyberpunk.qml:368 ../Shells/Cyberpunk.qml:611
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate {0} fps"
 msgstr "معدل الإطارات {0} fps"
 
@@ -674,7 +718,7 @@ msgstr "معدل الإطارات {0} fps"
 msgid "Frunk"
 msgstr "الصندوق الأمامي"
 
-#: ../Site/Preferences.qml:29
+#: ../Site/Preferences.qml:30
 msgid "Full-bleed HUD console with live telemetry rails and mission-style panels."
 msgstr "وحدة تحكم HUD بملء الشاشة مع أشرطة قياس حيّة ولوحات مهام."
 
@@ -682,7 +726,7 @@ msgstr "وحدة تحكم HUD بملء الشاشة مع أشرطة قياس ح�
 msgid "Gear {0}"
 msgstr "الترس {0}"
 
-#: ../Demos/Lottie.qml:98
+#: ../Demos/Lottie.qml:97
 msgid "Genie (plays once)"
 msgstr "الجني (مرة واحدة)"
 
@@ -690,15 +734,15 @@ msgstr "الجني (مرة واحدة)"
 msgid "Get started"
 msgstr "ابدأ الآن"
 
-#: ../Shells/Desktop.qml:612
+#: ../Shells/Desktop.qml:611
 msgid "Getting started guide"
 msgstr "دليل البداية"
 
-#: ../Site/Footer.qml:117
+#: ../Site/Footer.qml:119
 msgid "GitHub"
 msgstr "GitHub"
 
-#: ../Demos/WatchDemo.qml:160
+#: ../Demos/WatchDemo.qml:159
 msgid "Give the watch its other screen"
 msgstr "تبديل الساعة إلى شاشتها الأخرى"
 
@@ -706,20 +750,20 @@ msgstr "تبديل الساعة إلى شاشتها الأخرى"
 msgid "Glow"
 msgstr "التوهج"
 
-#: ../Shells/Desktop.qml:559
+#: ../Shells/Desktop.qml:558
 msgctxt "menu bar"
 msgid "Go"
 msgstr "انتقال"
 
-#: ../Shells/Desktop.qml:697
+#: ../Shells/Desktop.qml:696
 msgid "Go to next route"
 msgstr "الانتقال إلى المسار التالي"
 
-#: ../Shells/Desktop.qml:691
+#: ../Shells/Desktop.qml:690
 msgid "Go to previous route"
 msgstr "الانتقال إلى المسار السابق"
 
-#: ../Site/Landing.qml:397
+#: ../Site/Landing.qml:427
 msgid "Goals and principles"
 msgstr "الأهداف والمبادئ"
 
@@ -727,13 +771,21 @@ msgstr "الأهداف والمبادئ"
 msgid "Grid face"
 msgstr "واجهة الشبكة"
 
-#: ../Demos/Lottie.qml:114
+#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:140
+msgid "HAL-C2"
+msgstr "HAL-C2"
+
+#: ../Demos/Lottie.qml:113
 msgid "HAL-C2's dancing avatar, looping"
 msgstr "أفاتار HAL-C2 الراقص، يتكرر"
 
-#: ../Demos/Lottie.qml:126
+#: ../Demos/Lottie.qml:130
 msgid "HAL-C2's genie avatar, plays once"
 msgstr "أفاتار HAL-C2 الجني، يعمل مرة واحدة"
+
+#: ../Site/BuiltWith.qml:65
+msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
+msgstr "إعدادات المظهر في HAL-C2 على Ljós: أقسام الإعدادات على اليسار، وخيارات نظام الألوان System/Light/Dark، وقائمة بالسمات مع اختيار HAL-C2."
 
 #: ../Demos/Watch/HeartPage.qml:13
 msgid "HEART"
@@ -755,24 +807,24 @@ msgstr "معدل النبض، آخر {0} ثانية"
 msgid "Heating"
 msgstr "تدفئة"
 
-#: ../Shells/Desktop.qml:604
+#: ../Shells/Desktop.qml:603
 msgctxt "menu bar"
 msgid "Help"
 msgstr "مساعدة"
 
-#: ../Shells/Desktop.qml:702 ../Shells/Desktop.qml:827 ../Site/Router.qml:47 ../Site/Router.qml:81
+#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:826 ../Site/Router.qml:48 ../Site/Router.qml:82
 msgid "Home"
 msgstr "الرئيسية"
 
-#: ../Shells/Desktop.qml:1098 ../Shells/Workbench.qml:1056
+#: ../Shells/Desktop.qml:1097 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr "تم التنشيط خلال {0} ms"
 
-#: ../Demos/FieldGuide.qml:261
+#: ../Demos/FieldGuide.qml:260
 msgid "I have seen this one"
 msgstr "شاهدت هذا النوع"
 
-#: ../Site/Preferences.qml:30
+#: ../Site/Preferences.qml:31
 msgid "IDE-style workspace with file tree, tabbed centre pane, and inspector docks."
 msgstr "مساحة عمل بأسلوب IDE تضم شجرة ملفات وجزءًا أوسط بلسانات ونوافذ فاحص."
 
@@ -792,11 +844,11 @@ msgstr "بعد {0, plural, zero {# ميل} one {ميل واحد} two {ميلين
 msgid "Inspect every node, patch state in flight, drop a new shell on the wire."
 msgstr "افحص كل عقدة، عدّل الحالة أثناء التشغيل، وأسقط غلافًا جديدًا فورًا."
 
-#: ../Demos/AgentView.qml:576
+#: ../Demos/AgentView.qml:575
 msgid "Inspect {0}"
 msgstr "فحص {0}"
 
-#: ../Shells/Workbench.qml:797 ../Shells/Workbench.qml:1104
+#: ../Shells/Workbench.qml:796 ../Shells/Workbench.qml:1103
 msgid "Inspector"
 msgstr "الفاحص"
 
@@ -804,7 +856,7 @@ msgstr "الفاحص"
 msgid "It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href=\"/start/mcp/\">Connect an agent</a>."
 msgstr "يمكنه قراءة ما على الشاشة، وضغط الأزرار، والكتابة، والتحقق من نجاح تعديلاته. وأنت تختار ما يُسمح له بفعله. <a href=\"/start/mcp/\">اربط وكيلًا</a>."
 
-#: ../Site/ProDemoPage.qml:228
+#: ../Site/ProDemoPage.qml:236
 msgid "Its files"
 msgstr "ملفاته"
 
@@ -819,6 +871,10 @@ msgstr "يول"
 #: ../Demos/Watch/Watch.qml:429
 msgid "JUN"
 msgstr "يون"
+
+#: ../Demos/PantryShell.qml:125
+msgid "Jam · £{0}"
+msgstr "مربى · £{0}"
 
 #: ../Demos/Watch/WorkoutPage.qml:122
 msgid "KCAL"
@@ -852,9 +908,13 @@ msgstr "مساعد المسار في وضع الاستعداد"
 msgid "Language"
 msgstr "اللغة"
 
-#: ../Site/LanguageSwitcher.qml:58
+#: ../Site/LanguageSwitcher.qml:60
 msgid "Language: {0}"
 msgstr "اللغة: {0}"
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "اللغة: {languageName} – اختر غيرها"
 
 #: ../Demos/Watch/StopwatchPage.qml:56
 msgid "Lap"
@@ -864,11 +924,15 @@ msgstr "لفة"
 msgid "Lap {0}   {1}"
 msgstr "اللفة {0}   {1}"
 
-#: ../Site/HeroApp.qml:15 ../Site/HeroApp.qml:39
+#: ../Site/HeroApp.qml:14 ../Site/HeroApp.qml:38
 msgid "Launch week"
 msgstr "أسبوع الإطلاق"
 
-#: ../Site/Footer.qml:91
+#: ../Demos/Motion.qml:27
+msgid "Lazy"
+msgstr "الكسولة"
+
+#: ../Site/Footer.qml:93
 msgid "Learn"
 msgstr "تعلّم"
 
@@ -876,23 +940,23 @@ msgstr "تعلّم"
 msgid "Left door"
 msgstr "الباب الأيسر"
 
-#: ../Demos/FieldGuide.qml:201
+#: ../Demos/FieldGuide.qml:200
 msgid "Length"
 msgstr "الطول"
 
-#: ../Demos/WatchDemo.qml:204
+#: ../Demos/WatchDemo.qml:203
 msgid "Lets the watch rest on its always-on face, as it does by itself after fifteen seconds"
 msgstr "يدع الساعة تستريح على واجهة التشغيل الدائم، كما تفعل تلقائيًا بعد خمس عشرة ثانية"
 
-#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:35
+#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:36
 msgid "Light"
 msgstr "فاتح"
 
-#: ../Shells/Desktop.qml:500
+#: ../Shells/Desktop.qml:499
 msgid "Light colour scheme"
 msgstr "المظهر الفاتح"
 
-#: ../Site/DemosPage.qml:158
+#: ../Site/DemosPage.qml:173
 msgid "Light pooling over a card of text, following the pointer."
 msgstr "ضوء يتجمع فوق بطاقة نصية ويتبع المؤشر."
 
@@ -900,11 +964,11 @@ msgstr "ضوء يتجمع فوق بطاقة نصية ويتبع المؤشر."
 msgid "Linked"
 msgstr "مرتبط"
 
-#: ../Demos/AgentView.qml:163
+#: ../Demos/AgentView.qml:162
 msgid "List"
 msgstr "قائمة"
 
-#: ../Demos/AgentView.qml:164
+#: ../Demos/AgentView.qml:163
 msgid "List layout"
 msgstr "تخطيط القائمة"
 
@@ -912,7 +976,7 @@ msgstr "تخطيط القائمة"
 msgid "Live app"
 msgstr "تطبيق حي"
 
-#: ../Site/DemosPage.qml:45 ../Site/Landing.qml:388
+#: ../Site/DemosPage.qml:44 ../Site/Landing.qml:418
 msgid "Live demos"
 msgstr "عروض حية"
 
@@ -928,23 +992,23 @@ msgstr "بيئة تشغيل حية على شجرة مفتوحة"
 msgid "Live stage"
 msgstr "المنصة الحية"
 
-#: ../Site/Footer.qml:62 ../Site/Router.qml:47
+#: ../Site/Footer.qml:64 ../Site/Router.qml:48
 msgid "Ljós"
 msgstr "Ljós"
 
-#: ../Site/BuiltWith.qml:43 ../Site/Footer.qml:137
+#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:139
 msgid "Ljós Hof"
 msgstr "Ljós Hof"
 
-#: ../Site/BuiltWith.qml:48
+#: ../Site/BuiltWith.qml:54
 msgid "Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right."
 msgstr "Ljós Hof بجزأين متجاورين: git log في الجزء النشط على اليسار، وقائمة دليل على اليمين."
 
-#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:135
+#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:137
 msgid "Ljós Studio"
 msgstr "Ljós Studio"
 
-#: ../Site/BuiltWith.qml:30
+#: ../Site/BuiltWith.qml:32
 msgid "Ljós Studio with a rectangle selected on the canvas: the layers on the left, its properties on the right and its QML under the canvas."
 msgstr "Ljós Studio مع مستطيل محدد على لوحة التصميم: الطبقات على اليسار، وخصائصه على اليمين، وشيفرة QML الخاصة به أسفل اللوحة."
 
@@ -952,19 +1016,19 @@ msgstr "Ljós Studio مع مستطيل محدد على لوحة التصميم: 
 msgid "Ljós is a Rust UI toolkit for apps that people and their agents can change live, with declarative interfaces and typed TypeScript."
 msgstr "Ljós هي حزمة واجهات مستخدم بلغة Rust لتطبيقات يستطيع الناس ووكلاؤهم تعديلها أثناء التشغيل، عبر واجهات تصريحية وTypeScript بنظام أنواع."
 
-#: ../Site/GitHubMark.qml:27
+#: ../Site/GitHubMark.qml:28
 msgid "Ljós on GitHub"
 msgstr "Ljós على GitHub"
 
-#: ../Site/Landing.qml:335
+#: ../Site/Landing.qml:365
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr "يسعى Ljós إلى اتباع مبادئ <a href=\"https://community-software.org/\">Community Software</a>: نبنيه معًا، كأقران، على نحو مفتوح.<br><br>الجميع مرحّب بهم.<br>نحن أقران.<br>كل مساهمة تُحدث فرقًا.<br>التأثير ينمو بالمشاركة.<br>كن لطيفًا مع الناس، ودقيقًا مع الأفكار.<br>«لا» و«ليس بعد» إجابتان مقبولتان.<br>اعتنِ بنفسك وببعضكم بعضًا.<br><br>الشيفرة إحدى طرق المساعدة. الاختبار والتوثيق والتصميم والترجمة ومراجعات إتاحة الوصول لها القدر نفسه من الأهمية، وأسئلة القادمين الجدد مرحّب بها دائمًا."
 
-#: ../Shells/Desktop.qml:643
+#: ../Shells/Desktop.qml:642
 msgid "Ljós — {0}"
 msgstr "Ljós — {0}"
 
-#: ../Site/Brand.qml:25
+#: ../Site/Brand.qml:26
 msgid "Ljós, home"
 msgstr "Ljós، الرئيسية"
 
@@ -980,7 +1044,7 @@ msgstr "المظهر"
 msgid "Look at the app before changing it."
 msgstr "انظر إلى التطبيق قبل تغييره."
 
-#: ../Site/DemosPage.qml:222
+#: ../Site/DemosPage.qml:109 ../Site/Landing.qml:246
 msgid "Lottie animations"
 msgstr "رسوم Lottie المتحركة"
 
@@ -1000,11 +1064,11 @@ msgstr "مار"
 msgid "MAY"
 msgstr "ماي"
 
-#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:1017
+#: ../Shells/Workbench.qml:897 ../Shells/Workbench.qml:1016
 msgid "MCP log"
 msgstr "سجل MCP"
 
-#: ../Shells/Desktop.qml:616
+#: ../Shells/Desktop.qml:615
 msgid "MCP servers for agents"
 msgstr "خوادم MCP للوكلاء"
 
@@ -1012,7 +1076,7 @@ msgstr "خوادم MCP للوكلاء"
 msgid "MI LEFT"
 msgstr "MI متبقية"
 
-#: ../Site/Footer.qml:120
+#: ../Site/Footer.qml:122
 msgid "MIT licence"
 msgstr "رخصة MIT"
 
@@ -1036,7 +1100,7 @@ msgstr "حوّل القائمة إلى لوحة: عدّل board.ts."
 msgid "Malleable"
 msgstr "قابل للتشكيل"
 
-#: ../Site/Footer.qml:67
+#: ../Site/Footer.qml:69
 msgid "Malleable software, everywhere."
 msgstr "برمجيات قابلة للتشكيل، في كل مكان."
 
@@ -1048,11 +1112,11 @@ msgstr "الخريطة: المسار إلى {0}"
 msgid "Media"
 msgstr "الوسائط"
 
-#: ../Shells/Cyberpunk.qml:632 ../Shells/Desktop.qml:1193 ../Shells/Elegant.qml:205 ../Shells/Workbench.qml:1205 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1192 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "القائمة"
 
-#: ../Shells/Desktop.qml:435
+#: ../Shells/Desktop.qml:434
 msgid "Menu bar"
 msgstr "شريط القوائم"
 
@@ -1060,7 +1124,7 @@ msgstr "شريط القوائم"
 msgid "Message"
 msgstr "رسالة"
 
-#: ../Shells/Cyberpunk.qml:55
+#: ../Shells/Cyberpunk.qml:53
 msgid "Metrics"
 msgstr "المقاييس"
 
@@ -1100,7 +1164,7 @@ msgstr "قيد التشغيل الآن"
 msgid "Navigation"
 msgstr "الملاحة"
 
-#: ../Site/HeroStage.qml:262
+#: ../Site/HeroStage.qml:261
 msgid "Next step"
 msgstr "الخطوة التالية"
 
@@ -1112,19 +1176,19 @@ msgstr "المقطع التالي"
 msgid "Next: {0}"
 msgstr "التالي: {0}"
 
-#: ../Shells/Workbench.qml:929
+#: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
 msgstr "لا توجد تشخيصات مصرّف أو تدقيق في الملف المفتوح."
 
-#: ../Demos/DispatchCard.qml:352
+#: ../Demos/DispatchCard.qml:351
 msgid "No crew"
 msgstr "بلا فريق"
 
-#: ../Pantry/Note.qml:17
+#: ../Pantry/Note.qml:16
 msgid "Note for the baker"
 msgstr "ملاحظة للخبّاز"
 
-#: ../Pantry/Note.qml:18
+#: ../Pantry/Note.qml:17
 msgid "Note for the baker…"
 msgstr "ملاحظة للخبّاز…"
 
@@ -1136,7 +1200,7 @@ msgstr "لم يُرسَم شيء بعد."
 msgid "Nothing drawn yet. Run it to see what it does."
 msgstr "لم يُرسَم شيء بعد. شغّله لترى ما يفعله."
 
-#: ../Site/SearchResults.qml:39
+#: ../Site/SearchResults.qml:41
 msgid "Nothing matches “{query}”. Try a type name, like ListView."
 msgstr "لا شيء يطابق «{query}». جرّب اسم نوع، مثل ListView."
 
@@ -1152,27 +1216,27 @@ msgstr "أكت"
 msgid "OUTDOOR RUN"
 msgstr "جري خارجي"
 
-#: ../Shells/Cyberpunk.qml:600
+#: ../Shells/Cyberpunk.qml:598
 msgid "Objects"
 msgstr "الكائنات"
 
-#: ../Shells/Cyberpunk.qml:360
+#: ../Shells/Cyberpunk.qml:358
 msgid "Objects alive"
 msgstr "الكائنات النشطة"
 
-#: ../Shells/Cyberpunk.qml:362 ../Shells/Cyberpunk.qml:602
+#: ../Shells/Cyberpunk.qml:360 ../Shells/Cyberpunk.qml:600
 msgid "Objects alive {0}"
 msgstr "الكائنات النشطة {0}"
 
-#: ../Shells/Desktop.qml:1104
+#: ../Shells/Desktop.qml:1103
 msgid "Objects alive: {0}"
 msgstr "الكائنات النشطة: {0}"
 
-#: ../Shells/Workbench.qml:1069 ../Shells/Workbench.qml:1184
+#: ../Shells/Workbench.qml:1068 ../Shells/Workbench.qml:1183
 msgid "Objects: {0}"
 msgstr "الكائنات: {0}"
 
-#: ../Demos/AgentView.qml:330 ../Shells/Desktop.qml:727 ../Shells/Workbench.qml:439 ../Site/HeroStage.qml:26 ../Site/ObserverDock.qml:122 ../Site/ObserverDock.qml:174
+#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:726 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
 msgid "Observer"
 msgstr "المراقب"
 
@@ -1181,15 +1245,15 @@ msgctxt "stage"
 msgid "Observer"
 msgstr "المراقب"
 
-#: ../Demos/PantryDemo.qml:250
+#: ../Demos/PantryDemo.qml:243
 msgid "Observer for the Pantry"
 msgstr "مراقب Pantry"
 
-#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:295
+#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:300
 msgid "Observer for {0}"
 msgstr "مراقب {0}"
 
-#: ../Shells/Desktop.qml:620
+#: ../Shells/Desktop.qml:619
 msgid "Observer guide"
 msgstr "دليل المراقب"
 
@@ -1197,7 +1261,7 @@ msgstr "دليل المراقب"
 msgid "Observer tree"
 msgstr "شجرة المراقب"
 
-#: ../Site/ObserverDock.qml:174
+#: ../Site/ObserverDock.qml:173
 msgid "Observer · {0}"
 msgstr "المراقب · {0}"
 
@@ -1209,15 +1273,15 @@ msgstr "إيقاف"
 msgid "On"
 msgstr "تشغيل"
 
-#: ../Main.qml:668 ../Site/Toc.qml:22 ../Site/Toc.qml:25
+#: ../Main.qml:689 ../Site/Toc.qml:24 ../Site/Toc.qml:27
 msgid "On this page"
 msgstr "في هذه الصفحة"
 
-#: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
+#: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:362
 msgid "On-call crew"
 msgstr "فريق المناوبة"
 
-#: ../Site/DemosPage.qml:145
+#: ../Site/DemosPage.qml:160
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
 msgstr "عند التشغيل، حرّك المؤشر فوق البطاقة لتحريك الضوء وانقر لتبديل الألوان. يعمل المظلِّل فوق محتوى التطبيق الحي بدلًا من نسيج مُعَد مسبقًا، ويتبع المظهرين الفاتح والداكن للصفحة."
 
@@ -1229,47 +1293,47 @@ msgstr "دقيقة أقل"
 msgid "One minute more"
 msgstr "دقيقة أكثر"
 
-#: ../Demos/DispatchCard.qml:332
+#: ../Demos/DispatchCard.qml:331
 msgid "Open"
 msgstr "مفتوح"
 
-#: ../Site/Landing.qml:381
+#: ../Site/Landing.qml:411
 msgid "Open a window, then change it while it runs."
 msgstr "افتح نافذة، ثم غيّرها أثناء تشغيلها."
 
-#: ../Shells/Desktop.qml:466
+#: ../Shells/Desktop.qml:465
 msgid "Open benchmarks"
 msgstr "فتح المقاييس"
 
-#: ../Shells/Desktop.qml:454
+#: ../Shells/Desktop.qml:453
 msgid "Open demos"
 msgstr "فتح العروض"
 
-#: ../Shells/Desktop.qml:471
+#: ../Shells/Desktop.qml:470
 msgid "Open documentation"
 msgstr "فتح التوثيق"
 
-#: ../Shells/Workbench.qml:711
+#: ../Shells/Workbench.qml:710
 msgid "Open files"
 msgstr "الملفات المفتوحة"
 
-#: ../Shells/Desktop.qml:449
+#: ../Shells/Desktop.qml:448
 msgid "Open home"
 msgstr "فتح الرئيسية"
 
-#: ../Shells/Desktop.qml:703
+#: ../Shells/Desktop.qml:702
 msgid "Open landing page"
 msgstr "فتح الصفحة الرئيسية"
 
-#: ../Shells/Desktop.qml:722
+#: ../Shells/Desktop.qml:721
 msgid "Open native desktop benchmark tables"
 msgstr "فتح جداول مقاييس سطح المكتب الأصلية"
 
-#: ../Shells/Desktop.qml:959 ../Shells/Desktop.qml:1044
+#: ../Shells/Desktop.qml:958 ../Shells/Desktop.qml:1043
 msgid "Open pages"
 msgstr "الصفحات المفتوحة"
 
-#: ../Shells/Desktop.qml:459
+#: ../Shells/Desktop.qml:458
 msgid "Open showcase"
 msgstr "فتح المعرض"
 
@@ -1281,7 +1345,7 @@ msgstr "افتح المراقب لترى كل جزء في تطبيقك، ومن 
 msgid "Open the message from {0}"
 msgstr "فتح الرسالة من {0}"
 
-#: ../Demos/WatchDemo.qml:190
+#: ../Demos/WatchDemo.qml:189
 msgid "Other face"
 msgstr "الواجهة الأخرى"
 
@@ -1289,11 +1353,11 @@ msgstr "الواجهة الأخرى"
 msgid "Our benchmark mail app shows its first frame in under 90 ms, uses under 24 MiB of private memory, and takes 0 % CPU when idle.<br><br>These are <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">native numbers</a> from Linux on 10 Nov 2026. They don’t measure this web page."
 msgstr "يعرض تطبيق البريد القياسي لدينا أول إطار له في أقل من 90 ms، ويستخدم أقل من 24 MiB من الذاكرة الخاصة، ويستهلك 0 % من المعالج عند السكون.<br><br>هذه <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">أرقام أصلية</a> على Linux بتاريخ 10 نوفمبر 2026. ولا تقيس هذه الصفحة على الويب."
 
-#: ../Shells/Workbench.qml:898
+#: ../Shells/Workbench.qml:897
 msgid "Output"
 msgstr "المخرجات"
 
-#: ../Shells/Desktop.qml:822
+#: ../Shells/Desktop.qml:821
 msgid "Overview"
 msgstr "نظرة عامة"
 
@@ -1301,15 +1365,15 @@ msgstr "نظرة عامة"
 msgid "PAUSED"
 msgstr "متوقف مؤقتًا"
 
-#: ../Shells/Desktop.qml:1042
+#: ../Shells/Desktop.qml:1041
 msgid "Page"
 msgstr "الصفحة"
 
-#: ../Shells/Desktop.qml:810 ../Shells/Desktop.qml:1043 ../Site/PageTree.qml:20
+#: ../Shells/Desktop.qml:809 ../Shells/Desktop.qml:1042 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr "الصفحات"
 
-#: ../Shells/Workbench.qml:895
+#: ../Shells/Workbench.qml:894
 msgid "Panel"
 msgstr "اللوحة"
 
@@ -1337,11 +1401,11 @@ msgstr "ضبط الراكب على {0}"
 msgid "Passenger warmer"
 msgstr "تدفئة جهة الراكب"
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:264 ../Site/ReplayFrame.qml:107 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:269 ../Site/ReplayFrame.qml:106 ../Site/ShowcaseApp.qml:197
 msgid "Pause"
 msgstr "إيقاف مؤقت"
 
-#: ../Demos/Lottie.qml:145
+#: ../Demos/Lottie.qml:154
 msgid "Pause both avatars"
 msgstr "إيقاف كلا الأفاتارين مؤقتًا"
 
@@ -1353,23 +1417,23 @@ msgstr "إيقاف تسجيل {0} مؤقتًا"
 msgid "Pause timer"
 msgstr "إيقاف المؤقت مؤقتًا"
 
-#: ../Site/DemoFrame.qml:277 ../Site/ReplayFrame.qml:123
+#: ../Site/DemoFrame.qml:282 ../Site/ReplayFrame.qml:122
 msgid "Pause {0}"
 msgstr "إيقاف {0} مؤقتًا"
 
-#: ../Demos/AgentView.qml:645
+#: ../Demos/AgentView.qml:644
 msgid "Pick an object to see its properties."
 msgstr "اختر كائنًا لعرض خصائصه."
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
 msgid "Play"
 msgstr "تشغيل"
 
-#: ../Demos/Lottie.qml:145
+#: ../Demos/Lottie.qml:154
 msgid "Play both avatars"
 msgstr "تشغيل كلا الأفاتارين"
 
-#: ../Demos/Lottie.qml:175
+#: ../Demos/Lottie.qml:184
 msgid "Play the genie avatar again"
 msgstr "تشغيل أفاتار الجني مجددًا"
 
@@ -1377,23 +1441,19 @@ msgstr "تشغيل أفاتار الجني مجددًا"
 msgid "Play the recording of {0}"
 msgstr "تشغيل تسجيل {0}"
 
-#: ../Demos/Lottie.qml:214
+#: ../Demos/Lottie.qml:223
 msgid "Playback speed {modelData}×"
 msgstr "سرعة التشغيل {modelData}×"
 
-#: ../Site/Search.qml:163
+#: ../Site/Search.qml:164
 msgid "Press / to search"
 msgstr "اضغط / للبحث"
-
-#: ../Site/DemosPage.qml:223
-msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
-msgstr "تشغيله يحمّل المشغّل وملفَّي Lottie (أفاتارَي HAL-C2)، اللذين يقرؤهما Ljós ويرسمهما دون أي مكتبة Lottie بلغة JavaScript. جرّب إيقاف مؤقت ومجددًا وأزرار السرعة للتحكم في الرقص المتكرر والجني الذي يعمل مرة واحدة. يعمل كلاهما بنصف السرعة عند تفعيل تقليل الحركة، ويتوقفان مؤقتًا خارج الشاشة، ولا يستهلكان شيئًا من المعالج عند السكون."
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
 msgstr "اضغطه كما يفعل الإنسان."
 
-#: ../Shells/Workbench.qml:1103
+#: ../Shells/Workbench.qml:1102
 msgid "Preview"
 msgstr "معاينة"
 
@@ -1405,11 +1465,11 @@ msgstr "المقطع السابق"
 msgid "Previous: {0}"
 msgstr "السابق: {0}"
 
-#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:947 ../Shells/Workbench.qml:1105
+#: ../Shells/Workbench.qml:897 ../Shells/Workbench.qml:946 ../Shells/Workbench.qml:1104
 msgid "Problems"
 msgstr "المشكلات"
 
-#: ../Site/Footer.qml:108
+#: ../Site/Footer.qml:110
 msgid "Project"
 msgstr "المشروع"
 
@@ -1425,11 +1485,11 @@ msgstr "خفض الصوت"
 msgid "RUN COMPLETE"
 msgstr "اكتمل الجري"
 
-#: ../Shells/Workbench.qml:996
+#: ../Shells/Workbench.qml:995
 msgid "Recorded MCP calls appear here as you step the agent replay."
 msgstr "تظهر استدعاءات MCP المسجّلة هنا مع تقدمك في إعادة تشغيل الوكيل."
 
-#: ../Site/HeroStage.qml:241
+#: ../Site/HeroStage.qml:240
 msgid "Recorded replay"
 msgstr "إعادة تشغيل مسجّلة"
 
@@ -1437,23 +1497,35 @@ msgstr "إعادة تشغيل مسجّلة"
 msgid "Recorded running"
 msgstr "مسجّل أثناء التشغيل"
 
-#: ../Shells/Desktop.qml:519 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:518 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr "تقليل الحركة"
 
-#: ../Shells/Cyberpunk.qml:373
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "تقليل الحركة: متوقف – استخدم حركة أقل"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "تقليل الحركة: مفعّل – استخدم الحركة الكاملة"
+
+#: ../Demos/Motion.qml:351
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr "تقليل الحركة مفعَّل: تتحرك النوابض أبطأ ولا تتجاوز الحلقة أبدًا."
+
+#: ../Shells/Cyberpunk.qml:371
 msgid "Renderer"
 msgstr "محرك العرض"
 
-#: ../Shells/Cyberpunk.qml:375
+#: ../Shells/Cyberpunk.qml:373
 msgid "Renderer {0}"
 msgstr "محرك العرض {0}"
 
-#: ../Shells/Desktop.qml:1120 ../Shells/Workbench.qml:1063 ../Shells/Workbench.qml:1191
+#: ../Shells/Desktop.qml:1119 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr "محرك العرض: {0}"
 
-#: ../Demos/AgentView.qml:321
+#: ../Demos/AgentView.qml:320
 msgid "Replay views"
 msgstr "طرق عرض الإعادة"
 
@@ -1461,23 +1533,23 @@ msgstr "طرق عرض الإعادة"
 msgid "Replay · no live agent"
 msgstr "إعادة تشغيل · دون وكيل حي"
 
-#: ../Demos/PantryDemo.qml:234 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:151 ../Site/ShellSource.qml:172
+#: ../Demos/PantryDemo.qml:227 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "إعادة ضبط"
 
-#: ../Site/HeroStage.qml:256
+#: ../Site/HeroStage.qml:255
 msgid "Reset demo"
 msgstr "إعادة ضبط العرض"
 
-#: ../Shells/Desktop.qml:482
+#: ../Shells/Desktop.qml:481
 msgid "Reset demo state"
 msgstr "إعادة ضبط حالة العروض"
 
-#: ../Site/ProDemoPage.qml:325
+#: ../Site/ProDemoPage.qml:373
 msgid "Reset every file"
 msgstr "إعادة ضبط كل الملفات"
 
-#: ../Demos/PantryDemo.qml:235
+#: ../Demos/PantryDemo.qml:228
 msgid "Reset to the app's shell"
 msgstr "إعادة الضبط إلى غلاف التطبيق"
 
@@ -1485,11 +1557,15 @@ msgstr "إعادة الضبط إلى غلاف التطبيق"
 msgid "Reset {0} to as written"
 msgstr "إعادة ضبط {0} إلى حالته الأصلية"
 
+#: ../Site/ShowcaseEngine.qml:372
+msgid "Reset {0} to its file"
+msgstr "إعادة {0} إلى ملفه"
+
 #: ../Site/Landing.qml:53
 msgid "Reshape the running interface, human or agent."
 msgstr "أعد تشكيل الواجهة أثناء عملها، بيدك أو بيد وكيلك."
 
-#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:266 ../Site/ReplayFrame.qml:100 ../Site/ReplayFrame.qml:109
+#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:271 ../Site/ReplayFrame.qml:99 ../Site/ReplayFrame.qml:108
 msgid "Resume"
 msgstr "استئناف"
 
@@ -1497,11 +1573,11 @@ msgstr "استئناف"
 msgid "Resume timer"
 msgstr "استئناف المؤقت"
 
-#: ../Site/DemoFrame.qml:279 ../Site/ReplayFrame.qml:116 ../Site/ReplayFrame.qml:125
+#: ../Site/DemoFrame.qml:284 ../Site/ReplayFrame.qml:115 ../Site/ReplayFrame.qml:124
 msgid "Resume {0}"
 msgstr "استئناف {0}"
 
-#: ../Site/LiveSource.qml:181
+#: ../Site/LiveSource.qml:180
 msgid "Retry"
 msgstr "إعادة المحاولة"
 
@@ -1513,42 +1589,46 @@ msgstr "الباب الأيمن"
 msgid "Room Hekla, with the hardware team. The prototype boards came in this morning."
 msgstr "قاعة Hekla، مع فريق العتاد. وصلت اللوحات الأولية هذا الصباح."
 
-#: ../Demos/WatchDemo.qml:159
+#: ../Demos/WatchDemo.qml:158
 msgid "Round, 454"
 msgstr "دائرية، 454"
 
-#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
+#: ../Shells/Cyberpunk.qml:345 ../Shells/Cyberpunk.qml:589
 msgid "Route"
 msgstr "المسار"
 
-#: ../Shells/Cyberpunk.qml:349 ../Shells/Cyberpunk.qml:593
+#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
 msgid "Route {0}"
 msgstr "المسار {0}"
 
-#: ../Shells/Desktop.qml:1091 ../Shells/Workbench.qml:1163
+#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr "المسار: {0}"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:268 ../Site/ReplayFrame.qml:111
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
 msgctxt "stage"
 msgid "Run"
 msgstr "تشغيل"
 
-#: ../Site/ReplayFrame.qml:100
+#: ../Site/ReplayFrame.qml:99
 msgid "Run again"
 msgstr "تشغيل مجددًا"
 
-#: ../Site/ReplayFrame.qml:116
+#: ../Site/ReplayFrame.qml:115
 msgid "Run again: {0}"
 msgstr "تشغيل مجددًا: {0}"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:281 ../Site/ReplayFrame.qml:127
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "تشغيل {0}"
 
 #: ../Demos/Cockpit/SettingsPanel.qml:118 ../Site/DeviceFrame.qml:33
 msgid "Running"
 msgstr "قيد التشغيل"
+
+#: ../Site/DemosPage.qml:110 ../Site/Landing.qml:247
+msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
+msgstr "تشغيله يحمّل المشغّل وملفَّي Lottie (أفاتارَي HAL-C2)، اللذين يقرؤهما Ljós ويرسمهما دون أي مكتبة Lottie بلغة JavaScript. جرّب إيقاف مؤقت ومجددًا وأزرار السرعة للتحكم في الرقص المتكرر والجني الذي يعمل مرة واحدة. يعمل كلاهما بنصف السرعة عند تفعيل تقليل الحركة، ويتوقفان مؤقتًا خارج الشاشة، ولا يستهلكان شيئًا من المعالج عند السكون."
 
 #: ../Demos/Watch/Watch.qml:424
 msgid "SAT"
@@ -1566,27 +1646,27 @@ msgstr "ساعة الإيقاف"
 msgid "SUN"
 msgstr "أحد"
 
-#: ../Site/ShellChoices.qml:51
+#: ../Site/ShellChoices.qml:50
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "التطبيق نفسه، بغلاف مختلف. يحافظ التبديل على مسارك وموضع التمرير والعروض الجارية."
 
-#: ../Shells/Desktop.qml:775
+#: ../Shells/Desktop.qml:774
 msgid "Scheme"
 msgstr "المظهر"
 
-#: ../Site/Search.qml:162
+#: ../Site/Search.qml:163
 msgid "Search"
 msgstr "بحث"
 
-#: ../Demos/FieldGuide.qml:97
+#: ../Demos/FieldGuide.qml:96
 msgid "Search by name…"
 msgstr "ابحث بالاسم…"
 
-#: ../Site/Search.qml:111
+#: ../Site/Search.qml:112
 msgid "Search docs and demos"
 msgstr "البحث في التوثيق والعروض"
 
-#: ../Site/SearchResults.qml:22
+#: ../Site/SearchResults.qml:24
 msgid "Search results"
 msgstr "نتائج البحث"
 
@@ -1598,7 +1678,7 @@ msgstr "المقعد متوقف"
 msgid "Seat {0}"
 msgstr "المقعد {0}"
 
-#: ../Shells/Cyberpunk.qml:426
+#: ../Shells/Cyberpunk.qml:424
 msgid "Sections"
 msgstr "الأقسام"
 
@@ -1610,7 +1690,7 @@ msgstr "انظر داخل تطبيق يعمل"
 msgid "See it run"
 msgstr "شاهده يعمل"
 
-#: ../Demos/FieldGuide.qml:281
+#: ../Demos/FieldGuide.qml:280
 msgid "Seen {0} of {1}"
 msgstr "شوهد {0} من {1}"
 
@@ -1622,7 +1702,7 @@ msgstr "الإعدادات"
 msgid "Shader canvas. Move the pointer to stir the light; tap to change the colours."
 msgstr "لوحة المظلِّل. حرّك المؤشر لتحريك الضوء؛ انقر لتغيير الألوان."
 
-#: ../Site/ShellChoices.qml:40 ../Site/ShellSource.qml:82
+#: ../Site/ShellChoices.qml:39 ../Site/ShellSource.qml:82
 msgid "Shell"
 msgstr "الغلاف"
 
@@ -1631,27 +1711,31 @@ msgctxt "code language"
 msgid "Shell"
 msgstr "Shell"
 
-#: ../Shells/Workbench.qml:464
+#: ../Shells/Workbench.qml:463
 msgid "Shell switcher"
 msgstr "مبدّل الغلاف"
 
-#: ../Demos/PantryDemo.qml:229
+#: ../Demos/PantryDemo.qml:222
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml: عدّله مباشرة"
 
-#: ../Shells/Desktop.qml:1126
+#: ../Shells/Desktop.qml:1125
 msgid "Shell: Desktop"
 msgstr "الغلاف: سطح المكتب"
 
-#: ../Shells/Workbench.qml:1157
+#: ../Shells/Workbench.qml:1156
 msgid "Shell: Workbench"
 msgstr "الغلاف: منضدة العمل"
 
-#: ../Shells/Cyberpunk.qml:58 ../Shells/Desktop.qml:870
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "الغلاف: {label} – اختر تخطيطًا آخر"
+
+#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:869
 msgid "Shells"
 msgstr "الأغلفة"
 
-#: ../Shells/Workbench.qml:551
+#: ../Shells/Workbench.qml:550
 msgid "Shells/"
 msgstr "الأغلفة/"
 
@@ -1663,7 +1747,7 @@ msgstr "انقل إلى P أولًا: لا يفتح شيء خارج وضع ال�
 msgid "Shift to {0}"
 msgstr "التبديل إلى {0}"
 
-#: ../Site/HeroApp.qml:20 ../Site/HeroApp.qml:44
+#: ../Site/HeroApp.qml:19 ../Site/HeroApp.qml:43
 msgid "Ship the beta"
 msgstr "إطلاق النسخة التجريبية"
 
@@ -1687,15 +1771,15 @@ msgstr "عرض أقل من {0}"
 msgid "Show the source"
 msgstr "إظهار الشيفرة المصدرية"
 
-#: ../Shells/Cyberpunk.qml:53 ../Site/Footer.qml:102 ../Site/Router.qml:40 ../Site/Router.qml:47 ../Site/Router.qml:85
+#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:41 ../Site/Router.qml:48 ../Site/Router.qml:86
 msgid "Showcase"
 msgstr "المعرض"
 
-#: ../Demos/WatchDemo.qml:191
+#: ../Demos/WatchDemo.qml:190
 msgid "Shows the watch's other face"
 msgstr "يعرض الواجهة الأخرى للساعة"
 
-#: ../Demos/WatchDemo.qml:166
+#: ../Demos/WatchDemo.qml:165
 msgid "Side button"
 msgstr "الزر الجانبي"
 
@@ -1703,31 +1787,35 @@ msgstr "الزر الجانبي"
 msgid "Simulated drive"
 msgstr "قيادة محاكاة"
 
-#: ../Shells/Workbench.qml:582
+#: ../Shells/Workbench.qml:581
 msgid "Site/"
 msgstr "الموقع/"
 
-#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41
+#: ../Site/HeroApp.qml:16 ../Site/HeroApp.qml:40
 msgid "Sketch the shell"
 msgstr "رسم مخطط الغلاف"
 
-#: ../Main.qml:404 ../Main.qml:438
+#: ../Main.qml:411 ../Main.qml:445
 msgid "Skip to content"
 msgstr "تخطّ إلى المحتوى"
 
-#: ../Demos/WatchDemo.qml:203
+#: ../Demos/WatchDemo.qml:202
 msgid "Sleep"
 msgstr "سكون"
+
+#: ../Demos/Motion.qml:25
+msgid "Snappy"
+msgstr "الخاطفة"
 
 #: ../Site/LandingCopy.qml:9
 msgid "Software you can reshape while it runs."
 msgstr "برمجيات يمكنك إعادة تشكيلها أثناء تشغيلها."
 
-#: ../Shells/Cyberpunk.qml:490 ../Site/HeroStage.qml:26
+#: ../Shells/Cyberpunk.qml:488 ../Site/HeroStage.qml:25
 msgid "Source"
 msgstr "المصدر"
 
-#: ../Shells/Workbench.qml:820
+#: ../Shells/Workbench.qml:819
 msgctxt "panel"
 msgid "Source"
 msgstr "المصدر"
@@ -1741,7 +1829,7 @@ msgstr "المصدر"
 msgid "Source of {0}"
 msgstr "مصدر {0}"
 
-#: ../Shells/Desktop.qml:624
+#: ../Shells/Desktop.qml:623
 msgid "Source on GitHub"
 msgstr "المصدر على GitHub"
 
@@ -1753,7 +1841,15 @@ msgstr "السرعة"
 msgid "Speed limit {0}"
 msgstr "الحد الأقصى للسرعة {0}"
 
-#: ../Demos/WatchDemo.qml:159
+#: ../Demos/Motion.qml:88
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr "مسرح النوابض. اسحب الحلقة أو حرّكها بمفاتيح الأسهم؛ تتبعها ثلاثة نوابض."
+
+#: ../Site/DemosPage.qml:210
+msgid "Springs you drag"
+msgstr "نوابض تسحبها"
+
+#: ../Demos/WatchDemo.qml:158
 msgid "Square, 410 × 502"
 msgstr "مربعة، 410 × 502"
 
@@ -1765,11 +1861,11 @@ msgstr "وقوف"
 msgid "Start"
 msgstr "ابدأ"
 
-#: ../Shells/Desktop.qml:578 ../Shells/Desktop.qml:835
+#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:834
 msgid "Start in a minute"
 msgstr "ابدأ في دقيقة"
 
-#: ../Site/Landing.qml:352
+#: ../Site/Landing.qml:382
 msgid "Start reading"
 msgstr "ابدأ القراءة"
 
@@ -1785,23 +1881,23 @@ msgstr "بدء ساعة الإيقاف"
 msgid "Start timer"
 msgstr "بدء المؤقت"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:275 ../Site/ReplayFrame.qml:119
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
 msgid "Starting {0}…"
 msgstr "جارٍ تشغيل {0}…"
 
-#: ../Site/Runner.qml:106
+#: ../Site/Runner.qml:105
 msgid "Starting {what}…"
 msgstr "جارٍ تشغيل {what}…"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:262 ../Site/ReplayFrame.qml:103
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
 msgid "Starting…"
 msgstr "جارٍ التشغيل…"
 
-#: ../Shells/Desktop.qml:1075 ../Shells/Workbench.qml:1141
+#: ../Shells/Desktop.qml:1074 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr "شريط الحالة"
 
-#: ../Demos/AgentView.qml:408
+#: ../Demos/AgentView.qml:407
 msgid "Step {0} of {1}"
 msgstr "الخطوة {0} من {1}"
 
@@ -1833,35 +1929,35 @@ msgstr "ساعة الإيقاف"
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr "Svala GT سيارة خيالية. نموذجها مستمد من نص برمجي في Blender ضمن هذا المثال؛ والخريطة والموسيقى والشوارع كلها مبتكرة. كل ما تراه مرسوم بواسطة Ljós."
 
-#: ../Shells/Desktop.qml:765
+#: ../Shells/Desktop.qml:764
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr "بدّل بين أغلفة أنيق وسايبربانك ومنضدة العمل وسطح المكتب"
 
-#: ../Site/ShellSwitcher.qml:54
+#: ../Site/ShellSwitcher.qml:56
 msgid "Switch shell"
 msgstr "تبديل الغلاف"
 
-#: ../Shells/Desktop.qml:542
+#: ../Shells/Desktop.qml:541
 msgid "Switch to Cyberpunk shell"
 msgstr "التبديل إلى غلاف سايبربانك"
 
-#: ../Shells/Desktop.qml:550
+#: ../Shells/Desktop.qml:549
 msgid "Switch to Desktop shell"
 msgstr "التبديل إلى غلاف سطح المكتب"
 
-#: ../Shells/Desktop.qml:538
+#: ../Shells/Desktop.qml:537
 msgid "Switch to Elegant shell"
 msgstr "التبديل إلى غلاف أنيق"
 
-#: ../Shells/Desktop.qml:546
+#: ../Shells/Desktop.qml:545
 msgid "Switch to Workbench shell"
 msgstr "التبديل إلى غلاف منضدة العمل"
 
-#: ../Main.qml:943
+#: ../Main.qml:964
 msgid "Switched to {shell}. Your place and edits are kept."
 msgstr "تم التبديل إلى {shell}. تم الاحتفاظ بموضعك وتعديلاتك."
 
-#: ../Site/Preferences.qml:34
+#: ../Site/Preferences.qml:35
 msgid "System"
 msgstr "النظام"
 
@@ -1885,11 +1981,15 @@ msgstr "ثلاثاء"
 msgid "Take a screenshot to check the result."
 msgstr "التقط لقطة شاشة للتحقق من النتيجة."
 
-#: ../Site/HeroApp.qml:50
+#: ../Site/HeroApp.qml:49
 msgid "Task list"
 msgstr "قائمة المهام"
 
-#: ../Shells/Cyberpunk.qml:570
+#: ../Demos/PantryShell.qml:59
+msgid "Tea · £{0}"
+msgstr "شاي · £{0}"
+
+#: ../Shells/Cyberpunk.qml:568
 msgid "Telemetry"
 msgstr "القياس عن بُعد"
 
@@ -1902,7 +2002,7 @@ msgctxt "code language"
 msgid "Text"
 msgstr "نص"
 
-#: ../Demos/PantryDemo.qml:163
+#: ../Demos/PantryDemo.qml:160
 msgid "The Pantry, running"
 msgstr "Pantry، قيد التشغيل"
 
@@ -1910,11 +2010,11 @@ msgstr "Pantry، قيد التشغيل"
 msgid "The QML of the shell you are looking at. Edit it and press Apply: the page and your place on it stay."
 msgstr "شيفرة QML للغلاف الذي تنظر إليه. عدّلها واضغط تطبيق: تبقى الصفحة وموضعك فيها كما هما."
 
-#: ../Site/PageSource.qml:49
+#: ../Site/PageSource.qml:51
 msgid "The QML this page is made from. The shell around it is its own file: open the shell menu to see it."
 msgstr "شيفرة QML التي بُنيت منها هذه الصفحة. أما الغلاف المحيط بها فله ملفه الخاص: افتح قائمة الغلاف للاطلاع عليه."
 
-#: ../Site/Landing.qml:372
+#: ../Site/Landing.qml:402
 msgid "The big picture, in plain words."
 msgstr "الصورة الكبيرة، بكلمات واضحة."
 
@@ -1926,11 +2026,11 @@ msgstr "السيارة مقفلة. افتح القفل لفتح أي جزء."
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr "السيارة. تختار مفاتيح الأسهم جزءًا؛ ويفتحه مفتاح المسافة أو يغلقه."
 
-#: ../Main.qml:642
+#: ../Main.qml:663
 msgid "The docs"
 msgstr "التوثيق"
 
-#: ../Site/ProDemoPage.qml:255
+#: ../Site/ProDemoPage.qml:266
 msgid "The files of {0}"
 msgstr "ملفات {0}"
 
@@ -1938,27 +2038,35 @@ msgstr "ملفات {0}"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "يفتح المكان على السطح في الثامنة. أحضر السترة، الجو بارد هناك."
 
-#: ../Site/LiveSource.qml:170
+#: ../Site/LiveSource.qml:169
 msgid "The shell's QML could not be loaded: {0}"
 msgstr "تعذّر تحميل QML الخاص بالغلاف: {0}"
 
-#: ../Demos/WatchDemo.qml:154
+#: ../Demos/WatchDemo.qml:153
 msgid "The watch's buttons"
 msgstr "أزرار الساعة"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "المظهر: داكن – التبديل إلى الفاتح"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "المظهر: فاتح – التبديل إلى الداكن"
 
 #: ../Site/DocPage.qml:60
 msgid "There is no page at this address. The address may have moved — search, or begin at {0}."
 msgstr "لا توجد صفحة في هذا العنوان. ربما تغيّر العنوان — ابحث، أو ابدأ من {0}."
 
-#: ../Site/LiveSource.qml:63
+#: ../Site/LiveSource.qml:62
 msgid "There is no {0}.qml to edit."
 msgstr "لا يوجد ملف {0}.qml لتعديله."
 
-#: ../Main.qml:786
+#: ../Main.qml:807
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "لا يحتوي هذا التعديل على site.source.live حيث يظهر محرره، لذا يبقى آخر تعديل عمل بنجاح."
 
-#: ../Site/PageView.qml:248
+#: ../Site/PageView.qml:287
 msgid "This page could not be loaded."
 msgstr "تعذّر تحميل هذه الصفحة."
 
@@ -1966,15 +2074,23 @@ msgstr "تعذّر تحميل هذه الصفحة."
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "تعمل هذه اللوحة في المتصفح. على سطح المكتب، يفتح الأمر ljos observe المراقب على تطبيق يعمل."
 
-#: ../Site/Footer.qml:148
+#: ../Site/Footer.qml:151
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "هذا الموقع نفسه تطبيق Ljós، يُكتب إلى HTML عند بنائه ويعمل مباشرة في متصفحك."
 
-#: ../Shells/Desktop.qml:1163
+#: ../Shells/Desktop.qml:1162
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "يشغّل هذا الموقع Ljós مُصرّفًا إلى Solid DOM عبر ljos-web، مع WebGPU وبديل WebGL2 للمشاهد ثلاثية الأبعاد. بدّل الأغلفة من قائمة عرض أو شريط الأدوات دون إعادة تحميل."
 
-#: ../Demos/DispatchCard.qml:230
+#: ../Site/DemosPage.qml:211
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr "ثلاث كرات على نوابض تطارد حلقة واحدة: الخاطفة والنطّاطة والكسولة. يحسب TypeScript الخاص بالتطبيق قانون النابض في SpringAnimation إطارًا بإطار، بثلاثة ضبوط. اسحب الحلقة أو حرّكها بمفاتيح الأسهم؛ وإن تُركت وحدها قفزت إلى مكان آخر من تلقاء نفسها. عند تفعيل تقليل الحركة تبطؤ النوابض ولا تتجاوز الحلقة أبدًا، لكنها تظل تتحرك. حين تستقر لا يعمل شيء ويستهلك التطبيق 0 % من CPU."
+
+#: ../Site/DemosPage.qml:227
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr "ثلاث كرات على نوابض تطارد حلقة، كل منها على طريقتها."
+
+#: ../Demos/DispatchCard.qml:229
 msgid "Tickets"
 msgstr "التذاكر"
 
@@ -1986,27 +2102,27 @@ msgstr "انتهى الوقت"
 msgid "Timer"
 msgstr "المؤقت"
 
-#: ../Shells/Desktop.qml:531
+#: ../Shells/Desktop.qml:530
 msgid "Toggle Observer panel"
 msgstr "إظهار أو إخفاء لوحة المراقب"
 
-#: ../Shells/Desktop.qml:776
+#: ../Shells/Desktop.qml:775
 msgid "Toggle light and dark colour scheme"
 msgstr "تبديل المظهر الفاتح والداكن"
 
-#: ../Shells/Desktop.qml:728
+#: ../Shells/Desktop.qml:727
 msgid "Toggle live Observer panel"
 msgstr "إظهار أو إخفاء لوحة المراقب الحي"
 
-#: ../Shells/Desktop.qml:525
+#: ../Shells/Desktop.qml:524
 msgid "Toggle sidebar"
 msgstr "إظهار أو إخفاء الشريط الجانبي"
 
-#: ../Shells/Desktop.qml:678
+#: ../Shells/Desktop.qml:677
 msgid "Toolbar"
 msgstr "شريط الأدوات"
 
-#: ../Site/ShowcasePage.qml:75
+#: ../Site/ShowcasePage.qml:74
 msgid "Tools built with Ljós"
 msgstr "أدوات مبنية باستخدام Ljós"
 
@@ -2014,7 +2130,7 @@ msgstr "أدوات مبنية باستخدام Ljós"
 msgid "Trunk"
 msgstr "الصندوق الخلفي"
 
-#: ../Site/Landing.qml:390
+#: ../Site/Landing.qml:420
 msgid "Try Ljós in your browser, with nothing to install."
 msgstr "جرّب Ljós في متصفحك، دون تثبيت أي شيء."
 
@@ -2022,15 +2138,15 @@ msgstr "جرّب Ljós في متصفحك، دون تثبيت أي شيء."
 msgid "Try a demo"
 msgstr "جرّب عرضًا"
 
-#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:315 ../Site/ReplayFrame.qml:104
 msgid "Try again"
 msgstr "حاول مجددًا"
 
-#: ../Demos/PantryDemo.qml:316
-msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
-msgstr "جرّب نقل StatusSlot أسفل Basket، أو ضبط color: \"#241a10\"، أو إعادة تسمية المتجر. تبقى سلتك وملاحظتك كما هما."
+#: ../Demos/PantryDemo.qml:309
+msgid "Try moving StatusSlot below Basket, setting fill: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+msgstr "جرّب نقل StatusSlot أسفل Basket، أو ضبط fill: \"#241a10\"، أو إعادة تسمية المتجر. تبقى سلتك وملاحظتك كما هما."
 
-#: ../Site/ReplayFrame.qml:121
+#: ../Site/ReplayFrame.qml:120
 msgid "Try {0} again"
 msgstr "جرّب {0} مجددًا"
 
@@ -2038,23 +2154,23 @@ msgstr "جرّب {0} مجددًا"
 msgid "Turn the crown to set"
 msgstr "أدر التاج للضبط"
 
-#: ../Site/BuiltWith.qml:36
+#: ../Site/BuiltWith.qml:38
 msgid "Turns a static HTML, CSS and JavaScript page into a runnable QML app you can read and edit. What it can’t convert, it reports."
 msgstr "يحوّل صفحة HTML و CSS و JavaScript ثابتة إلى تطبيق QML قابل للتشغيل يمكنك قراءته وتعديله. وما لا يستطيع تحويله يبلّغ عنه."
 
-#: ../Demos/WatchDemo.qml:184
+#: ../Demos/WatchDemo.qml:183
 msgid "Turns the crown down a notch"
 msgstr "يدير التاج درجة للأسفل"
 
-#: ../Demos/WatchDemo.qml:177
+#: ../Demos/WatchDemo.qml:176
 msgid "Turns the crown up a notch"
 msgstr "يدير التاج درجة للأعلى"
 
-#: ../Site/DemosPage.qml:236
+#: ../Site/DemosPage.qml:125 ../Site/Landing.qml:261
 msgid "Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls."
 msgstr "بطاقتان متجاورتان تعرضان أفاتارَي الرقص والجني لـ HAL-C2 فوق عناصر التحكم في التشغيل والسرعة."
 
-#: ../Demos/AgentView.qml:330
+#: ../Demos/AgentView.qml:329
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -2078,24 +2194,24 @@ msgstr "استخدام المظهر الفاتح"
 msgid "Values"
 msgstr "القيم"
 
-#: ../Shells/Desktop.qml:492
+#: ../Shells/Desktop.qml:491
 msgctxt "menu bar"
 msgid "View"
 msgstr "عرض"
 
-#: ../Shells/Desktop.qml:781
+#: ../Shells/Desktop.qml:780
 msgid "View QML"
 msgstr "عرض QML"
 
-#: ../Shells/Desktop.qml:477 ../Site/ShellChoices.qml:151
+#: ../Shells/Desktop.qml:476 ../Site/ShellChoices.qml:150
 msgid "View this shell's QML"
 msgstr "عرض QML لهذا الغلاف"
 
-#: ../Shells/Desktop.qml:782
+#: ../Shells/Desktop.qml:781
 msgid "View this shell's QML source"
 msgstr "عرض شيفرة QML لهذا الغلاف"
 
-#: ../Shells/Desktop.qml:1038 ../Shells/Workbench.qml:1098
+#: ../Shells/Desktop.qml:1037 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr "العروض"
 
@@ -2119,39 +2235,43 @@ msgstr "مستوى الصوت {0} من 10"
 msgid "WED"
 msgstr "أربعاء"
 
-#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:203
+#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:202
 msgid "Wake"
 msgstr "إيقاظ"
 
-#: ../Demos/WatchDemo.qml:167
+#: ../Demos/WatchDemo.qml:166
 msgid "Wakes the watch, or goes back to its face"
 msgstr "يوقظ الساعة، أو يعود إلى واجهتها"
 
-#: ../Site/DocPage.qml:56 ../Site/Landing.qml:370
+#: ../Site/DocPage.qml:56 ../Site/Landing.qml:400
 msgid "What is Ljós?"
 msgstr "ما هو Ljós؟"
 
-#: ../Site/Landing.qml:399
+#: ../Site/Landing.qml:429
 msgid "What we care about, and what we leave out on purpose."
 msgstr "ما يهمنا، وما نتركه خارج النطاق عمدًا."
 
-#: ../Demos/WatchDemo.qml:220
+#: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
 msgstr "ما إذا كانت الواجهة تبقى مضاءة بخفوت أثناء سكون الساعة"
 
-#: ../Demos/FieldGuide.qml:228
+#: ../Demos/FieldGuide.qml:227
 msgid "Wingspan"
 msgstr "باع الجناحين"
 
-#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42
+#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41
 msgid "Wire up the Observer"
 msgstr "ربط المراقب"
 
-#: ../Site/Preferences.qml:30
+#: ../Demos/Motion.qml:351
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr "عند تفعيل تقليل الحركة تتحرك النوابض أبطأ ولا تتجاوز الحلقة أبدًا."
+
+#: ../Site/Preferences.qml:31
 msgid "Workbench"
 msgstr "منضدة العمل"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Working…"
 msgstr "جارٍ العمل…"
 
@@ -2159,7 +2279,7 @@ msgstr "جارٍ العمل…"
 msgid "Workout"
 msgstr "التمرين"
 
-#: ../Shells/Workbench.qml:527
+#: ../Shells/Workbench.qml:526
 msgid "Workspace: ljos.dev"
 msgstr "مساحة العمل: ljos.dev"
 
@@ -2167,7 +2287,7 @@ msgstr "مساحة العمل: ljos.dev"
 msgid "Write app logic in TypeScript and catch mistakes with <code>ljos check</code>. Use Rust where you need it. Already have QML? <a href=\"/language/porting-from-qt/\">Bring it along</a>."
 msgstr "اكتب منطق التطبيق بـ TypeScript واكتشف الأخطاء عبر <code>ljos check</code>. استخدم Rust حيثما احتجت. لديك QML بالفعل؟ <a href=\"/language/porting-from-qt/\">أحضره معك</a>."
 
-#: ../Site/HeroApp.qml:19 ../Site/HeroApp.qml:43 ../Site/HeroStage.qml:34
+#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42 ../Site/HeroStage.qml:33
 msgid "Write the release notes"
 msgstr "كتابة ملاحظات الإصدار"
 
@@ -2183,15 +2303,15 @@ msgstr "يمكن لوكيلك استخدام التطبيق أيضًا."
 msgid "Your car"
 msgstr "سيارتك"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Your edit"
 msgstr "تعديلك"
 
-#: ../Site/Footer.qml:103 ../Site/Landing.qml:379
+#: ../Site/Footer.qml:105 ../Site/Landing.qml:409
 msgid "Your first app"
 msgstr "تطبيقك الأول"
 
-#: ../Demos/FieldGuide.qml:271
+#: ../Demos/FieldGuide.qml:270
 msgid "Your notes on this species…"
 msgstr "ملاحظاتك حول هذا النوع…"
 
@@ -2199,63 +2319,67 @@ msgstr "ملاحظاتك حول هذا النوع…"
 msgid "Your turn: try any button in the app and watch this log."
 msgstr "دورك الآن: جرّب أي زر في التطبيق وراقب هذا السجل."
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "answered"
 msgstr "أُجيب"
 
-#: ../Demos/AgentLogRow.qml:212
+#: ../Demos/AgentLogRow.qml:211
 msgid "app"
 msgstr "التطبيق"
 
-#: ../Demos/AgentView.qml:488
+#: ../Demos/AgentView.qml:487
 msgid "board.ts, the code this app runs"
 msgstr "board.ts، الشيفرة التي يشغّلها هذا التطبيق"
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "الصفحة الرئيسية"
 
 #: ../Site/CodeBlock.qml:578
 msgid "in the {0} harness"
 msgstr "في بيئة اختبار {0}"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "kept the last board"
 msgstr "تم الاحتفاظ باللوحة السابقة"
 
-#: ../Demos/DispatchCard.qml:249
+#: ../Demos/DispatchCard.qml:248
 msgid "no crew"
 msgstr "بلا فريق"
 
-#: ../Site/HeroStage.qml:43
+#: ../Site/HeroStage.qml:42
 msgid "no match"
 msgstr "لا يوجد تطابق"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "refused"
 msgstr "مرفوض"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "reloaded"
 msgstr "أُعيد تحميله"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "reloading"
 msgstr "جارٍ إعادة التحميل"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "sent"
 msgstr "أُرسل"
 
-#: ../Demos/AgentView.qml:656
+#: ../Demos/AgentView.qml:655
 msgid "set by the agent"
 msgstr "عيّنه الوكيل"
 
-#: ../Site/DemosPage.qml:133
+#: ../Site/DemosPage.qml:148
 msgid "the 3D demo"
 msgstr "العرض ثلاثي الأبعاد"
 
-#: ../Site/DemosPage.qml:235
+#: ../Site/DemosPage.qml:124 ../Site/Landing.qml:260
 msgid "the Lottie demo"
 msgstr "عرض Lottie"
 
-#: ../Demos/PantryDemo.qml:251
+#: ../Demos/PantryDemo.qml:244
 msgid "the Pantry"
 msgstr "Pantry"
 
@@ -2267,15 +2391,15 @@ msgstr "إعادة تشغيل الوكيل"
 msgid "the app runs the module built from it now"
 msgstr "يشغّل التطبيق الآن الوحدة المبنية منه"
 
-#: ../Site/DemosPage.qml:184
+#: ../Site/DemosPage.qml:199
 msgid "the field guide"
 msgstr "الدليل الميداني"
 
-#: ../Site/DemosPage.qml:211
+#: ../Site/DemosPage.qml:226
 msgid "the motion demo"
 msgstr "عرض الحركة"
 
-#: ../Site/DemosPage.qml:157
+#: ../Site/DemosPage.qml:172
 msgid "the shader demo"
 msgstr "عرض المظلِّل"
 
@@ -2287,15 +2411,15 @@ msgstr "الساعة"
 msgid "this example"
 msgstr "هذا المثال"
 
-#: ../Main.qml:199
+#: ../Main.qml:206
 msgid "this page"
 msgstr "هذه الصفحة"
 
-#: ../Demos/DispatchCard.qml:142
+#: ../Demos/DispatchCard.qml:141
 msgid "{0, plural, one {# open} other {# open}}, all assigned"
 msgstr "{0, plural, zero {# مفتوحة} one {# مفتوحة} two {# مفتوحتان} few {# مفتوحة} many {# مفتوحة} other {# مفتوحة}}، جميعها مُسندة"
 
-#: ../Demos/DispatchCard.qml:142
+#: ../Demos/DispatchCard.qml:141
 msgid "{0, plural, one {# open} other {# open}}, {1, plural, one {# unassigned} other {# unassigned}}"
 msgstr "{0, plural, zero {# مفتوحة} one {# مفتوحة} two {# مفتوحتان} few {# مفتوحة} many {# مفتوحة} other {# مفتوحة}}، {1, plural, zero {# غير مسندة} one {# غير مسندة} two {# غير مسندتين} few {# غير مسندة} many {# غير مسندة} other {# غير مسندة}}"
 
@@ -2303,13 +2427,17 @@ msgstr "{0, plural, zero {# مفتوحة} one {# مفتوحة} two {# مفتوح
 msgid "{0} NEW"
 msgstr "{0} جديدة"
 
-#: ../Demos/FieldGuide.qml:218 ../Demos/FieldGuide.qml:245
+#: ../Demos/FieldGuide.qml:217 ../Demos/FieldGuide.qml:244
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Shells/Cyberpunk.qml:367 ../Shells/Cyberpunk.qml:610
+#: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
 msgid "{0} fps"
 msgstr "{0} fps"
+
+#: ../Demos/PantryShell.qml:68 ../Demos/PantryShell.qml:101 ../Demos/PantryShell.qml:134
+msgid "{0} in basket"
+msgstr "{0} في السلة"
 
 #: ../Demos/Cockpit/Cluster.qml:150
 msgid "{0} kW"
@@ -2335,7 +2463,7 @@ msgstr "{0} من 10"
 msgid "{0} of {1}"
 msgstr "{0} من {1}"
 
-#: ../Site/HeroApp.qml:78
+#: ../Site/HeroApp.qml:77
 msgid "{0} of {1} done"
 msgstr "أُنجز {0} من {1}"
 
@@ -2355,7 +2483,7 @@ msgstr "تبقى {0} {1}"
 msgid "{0} {1} to {2}"
 msgstr "{0} {1} إلى {2}"
 
-#: ../Demos/FieldGuide.qml:192
+#: ../Demos/FieldGuide.qml:191
 msgid "{0} · {1}"
 msgstr "{0} · {1}"
 
@@ -2367,15 +2495,15 @@ msgstr "{0} →"
 msgid "{0}, {1}"
 msgstr "{0}، {1}"
 
-#: ../Demos/Lottie.qml:228
+#: ../Demos/Lottie.qml:237
 msgid "{0}×"
 msgstr "{0}×"
 
-#: ../Pantry/Basket.qml:31
+#: ../Pantry/Basket.qml:30
 msgid "{count, plural, one {# in the basket} other {# in the basket}} · £{0}"
 msgstr "{count, plural, zero {# في السلة} one {# في السلة} two {# في السلة} few {# في السلة} many {# في السلة} other {# في السلة}} · £{0}"
 
-#: ../Demos/FieldGuide.qml:143
+#: ../Demos/FieldGuide.qml:142
 msgid "{latin} · {season}"
 msgstr "{latin} · {season}"
 
@@ -2383,15 +2511,15 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "منذ {minutes} د"
 
-#: ../Site/Runner.qml:112
+#: ../Site/Runner.qml:111
 msgid "{name} did not compile"
 msgstr "فشل تصريف {name}"
 
-#: ../Site/Runner.qml:110
+#: ../Site/Runner.qml:109
 msgid "{name} is paused"
 msgstr "{name} متوقف مؤقتًا"
 
-#: ../Site/Runner.qml:108
+#: ../Site/Runner.qml:107
 msgid "{name} runs"
 msgstr "{name} قيد التشغيل"
 
@@ -2411,86 +2539,9 @@ msgstr "← {0}"
 msgid "♪ {0} · {1}"
 msgstr "♪ {0} · {1}"
 
-#: ../Demos/FieldGuide.qml:137
+#: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
 
-#: ../Site/BuiltWith.qml:54
-msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
-msgstr "سطح تحكم لوكلاء البرمجة على جهازك، مع طرفية وألسنة متصفح وتخطيط QML يمكنك تعديله أثناء تشغيله. <a href=\"/showcase/\">إضافة Office</a> الخاصة به موجودة في المعرض."
-
-#: ../Site/BuiltWith.qml:52 ../Site/Footer.qml:138
-msgid "HAL-C2"
-msgstr "HAL-C2"
-
-#: ../Site/BuiltWith.qml:57
-msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
-msgstr "إعدادات المظهر في HAL-C2 على Ljós: أقسام الإعدادات على اليسار، وخيارات نظام الألوان System/Light/Dark، وقائمة بالسمات مع اختيار HAL-C2."
-
-#: ../Site/BuiltWith.qml:62
-msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
-msgstr "سطح تحكم لوكلاء البرمجة على جهازك، مع طرفية وألسنة متصفح وتخطيط QML يمكنك تعديله أثناء تشغيله."
-
-#: ../Site/LanguageSwitcher.qml:141
-msgid "Language: {languageName} – choose another"
-msgstr "اللغة: {languageName} – اختر غيرها"
-
-#: ../Main.qml:635
-msgid "Reduce motion: off – use less motion"
-msgstr "تقليل الحركة: متوقف – استخدم حركة أقل"
-
-#: ../Main.qml:635
-msgid "Reduce motion: on – use full motion"
-msgstr "تقليل الحركة: مفعّل – استخدم الحركة الكاملة"
-
-#: ../Site/ShellSwitcher.qml:167
-msgid "Shell: {label} – choose another layout"
-msgstr "الغلاف: {label} – اختر تخطيطًا آخر"
-
-#: ../Site/ThemeToggle.qml:11
-msgid "Theme: dark – switch to light"
-msgstr "المظهر: داكن – التبديل إلى الفاتح"
-
-#: ../Site/ThemeToggle.qml:11
-msgid "Theme: light – switch to dark"
-msgstr "المظهر: فاتح – التبديل إلى الداكن"
-
-#: ../Demos/Motion.qml:26
-msgid "Snappy"
-msgstr "الخاطفة"
-
-#: ../Demos/Motion.qml:27
-msgid "Bouncy"
-msgstr "النطّاطة"
-
-#: ../Demos/Motion.qml:28
-msgid "Lazy"
-msgstr "الكسولة"
-
-#: ../Demos/Motion.qml:67
-msgid "Drag the ring · three springs chase it"
-msgstr "اسحب الحلقة · ثلاثة نوابض تطاردها"
-
-#: ../Demos/Motion.qml:89
-msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
-msgstr "مسرح النوابض. اسحب الحلقة أو حرّكها بمفاتيح الأسهم؛ تتبعها ثلاثة نوابض."
-
-#: ../Demos/Motion.qml:352
-msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
-msgstr "تقليل الحركة مفعَّل: تتحرك النوابض أبطأ ولا تتجاوز الحلقة أبدًا."
-
-#: ../Demos/Motion.qml:352
-msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
-msgstr "عند تفعيل تقليل الحركة تتحرك النوابض أبطأ ولا تتجاوز الحلقة أبدًا."
-
-#: ../Site/DemosPage.qml:195
-msgid "Springs you drag"
-msgstr "نوابض تسحبها"
-
-#: ../Site/DemosPage.qml:196
-msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
-msgstr "ثلاث كرات على نوابض تطارد حلقة واحدة: الخاطفة والنطّاطة والكسولة. يحسب TypeScript الخاص بالتطبيق قانون النابض في SpringAnimation إطارًا بإطار، بثلاثة ضبوط. اسحب الحلقة أو حرّكها بمفاتيح الأسهم؛ وإن تُركت وحدها قفزت إلى مكان آخر من تلقاء نفسها. عند تفعيل تقليل الحركة تبطؤ النوابض ولا تتجاوز الحلقة أبدًا، لكنها تظل تتحرك. حين تستقر لا يعمل شيء ويستهلك التطبيق 0 % من CPU."
-
-#: ../Site/DemosPage.qml:212
-msgid "Three balls on springs chasing a ring, each moving its own way."
-msgstr "ثلاث كرات على نوابض تطارد حلقة، كل منها على طريقتها."
+#~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+#~ msgstr "جرّب نقل StatusSlot أسفل Basket، أو ضبط color: \"#241a10\"، أو إعادة تسمية المتجر. تبقى سلتك وملاحظتك كما هما."

@@ -9,7 +9,7 @@ msgstr ""
 msgid "1 h ago"
 msgstr ""
 
-#: ../Site/HeroStage.qml:43
+#: ../Site/HeroStage.qml:42
 msgid "1 match"
 msgstr ""
 
@@ -17,7 +17,7 @@ msgstr ""
 msgid "10:00 Design review"
 msgstr ""
 
-#: ../Site/DemosPage.qml:120
+#: ../Site/DemosPage.qml:135
 msgid "3D you can orbit"
 msgstr ""
 
@@ -25,8 +25,16 @@ msgstr ""
 msgid "<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it."
 msgstr ""
 
-#: ../Site/DemosPage.qml:169
+#: ../Site/DemosPage.qml:184
 msgid "A bird field guide. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection."
+msgstr ""
+
+#: ../Site/BuiltWith.qml:62
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
+msgstr ""
+
+#: ../Site/BuiltWith.qml:60
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
 msgstr ""
 
 #: ../Demos/Shader.qml:107
@@ -37,19 +45,19 @@ msgstr ""
 msgid "A door is open"
 msgstr ""
 
-#: ../Site/DemosPage.qml:185
+#: ../Site/DemosPage.qml:200
 msgid "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
 msgstr ""
 
-#: ../Site/DemosPage.qml:134
+#: ../Site/DemosPage.qml:149
 msgid "A lit 3D scene of shapes on a floor. Drag to turn it."
 msgstr ""
 
-#: ../Site/DemosPage.qml:121
+#: ../Site/DemosPage.qml:136
 msgid "A lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Once it runs, drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt."
 msgstr ""
 
-#: ../Site/BuiltWith.qml:39
+#: ../Site/BuiltWith.qml:43
 msgid "A recipe card for red lentil soup, converted from a web page by Eldur and running on Ljós."
 msgstr ""
 
@@ -57,7 +65,7 @@ msgstr ""
 msgid "A round smartwatch face with neon rings beside the same watch in 3D, in its case on a linked band, its screen's ring glowing."
 msgstr ""
 
-#: ../Site/DemosPage.qml:144
+#: ../Site/DemosPage.qml:159
 msgid "A shader effect"
 msgstr ""
 
@@ -69,7 +77,7 @@ msgstr ""
 msgid "A ten-minute walk after lunch would close your move ring."
 msgstr ""
 
-#: ../Site/BuiltWith.qml:45
+#: ../Site/BuiltWith.qml:49
 msgid "A terminal for Linux and macOS, with tabs, splits and one small config file. It tells you when an agent in a pane is waiting for you. The <a href=\"/showcase/\">showcase</a> shows it running."
 msgstr ""
 
@@ -77,7 +85,7 @@ msgstr ""
 msgid "A visual designer where the design is the app’s own QML. A change on the canvas leaves the rest of the file as it was, and agents drive Studio through MCP."
 msgstr ""
 
-#: ../Site/DemosPage.qml:168
+#: ../Site/DemosPage.qml:183
 msgid "A whole app"
 msgstr ""
 
@@ -89,23 +97,39 @@ msgstr ""
 msgid "AUG"
 msgstr ""
 
-#: ../Shells/Desktop.qml:630 ../Shells/Desktop.qml:1154
+#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1153
 msgid "About ljos.dev"
 msgstr ""
 
-#: ../Shells/Workbench.qml:413
+#: ../Shells/Workbench.qml:412
 msgid "Activity"
 msgstr ""
 
-#: ../Shells/Workbench.qml:418
+#: ../Shells/Workbench.qml:417
 msgid "Activity bar"
 msgstr ""
 
-#: ../Demos/Lottie.qml:194
+#: ../Demos/PantryShell.qml:163
+msgid "Add an item, then edit the code. Your basket stays."
+msgstr ""
+
+#: ../Demos/PantryShell.qml:107
+msgid "Add bread"
+msgstr ""
+
+#: ../Demos/PantryShell.qml:140
+msgid "Add jam"
+msgstr ""
+
+#: ../Demos/PantryShell.qml:74
+msgid "Add tea"
+msgstr ""
+
+#: ../Demos/Lottie.qml:203
 msgid "Again"
 msgstr ""
 
-#: ../Demos/AgentView.qml:330 ../Site/HeroStage.qml:26
+#: ../Demos/AgentView.qml:329 ../Site/HeroStage.qml:25
 msgid "Agent"
 msgstr ""
 
@@ -113,11 +137,11 @@ msgstr ""
 msgid "Agent MCP stream"
 msgstr ""
 
-#: ../Demos/AgentView.qml:390
+#: ../Demos/AgentView.qml:389
 msgid "Agent log"
 msgstr ""
 
-#: ../Demos/AgentView.qml:144
+#: ../Demos/AgentView.qml:143
 msgid "Agent: make this a board"
 msgstr ""
 
@@ -125,7 +149,7 @@ msgstr ""
 msgid "All caught up"
 msgstr ""
 
-#: ../Shells/Desktop.qml:854
+#: ../Shells/Desktop.qml:853
 msgid "All demos"
 msgstr ""
 
@@ -133,7 +157,7 @@ msgstr ""
 msgid "All doors closed"
 msgstr ""
 
-#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:219
+#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:218
 msgid "Always on"
 msgstr ""
 
@@ -153,7 +177,7 @@ msgstr ""
 msgid "An app’s layout doesn’t have to be fixed. Let people, or their agents, replace it live, without losing their work. If an edit won’t compile, the last working layout stays."
 msgstr ""
 
-#: ../Shells/Workbench.qml:476
+#: ../Shells/Workbench.qml:475
 msgid "Appearance settings"
 msgstr ""
 
@@ -165,11 +189,11 @@ msgstr ""
 msgid "Apps"
 msgstr ""
 
-#: ../Site/Landing.qml:262
+#: ../Site/Landing.qml:292
 msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio, Eldur and HAL-C2."
 msgstr ""
 
-#: ../Site/ShowcasePage.qml:46
+#: ../Site/ShowcasePage.qml:45
 msgid "Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source."
 msgstr ""
 
@@ -181,11 +205,11 @@ msgstr ""
 msgid "As the system"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:361
+#: ../Demos/DispatchCard.qml:360
 msgid "Assign crew"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:362
+#: ../Demos/DispatchCard.qml:361
 msgid "Assign crew to {0}"
 msgstr ""
 
@@ -197,11 +221,11 @@ msgstr ""
 msgid "BPM"
 msgstr ""
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:567 ../Shells/Desktop.qml:690
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:566 ../Shells/Desktop.qml:689
 msgid "Back"
 msgstr ""
 
-#: ../Pantry/Basket.qml:85
+#: ../Pantry/Basket.qml:82
 msgid "Basket"
 msgstr ""
 
@@ -213,27 +237,35 @@ msgstr ""
 msgid "Before"
 msgstr ""
 
-#: ../Shells/Desktop.qml:721 ../Shells/Desktop.qml:845
+#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:844
 msgid "Benchmarks"
 msgstr ""
 
-#: ../Site/HeroStage.qml:35
+#: ../Site/HeroStage.qml:34
 msgid "Beta week"
 msgstr ""
 
-#: ../Demos/AgentView.qml:170
+#: ../Demos/AgentView.qml:169
 msgid "Board"
 msgstr ""
 
-#: ../Demos/AgentView.qml:171
+#: ../Demos/AgentView.qml:170
 msgid "Board layout"
 msgstr ""
 
-#: ../Shells/Workbench.qml:883
+#: ../Shells/Workbench.qml:882
 msgid "Bottom panel"
 msgstr ""
 
-#: ../Shells/Desktop.qml:715
+#: ../Demos/Motion.qml:26
+msgid "Bouncy"
+msgstr ""
+
+#: ../Demos/PantryShell.qml:92
+msgid "Bread · £{0}"
+msgstr ""
+
+#: ../Shells/Desktop.qml:714
 msgid "Browse all interactive demos"
 msgstr ""
 
@@ -241,11 +273,11 @@ msgstr ""
 msgid "Built for agents"
 msgstr ""
 
-#: ../Site/Landing.qml:317
+#: ../Site/Landing.qml:347
 msgid "Built together"
 msgstr ""
 
-#: ../Site/Footer.qml:126 ../Site/Landing.qml:250 ../Site/ShowcasePage.qml:31
+#: ../Site/Footer.qml:128 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
 msgid "Built with Ljós"
 msgstr ""
 
@@ -253,27 +285,27 @@ msgstr ""
 msgid "Cancel timer"
 msgstr ""
 
-#: ../Shells/Desktop.qml:586
+#: ../Shells/Desktop.qml:585
 msgid "Capability: agentic first"
 msgstr ""
 
-#: ../Shells/Desktop.qml:585
+#: ../Shells/Desktop.qml:584
 msgid "Capability: descriptive language"
 msgstr ""
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:587
 msgid "Capability: live updates"
 msgstr ""
 
-#: ../Shells/Desktop.qml:590
+#: ../Shells/Desktop.qml:589
 msgid "Capability: malleable"
 msgstr ""
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:586
 msgid "Capability: several renderers"
 msgstr ""
 
-#: ../Shells/Desktop.qml:589
+#: ../Shells/Desktop.qml:588
 msgid "Capability: tools"
 msgstr ""
 
@@ -313,7 +345,7 @@ msgstr ""
 msgid "Check what still needs a crew."
 msgstr ""
 
-#: ../Site/Preferences.qml:31
+#: ../Site/Preferences.qml:32
 msgid "Classic desktop application window with menu bar, toolbar, sidebar, and status bar."
 msgstr ""
 
@@ -321,7 +353,7 @@ msgstr ""
 msgid "Clear all"
 msgstr ""
 
-#: ../Shells/Workbench.qml:1044
+#: ../Shells/Workbench.qml:1043
 msgid "Clear log"
 msgstr ""
 
@@ -333,19 +365,19 @@ msgstr ""
 msgid "Climate off"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
+#: ../Shells/Cyberpunk.qml:352 ../Shells/Cyberpunk.qml:616
 msgid "Clock"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:356 ../Shells/Cyberpunk.qml:620
+#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
 msgid "Clock {0}"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1180
+#: ../Shells/Desktop.qml:1179
 msgid "Close"
 msgstr ""
 
-#: ../Site/ObserverDock.qml:185
+#: ../Site/ObserverDock.qml:184
 msgctxt "observer"
 msgid "Close"
 msgstr ""
@@ -358,15 +390,23 @@ msgstr ""
 msgid "Close shell source"
 msgstr ""
 
-#: ../Site/ObserverDock.qml:186
+#: ../Site/ObserverDock.qml:185
 msgid "Close the Observer"
 msgstr ""
 
-#: ../Shells/Desktop.qml:994 ../Shells/Workbench.qml:745
+#: ../Site/ShowcaseEngine.qml:311
+msgid "Close the editor"
+msgstr ""
+
+#: ../Site/ShowcaseEngine.qml:312
+msgid "Close the editor of {0}"
+msgstr ""
+
+#: ../Shells/Desktop.qml:993 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:332
+#: ../Demos/DispatchCard.qml:331
 msgid "Closed"
 msgstr ""
 
@@ -378,15 +418,15 @@ msgstr ""
 msgid "Code: {0}"
 msgstr ""
 
-#: ../Shells/Workbench.qml:849
+#: ../Shells/Workbench.qml:848
 msgid "Collapse inspector"
 msgstr ""
 
-#: ../Site/Footer.qml:119
+#: ../Site/Footer.qml:121
 msgid "Community principles"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:51
+#: ../Shells/Cyberpunk.qml:49
 msgid "Console"
 msgstr ""
 
@@ -407,19 +447,19 @@ msgstr ""
 msgid "Copy {0}"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:176
+#: ../Demos/WatchDemo.qml:175
 msgid "Crown ▲"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:183
+#: ../Demos/WatchDemo.qml:182
 msgid "Crown ▼"
 msgstr ""
 
-#: ../Site/ShellSwitcher.qml:54
+#: ../Site/ShellSwitcher.qml:56
 msgid "Current shell: {label}"
 msgstr ""
 
-#: ../Site/Preferences.qml:29
+#: ../Site/Preferences.qml:30
 msgid "Cyberpunk"
 msgstr ""
 
@@ -427,15 +467,15 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
-#: ../Demos/Lottie.qml:98
+#: ../Demos/Lottie.qml:97
 msgid "Dance (loops)"
 msgstr ""
 
-#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:36
+#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:37
 msgid "Dark"
 msgstr ""
 
-#: ../Shells/Desktop.qml:506
+#: ../Shells/Desktop.qml:505
 msgid "Dark colour scheme"
 msgstr ""
 
@@ -443,11 +483,11 @@ msgstr ""
 msgid "Defrost"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:52 ../Shells/Desktop.qml:714 ../Shells/Desktop.qml:849 ../Site/Footer.qml:101 ../Site/Router.qml:39 ../Site/Router.qml:47 ../Site/Router.qml:83
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:848 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
 msgid "Demos"
 msgstr ""
 
-#: ../Shells/Workbench.qml:604
+#: ../Shells/Workbench.qml:603
 msgid "Demos/"
 msgstr ""
 
@@ -455,11 +495,11 @@ msgstr ""
 msgid "Design review at 10:00"
 msgstr ""
 
-#: ../Site/Preferences.qml:31
+#: ../Site/Preferences.qml:32
 msgid "Desktop"
 msgstr ""
 
-#: ../Shells/Workbench.qml:1169
+#: ../Shells/Workbench.qml:1168
 msgid "Diagnostics: {0}"
 msgstr ""
 
@@ -479,31 +519,35 @@ msgstr ""
 msgid "Do not disturb"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:57 ../Site/Footer.qml:100 ../Site/Router.qml:38
+#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:39
 msgid "Docs"
 msgstr ""
 
-#: ../Shells/Desktop.qml:943
+#: ../Shells/Desktop.qml:942
 msgid "Documents"
 msgstr ""
 
-#: ../Demos/AgentView.qml:187 ../Demos/Watch/WorkoutPage.qml:169
+#: ../Demos/AgentView.qml:186 ../Demos/Watch/WorkoutPage.qml:169
 msgid "Done"
 msgstr ""
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Done. Try Assign crew or List / Board."
 msgstr ""
 
-#: ../Demos/Orbit.qml:273
+#: ../Demos/Motion.qml:66
+msgid "Drag the ring · three springs chase it"
+msgstr ""
+
+#: ../Demos/Orbit.qml:271
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:343
+#: ../Demos/WatchDemo.qml:342
 msgid "Drag to turn it"
 msgstr ""
 
-#: ../Demos/Orbit.qml:290
+#: ../Demos/Orbit.qml:288
 msgid "Drawn by Ljós's 3D renderer"
 msgstr ""
 
@@ -523,16 +567,16 @@ msgstr ""
 msgid "Driver warmer"
 msgstr ""
 
-#: ../Site/DemosPage.qml:51
+#: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
-msgstr ""
-
-#: ../Site/DemosPage.qml:48
-msgid "front page"
 msgstr ""
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"
+msgstr ""
+
+#: ../Site/ShowcaseEngine.qml:311
+msgid "Edit"
 msgstr ""
 
 #: ../Site/CodeBlock.qml:812
@@ -540,11 +584,11 @@ msgctxt "stage"
 msgid "Edit"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:287
+#: ../Demos/PantryDemo.qml:280
 msgid "Edit the Pantry's Shell.qml"
 msgstr ""
 
-#: ../Site/LiveSource.qml:210
+#: ../Site/LiveSource.qml:209
 msgid "Edit the running shell's QML"
 msgstr ""
 
@@ -552,11 +596,11 @@ msgstr ""
 msgid "Edit this shell's QML"
 msgstr ""
 
-#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813
+#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813 ../Site/ShowcaseEngine.qml:312
 msgid "Edit {0}"
 msgstr ""
 
-#: ../Site/ProDemoPage.qml:382
+#: ../Site/ProDemoPage.qml:430 ../Site/ShowcaseEngine.qml:401
 msgid "Edit {0} of {1}"
 msgstr ""
 
@@ -564,19 +608,19 @@ msgstr ""
 msgid "Edited"
 msgstr ""
 
-#: ../Shells/Workbench.qml:693
+#: ../Shells/Workbench.qml:692
 msgid "Editor"
 msgstr ""
 
-#: ../Site/Preferences.qml:28
+#: ../Site/Preferences.qml:29
 msgid "Editorial layout for reading, trying demos, and comparing specs."
 msgstr ""
 
-#: ../Site/BuiltWith.qml:34 ../Site/Footer.qml:136
+#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:138
 msgid "Eldur"
 msgstr ""
 
-#: ../Site/Preferences.qml:28
+#: ../Site/Preferences.qml:29
 msgid "Elegant"
 msgstr ""
 
@@ -584,11 +628,11 @@ msgstr ""
 msgid "End"
 msgstr ""
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "End result, not run"
 msgstr ""
 
-#: ../Site/Capability.qml:100
+#: ../Site/Capability.qml:99
 msgid "Example"
 msgstr ""
 
@@ -596,11 +640,11 @@ msgstr ""
 msgid "Exercise"
 msgstr ""
 
-#: ../Shells/Workbench.qml:761
+#: ../Shells/Workbench.qml:760
 msgid "Expand inspector"
 msgstr ""
 
-#: ../Shells/Workbench.qml:431 ../Shells/Workbench.qml:518 ../Shells/Workbench.qml:1102
+#: ../Shells/Workbench.qml:430 ../Shells/Workbench.qml:517 ../Shells/Workbench.qml:1101
 msgid "Explorer"
 msgstr ""
 
@@ -640,32 +684,32 @@ msgstr ""
 msgid "Feeder 12 needs a crew. Find its button."
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:89
+#: ../Demos/FieldGuide.qml:88
 msgid "Field guide"
 msgstr ""
 
-#: ../Shells/Desktop.qml:441
+#: ../Shells/Desktop.qml:440
 msgctxt "menu bar"
 msgid "File"
 msgstr ""
 
-#: ../Shells/Desktop.qml:512
+#: ../Shells/Desktop.qml:511
 msgid "Follow system colour scheme"
 msgstr ""
 
-#: ../Shells/Desktop.qml:572 ../Shells/Desktop.qml:696
+#: ../Shells/Desktop.qml:571 ../Shells/Desktop.qml:695
 msgid "Forward"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
+#: ../Shells/Cyberpunk.qml:364 ../Shells/Cyberpunk.qml:607
 msgid "Frame rate"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:368 ../Shells/Cyberpunk.qml:611
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate not measured yet"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:368 ../Shells/Cyberpunk.qml:611
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate {0} fps"
 msgstr ""
 
@@ -673,7 +717,7 @@ msgstr ""
 msgid "Frunk"
 msgstr ""
 
-#: ../Site/Preferences.qml:29
+#: ../Site/Preferences.qml:30
 msgid "Full-bleed HUD console with live telemetry rails and mission-style panels."
 msgstr ""
 
@@ -681,7 +725,7 @@ msgstr ""
 msgid "Gear {0}"
 msgstr ""
 
-#: ../Demos/Lottie.qml:98
+#: ../Demos/Lottie.qml:97
 msgid "Genie (plays once)"
 msgstr ""
 
@@ -689,15 +733,15 @@ msgstr ""
 msgid "Get started"
 msgstr ""
 
-#: ../Shells/Desktop.qml:612
+#: ../Shells/Desktop.qml:611
 msgid "Getting started guide"
 msgstr ""
 
-#: ../Site/Footer.qml:117
+#: ../Site/Footer.qml:119
 msgid "GitHub"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:160
+#: ../Demos/WatchDemo.qml:159
 msgid "Give the watch its other screen"
 msgstr ""
 
@@ -705,20 +749,20 @@ msgstr ""
 msgid "Glow"
 msgstr ""
 
-#: ../Shells/Desktop.qml:559
+#: ../Shells/Desktop.qml:558
 msgctxt "menu bar"
 msgid "Go"
 msgstr ""
 
-#: ../Shells/Desktop.qml:697
+#: ../Shells/Desktop.qml:696
 msgid "Go to next route"
 msgstr ""
 
-#: ../Shells/Desktop.qml:691
+#: ../Shells/Desktop.qml:690
 msgid "Go to previous route"
 msgstr ""
 
-#: ../Site/Landing.qml:397
+#: ../Site/Landing.qml:427
 msgid "Goals and principles"
 msgstr ""
 
@@ -726,12 +770,20 @@ msgstr ""
 msgid "Grid face"
 msgstr ""
 
-#: ../Demos/Lottie.qml:114
+#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:140
+msgid "HAL-C2"
+msgstr ""
+
+#: ../Demos/Lottie.qml:113
 msgid "HAL-C2's dancing avatar, looping"
 msgstr ""
 
-#: ../Demos/Lottie.qml:126
+#: ../Demos/Lottie.qml:130
 msgid "HAL-C2's genie avatar, plays once"
+msgstr ""
+
+#: ../Site/BuiltWith.qml:65
+msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
 msgstr ""
 
 #: ../Demos/Watch/HeartPage.qml:13
@@ -754,24 +806,24 @@ msgstr ""
 msgid "Heating"
 msgstr ""
 
-#: ../Shells/Desktop.qml:604
+#: ../Shells/Desktop.qml:603
 msgctxt "menu bar"
 msgid "Help"
 msgstr ""
 
-#: ../Shells/Desktop.qml:702 ../Shells/Desktop.qml:827 ../Site/Router.qml:47 ../Site/Router.qml:81
+#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:826 ../Site/Router.qml:48 ../Site/Router.qml:82
 msgid "Home"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1098 ../Shells/Workbench.qml:1056
+#: ../Shells/Desktop.qml:1097 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:261
+#: ../Demos/FieldGuide.qml:260
 msgid "I have seen this one"
 msgstr ""
 
-#: ../Site/Preferences.qml:30
+#: ../Site/Preferences.qml:31
 msgid "IDE-style workspace with file tree, tabbed centre pane, and inspector docks."
 msgstr ""
 
@@ -791,11 +843,11 @@ msgstr ""
 msgid "Inspect every node, patch state in flight, drop a new shell on the wire."
 msgstr ""
 
-#: ../Demos/AgentView.qml:576
+#: ../Demos/AgentView.qml:575
 msgid "Inspect {0}"
 msgstr ""
 
-#: ../Shells/Workbench.qml:797 ../Shells/Workbench.qml:1104
+#: ../Shells/Workbench.qml:796 ../Shells/Workbench.qml:1103
 msgid "Inspector"
 msgstr ""
 
@@ -803,7 +855,7 @@ msgstr ""
 msgid "It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href=\"/start/mcp/\">Connect an agent</a>."
 msgstr ""
 
-#: ../Site/ProDemoPage.qml:228
+#: ../Site/ProDemoPage.qml:236
 msgid "Its files"
 msgstr ""
 
@@ -817,6 +869,10 @@ msgstr ""
 
 #: ../Demos/Watch/Watch.qml:429
 msgid "JUN"
+msgstr ""
+
+#: ../Demos/PantryShell.qml:125
+msgid "Jam · £{0}"
 msgstr ""
 
 #: ../Demos/Watch/WorkoutPage.qml:122
@@ -851,8 +907,12 @@ msgstr ""
 msgid "Language"
 msgstr ""
 
-#: ../Site/LanguageSwitcher.qml:58
+#: ../Site/LanguageSwitcher.qml:60
 msgid "Language: {0}"
+msgstr ""
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
 msgstr ""
 
 #: ../Demos/Watch/StopwatchPage.qml:56
@@ -863,11 +923,15 @@ msgstr ""
 msgid "Lap {0}   {1}"
 msgstr ""
 
-#: ../Site/HeroApp.qml:15 ../Site/HeroApp.qml:39
+#: ../Site/HeroApp.qml:14 ../Site/HeroApp.qml:38
 msgid "Launch week"
 msgstr ""
 
-#: ../Site/Footer.qml:91
+#: ../Demos/Motion.qml:27
+msgid "Lazy"
+msgstr ""
+
+#: ../Site/Footer.qml:93
 msgid "Learn"
 msgstr ""
 
@@ -875,23 +939,23 @@ msgstr ""
 msgid "Left door"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:201
+#: ../Demos/FieldGuide.qml:200
 msgid "Length"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:204
+#: ../Demos/WatchDemo.qml:203
 msgid "Lets the watch rest on its always-on face, as it does by itself after fifteen seconds"
 msgstr ""
 
-#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:35
+#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:36
 msgid "Light"
 msgstr ""
 
-#: ../Shells/Desktop.qml:500
+#: ../Shells/Desktop.qml:499
 msgid "Light colour scheme"
 msgstr ""
 
-#: ../Site/DemosPage.qml:158
+#: ../Site/DemosPage.qml:173
 msgid "Light pooling over a card of text, following the pointer."
 msgstr ""
 
@@ -899,11 +963,11 @@ msgstr ""
 msgid "Linked"
 msgstr ""
 
-#: ../Demos/AgentView.qml:163
+#: ../Demos/AgentView.qml:162
 msgid "List"
 msgstr ""
 
-#: ../Demos/AgentView.qml:164
+#: ../Demos/AgentView.qml:163
 msgid "List layout"
 msgstr ""
 
@@ -911,7 +975,7 @@ msgstr ""
 msgid "Live app"
 msgstr ""
 
-#: ../Site/DemosPage.qml:45 ../Site/Landing.qml:388
+#: ../Site/DemosPage.qml:44 ../Site/Landing.qml:418
 msgid "Live demos"
 msgstr ""
 
@@ -927,23 +991,23 @@ msgstr ""
 msgid "Live stage"
 msgstr ""
 
-#: ../Site/Footer.qml:62 ../Site/Router.qml:47
+#: ../Site/Footer.qml:64 ../Site/Router.qml:48
 msgid "Ljós"
 msgstr ""
 
-#: ../Site/BuiltWith.qml:43 ../Site/Footer.qml:137
+#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:139
 msgid "Ljós Hof"
 msgstr ""
 
-#: ../Site/BuiltWith.qml:48
+#: ../Site/BuiltWith.qml:54
 msgid "Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right."
 msgstr ""
 
-#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:135
+#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:137
 msgid "Ljós Studio"
 msgstr ""
 
-#: ../Site/BuiltWith.qml:30
+#: ../Site/BuiltWith.qml:32
 msgid "Ljós Studio with a rectangle selected on the canvas: the layers on the left, its properties on the right and its QML under the canvas."
 msgstr ""
 
@@ -951,19 +1015,19 @@ msgstr ""
 msgid "Ljós is a Rust UI toolkit for apps that people and their agents can change live, with declarative interfaces and typed TypeScript."
 msgstr ""
 
-#: ../Site/GitHubMark.qml:27
+#: ../Site/GitHubMark.qml:28
 msgid "Ljós on GitHub"
 msgstr ""
 
-#: ../Site/Landing.qml:335
+#: ../Site/Landing.qml:365
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr ""
 
-#: ../Shells/Desktop.qml:643
+#: ../Shells/Desktop.qml:642
 msgid "Ljós — {0}"
 msgstr ""
 
-#: ../Site/Brand.qml:25
+#: ../Site/Brand.qml:26
 msgid "Ljós, home"
 msgstr ""
 
@@ -979,7 +1043,7 @@ msgstr ""
 msgid "Look at the app before changing it."
 msgstr ""
 
-#: ../Site/DemosPage.qml:222
+#: ../Site/DemosPage.qml:109 ../Site/Landing.qml:246
 msgid "Lottie animations"
 msgstr ""
 
@@ -999,11 +1063,11 @@ msgstr ""
 msgid "MAY"
 msgstr ""
 
-#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:1017
+#: ../Shells/Workbench.qml:897 ../Shells/Workbench.qml:1016
 msgid "MCP log"
 msgstr ""
 
-#: ../Shells/Desktop.qml:616
+#: ../Shells/Desktop.qml:615
 msgid "MCP servers for agents"
 msgstr ""
 
@@ -1011,7 +1075,7 @@ msgstr ""
 msgid "MI LEFT"
 msgstr ""
 
-#: ../Site/Footer.qml:120
+#: ../Site/Footer.qml:122
 msgid "MIT licence"
 msgstr ""
 
@@ -1035,7 +1099,7 @@ msgstr ""
 msgid "Malleable"
 msgstr ""
 
-#: ../Site/Footer.qml:67
+#: ../Site/Footer.qml:69
 msgid "Malleable software, everywhere."
 msgstr ""
 
@@ -1047,11 +1111,11 @@ msgstr ""
 msgid "Media"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:632 ../Shells/Desktop.qml:1193 ../Shells/Elegant.qml:205 ../Shells/Workbench.qml:1205 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1192 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr ""
 
-#: ../Shells/Desktop.qml:435
+#: ../Shells/Desktop.qml:434
 msgid "Menu bar"
 msgstr ""
 
@@ -1059,7 +1123,7 @@ msgstr ""
 msgid "Message"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:55
+#: ../Shells/Cyberpunk.qml:53
 msgid "Metrics"
 msgstr ""
 
@@ -1099,7 +1163,7 @@ msgstr ""
 msgid "Navigation"
 msgstr ""
 
-#: ../Site/HeroStage.qml:262
+#: ../Site/HeroStage.qml:261
 msgid "Next step"
 msgstr ""
 
@@ -1111,19 +1175,19 @@ msgstr ""
 msgid "Next: {0}"
 msgstr ""
 
-#: ../Shells/Workbench.qml:929
+#: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:352
+#: ../Demos/DispatchCard.qml:351
 msgid "No crew"
 msgstr ""
 
-#: ../Pantry/Note.qml:17
+#: ../Pantry/Note.qml:16
 msgid "Note for the baker"
 msgstr ""
 
-#: ../Pantry/Note.qml:18
+#: ../Pantry/Note.qml:17
 msgid "Note for the baker…"
 msgstr ""
 
@@ -1135,7 +1199,7 @@ msgstr ""
 msgid "Nothing drawn yet. Run it to see what it does."
 msgstr ""
 
-#: ../Site/SearchResults.qml:39
+#: ../Site/SearchResults.qml:41
 msgid "Nothing matches “{query}”. Try a type name, like ListView."
 msgstr ""
 
@@ -1151,27 +1215,27 @@ msgstr ""
 msgid "OUTDOOR RUN"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:600
+#: ../Shells/Cyberpunk.qml:598
 msgid "Objects"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:360
+#: ../Shells/Cyberpunk.qml:358
 msgid "Objects alive"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:362 ../Shells/Cyberpunk.qml:602
+#: ../Shells/Cyberpunk.qml:360 ../Shells/Cyberpunk.qml:600
 msgid "Objects alive {0}"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1104
+#: ../Shells/Desktop.qml:1103
 msgid "Objects alive: {0}"
 msgstr ""
 
-#: ../Shells/Workbench.qml:1069 ../Shells/Workbench.qml:1184
+#: ../Shells/Workbench.qml:1068 ../Shells/Workbench.qml:1183
 msgid "Objects: {0}"
 msgstr ""
 
-#: ../Demos/AgentView.qml:330 ../Shells/Desktop.qml:727 ../Shells/Workbench.qml:439 ../Site/HeroStage.qml:26 ../Site/ObserverDock.qml:122 ../Site/ObserverDock.qml:174
+#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:726 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
 msgid "Observer"
 msgstr ""
 
@@ -1180,15 +1244,15 @@ msgctxt "stage"
 msgid "Observer"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:250
+#: ../Demos/PantryDemo.qml:243
 msgid "Observer for the Pantry"
 msgstr ""
 
-#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:295
+#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:300
 msgid "Observer for {0}"
 msgstr ""
 
-#: ../Shells/Desktop.qml:620
+#: ../Shells/Desktop.qml:619
 msgid "Observer guide"
 msgstr ""
 
@@ -1196,7 +1260,7 @@ msgstr ""
 msgid "Observer tree"
 msgstr ""
 
-#: ../Site/ObserverDock.qml:174
+#: ../Site/ObserverDock.qml:173
 msgid "Observer · {0}"
 msgstr ""
 
@@ -1208,15 +1272,15 @@ msgstr ""
 msgid "On"
 msgstr ""
 
-#: ../Main.qml:668 ../Site/Toc.qml:22 ../Site/Toc.qml:25
+#: ../Main.qml:689 ../Site/Toc.qml:24 ../Site/Toc.qml:27
 msgid "On this page"
 msgstr ""
 
-#: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
+#: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:362
 msgid "On-call crew"
 msgstr ""
 
-#: ../Site/DemosPage.qml:145
+#: ../Site/DemosPage.qml:160
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
 msgstr ""
 
@@ -1228,47 +1292,47 @@ msgstr ""
 msgid "One minute more"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:332
+#: ../Demos/DispatchCard.qml:331
 msgid "Open"
 msgstr ""
 
-#: ../Site/Landing.qml:381
+#: ../Site/Landing.qml:411
 msgid "Open a window, then change it while it runs."
 msgstr ""
 
-#: ../Shells/Desktop.qml:466
+#: ../Shells/Desktop.qml:465
 msgid "Open benchmarks"
 msgstr ""
 
-#: ../Shells/Desktop.qml:454
+#: ../Shells/Desktop.qml:453
 msgid "Open demos"
 msgstr ""
 
-#: ../Shells/Desktop.qml:471
+#: ../Shells/Desktop.qml:470
 msgid "Open documentation"
 msgstr ""
 
-#: ../Shells/Workbench.qml:711
+#: ../Shells/Workbench.qml:710
 msgid "Open files"
 msgstr ""
 
-#: ../Shells/Desktop.qml:449
+#: ../Shells/Desktop.qml:448
 msgid "Open home"
 msgstr ""
 
-#: ../Shells/Desktop.qml:703
+#: ../Shells/Desktop.qml:702
 msgid "Open landing page"
 msgstr ""
 
-#: ../Shells/Desktop.qml:722
+#: ../Shells/Desktop.qml:721
 msgid "Open native desktop benchmark tables"
 msgstr ""
 
-#: ../Shells/Desktop.qml:959 ../Shells/Desktop.qml:1044
+#: ../Shells/Desktop.qml:958 ../Shells/Desktop.qml:1043
 msgid "Open pages"
 msgstr ""
 
-#: ../Shells/Desktop.qml:459
+#: ../Shells/Desktop.qml:458
 msgid "Open showcase"
 msgstr ""
 
@@ -1280,7 +1344,7 @@ msgstr ""
 msgid "Open the message from {0}"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:190
+#: ../Demos/WatchDemo.qml:189
 msgid "Other face"
 msgstr ""
 
@@ -1288,11 +1352,11 @@ msgstr ""
 msgid "Our benchmark mail app shows its first frame in under 90 ms, uses under 24 MiB of private memory, and takes 0 % CPU when idle.<br><br>These are <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">native numbers</a> from Linux on 10 Nov 2026. They don’t measure this web page."
 msgstr ""
 
-#: ../Shells/Workbench.qml:898
+#: ../Shells/Workbench.qml:897
 msgid "Output"
 msgstr ""
 
-#: ../Shells/Desktop.qml:822
+#: ../Shells/Desktop.qml:821
 msgid "Overview"
 msgstr ""
 
@@ -1300,15 +1364,15 @@ msgstr ""
 msgid "PAUSED"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1042
+#: ../Shells/Desktop.qml:1041
 msgid "Page"
 msgstr ""
 
-#: ../Shells/Desktop.qml:810 ../Shells/Desktop.qml:1043 ../Site/PageTree.qml:20
+#: ../Shells/Desktop.qml:809 ../Shells/Desktop.qml:1042 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr ""
 
-#: ../Shells/Workbench.qml:895
+#: ../Shells/Workbench.qml:894
 msgid "Panel"
 msgstr ""
 
@@ -1336,11 +1400,11 @@ msgstr ""
 msgid "Passenger warmer"
 msgstr ""
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:264 ../Site/ReplayFrame.qml:107 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:269 ../Site/ReplayFrame.qml:106 ../Site/ShowcaseApp.qml:197
 msgid "Pause"
 msgstr ""
 
-#: ../Demos/Lottie.qml:145
+#: ../Demos/Lottie.qml:154
 msgid "Pause both avatars"
 msgstr ""
 
@@ -1352,23 +1416,23 @@ msgstr ""
 msgid "Pause timer"
 msgstr ""
 
-#: ../Site/DemoFrame.qml:277 ../Site/ReplayFrame.qml:123
+#: ../Site/DemoFrame.qml:282 ../Site/ReplayFrame.qml:122
 msgid "Pause {0}"
 msgstr ""
 
-#: ../Demos/AgentView.qml:645
+#: ../Demos/AgentView.qml:644
 msgid "Pick an object to see its properties."
 msgstr ""
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
 msgid "Play"
 msgstr ""
 
-#: ../Demos/Lottie.qml:145
+#: ../Demos/Lottie.qml:154
 msgid "Play both avatars"
 msgstr ""
 
-#: ../Demos/Lottie.qml:175
+#: ../Demos/Lottie.qml:184
 msgid "Play the genie avatar again"
 msgstr ""
 
@@ -1376,23 +1440,19 @@ msgstr ""
 msgid "Play the recording of {0}"
 msgstr ""
 
-#: ../Demos/Lottie.qml:214
+#: ../Demos/Lottie.qml:223
 msgid "Playback speed {modelData}×"
 msgstr ""
 
-#: ../Site/Search.qml:163
+#: ../Site/Search.qml:164
 msgid "Press / to search"
-msgstr ""
-
-#: ../Site/DemosPage.qml:223
-msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
 msgstr ""
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
 msgstr ""
 
-#: ../Shells/Workbench.qml:1103
+#: ../Shells/Workbench.qml:1102
 msgid "Preview"
 msgstr ""
 
@@ -1404,11 +1464,11 @@ msgstr ""
 msgid "Previous: {0}"
 msgstr ""
 
-#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:947 ../Shells/Workbench.qml:1105
+#: ../Shells/Workbench.qml:897 ../Shells/Workbench.qml:946 ../Shells/Workbench.qml:1104
 msgid "Problems"
 msgstr ""
 
-#: ../Site/Footer.qml:108
+#: ../Site/Footer.qml:110
 msgid "Project"
 msgstr ""
 
@@ -1424,11 +1484,11 @@ msgstr ""
 msgid "RUN COMPLETE"
 msgstr ""
 
-#: ../Shells/Workbench.qml:996
+#: ../Shells/Workbench.qml:995
 msgid "Recorded MCP calls appear here as you step the agent replay."
 msgstr ""
 
-#: ../Site/HeroStage.qml:241
+#: ../Site/HeroStage.qml:240
 msgid "Recorded replay"
 msgstr ""
 
@@ -1436,23 +1496,35 @@ msgstr ""
 msgid "Recorded running"
 msgstr ""
 
-#: ../Shells/Desktop.qml:519 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:518 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:373
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr ""
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr ""
+
+#: ../Demos/Motion.qml:351
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr ""
+
+#: ../Shells/Cyberpunk.qml:371
 msgid "Renderer"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:375
+#: ../Shells/Cyberpunk.qml:373
 msgid "Renderer {0}"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1120 ../Shells/Workbench.qml:1063 ../Shells/Workbench.qml:1191
+#: ../Shells/Desktop.qml:1119 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr ""
 
-#: ../Demos/AgentView.qml:321
+#: ../Demos/AgentView.qml:320
 msgid "Replay views"
 msgstr ""
 
@@ -1460,23 +1532,23 @@ msgstr ""
 msgid "Replay · no live agent"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:234 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:151 ../Site/ShellSource.qml:172
+#: ../Demos/PantryDemo.qml:227 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr ""
 
-#: ../Site/HeroStage.qml:256
+#: ../Site/HeroStage.qml:255
 msgid "Reset demo"
 msgstr ""
 
-#: ../Shells/Desktop.qml:482
+#: ../Shells/Desktop.qml:481
 msgid "Reset demo state"
 msgstr ""
 
-#: ../Site/ProDemoPage.qml:325
+#: ../Site/ProDemoPage.qml:373
 msgid "Reset every file"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:235
+#: ../Demos/PantryDemo.qml:228
 msgid "Reset to the app's shell"
 msgstr ""
 
@@ -1484,11 +1556,15 @@ msgstr ""
 msgid "Reset {0} to as written"
 msgstr ""
 
+#: ../Site/ShowcaseEngine.qml:372
+msgid "Reset {0} to its file"
+msgstr ""
+
 #: ../Site/Landing.qml:53
 msgid "Reshape the running interface, human or agent."
 msgstr ""
 
-#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:266 ../Site/ReplayFrame.qml:100 ../Site/ReplayFrame.qml:109
+#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:271 ../Site/ReplayFrame.qml:99 ../Site/ReplayFrame.qml:108
 msgid "Resume"
 msgstr ""
 
@@ -1496,11 +1572,11 @@ msgstr ""
 msgid "Resume timer"
 msgstr ""
 
-#: ../Site/DemoFrame.qml:279 ../Site/ReplayFrame.qml:116 ../Site/ReplayFrame.qml:125
+#: ../Site/DemoFrame.qml:284 ../Site/ReplayFrame.qml:115 ../Site/ReplayFrame.qml:124
 msgid "Resume {0}"
 msgstr ""
 
-#: ../Site/LiveSource.qml:181
+#: ../Site/LiveSource.qml:180
 msgid "Retry"
 msgstr ""
 
@@ -1512,41 +1588,45 @@ msgstr ""
 msgid "Room Hekla, with the hardware team. The prototype boards came in this morning."
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:159
+#: ../Demos/WatchDemo.qml:158
 msgid "Round, 454"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
+#: ../Shells/Cyberpunk.qml:345 ../Shells/Cyberpunk.qml:589
 msgid "Route"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:349 ../Shells/Cyberpunk.qml:593
+#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
 msgid "Route {0}"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1091 ../Shells/Workbench.qml:1163
+#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr ""
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:268 ../Site/ReplayFrame.qml:111
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
 msgctxt "stage"
 msgid "Run"
 msgstr ""
 
-#: ../Site/ReplayFrame.qml:100
+#: ../Site/ReplayFrame.qml:99
 msgid "Run again"
 msgstr ""
 
-#: ../Site/ReplayFrame.qml:116
+#: ../Site/ReplayFrame.qml:115
 msgid "Run again: {0}"
 msgstr ""
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:281 ../Site/ReplayFrame.qml:127
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr ""
 
 #: ../Demos/Cockpit/SettingsPanel.qml:118 ../Site/DeviceFrame.qml:33
 msgid "Running"
+msgstr ""
+
+#: ../Site/DemosPage.qml:110 ../Site/Landing.qml:247
+msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
 msgstr ""
 
 #: ../Demos/Watch/Watch.qml:424
@@ -1565,27 +1645,27 @@ msgstr ""
 msgid "SUN"
 msgstr ""
 
-#: ../Site/ShellChoices.qml:51
+#: ../Site/ShellChoices.qml:50
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr ""
 
-#: ../Shells/Desktop.qml:775
+#: ../Shells/Desktop.qml:774
 msgid "Scheme"
 msgstr ""
 
-#: ../Site/Search.qml:162
+#: ../Site/Search.qml:163
 msgid "Search"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:97
+#: ../Demos/FieldGuide.qml:96
 msgid "Search by name…"
 msgstr ""
 
-#: ../Site/Search.qml:111
+#: ../Site/Search.qml:112
 msgid "Search docs and demos"
 msgstr ""
 
-#: ../Site/SearchResults.qml:22
+#: ../Site/SearchResults.qml:24
 msgid "Search results"
 msgstr ""
 
@@ -1597,7 +1677,7 @@ msgstr ""
 msgid "Seat {0}"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:426
+#: ../Shells/Cyberpunk.qml:424
 msgid "Sections"
 msgstr ""
 
@@ -1609,7 +1689,7 @@ msgstr ""
 msgid "See it run"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:281
+#: ../Demos/FieldGuide.qml:280
 msgid "Seen {0} of {1}"
 msgstr ""
 
@@ -1621,7 +1701,7 @@ msgstr ""
 msgid "Shader canvas. Move the pointer to stir the light; tap to change the colours."
 msgstr ""
 
-#: ../Site/ShellChoices.qml:40 ../Site/ShellSource.qml:82
+#: ../Site/ShellChoices.qml:39 ../Site/ShellSource.qml:82
 msgid "Shell"
 msgstr ""
 
@@ -1630,27 +1710,31 @@ msgctxt "code language"
 msgid "Shell"
 msgstr ""
 
-#: ../Shells/Workbench.qml:464
+#: ../Shells/Workbench.qml:463
 msgid "Shell switcher"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:229
+#: ../Demos/PantryDemo.qml:222
 msgid "Shell.qml: edit it live"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1126
+#: ../Shells/Desktop.qml:1125
 msgid "Shell: Desktop"
 msgstr ""
 
-#: ../Shells/Workbench.qml:1157
+#: ../Shells/Workbench.qml:1156
 msgid "Shell: Workbench"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:58 ../Shells/Desktop.qml:870
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr ""
+
+#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:869
 msgid "Shells"
 msgstr ""
 
-#: ../Shells/Workbench.qml:551
+#: ../Shells/Workbench.qml:550
 msgid "Shells/"
 msgstr ""
 
@@ -1662,7 +1746,7 @@ msgstr ""
 msgid "Shift to {0}"
 msgstr ""
 
-#: ../Site/HeroApp.qml:20 ../Site/HeroApp.qml:44
+#: ../Site/HeroApp.qml:19 ../Site/HeroApp.qml:43
 msgid "Ship the beta"
 msgstr ""
 
@@ -1686,15 +1770,15 @@ msgstr ""
 msgid "Show the source"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:53 ../Site/Footer.qml:102 ../Site/Router.qml:40 ../Site/Router.qml:47 ../Site/Router.qml:85
+#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:41 ../Site/Router.qml:48 ../Site/Router.qml:86
 msgid "Showcase"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:191
+#: ../Demos/WatchDemo.qml:190
 msgid "Shows the watch's other face"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:166
+#: ../Demos/WatchDemo.qml:165
 msgid "Side button"
 msgstr ""
 
@@ -1702,31 +1786,35 @@ msgstr ""
 msgid "Simulated drive"
 msgstr ""
 
-#: ../Shells/Workbench.qml:582
+#: ../Shells/Workbench.qml:581
 msgid "Site/"
 msgstr ""
 
-#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41
+#: ../Site/HeroApp.qml:16 ../Site/HeroApp.qml:40
 msgid "Sketch the shell"
 msgstr ""
 
-#: ../Main.qml:404 ../Main.qml:438
+#: ../Main.qml:411 ../Main.qml:445
 msgid "Skip to content"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:203
+#: ../Demos/WatchDemo.qml:202
 msgid "Sleep"
+msgstr ""
+
+#: ../Demos/Motion.qml:25
+msgid "Snappy"
 msgstr ""
 
 #: ../Site/LandingCopy.qml:9
 msgid "Software you can reshape while it runs."
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:490 ../Site/HeroStage.qml:26
+#: ../Shells/Cyberpunk.qml:488 ../Site/HeroStage.qml:25
 msgid "Source"
 msgstr ""
 
-#: ../Shells/Workbench.qml:820
+#: ../Shells/Workbench.qml:819
 msgctxt "panel"
 msgid "Source"
 msgstr ""
@@ -1740,7 +1828,7 @@ msgstr ""
 msgid "Source of {0}"
 msgstr ""
 
-#: ../Shells/Desktop.qml:624
+#: ../Shells/Desktop.qml:623
 msgid "Source on GitHub"
 msgstr ""
 
@@ -1752,7 +1840,15 @@ msgstr ""
 msgid "Speed limit {0}"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:159
+#: ../Demos/Motion.qml:88
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr ""
+
+#: ../Site/DemosPage.qml:210
+msgid "Springs you drag"
+msgstr ""
+
+#: ../Demos/WatchDemo.qml:158
 msgid "Square, 410 × 502"
 msgstr ""
 
@@ -1764,11 +1860,11 @@ msgstr ""
 msgid "Start"
 msgstr ""
 
-#: ../Shells/Desktop.qml:578 ../Shells/Desktop.qml:835
+#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:834
 msgid "Start in a minute"
 msgstr ""
 
-#: ../Site/Landing.qml:352
+#: ../Site/Landing.qml:382
 msgid "Start reading"
 msgstr ""
 
@@ -1784,23 +1880,23 @@ msgstr ""
 msgid "Start timer"
 msgstr ""
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:275 ../Site/ReplayFrame.qml:119
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
 msgid "Starting {0}…"
 msgstr ""
 
-#: ../Site/Runner.qml:106
+#: ../Site/Runner.qml:105
 msgid "Starting {what}…"
 msgstr ""
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:262 ../Site/ReplayFrame.qml:103
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
 msgid "Starting…"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1075 ../Shells/Workbench.qml:1141
+#: ../Shells/Desktop.qml:1074 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr ""
 
-#: ../Demos/AgentView.qml:408
+#: ../Demos/AgentView.qml:407
 msgid "Step {0} of {1}"
 msgstr ""
 
@@ -1832,35 +1928,35 @@ msgstr ""
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr ""
 
-#: ../Shells/Desktop.qml:765
+#: ../Shells/Desktop.qml:764
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr ""
 
-#: ../Site/ShellSwitcher.qml:54
+#: ../Site/ShellSwitcher.qml:56
 msgid "Switch shell"
 msgstr ""
 
-#: ../Shells/Desktop.qml:542
+#: ../Shells/Desktop.qml:541
 msgid "Switch to Cyberpunk shell"
 msgstr ""
 
-#: ../Shells/Desktop.qml:550
+#: ../Shells/Desktop.qml:549
 msgid "Switch to Desktop shell"
 msgstr ""
 
-#: ../Shells/Desktop.qml:538
+#: ../Shells/Desktop.qml:537
 msgid "Switch to Elegant shell"
 msgstr ""
 
-#: ../Shells/Desktop.qml:546
+#: ../Shells/Desktop.qml:545
 msgid "Switch to Workbench shell"
 msgstr ""
 
-#: ../Main.qml:943
+#: ../Main.qml:964
 msgid "Switched to {shell}. Your place and edits are kept."
 msgstr ""
 
-#: ../Site/Preferences.qml:34
+#: ../Site/Preferences.qml:35
 msgid "System"
 msgstr ""
 
@@ -1884,11 +1980,15 @@ msgstr ""
 msgid "Take a screenshot to check the result."
 msgstr ""
 
-#: ../Site/HeroApp.qml:50
+#: ../Site/HeroApp.qml:49
 msgid "Task list"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:570
+#: ../Demos/PantryShell.qml:59
+msgid "Tea · £{0}"
+msgstr ""
+
+#: ../Shells/Cyberpunk.qml:568
 msgid "Telemetry"
 msgstr ""
 
@@ -1901,7 +2001,7 @@ msgctxt "code language"
 msgid "Text"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:163
+#: ../Demos/PantryDemo.qml:160
 msgid "The Pantry, running"
 msgstr ""
 
@@ -1909,11 +2009,11 @@ msgstr ""
 msgid "The QML of the shell you are looking at. Edit it and press Apply: the page and your place on it stay."
 msgstr ""
 
-#: ../Site/PageSource.qml:49
+#: ../Site/PageSource.qml:51
 msgid "The QML this page is made from. The shell around it is its own file: open the shell menu to see it."
 msgstr ""
 
-#: ../Site/Landing.qml:372
+#: ../Site/Landing.qml:402
 msgid "The big picture, in plain words."
 msgstr ""
 
@@ -1925,11 +2025,11 @@ msgstr ""
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr ""
 
-#: ../Main.qml:642
+#: ../Main.qml:663
 msgid "The docs"
 msgstr ""
 
-#: ../Site/ProDemoPage.qml:255
+#: ../Site/ProDemoPage.qml:266
 msgid "The files of {0}"
 msgstr ""
 
@@ -1937,27 +2037,35 @@ msgstr ""
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr ""
 
-#: ../Site/LiveSource.qml:170
+#: ../Site/LiveSource.qml:169
 msgid "The shell's QML could not be loaded: {0}"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:154
+#: ../Demos/WatchDemo.qml:153
 msgid "The watch's buttons"
+msgstr ""
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr ""
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
 msgstr ""
 
 #: ../Site/DocPage.qml:60
 msgid "There is no page at this address. The address may have moved — search, or begin at {0}."
 msgstr ""
 
-#: ../Site/LiveSource.qml:63
+#: ../Site/LiveSource.qml:62
 msgid "There is no {0}.qml to edit."
 msgstr ""
 
-#: ../Main.qml:786
+#: ../Main.qml:807
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr ""
 
-#: ../Site/PageView.qml:248
+#: ../Site/PageView.qml:287
 msgid "This page could not be loaded."
 msgstr ""
 
@@ -1965,15 +2073,23 @@ msgstr ""
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr ""
 
-#: ../Site/Footer.qml:148
+#: ../Site/Footer.qml:151
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr ""
 
-#: ../Shells/Desktop.qml:1163
+#: ../Shells/Desktop.qml:1162
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:230
+#: ../Site/DemosPage.qml:211
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr ""
+
+#: ../Site/DemosPage.qml:227
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr ""
+
+#: ../Demos/DispatchCard.qml:229
 msgid "Tickets"
 msgstr ""
 
@@ -1985,27 +2101,27 @@ msgstr ""
 msgid "Timer"
 msgstr ""
 
-#: ../Shells/Desktop.qml:531
+#: ../Shells/Desktop.qml:530
 msgid "Toggle Observer panel"
 msgstr ""
 
-#: ../Shells/Desktop.qml:776
+#: ../Shells/Desktop.qml:775
 msgid "Toggle light and dark colour scheme"
 msgstr ""
 
-#: ../Shells/Desktop.qml:728
+#: ../Shells/Desktop.qml:727
 msgid "Toggle live Observer panel"
 msgstr ""
 
-#: ../Shells/Desktop.qml:525
+#: ../Shells/Desktop.qml:524
 msgid "Toggle sidebar"
 msgstr ""
 
-#: ../Shells/Desktop.qml:678
+#: ../Shells/Desktop.qml:677
 msgid "Toolbar"
 msgstr ""
 
-#: ../Site/ShowcasePage.qml:75
+#: ../Site/ShowcasePage.qml:74
 msgid "Tools built with Ljós"
 msgstr ""
 
@@ -2013,7 +2129,7 @@ msgstr ""
 msgid "Trunk"
 msgstr ""
 
-#: ../Site/Landing.qml:390
+#: ../Site/Landing.qml:420
 msgid "Try Ljós in your browser, with nothing to install."
 msgstr ""
 
@@ -2021,15 +2137,15 @@ msgstr ""
 msgid "Try a demo"
 msgstr ""
 
-#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:315 ../Site/ReplayFrame.qml:104
 msgid "Try again"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:316
-msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+#: ../Demos/PantryDemo.qml:309
+msgid "Try moving StatusSlot below Basket, setting fill: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 msgstr ""
 
-#: ../Site/ReplayFrame.qml:121
+#: ../Site/ReplayFrame.qml:120
 msgid "Try {0} again"
 msgstr ""
 
@@ -2037,23 +2153,23 @@ msgstr ""
 msgid "Turn the crown to set"
 msgstr ""
 
-#: ../Site/BuiltWith.qml:36
+#: ../Site/BuiltWith.qml:38
 msgid "Turns a static HTML, CSS and JavaScript page into a runnable QML app you can read and edit. What it can’t convert, it reports."
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:184
+#: ../Demos/WatchDemo.qml:183
 msgid "Turns the crown down a notch"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:177
+#: ../Demos/WatchDemo.qml:176
 msgid "Turns the crown up a notch"
 msgstr ""
 
-#: ../Site/DemosPage.qml:236
+#: ../Site/DemosPage.qml:125 ../Site/Landing.qml:261
 msgid "Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls."
 msgstr ""
 
-#: ../Demos/AgentView.qml:330
+#: ../Demos/AgentView.qml:329
 msgid "TypeScript"
 msgstr ""
 
@@ -2077,24 +2193,24 @@ msgstr ""
 msgid "Values"
 msgstr ""
 
-#: ../Shells/Desktop.qml:492
+#: ../Shells/Desktop.qml:491
 msgctxt "menu bar"
 msgid "View"
 msgstr ""
 
-#: ../Shells/Desktop.qml:781
+#: ../Shells/Desktop.qml:780
 msgid "View QML"
 msgstr ""
 
-#: ../Shells/Desktop.qml:477 ../Site/ShellChoices.qml:151
+#: ../Shells/Desktop.qml:476 ../Site/ShellChoices.qml:150
 msgid "View this shell's QML"
 msgstr ""
 
-#: ../Shells/Desktop.qml:782
+#: ../Shells/Desktop.qml:781
 msgid "View this shell's QML source"
 msgstr ""
 
-#: ../Shells/Desktop.qml:1038 ../Shells/Workbench.qml:1098
+#: ../Shells/Desktop.qml:1037 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr ""
 
@@ -2118,39 +2234,43 @@ msgstr ""
 msgid "WED"
 msgstr ""
 
-#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:203
+#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:202
 msgid "Wake"
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:167
+#: ../Demos/WatchDemo.qml:166
 msgid "Wakes the watch, or goes back to its face"
 msgstr ""
 
-#: ../Site/DocPage.qml:56 ../Site/Landing.qml:370
+#: ../Site/DocPage.qml:56 ../Site/Landing.qml:400
 msgid "What is Ljós?"
 msgstr ""
 
-#: ../Site/Landing.qml:399
+#: ../Site/Landing.qml:429
 msgid "What we care about, and what we leave out on purpose."
 msgstr ""
 
-#: ../Demos/WatchDemo.qml:220
+#: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:228
+#: ../Demos/FieldGuide.qml:227
 msgid "Wingspan"
 msgstr ""
 
-#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42
+#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41
 msgid "Wire up the Observer"
 msgstr ""
 
-#: ../Site/Preferences.qml:30
+#: ../Demos/Motion.qml:351
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr ""
+
+#: ../Site/Preferences.qml:31
 msgid "Workbench"
 msgstr ""
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Working…"
 msgstr ""
 
@@ -2158,7 +2278,7 @@ msgstr ""
 msgid "Workout"
 msgstr ""
 
-#: ../Shells/Workbench.qml:527
+#: ../Shells/Workbench.qml:526
 msgid "Workspace: ljos.dev"
 msgstr ""
 
@@ -2166,7 +2286,7 @@ msgstr ""
 msgid "Write app logic in TypeScript and catch mistakes with <code>ljos check</code>. Use Rust where you need it. Already have QML? <a href=\"/language/porting-from-qt/\">Bring it along</a>."
 msgstr ""
 
-#: ../Site/HeroApp.qml:19 ../Site/HeroApp.qml:43 ../Site/HeroStage.qml:34
+#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42 ../Site/HeroStage.qml:33
 msgid "Write the release notes"
 msgstr ""
 
@@ -2182,15 +2302,15 @@ msgstr ""
 msgid "Your car"
 msgstr ""
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Your edit"
 msgstr ""
 
-#: ../Site/Footer.qml:103 ../Site/Landing.qml:379
+#: ../Site/Footer.qml:105 ../Site/Landing.qml:409
 msgid "Your first app"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:271
+#: ../Demos/FieldGuide.qml:270
 msgid "Your notes on this species…"
 msgstr ""
 
@@ -2198,63 +2318,67 @@ msgstr ""
 msgid "Your turn: try any button in the app and watch this log."
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "answered"
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:212
+#: ../Demos/AgentLogRow.qml:211
 msgid "app"
 msgstr ""
 
-#: ../Demos/AgentView.qml:488
+#: ../Demos/AgentView.qml:487
 msgid "board.ts, the code this app runs"
+msgstr ""
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
 msgstr ""
 
 #: ../Site/CodeBlock.qml:578
 msgid "in the {0} harness"
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "kept the last board"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:249
+#: ../Demos/DispatchCard.qml:248
 msgid "no crew"
 msgstr ""
 
-#: ../Site/HeroStage.qml:43
+#: ../Site/HeroStage.qml:42
 msgid "no match"
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "refused"
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "reloaded"
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "reloading"
 msgstr ""
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "sent"
 msgstr ""
 
-#: ../Demos/AgentView.qml:656
+#: ../Demos/AgentView.qml:655
 msgid "set by the agent"
 msgstr ""
 
-#: ../Site/DemosPage.qml:133
+#: ../Site/DemosPage.qml:148
 msgid "the 3D demo"
 msgstr ""
 
-#: ../Site/DemosPage.qml:235
+#: ../Site/DemosPage.qml:124 ../Site/Landing.qml:260
 msgid "the Lottie demo"
 msgstr ""
 
-#: ../Demos/PantryDemo.qml:251
+#: ../Demos/PantryDemo.qml:244
 msgid "the Pantry"
 msgstr ""
 
@@ -2266,15 +2390,15 @@ msgstr ""
 msgid "the app runs the module built from it now"
 msgstr ""
 
-#: ../Site/DemosPage.qml:184
+#: ../Site/DemosPage.qml:199
 msgid "the field guide"
 msgstr ""
 
-#: ../Site/DemosPage.qml:211
+#: ../Site/DemosPage.qml:226
 msgid "the motion demo"
 msgstr ""
 
-#: ../Site/DemosPage.qml:157
+#: ../Site/DemosPage.qml:172
 msgid "the shader demo"
 msgstr ""
 
@@ -2286,15 +2410,15 @@ msgstr ""
 msgid "this example"
 msgstr ""
 
-#: ../Main.qml:199
+#: ../Main.qml:206
 msgid "this page"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:142
+#: ../Demos/DispatchCard.qml:141
 msgid "{0, plural, one {# open} other {# open}}, all assigned"
 msgstr ""
 
-#: ../Demos/DispatchCard.qml:142
+#: ../Demos/DispatchCard.qml:141
 msgid "{0, plural, one {# open} other {# open}}, {1, plural, one {# unassigned} other {# unassigned}}"
 msgstr ""
 
@@ -2302,12 +2426,16 @@ msgstr ""
 msgid "{0} NEW"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:218 ../Demos/FieldGuide.qml:245
+#: ../Demos/FieldGuide.qml:217 ../Demos/FieldGuide.qml:244
 msgid "{0} cm"
 msgstr ""
 
-#: ../Shells/Cyberpunk.qml:367 ../Shells/Cyberpunk.qml:610
+#: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
 msgid "{0} fps"
+msgstr ""
+
+#: ../Demos/PantryShell.qml:68 ../Demos/PantryShell.qml:101 ../Demos/PantryShell.qml:134
+msgid "{0} in basket"
 msgstr ""
 
 #: ../Demos/Cockpit/Cluster.qml:150
@@ -2334,7 +2462,7 @@ msgstr ""
 msgid "{0} of {1}"
 msgstr ""
 
-#: ../Site/HeroApp.qml:78
+#: ../Site/HeroApp.qml:77
 msgid "{0} of {1} done"
 msgstr ""
 
@@ -2354,7 +2482,7 @@ msgstr ""
 msgid "{0} {1} to {2}"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:192
+#: ../Demos/FieldGuide.qml:191
 msgid "{0} · {1}"
 msgstr ""
 
@@ -2366,15 +2494,15 @@ msgstr ""
 msgid "{0}, {1}"
 msgstr ""
 
-#: ../Demos/Lottie.qml:228
+#: ../Demos/Lottie.qml:237
 msgid "{0}×"
 msgstr ""
 
-#: ../Pantry/Basket.qml:31
+#: ../Pantry/Basket.qml:30
 msgid "{count, plural, one {# in the basket} other {# in the basket}} · £{0}"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:143
+#: ../Demos/FieldGuide.qml:142
 msgid "{latin} · {season}"
 msgstr ""
 
@@ -2382,15 +2510,15 @@ msgstr ""
 msgid "{minutes} min ago"
 msgstr ""
 
-#: ../Site/Runner.qml:112
+#: ../Site/Runner.qml:111
 msgid "{name} did not compile"
 msgstr ""
 
-#: ../Site/Runner.qml:110
+#: ../Site/Runner.qml:109
 msgid "{name} is paused"
 msgstr ""
 
-#: ../Site/Runner.qml:108
+#: ../Site/Runner.qml:107
 msgid "{name} runs"
 msgstr ""
 
@@ -2410,86 +2538,6 @@ msgstr ""
 msgid "♪ {0} · {1}"
 msgstr ""
 
-#: ../Demos/FieldGuide.qml:137
+#: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
-msgstr ""
-
-#: ../Site/BuiltWith.qml:54
-msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
-msgstr ""
-
-#: ../Site/BuiltWith.qml:52 ../Site/Footer.qml:138
-msgid "HAL-C2"
-msgstr ""
-
-#: ../Site/BuiltWith.qml:57
-msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
-msgstr ""
-
-#: ../Site/BuiltWith.qml:62
-msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
-msgstr ""
-
-#: ../Site/LanguageSwitcher.qml:141
-msgid "Language: {languageName} – choose another"
-msgstr ""
-
-#: ../Main.qml:635
-msgid "Reduce motion: off – use less motion"
-msgstr ""
-
-#: ../Main.qml:635
-msgid "Reduce motion: on – use full motion"
-msgstr ""
-
-#: ../Site/ShellSwitcher.qml:167
-msgid "Shell: {label} – choose another layout"
-msgstr ""
-
-#: ../Site/ThemeToggle.qml:11
-msgid "Theme: dark – switch to light"
-msgstr ""
-
-#: ../Site/ThemeToggle.qml:11
-msgid "Theme: light – switch to dark"
-msgstr ""
-
-#: ../Demos/Motion.qml:26
-msgid "Snappy"
-msgstr ""
-
-#: ../Demos/Motion.qml:27
-msgid "Bouncy"
-msgstr ""
-
-#: ../Demos/Motion.qml:28
-msgid "Lazy"
-msgstr ""
-
-#: ../Demos/Motion.qml:67
-msgid "Drag the ring · three springs chase it"
-msgstr ""
-
-#: ../Demos/Motion.qml:89
-msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
-msgstr ""
-
-#: ../Demos/Motion.qml:352
-msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
-msgstr ""
-
-#: ../Demos/Motion.qml:352
-msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
-msgstr ""
-
-#: ../Site/DemosPage.qml:195
-msgid "Springs you drag"
-msgstr ""
-
-#: ../Site/DemosPage.qml:196
-msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
-msgstr ""
-
-#: ../Site/DemosPage.qml:212
-msgid "Three balls on springs chasing a ring, each moving its own way."
 msgstr ""
