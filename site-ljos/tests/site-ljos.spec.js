@@ -999,7 +999,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
     ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom", null, "Run the 3D demo"],
     ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
     ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
-    ["Motion", "demo-motion.webp", "Shuffle the tiles", "Press and move — the puck springs after you", "Run the motion demo"],
+    ["Springs you drag", "demo-motion.webp", "Drag the ring · three springs chase it", "Snappy", "Run the motion demo"],
   ];
   const headingOf = (title) => shown(page.getByText(title, { exact: true }));
   for (const [index, [title, picture, inside, drawn, label]] of demos.entries()) {

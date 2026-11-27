@@ -207,8 +207,8 @@ Column {
     DemoSection {
         width: demos.textWidth
         wide: demos.wide
-        title: t`Motion`
-        body: t`Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU.`
+        title: t`Springs you drag`
+        body: t`Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU.`
 
         Slot {
             name: "demo-motion"
@@ -219,12 +219,12 @@ Column {
                     needs: "wasm"
                     compiles: false
                     route: "/demos/"
-                    // Narrow, Motion's controls wrap onto two lines.
+                    // Narrow, the legend wraps onto three lines under the stage.
                     least: 440
                     picture: "/pictures/demo-motion.webp"
                     pictureDark: "/pictures/demo-motion-dark.webp"
                     what: t`the motion demo`
-                    description: t`Tiles that shuffle and settle, driven by one eased value.`
+                    description: t`Three balls on springs chasing a ring, each moving its own way.`
                     source: Later.motion
                 }
             }

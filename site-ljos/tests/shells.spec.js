@@ -286,7 +286,7 @@ test("the reader's place on the page is kept when the window narrows", async ({ 
   try {
     const page = await context.newPage();
     await open(page, "/demos/");
-    const heading = page.getByRole("heading", { name: "Motion", exact: true }).filter({ visible: true }).first();
+    const heading = page.getByRole("heading", { name: "Springs you drag", exact: true }).filter({ visible: true }).first();
     await heading.evaluate((element) => element.scrollIntoView({ block: "center" }));
     await expect(heading).toBeInViewport();
     // Where the reader is is kept once they are still (PageView's

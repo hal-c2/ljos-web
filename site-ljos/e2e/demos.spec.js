@@ -35,7 +35,7 @@ const RUN = {
   "3D you can orbit": "Run the 3D demo",
   "A shader effect": "Run the shader demo",
   "A whole app": "Run the field guide",
-  Motion: "Run the motion demo",
+  "Springs you drag": "Run the motion demo",
   "Lottie animations": "Run the Lottie demo",
 };
 
@@ -87,7 +87,7 @@ function rigOf(canvas) {
 test.describe("/demos/", () => {
   test("loads with nothing in its console", async ({ page, errors }) => {
     await settled(page, "/demos/");
-    for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) await expect(demo(page, heading), heading).toBeVisible();
+    for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Springs you drag"]) await expect(demo(page, heading), heading).toBeVisible();
     expect(unexpected(errors)).toEqual([]);
   });
 
@@ -169,7 +169,7 @@ test.describe("/demos/", () => {
   // demo to press.
   for (const [heading, picture] of [
     ["A whole app", "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."],
-    ["Motion", "Tiles that shuffle and settle, driven by one eased value."],
+    ["Springs you drag", "Three balls on springs chasing a ring, each moving its own way."],
   ]) {
     test(`${heading}: without WebAssembly keeps its picture and says why`, async ({ page, errors, wasm }) => {
       test.skip(wasm, "only a browser without WebAssembly");
@@ -204,17 +204,27 @@ test.describe("/demos/", () => {
     await expect.poll(named).toEqual(["Northern gannet", "Pause the field guide", "Observer for the field guide"]);
   });
 
-  test("the motion demo's puck springs after a press", async ({ page, errors, wasm }) => {
+  test("the motion demo's springs chase the ring a drag leads", async ({ page, errors, wasm }) => {
     test.skip(!wasm, "the motion demo needs WebAssembly");
     await settled(page, "/demos/");
-    // The tray has no value to say, so it is a named group, not a slider
+    // The stage has no value to say, so it is a named group, not a slider
     // (ARIA asks a slider for its value).
-    const tray = (await started(page, "Motion")).getByRole("group", { name: /Spring tray/ });
-    await centre(tray);
-    const before = await signature(demo(page, "Motion"));
-    const { box } = await centreOf(tray);
-    await page.mouse.click(box.x + 40, box.y + box.height / 2);
-    await expect.poll(() => signature(demo(page, "Motion"))).not.toBe(before);
+    const stage = (await started(page, "Springs you drag")).getByRole("group", { name: /Spring stage/ });
+    await centre(stage);
+    const { box } = await centreOf(stage);
+    // Where the balls are across the stage, as parts of it, on average.
+    const across = () =>
+      stage.evaluate((area) => {
+        const own = area.getBoundingClientRect();
+        const balls = [...area.querySelectorAll("div.qq-text")].filter((text) => /^[SBL]$/.test(text.textContent.trim())).map((text) => text.parentElement.getBoundingClientRect());
+        return balls.length === 3 ? balls.reduce((sum, ball) => sum + (ball.x + ball.width / 2 - own.x) / own.width, 0) / 3 : null;
+      });
+    const y = box.y + box.height / 2;
+    await drag(page, { x: box.x + box.width * 0.5, y }, { x: box.x + box.width * 0.12, y });
+    await expect.poll(across, { message: "the balls come after the ring, to the left" }).toBeLessThan(0.25);
+    // Let go, the ring rests where it was left, and so do they.
+    await page.waitForTimeout(500);
+    expect(await across(), "the balls rest by the ring").toBeLessThan(0.25);
     expect(unexpected(errors)).toEqual([]);
   });
 
@@ -247,7 +257,7 @@ test.describe("/demos/", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
-  for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
+  for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Springs you drag"]) {
     test(`${heading}: show source opens its QML`, async ({ page }) => {
       test.fail(true, sourceView);
       await settled(page, "/demos/");

@@ -58,10 +58,11 @@ const qtQuick = {
   ...site(["Site/ShowcasePlayer"], "Ljos.Ui's Loader takes a url, not a lazy import, and its item is untyped"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
-  // The Motion demo calms its own motion (a softer spring, shorter glides)
-  // when a reader asks for less; Ljos.Ui's animations would put what moves
-  // at its end at once (e2e/motion.spec.js holds that the puck travels).
-  ...site(["Demos/Motion"], "its animations calm themselves; Ljos.Ui's put what moves at its end under reduced motion"),
+  // The Astro reference's Motion demo calms its own motion (a softer
+  // spring, shorter glides) when a reader asks for less; Ljos.Ui's
+  // animations would put what moves at its end at once. site-ljos's steps
+  // its springs itself from a FrameAnimation, which runs on under reduced
+  // motion, so it needs no QtQuick.
   "site/src/demos/motion/Motion.qml": "its animations calm themselves; Ljos.Ui's put what moves at its end under reduced motion",
 };
 

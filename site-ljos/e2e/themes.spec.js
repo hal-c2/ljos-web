@@ -176,7 +176,7 @@ for (const colorScheme of SCHEMES) {
 
     // The demos, under their headings on /demos/; the flagship is made
     // as a reader scrolls to it.
-    for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
+    for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Springs you drag"]) {
       test(`the demo "${heading}" is readable`, async ({ page }) => {
         await open(page, "/demos/");
         const title = page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${heading}$`) }).first();
@@ -196,7 +196,7 @@ for (const colorScheme of SCHEMES) {
 test("a scheme picked in the header reaches the demos that are running", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await open(page, "/demos/");
-  const title = page.locator("#app div.qq-text").filter({ hasText: /^Motion$/ }).first();
+  const title = page.locator("#app div.qq-text").filter({ hasText: /^Springs you drag$/ }).first();
   await centre(title);
   const motion = title.locator("xpath=../..");
   // Its frame is made as it nears the screen: read once it is there.

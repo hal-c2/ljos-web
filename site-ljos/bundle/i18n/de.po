@@ -94,18 +94,6 @@ msgstr "AUG"
 msgid "About ljos.dev"
 msgstr "Über ljos.dev"
 
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▸"
-msgstr "Über diese Bewegung ▸"
-
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▾"
-msgstr "Über diese Bewegung ▾"
-
-#: ../Demos/Motion.qml:301
-msgid "About this motion. Tap to open or close."
-msgstr "Über diese Bewegung. Zum Öffnen oder Schließen tippen."
-
 #: ../Shells/Workbench.qml:413
 msgid "Activity"
 msgstr "Aktivität"
@@ -1080,10 +1068,6 @@ msgstr "Metriken"
 msgid "Miles"
 msgstr "Meilen"
 
-#: ../Site/DemosPage.qml:195
-msgid "Motion"
-msgstr "Bewegung"
-
 #: ../Demos/Watch/HeartPage.qml:53
 msgid "Move"
 msgstr "Bewegen"
@@ -1232,10 +1216,6 @@ msgstr "Auf dieser Seite"
 #: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
 msgid "On-call crew"
 msgstr "Bereitschaft"
-
-#: ../Site/DemosPage.qml:196
-msgid "Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU."
-msgstr "Sobald die Demo läuft, klick auf „Kacheln mischen“, um zu sehen, wie sie sich über einen einzigen geglätteten Wert neu ordnen, und drücke und ziehe in der Federfläche, damit der Puck deinem Zeiger wie an einer Feder folgt. Kommt die Bewegung zur Ruhe, tickt nichts weiter — im Leerlauf braucht eine App 0 % CPU."
 
 #: ../Site/DemosPage.qml:145
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
@@ -1408,10 +1388,6 @@ msgstr "/ drücken zum Suchen"
 #: ../Site/DemosPage.qml:223
 msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
 msgstr "Beim Starten werden der Player und zwei Lottie-Dateien (die Avatare von HAL-C2) geladen — gelesen und gezeichnet von Ljós ohne JavaScript-Lottie-Bibliothek. Probier „Pause“, „Nochmal“ und die Geschwindigkeits-Buttons, um den Tanz in Schleife und den einmaligen Flaschengeist zu steuern. Bei reduzierter Bewegung laufen beide mit halber Geschwindigkeit, pausieren außerhalb des Bildschirms und brauchen im Leerlauf keine CPU."
-
-#: ../Demos/Motion.qml:108
-msgid "Press and move — the puck springs after you"
-msgstr "Drücken & bewegen — der Puck folgt dir wie an einer Feder"
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
@@ -1719,10 +1695,6 @@ msgstr "Showcase"
 msgid "Shows the watch's other face"
 msgstr "Zeigt das andere Zifferblatt der Uhr"
 
-#: ../Demos/Motion.qml:258 ../Demos/Motion.qml:279
-msgid "Shuffle the tiles"
-msgstr "Kacheln mischen"
-
 #: ../Demos/WatchDemo.qml:166
 msgid "Side button"
 msgstr "Seitentaste"
@@ -1780,14 +1752,6 @@ msgstr "Tempo"
 #: ../Demos/Cockpit/AssistView.qml:144
 msgid "Speed limit {0}"
 msgstr "Tempolimit {0}"
-
-#: ../Demos/Motion.qml:165
-msgid "Spring tray. Press and move to lead the puck; it springs after the pointer."
-msgstr "Federfläche. Drücken und bewegen führt den Puck; er folgt dem Zeiger wie an einer Feder."
-
-#: ../Demos/Motion.qml:339
-msgid "Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen."
-msgstr "Federn, Verhalten, Listenübergänge und Zustände werden direkt bei den Werten deklariert, die sie bewegen — keine eigene Animationsschleife, und außerhalb des Bildschirms tickt nichts."
 
 #: ../Demos/WatchDemo.qml:159
 msgid "Square, 410 × 502"
@@ -2013,10 +1977,6 @@ msgstr "Diese Website führt Ljós mit ljos-web zu Solid DOM kompiliert aus, mit
 #: ../Demos/DispatchCard.qml:230
 msgid "Tickets"
 msgstr "Tickets"
-
-#: ../Site/DemosPage.qml:212
-msgid "Tiles that shuffle and settle, driven by one eased value."
-msgstr "Kacheln, die sich mischen und einpendeln, bewegt über einen einzigen geglätteten Wert."
 
 #: ../Demos/Watch/TimerPage.qml:57
 msgid "Time's up"
@@ -2494,3 +2454,43 @@ msgstr "Design: dunkel – zu hell wechseln"
 #: ../Site/ThemeToggle.qml:11
 msgid "Theme: light – switch to dark"
 msgstr "Design: hell – zu dunkel wechseln"
+
+#: ../Demos/Motion.qml:26
+msgid "Snappy"
+msgstr "Flink"
+
+#: ../Demos/Motion.qml:27
+msgid "Bouncy"
+msgstr "Federnd"
+
+#: ../Demos/Motion.qml:28
+msgid "Lazy"
+msgstr "Träge"
+
+#: ../Demos/Motion.qml:67
+msgid "Drag the ring · three springs chase it"
+msgstr "Zieh den Ring · drei Federn jagen ihm nach"
+
+#: ../Demos/Motion.qml:89
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr "Federbühne. Zieh den Ring oder bewege ihn mit den Pfeiltasten; drei Federn folgen ihm."
+
+#: ../Demos/Motion.qml:352
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr "Reduzierte Bewegung ist an: Die Federn bewegen sich langsamer und schwingen nie über den Ring hinaus."
+
+#: ../Demos/Motion.qml:352
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr "Mit reduzierter Bewegung bewegen sich die Federn langsamer und schwingen nie über den Ring hinaus."
+
+#: ../Site/DemosPage.qml:195
+msgid "Springs you drag"
+msgstr "Federn zum Ziehen"
+
+#: ../Site/DemosPage.qml:196
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr "Drei Kugeln an Federn jagen einem Ring nach: Flink, Federnd und Träge. Das eigene TypeScript der App rechnet das Federgesetz von SpringAnimation Bild für Bild, mit drei Abstimmungen. Zieh den Ring oder bewege ihn mit den Pfeiltasten; in Ruhe gelassen, hüpft er von selbst weiter. Mit reduzierter Bewegung werden die Federn langsamer und schwingen nie über den Ring hinaus, bewegen sich aber weiter. Sobald sie zur Ruhe kommen, tickt nichts mehr, und die App braucht 0 % CPU."
+
+#: ../Site/DemosPage.qml:212
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr "Drei Kugeln an Federn, die einem Ring nachjagen, jede auf ihre Art."

@@ -53,7 +53,7 @@ for (const [path, stopped, running] of [
 
 for (const [what, words] of [
   ["the field guide", "Field guide"],
-  ["the motion demo", "Press and move — the puck springs after you"],
+  ["the motion demo", "Drag the ring · three springs chase it"],
 ]) {
   test(`under such a policy ${what} starts when its Run is pressed`, async ({ page }) => {
     const errors = [];
