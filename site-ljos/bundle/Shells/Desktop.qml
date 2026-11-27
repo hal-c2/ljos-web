@@ -771,9 +771,16 @@ Rectangle {
                 }
                 // The language: the site's own button, which names the
                 // language shown and opens every one the site has.
-                Row {
-                    anchors.verticalCenter: parent.verticalCenter
-                    Slot { name: "site.language" }
+                // In an Item as the shell's is: the bar is a Row, which
+                // places its children itself, so the centring is done inside.
+                Item {
+                    width: language.width
+                    height: 32
+                    Row {
+                        id: language
+                        anchors.verticalCenter: parent.verticalCenter
+                        Slot { name: "site.language" }
+                    }
                 }
                 Tool {
                     iconName: shell.dark ? "sun" : "moon"
