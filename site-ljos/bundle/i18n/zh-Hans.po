@@ -98,7 +98,7 @@ msgstr "4月"
 msgid "AUG"
 msgstr "8月"
 
-#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1166
+#: ../Shells/Desktop.qml:632 ../Shells/Desktop.qml:1169
 msgid "About ljos.dev"
 msgstr "关于 ljos.dev"
 
@@ -150,7 +150,7 @@ msgstr "智能体：把这里改成看板"
 msgid "All caught up"
 msgstr "全部已读"
 
-#: ../Shells/Desktop.qml:866
+#: ../Shells/Desktop.qml:869
 msgid "All demos"
 msgstr "全部演示"
 
@@ -222,7 +222,7 @@ msgstr "电量 {0} %"
 msgid "BPM"
 msgstr "BPM"
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:566 ../Shells/Desktop.qml:689
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:569 ../Shells/Desktop.qml:692
 msgid "Back"
 msgstr "返回"
 
@@ -242,7 +242,7 @@ msgstr "电量剩余 20 %"
 msgid "Before"
 msgstr "改前"
 
-#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:857
+#: ../Shells/Desktop.qml:723 ../Shells/Desktop.qml:860
 msgid "Benchmarks"
 msgstr "基准测试"
 
@@ -270,7 +270,7 @@ msgstr "弹跳"
 msgid "Bread · £{0}"
 msgstr "面包 · £{0}"
 
-#: ../Shells/Desktop.qml:714
+#: ../Shells/Desktop.qml:717
 msgid "Browse all interactive demos"
 msgstr "浏览全部交互式演示"
 
@@ -282,7 +282,7 @@ msgstr "为智能体而生"
 msgid "Built together"
 msgstr "携手共建"
 
-#: ../Site/Footer.qml:128 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
+#: ../Site/Footer.qml:129 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
 msgid "Built with Ljós"
 msgstr "使用 Ljós 构建"
 
@@ -290,27 +290,27 @@ msgstr "使用 Ljós 构建"
 msgid "Cancel timer"
 msgstr "取消计时器"
 
-#: ../Shells/Desktop.qml:585
+#: ../Shells/Desktop.qml:588
 msgid "Capability: agentic first"
 msgstr "能力：智能体优先"
 
-#: ../Shells/Desktop.qml:584
+#: ../Shells/Desktop.qml:587
 msgid "Capability: descriptive language"
 msgstr "能力：声明式语言"
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:590
 msgid "Capability: live updates"
 msgstr "能力：实时更新"
 
-#: ../Shells/Desktop.qml:589
+#: ../Shells/Desktop.qml:592
 msgid "Capability: malleable"
 msgstr "能力：可塑界面"
 
-#: ../Shells/Desktop.qml:586
+#: ../Shells/Desktop.qml:589
 msgid "Capability: several renderers"
 msgstr "能力：多渲染器"
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:591
 msgid "Capability: tools"
 msgstr "能力：开发工具"
 
@@ -378,7 +378,7 @@ msgstr "时钟"
 msgid "Clock {0}"
 msgstr "时钟 {0}"
 
-#: ../Shells/Desktop.qml:1192
+#: ../Shells/Desktop.qml:1195
 msgid "Close"
 msgstr "关闭"
 
@@ -415,7 +415,7 @@ msgstr "关闭 {0} 的编辑器"
 msgid "Close the shader's source"
 msgstr "关闭着色器源码"
 
-#: ../Shells/Desktop.qml:1006 ../Shells/Workbench.qml:744
+#: ../Shells/Desktop.qml:1009 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr "关闭 {0}"
 
@@ -427,7 +427,7 @@ msgstr "已关闭"
 msgid "Code"
 msgstr "代码"
 
-#: ../Site/CodeBlock.qml:425
+#: ../Site/CodeBlock.qml:437
 msgid "Code: {0}"
 msgstr "代码：{0}"
 
@@ -435,9 +435,13 @@ msgstr "代码：{0}"
 msgid "Collapse inspector"
 msgstr "收起检查器"
 
-#: ../Site/Footer.qml:121
+#: ../Site/Footer.qml:122
 msgid "Community principles"
 msgstr "社区原则"
+
+#: ../Site/ReviewPage.qml:174
+msgid "Compare at least two."
+msgstr "至少比较两个。"
 
 #: ../Shells/Cyberpunk.qml:49
 msgid "Console"
@@ -447,16 +451,16 @@ msgstr "控制台"
 msgid "Cooling"
 msgstr "制冷中"
 
-#: ../Site/CodeBlock.qml:589 ../Site/CodeBlock.qml:590
+#: ../Site/CodeBlock.qml:601 ../Site/CodeBlock.qml:602
 msgid "Copied"
 msgstr "已复制"
 
-#: ../Site/CodeBlock.qml:589
+#: ../Site/CodeBlock.qml:601
 msgctxt "code"
 msgid "Copy"
 msgstr "复制"
 
-#: ../Site/CodeBlock.qml:590
+#: ../Site/CodeBlock.qml:602
 msgid "Copy {0}"
 msgstr "复制 {0}"
 
@@ -488,7 +492,7 @@ msgstr "舞蹈（循环）"
 msgid "Dark"
 msgstr "深色"
 
-#: ../Shells/Desktop.qml:505
+#: ../Shells/Desktop.qml:508
 msgid "Dark colour scheme"
 msgstr "深色配色方案"
 
@@ -496,7 +500,7 @@ msgstr "深色配色方案"
 msgid "Defrost"
 msgstr "除霜"
 
-#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:861 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:716 ../Shells/Desktop.qml:864 ../Site/Footer.qml:103 ../Site/Router.qml:42 ../Site/Router.qml:50 ../Site/Router.qml:88
 msgid "Demos"
 msgstr "演示"
 
@@ -536,11 +540,11 @@ msgstr "距离"
 msgid "Do not disturb"
 msgstr "勿扰模式"
 
-#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:39
+#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:41
 msgid "Docs"
 msgstr "文档"
 
-#: ../Shells/Desktop.qml:955
+#: ../Shells/Desktop.qml:958
 msgid "Documents"
 msgstr "文档"
 
@@ -588,9 +592,17 @@ msgstr "主驾设定为 {0}"
 msgid "Driver warmer"
 msgstr "主驾调暖"
 
+#: ../Site/ReviewPage.qml:202
+msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+msgstr "每根柱是其各次运行的中位数，横过柱端的线从最小值到最大值，每张图下方是测量它的命令。每张图上都是越短越好。"
+
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "每个演示都是一个通过 ljos check 的完整 Ljós 应用，预先编译并嵌入本页。演示运行后，在页眉中切换浅色和深色主题，看它随之变化。在驾驶舱和智能手表页面上编辑实时源码，并在{shopLink}上趁商店运行时改写它的外壳。如果浏览器缺少所需的 WebAssembly 或 WebGL 2，演示会保留其图片和说明。"
+
+#: ../Site/ReviewPage.qml:274
+msgid "Each framework, by a fan"
+msgstr "每个框架，由一位粉丝来讲"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"
@@ -600,7 +612,7 @@ msgstr "独立控制"
 msgid "Edit"
 msgstr "编辑"
 
-#: ../Site/CodeBlock.qml:812
+#: ../Site/CodeBlock.qml:824
 msgctxt "stage"
 msgid "Edit"
 msgstr "编辑"
@@ -629,7 +641,7 @@ msgstr "编辑着色器源码"
 msgid "Edit this shell's QML"
 msgstr "编辑此外壳的 QML"
 
-#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813 ../Site/ShowcaseEngine.qml:312
+#: ../Site/CodeBlock.qml:752 ../Site/CodeBlock.qml:825 ../Site/ShowcaseEngine.qml:312
 msgid "Edit {0}"
 msgstr "编辑 {0}"
 
@@ -637,7 +649,7 @@ msgstr "编辑 {0}"
 msgid "Edit {0} of {1}"
 msgstr "编辑 {1} 的 {0}"
 
-#: ../Site/CodeBlock.qml:867
+#: ../Site/CodeBlock.qml:879
 msgid "Edited"
 msgstr "已编辑"
 
@@ -649,7 +661,7 @@ msgstr "编辑器"
 msgid "Editorial layout for reading, trying demos, and comparing specs."
 msgstr "适合阅读、体验演示与对比规格的杂志式排版。"
 
-#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:138
+#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:139
 msgid "Eldur"
 msgstr "Eldur"
 
@@ -713,6 +725,10 @@ msgstr "风速 {0}"
 msgid "Fast, and quiet when idle"
 msgstr "响应迅捷，空闲时零打扰"
 
+#: ../Site/ReviewCode.qml:37
+msgid "Feature"
+msgstr "功能"
+
 #: ../Demos/AgentReplay.qml:41
 msgid "Feeder 12 needs a crew. Find its button."
 msgstr "Feeder 12 需要一个班组。找到它的按钮。"
@@ -721,16 +737,16 @@ msgstr "Feeder 12 需要一个班组。找到它的按钮。"
 msgid "Field guide"
 msgstr "鸟类图鉴"
 
-#: ../Shells/Desktop.qml:440
+#: ../Shells/Desktop.qml:443
 msgctxt "menu bar"
 msgid "File"
 msgstr "文件"
 
-#: ../Shells/Desktop.qml:511
+#: ../Shells/Desktop.qml:514
 msgid "Follow system colour scheme"
 msgstr "跟随系统配色方案"
 
-#: ../Shells/Desktop.qml:571 ../Shells/Desktop.qml:695
+#: ../Shells/Desktop.qml:574 ../Shells/Desktop.qml:698
 msgid "Forward"
 msgstr "前进"
 
@@ -749,6 +765,18 @@ msgstr "帧率尚未测得"
 #: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate {0} fps"
 msgstr "帧率 {0} fps"
+
+#: ../Site/ReviewTable.qml:39
+msgid "Framework"
+msgstr "框架"
+
+#: ../Site/Footer.qml:105 ../Site/Router.qml:50 ../Site/Router.qml:92
+msgid "Framework review"
+msgstr "框架评测"
+
+#: ../Site/ReviewPage.qml:123
+msgid "Frameworks to compare"
+msgstr "要比较的框架"
 
 #: ../Demos/Cockpit/CarPanel.qml:39 ../Demos/Cockpit/CarPanel.qml:226
 msgid "Frunk"
@@ -770,11 +798,11 @@ msgstr "灯神（单次）"
 msgid "Get started"
 msgstr "快速开始"
 
-#: ../Shells/Desktop.qml:611
+#: ../Shells/Desktop.qml:614
 msgid "Getting started guide"
 msgstr "入门指南"
 
-#: ../Site/Footer.qml:119
+#: ../Site/Footer.qml:120
 msgid "GitHub"
 msgstr "GitHub"
 
@@ -786,16 +814,16 @@ msgstr "切换手表的另一种屏幕形态"
 msgid "Glow"
 msgstr "光晕"
 
-#: ../Shells/Desktop.qml:558
+#: ../Shells/Desktop.qml:561
 msgctxt "menu bar"
 msgid "Go"
 msgstr "前往"
 
-#: ../Shells/Desktop.qml:696
+#: ../Shells/Desktop.qml:699
 msgid "Go to next route"
 msgstr "前往下一个路由"
 
-#: ../Shells/Desktop.qml:690
+#: ../Shells/Desktop.qml:693
 msgid "Go to previous route"
 msgstr "前往上一个路由"
 
@@ -807,7 +835,7 @@ msgstr "目标与原则"
 msgid "Grid face"
 msgstr "网格表盘"
 
-#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:140
+#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:141
 msgid "HAL-C2"
 msgstr "HAL-C2"
 
@@ -843,16 +871,16 @@ msgstr "心率，最近 {0} 秒"
 msgid "Heating"
 msgstr "制热中"
 
-#: ../Shells/Desktop.qml:603
+#: ../Shells/Desktop.qml:606
 msgctxt "menu bar"
 msgid "Help"
 msgstr "帮助"
 
-#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:839 ../Site/Router.qml:48 ../Site/Router.qml:82
+#: ../Shells/Desktop.qml:704 ../Shells/Desktop.qml:842 ../Site/Router.qml:50 ../Site/Router.qml:86
 msgid "Home"
 msgstr "首页"
 
-#: ../Shells/Desktop.qml:1110 ../Shells/Workbench.qml:1055
+#: ../Shells/Desktop.qml:1113 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr "水合耗时 {0} ms"
 
@@ -988,7 +1016,7 @@ msgstr "让手表进入常亮表盘休眠状态，与静置十五秒后的自动
 msgid "Light"
 msgstr "浅色"
 
-#: ../Shells/Desktop.qml:499
+#: ../Shells/Desktop.qml:502
 msgid "Light colour scheme"
 msgstr "浅色配色方案"
 
@@ -1024,11 +1052,11 @@ msgstr "开放对象树上的实时运行时"
 msgid "Live stage"
 msgstr "实时舞台"
 
-#: ../Site/Footer.qml:64 ../Site/Router.qml:48
+#: ../Site/Footer.qml:64 ../Site/Router.qml:50
 msgid "Ljós"
 msgstr "Ljós"
 
-#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:139
+#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:140
 msgid "Ljós Hof"
 msgstr "Ljós Hof"
 
@@ -1036,7 +1064,7 @@ msgstr "Ljós Hof"
 msgid "Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right."
 msgstr "左右并排两个窗格的 Ljós Hof：左侧聚焦的窗格中显示着 git log，右侧显示着目录列表。"
 
-#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:137
+#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:138
 msgid "Ljós Studio"
 msgstr "Ljós Studio"
 
@@ -1056,7 +1084,7 @@ msgstr "GitHub 上的 Ljós"
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr "Ljós 致力于遵循 <a href=\"https://community-software.org/\">Community Software</a> 原则：我们平等协作，在开放中共同构建。<br><br>欢迎每一个人。<br>我们彼此平等。<br>每一份贡献都很重要。<br>影响力源于参与。<br>善待他人，严谨对待想法。<br>“不”和“暂时不行”都是合理的回答。<br>照顾好自己，也关心彼此。<br><br>写代码只是帮忙的一种方式。测试、文档、设计、翻译和无障碍评审同样重要，也非常欢迎新手提问。"
 
-#: ../Shells/Desktop.qml:642
+#: ../Shells/Desktop.qml:645
 msgid "Ljós — {0}"
 msgstr "Ljós — {0}"
 
@@ -1100,7 +1128,7 @@ msgstr "5月"
 msgid "MCP log"
 msgstr "MCP 日志"
 
-#: ../Shells/Desktop.qml:615
+#: ../Shells/Desktop.qml:618
 msgid "MCP servers for agents"
 msgstr "面向智能体的 MCP 服务器"
 
@@ -1108,7 +1136,7 @@ msgstr "面向智能体的 MCP 服务器"
 msgid "MI LEFT"
 msgstr "剩余 MI"
 
-#: ../Site/Footer.qml:122
+#: ../Site/Footer.qml:123
 msgid "MIT licence"
 msgstr "MIT 许可证"
 
@@ -1140,15 +1168,19 @@ msgstr "可塑软件，无处不在。"
 msgid "Map: the route to {0}"
 msgstr "地图：前往 {0} 的路线"
 
+#: ../Site/ReviewChart.qml:195
+msgid "Measured with"
+msgstr "测量命令"
+
 #: ../Demos/Cockpit/Cockpit.qml:195
 msgid "Media"
 msgstr "媒体"
 
-#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1205 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1208 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "菜单"
 
-#: ../Shells/Desktop.qml:434
+#: ../Shells/Desktop.qml:437
 msgid "Menu bar"
 msgstr "菜单栏"
 
@@ -1188,6 +1220,10 @@ msgstr "11月"
 msgid "NOW PLAYING"
 msgstr "正在播放"
 
+#: ../Site/ReviewPage.qml:140
+msgid "Native"
+msgstr "原生"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "导航"
@@ -1204,6 +1240,14 @@ msgstr "下一首"
 msgid "Next: {0}"
 msgstr "下一页：{0}"
 
+#: ../Site/ReviewChart.qml:185
+msgid "No bar for {0}: this is measured for native apps only."
+msgstr "{0} 没有柱：这一项只测量原生应用。"
+
+#: ../Site/ReviewChart.qml:185
+msgid "No bar for {0}: this is measured for web apps only."
+msgstr "{0} 没有柱：这一项只测量 Web 应用。"
+
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
 msgstr "当前打开的文件没有编译或代码检查诊断信息。"
@@ -1211,6 +1255,10 @@ msgstr "当前打开的文件没有编译或代码检查诊断信息。"
 #: ../Demos/DispatchCard.qml:351
 msgid "No crew"
 msgstr "暂无班组"
+
+#: ../Site/ReviewChart.qml:185
+msgid "No number yet for {0}."
+msgstr "{0} 还没有数字。"
 
 #: ../Pantry/Note.qml:16
 msgid "Note for the baker"
@@ -1220,11 +1268,11 @@ msgstr "给烘焙师的留言"
 msgid "Note for the baker…"
 msgstr "给烘焙师的留言…"
 
-#: ../Site/CodeBlock.qml:1025
+#: ../Site/CodeBlock.qml:1037
 msgid "Nothing drawn yet."
 msgstr "尚未绘制任何内容。"
 
-#: ../Site/CodeBlock.qml:1025
+#: ../Site/CodeBlock.qml:1037
 msgid "Nothing drawn yet. Run it to see what it does."
 msgstr "尚未绘制任何内容。点击运行查看效果。"
 
@@ -1256,7 +1304,7 @@ msgstr "存活对象"
 msgid "Objects alive {0}"
 msgstr "存活对象 {0}"
 
-#: ../Shells/Desktop.qml:1116
+#: ../Shells/Desktop.qml:1119
 msgid "Objects alive: {0}"
 msgstr "存活对象：{0}"
 
@@ -1264,7 +1312,7 @@ msgstr "存活对象：{0}"
 msgid "Objects: {0}"
 msgstr "对象：{0}"
 
-#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:726 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
+#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:729 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
 msgid "Observer"
 msgstr "观察器"
 
@@ -1277,11 +1325,11 @@ msgstr "观察器"
 msgid "Observer for the Pantry"
 msgstr "Pantry 的观察器"
 
-#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:300
+#: ../Site/CodeBlock.qml:861 ../Site/DemoFrame.qml:300
 msgid "Observer for {0}"
 msgstr "{0} 的观察器"
 
-#: ../Shells/Desktop.qml:619
+#: ../Shells/Desktop.qml:622
 msgid "Observer guide"
 msgstr "观察器指南"
 
@@ -1325,15 +1373,15 @@ msgstr "待处理"
 msgid "Open a window, then change it while it runs."
 msgstr "打开一个窗口，然后在运行中改变它。"
 
-#: ../Shells/Desktop.qml:465
+#: ../Shells/Desktop.qml:468
 msgid "Open benchmarks"
 msgstr "打开基准测试"
 
-#: ../Shells/Desktop.qml:453
+#: ../Shells/Desktop.qml:456
 msgid "Open demos"
 msgstr "打开演示"
 
-#: ../Shells/Desktop.qml:470
+#: ../Shells/Desktop.qml:473
 msgid "Open documentation"
 msgstr "打开文档"
 
@@ -1341,23 +1389,23 @@ msgstr "打开文档"
 msgid "Open files"
 msgstr "打开的文件"
 
-#: ../Shells/Desktop.qml:448
+#: ../Shells/Desktop.qml:451
 msgid "Open home"
 msgstr "打开首页"
 
-#: ../Shells/Desktop.qml:702
+#: ../Shells/Desktop.qml:705
 msgid "Open landing page"
 msgstr "打开主页"
 
-#: ../Shells/Desktop.qml:721
+#: ../Shells/Desktop.qml:724
 msgid "Open native desktop benchmark tables"
 msgstr "打开原生桌面基准测试表"
 
-#: ../Shells/Desktop.qml:971 ../Shells/Desktop.qml:1056
+#: ../Shells/Desktop.qml:974 ../Shells/Desktop.qml:1059
 msgid "Open pages"
 msgstr "打开的页面"
 
-#: ../Shells/Desktop.qml:458
+#: ../Shells/Desktop.qml:461
 msgid "Open showcase"
 msgstr "打开作品展示"
 
@@ -1381,7 +1429,7 @@ msgstr "我们的基准测试邮件应用首帧显示不到 90 ms，私有内存
 msgid "Output"
 msgstr "输出"
 
-#: ../Shells/Desktop.qml:834
+#: ../Shells/Desktop.qml:837
 msgid "Overview"
 msgstr "概览"
 
@@ -1389,11 +1437,11 @@ msgstr "概览"
 msgid "PAUSED"
 msgstr "已暂停"
 
-#: ../Shells/Desktop.qml:1054
+#: ../Shells/Desktop.qml:1057
 msgid "Page"
 msgstr "页面"
 
-#: ../Shells/Desktop.qml:822 ../Shells/Desktop.qml:1055 ../Site/PageTree.qml:21
+#: ../Shells/Desktop.qml:825 ../Shells/Desktop.qml:1058 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr "页面"
 
@@ -1449,6 +1497,14 @@ msgstr "暂停 {0}"
 msgid "Pick an object to see its properties."
 msgstr "选择一个对象以查看其属性。"
 
+#: ../Site/ReviewPage.qml:127
+msgid "Pick the frameworks to compare"
+msgstr "选择要比较的框架"
+
+#: ../Site/ReviewPage.qml:97
+msgid "Placeholder data"
+msgstr "占位数据"
+
 #: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
 msgid "Play"
 msgstr "播放"
@@ -1493,7 +1549,7 @@ msgstr "上一页：{0}"
 msgid "Problems"
 msgstr "问题"
 
-#: ../Site/Footer.qml:110
+#: ../Site/Footer.qml:111
 msgid "Project"
 msgstr "项目"
 
@@ -1521,7 +1577,7 @@ msgstr "录制回放"
 msgid "Recorded running"
 msgstr "运行实录"
 
-#: ../Shells/Desktop.qml:518 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:521 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr "减少动态效果"
 
@@ -1545,7 +1601,7 @@ msgstr "渲染器"
 msgid "Renderer {0}"
 msgstr "渲染器 {0}"
 
-#: ../Shells/Desktop.qml:1132 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
+#: ../Shells/Desktop.qml:1135 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr "渲染器：{0}"
 
@@ -1557,7 +1613,7 @@ msgstr "回放视图"
 msgid "Replay · no live agent"
 msgstr "回放 · 非实时智能体"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:836 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "重置"
 
@@ -1565,7 +1621,7 @@ msgstr "重置"
 msgid "Reset demo"
 msgstr "重置演示"
 
-#: ../Shells/Desktop.qml:481
+#: ../Shells/Desktop.qml:484
 msgid "Reset demo state"
 msgstr "重置演示状态"
 
@@ -1581,7 +1637,7 @@ msgstr "重置着色器源码"
 msgid "Reset to the app's shell"
 msgstr "重置为应用的外壳"
 
-#: ../Site/CodeBlock.qml:825
+#: ../Site/CodeBlock.qml:837
 msgid "Reset {0} to as written"
 msgstr "将 {0} 重置为原始代码"
 
@@ -1629,11 +1685,11 @@ msgstr "路由"
 msgid "Route {0}"
 msgstr "路由 {0}"
 
-#: ../Shells/Desktop.qml:1103 ../Shells/Workbench.qml:1162
+#: ../Shells/Desktop.qml:1106 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr "路由：{0}"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
+#: ../Site/CodeBlock.qml:819 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
 msgctxt "stage"
 msgid "Run"
 msgstr "运行"
@@ -1646,7 +1702,7 @@ msgstr "重新运行"
 msgid "Run again: {0}"
 msgstr "重新运行：{0}"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
+#: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "运行 {0}"
 
@@ -1678,7 +1734,7 @@ msgstr "周日"
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "同一个应用，不同的外壳。切换时会保留当前路由、滚动位置以及正在运行的演示。"
 
-#: ../Shells/Desktop.qml:787
+#: ../Shells/Desktop.qml:790
 msgid "Scheme"
 msgstr "配色"
 
@@ -1747,7 +1803,7 @@ msgstr "外壳切换器"
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml：实时编辑"
 
-#: ../Shells/Desktop.qml:1138
+#: ../Shells/Desktop.qml:1141
 msgid "Shell: Desktop"
 msgstr "外壳：桌面"
 
@@ -1759,7 +1815,7 @@ msgstr "外壳：工作台"
 msgid "Shell: {label} – choose another layout"
 msgstr "外壳：{label} – 选择其他布局"
 
-#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:882
+#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:885
 msgid "Shells"
 msgstr "外壳"
 
@@ -1779,27 +1835,31 @@ msgstr "挂入 {0} 挡"
 msgid "Ship the beta"
 msgstr "发布公测版"
 
-#: ../Site/CodeBlock.qml:1218
+#: ../Site/CodeBlock.qml:1230
 msgid "Show all {0, plural, one {# line} other {# lines}}"
 msgstr "显示全部 {0, plural, other {# 行}}"
 
-#: ../Site/CodeBlock.qml:1219
+#: ../Site/CodeBlock.qml:1231
 msgid "Show all {0, plural, one {# line} other {# lines}} of {1}"
 msgstr "显示 {1} 的全部 {0, plural, other {# 行}}"
 
-#: ../Site/CodeBlock.qml:1218
+#: ../Site/CodeBlock.qml:1230
 msgid "Show less"
 msgstr "收起"
 
-#: ../Site/CodeBlock.qml:1219
+#: ../Site/CodeBlock.qml:1231
 msgid "Show less of {0}"
 msgstr "收起 {0}"
 
-#: ../Site/CodeBlock.qml:833
+#: ../Site/ReviewPage.qml:212
+msgid "Show the numbers as a table"
+msgstr "以表格显示数字"
+
+#: ../Site/CodeBlock.qml:845
 msgid "Show the source"
 msgstr "显示源码"
 
-#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:41 ../Site/Router.qml:48 ../Site/Router.qml:86
+#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:43 ../Site/Router.qml:50 ../Site/Router.qml:90
 msgid "Showcase"
 msgstr "展示"
 
@@ -1839,6 +1899,10 @@ msgstr "利落"
 msgid "Software you can reshape while it runs."
 msgstr "可在运行时重塑的软件。"
 
+#: ../Site/ReviewPage.qml:105
+msgid "Some numbers, code or words here stand in for what is still being measured and written. Each placeholder number says so in the table."
+msgstr "这里的部分数字、代码或文字是占位内容，代表仍在测量和撰写的部分。每个占位数字都会在表格中注明。"
+
 #: ../Shells/Cyberpunk.qml:488 ../Site/HeroStage.qml:25
 msgid "Source"
 msgstr "源码"
@@ -1848,7 +1912,7 @@ msgctxt "panel"
 msgid "Source"
 msgstr "源码"
 
-#: ../Site/CodeBlock.qml:832
+#: ../Site/CodeBlock.qml:844
 msgctxt "stage tab"
 msgid "Source"
 msgstr "源码"
@@ -1857,7 +1921,7 @@ msgstr "源码"
 msgid "Source of {0}"
 msgstr "{0} 的源码"
 
-#: ../Shells/Desktop.qml:623
+#: ../Shells/Desktop.qml:626
 msgid "Source on GitHub"
 msgstr "GitHub 源码"
 
@@ -1889,7 +1953,7 @@ msgstr "站立"
 msgid "Start"
 msgstr "开始"
 
-#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:847
+#: ../Shells/Desktop.qml:580 ../Shells/Desktop.qml:850
 msgid "Start in a minute"
 msgstr "一分钟上手"
 
@@ -1909,7 +1973,7 @@ msgstr "开始秒表"
 msgid "Start timer"
 msgstr "开始计时"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
+#: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
 msgid "Starting {0}…"
 msgstr "正在启动 {0}…"
 
@@ -1917,11 +1981,11 @@ msgstr "正在启动 {0}…"
 msgid "Starting {what}…"
 msgstr "正在启动 {what}…"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
+#: ../Site/CodeBlock.qml:819 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
 msgid "Starting…"
 msgstr "正在启动…"
 
-#: ../Shells/Desktop.qml:1087 ../Shells/Workbench.qml:1140
+#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr "状态栏"
 
@@ -1929,7 +1993,7 @@ msgstr "状态栏"
 msgid "Step {0} of {1}"
 msgstr "第 {0} / {1} 步"
 
-#: ../Demos/Watch/TimerPage.qml:115 ../Site/CodeBlock.qml:807
+#: ../Demos/Watch/TimerPage.qml:115 ../Site/CodeBlock.qml:819
 msgid "Stop"
 msgstr "停止"
 
@@ -1941,7 +2005,7 @@ msgstr "停止秒表"
 msgid "Stop the car first: nothing opens while it moves."
 msgstr "请先停车：行驶中无法开启任何部件。"
 
-#: ../Site/CodeBlock.qml:808
+#: ../Site/CodeBlock.qml:820
 msgid "Stop {0}"
 msgstr "停止 {0}"
 
@@ -1957,7 +2021,7 @@ msgstr "秒表"
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr "Svala GT 是一辆虚构的汽车。它的模型来自本示例中的 Blender 脚本；地图、音乐和街道均为虚构。你看到的一切都由 Ljós 绘制。"
 
-#: ../Shells/Desktop.qml:764
+#: ../Shells/Desktop.qml:767
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr "在优雅、赛博朋克、工作台和桌面外壳之间切换"
 
@@ -1965,19 +2029,19 @@ msgstr "在优雅、赛博朋克、工作台和桌面外壳之间切换"
 msgid "Switch shell"
 msgstr "切换外壳"
 
-#: ../Shells/Desktop.qml:541
+#: ../Shells/Desktop.qml:544
 msgid "Switch to Cyberpunk shell"
 msgstr "切换至赛博朋克外壳"
 
-#: ../Shells/Desktop.qml:549
+#: ../Shells/Desktop.qml:552
 msgid "Switch to Desktop shell"
 msgstr "切换至桌面外壳"
 
-#: ../Shells/Desktop.qml:537
+#: ../Shells/Desktop.qml:540
 msgid "Switch to Elegant shell"
 msgstr "切换至优雅外壳"
 
-#: ../Shells/Desktop.qml:545
+#: ../Shells/Desktop.qml:548
 msgid "Switch to Workbench shell"
 msgstr "切换至工作台外壳"
 
@@ -2025,7 +2089,7 @@ msgstr "遥测"
 msgid "Temperature"
 msgstr "温度"
 
-#: ../Site/CodeBlock.qml:379
+#: ../Site/CodeBlock.qml:391
 msgctxt "code language"
 msgid "Text"
 msgstr "纯文本"
@@ -2054,6 +2118,10 @@ msgstr "车辆已锁定。请先解锁再开启任何部件。"
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr "车辆视图。方向键选择部件；空格键打开或关闭。"
 
+#: ../Site/ReviewCode.qml:27
+msgid "The code of each picked framework"
+msgstr "每个所选框架的代码"
+
 #: ../Main.qml:674
 msgid "The docs"
 msgstr "文档"
@@ -2062,9 +2130,21 @@ msgstr "文档"
 msgid "The files of {0}"
 msgstr "{0} 的文件"
 
+#: ../Site/ReviewPage.qml:188
+msgid "The numbers"
+msgstr "数字"
+
+#: ../Site/ReviewTable.qml:31
+msgid "The numbers of the picked frameworks"
+msgstr "所选框架的数字"
+
 #: ../Demos/Watch/Watch.qml:153
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "天台那家店八点开门。记得带外套，上面挺冷的。"
+
+#: ../Site/ReviewPage.qml:248
+msgid "The same feature in each one's code"
+msgstr "同一功能在各框架中的代码"
 
 #: ../Site/LiveSource.qml:169
 msgid "The shell's QML could not be loaded: {0}"
@@ -2102,11 +2182,11 @@ msgstr "无法加载此页面。"
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "此面板运行在浏览器中。在桌面端，ljos observe 命令可以为运行中的应用打开观察器。"
 
-#: ../Site/Footer.qml:151
+#: ../Site/Footer.qml:152
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "本网站本身就是一个 Ljós 应用，构建时输出为 HTML，并在你的浏览器中实时运行。"
 
-#: ../Shells/Desktop.qml:1175
+#: ../Shells/Desktop.qml:1178
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "本网站通过 ljos-web 将 Ljós 编译为 Solid DOM 运行，3D 场景使用 WebGPU 并在需要时回退到 WebGL2。从“视图”菜单或工具栏切换外壳无需刷新页面。"
 
@@ -2130,29 +2210,33 @@ msgstr "时间到"
 msgid "Timer"
 msgstr "计时器"
 
-#: ../Shells/Desktop.qml:530
+#: ../Shells/Desktop.qml:533
 msgid "Toggle Observer panel"
 msgstr "切换观察器面板"
 
-#: ../Shells/Desktop.qml:788
+#: ../Shells/Desktop.qml:791
 msgid "Toggle light and dark colour scheme"
 msgstr "切换浅色与深色配色方案"
 
-#: ../Shells/Desktop.qml:727
+#: ../Shells/Desktop.qml:730
 msgid "Toggle live Observer panel"
 msgstr "切换实时观察器面板"
 
-#: ../Shells/Desktop.qml:524
+#: ../Shells/Desktop.qml:527
 msgid "Toggle sidebar"
 msgstr "切换侧边栏"
 
-#: ../Shells/Desktop.qml:677
+#: ../Shells/Desktop.qml:680
 msgid "Toolbar"
 msgstr "工具栏"
 
 #: ../Site/ShowcasePage.qml:74
 msgid "Tools built with Ljós"
 msgstr "使用 Ljós 构建的工具"
+
+#: ../Site/ReviewPage.qml:47
+msgid "Totally biased review of mostly Rust UI frameworks"
+msgstr "完全偏心的 UI 框架评测（大多是 Rust）"
 
 #: ../Demos/Cockpit/CarPanel.qml:40 ../Demos/Cockpit/CarPanel.qml:234
 msgid "Trunk"
@@ -2218,28 +2302,28 @@ msgstr "使用深色主题"
 msgid "Use the light theme"
 msgstr "使用浅色主题"
 
-#: ../Site/CodeBlock.qml:1120 ../Site/CodeBlock.qml:1139
+#: ../Site/CodeBlock.qml:1132 ../Site/CodeBlock.qml:1151
 msgid "Values"
 msgstr "值"
 
-#: ../Shells/Desktop.qml:491
+#: ../Shells/Desktop.qml:494
 msgctxt "menu bar"
 msgid "View"
 msgstr "视图"
 
-#: ../Shells/Desktop.qml:793
+#: ../Shells/Desktop.qml:796
 msgid "View QML"
 msgstr "查看 QML"
 
-#: ../Shells/Desktop.qml:476 ../Site/ShellChoices.qml:150
+#: ../Shells/Desktop.qml:479 ../Site/ShellChoices.qml:150
 msgid "View this shell's QML"
 msgstr "查看此外壳的 QML"
 
-#: ../Shells/Desktop.qml:794
+#: ../Shells/Desktop.qml:797
 msgid "View this shell's QML source"
 msgstr "查看此外壳的 QML 源码"
 
-#: ../Shells/Desktop.qml:1050 ../Shells/Workbench.qml:1097
+#: ../Shells/Desktop.qml:1053 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr "视图"
 
@@ -2271,6 +2355,14 @@ msgstr "唤醒"
 msgid "Wakes the watch, or goes back to its face"
 msgstr "唤醒手表，或返回表盘"
 
+#: ../Site/ReviewPage.qml:141
+msgid "Web"
+msgstr "Web"
+
+#: ../Site/ReviewSection.qml:64
+msgid "What a fan shows first"
+msgstr "粉丝最先展示的"
+
 #: ../Site/DocPage.qml:56 ../Site/Landing.qml:400
 msgid "What is Ljós?"
 msgstr "什么是 Ljós？"
@@ -2278,6 +2370,10 @@ msgstr "什么是 Ljós？"
 #: ../Site/Landing.qml:429
 msgid "What we care about, and what we leave out on purpose."
 msgstr "我们在意什么，以及有意取舍了什么。"
+
+#: ../Site/ReviewSection.qml:155
+msgid "Where it is not as strong"
+msgstr "不那么强的地方"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2335,7 +2431,7 @@ msgstr "你的车辆"
 msgid "Your edit"
 msgstr "你的编辑"
 
-#: ../Site/Footer.qml:105 ../Site/Landing.qml:409
+#: ../Site/Footer.qml:106 ../Site/Landing.qml:409
 msgid "Your first app"
 msgstr "你的第一个应用"
 
@@ -2363,7 +2459,7 @@ msgstr "board.ts，此应用运行的代码"
 msgid "front page"
 msgstr "首页"
 
-#: ../Site/CodeBlock.qml:578
+#: ../Site/CodeBlock.qml:590
 msgid "in the {0} harness"
 msgstr "在 {0} 测试环境中"
 
@@ -2459,6 +2555,10 @@ msgstr "{0} 条新通知"
 msgid "{0} cm"
 msgstr "{0} cm"
 
+#: ../Site/ReviewSection.qml:205
+msgid "{0} docs"
+msgstr "{0} 文档"
+
 #: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
 msgid "{0} fps"
 msgstr "{0} fps"
@@ -2495,9 +2595,17 @@ msgstr "{0} / {1}"
 msgid "{0} of {1} done"
 msgstr "已完成 {0} / {1}"
 
+#: ../Site/ReviewSection.qml:210
+msgid "{0} repository"
+msgstr "{0} 代码仓库"
+
 #: ../Demos/Watch/FacePulse.qml:147
 msgid "{0} steps"
 msgstr "{0} 步"
+
+#: ../Site/ReviewSection.qml:200
+msgid "{0} website"
+msgstr "{0} 网站"
 
 #: ../Demos/Cockpit/AssistView.qml:178 ../Demos/Cockpit/Cluster.qml:177 ../Demos/Cockpit/NavPanel.qml:205 ../Demos/Cockpit/StatusBar.qml:68
 msgid "{0} {1}"
@@ -2518,6 +2626,10 @@ msgstr "{0} · {1}"
 #: ../Site/DocPage.qml:464
 msgid "{0} →"
 msgstr "{0} →"
+
+#: ../Site/ReviewSection.qml:21
+msgid "{0}, by a fan"
+msgstr "{0}，由一位粉丝来讲"
 
 #: ../Demos/Cockpit/MediaPanel.qml:250
 msgid "{0}, {1}"
