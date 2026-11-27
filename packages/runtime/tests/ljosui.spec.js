@@ -292,13 +292,14 @@ test("a Drag child drags its item", async ({ page }) => {
   expect(dragged.x).toBe(50);
 });
 
-// Ljós's reduced motion (ljos-ui's ARCHITECTURE §14): asked for less
-// motion, what an animation in a file of Ljós's API would slide, grow or
-// turn is where it goes at once, a number of the file's own too (it may
-// well place something), and what it fades or recolours fades, in at
-// most 150 ms, so the change still shows. A loop that never ends keeps
-// its pace. In QML as Qt has it, reduced motion is the program's to say.
-test("asked for less motion, a file of Ljós's API moves nothing and still fades", async ({ page }) => {
+// Ljós's reduced motion: asked for less motion, what an animation in a
+// file of Ljós's API would slide, grow or turn still goes there, so the
+// reader sees where it went, but less lively: on a curve that never goes
+// past its end or bounces back, and a spring never swings past where it
+// goes. Nothing jumps. What it fades or recolours fades, in at most
+// 150 ms. A loop that never ends keeps its pace. In QML as Qt has it,
+// reduced motion is the program's to say.
+test("asked for less motion, a file of Ljós's API moves without overshoot and still fades", async ({ page }) => {
   const watch = async (scene, motion) => {
     await page.emulateMedia({ reducedMotion: motion });
     await page.goto(`/?scene=${scene}&still`);
@@ -311,17 +312,45 @@ test("asked for less motion, a file of Ljós's API moves nothing and still fades
       flush();
       clock.advance(16);
       const started = at();
-      clock.advance(134);
+      // The overshooting slide and the spring, frame by frame.
+      const flung = [root.flung];
+      const sprung = [root.sprung];
+      for (let frame = 0; frame < 8; frame++) {
+        clock.advance(16);
+        flung.push(root.flung);
+        sprung.push(root.sprung);
+      }
+      clock.advance(6);
       const soon = at();
       // The loop, from where it is: it goes on at a turn a second.
       const turned = root.spin;
       clock.advance(250);
-      return { started, soon, spun: root.spin - turned };
+      const spun = root.spin - turned;
+      for (let frame = 0; frame < 250; frame++) {
+        clock.advance(16);
+        flung.push(root.flung);
+        sprung.push(root.sprung);
+      }
+      return { started, soon, spun, flung, sprung, ended: at() };
     });
   };
   const calm = await watch("ljosuimotion", "reduce");
-  expect(calm.started.x).toBe(200);
-  expect(calm.started.open).toBe(1);
+  // What slides is on its way, not at its end.
+  expect(calm.started.x).toBeGreaterThan(0);
+  expect(calm.started.x).toBeLessThan(200);
+  expect(calm.soon.x).toBeGreaterThan(calm.started.x);
+  expect(calm.soon.x).toBeLessThan(200);
+  expect(calm.started.open).toBeGreaterThan(0);
+  expect(calm.started.open).toBeLessThan(1);
+  expect(calm.ended.x).toBe(200);
+  expect(calm.ended.open).toBe(1);
+  // Neither goes past where it goes, nor back the way it came.
+  for (const run of [calm.flung, calm.sprung]) {
+    expect(run[1]).toBeLessThan(100);
+    expect(Math.max(...run)).toBeLessThanOrEqual(100);
+    for (let at = 1; at < run.length; at++) expect(run[at]).toBeGreaterThanOrEqual(run[at - 1]);
+    expect(run.at(-1)).toBeCloseTo(100, 1);
+  }
   expect(calm.started.opacity).toBeGreaterThan(0.2);
   expect(calm.started.opacity).toBeLessThan(1);
   expect(calm.started.fill).not.toBe("rgb(70, 130, 180)");
@@ -336,6 +365,9 @@ test("asked for less motion, a file of Ljós's API moves nothing and still fades
   expect(full.soon.x).toBeLessThan(200);
   expect(full.soon.open).toBeLessThan(1);
   expect(full.soon.opacity).toBeGreaterThan(0.2);
+  // The scene's slide and spring do go past their end, then.
+  expect(Math.max(...full.flung)).toBeGreaterThan(100);
+  expect(Math.max(...full.sprung)).toBeGreaterThan(100);
   // Qt's form leaves it to the program.
   const qt = await watch("ljosuimotioncompat", "reduce");
   expect(qt.soon.x).toBeGreaterThan(0);
