@@ -85,6 +85,11 @@ function context() {
   return gl;
 }
 
+// Where a shader is, as a message says it: an address that holds the
+// source itself (an editor's, at each pause in typing) is that source
+// again, and said in full it would bury what is wrong with it.
+const named = (url) => (url.startsWith("data:") ? "the shader written into its address" : url);
+
 // A shader's text, by where it is: at once when the build put it in the
 // address itself, otherwise when it has been fetched.
 const texts = new Map();
@@ -92,15 +97,19 @@ function text(url) {
   let record = texts.get(url);
   if (record) return record;
   const [state, setState] = signal(null);
-  texts.set(url, (record = { state }));
+  const given = url.startsWith("data:");
+  texts.set(url, (record = { state, users: 0 }));
   const took = (source) => {
-    if (/^\s*(#version|precision|\/\/|\/\*|void|uniform|attribute|in |varying)/.test(source)) return setState({ source });
-    // What Qt bakes is not text; what a server answers with for a file it
-    // does not have often is.
-    const baked = /[\0-\x08]/.test(source.slice(0, 64));
-    setState({ error: baked ? `${url} is a shader baked for Qt, with none for OpenGL ES in it` : `${url} is not a shader` });
+    // What Qt bakes is not text.
+    if (/[\0-\x08]/.test(source.slice(0, 64))) return setState({ error: `${named(url)} is a shader baked for Qt, with none for OpenGL ES in it` });
+    // What a server answers with for a file it does not have often is
+    // text, and no shader: a page of its own. A source in its address is
+    // the one the page was given, whatever its first line, and what is
+    // wrong in it is the compiler's to say, on the line it is on.
+    if (given || /^\s*(#version|precision|\/\/|\/\*|void|uniform|attribute|in |varying)/.test(source)) return setState({ source });
+    setState({ error: `${url} is not a shader` });
   };
-  if (url.startsWith("data:")) took(decodeURIComponent(url.slice(url.indexOf(",") + 1)));
+  if (given) took(decodeURIComponent(url.slice(url.indexOf(",") + 1)));
   else {
     guardedFetch(url)
       .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(new Error(`${answer.status}`))))
@@ -164,9 +173,37 @@ function program(vertex, fragment) {
       uniforms.push({ property, type, location: gl.getUniformLocation(built, name), unit: sampler ? unit++ : -1 });
     }
   }
-  programs.set(key, (made = { program: logs.length ? null : built, log: logs.join("\n"), uniforms }));
+  if (logs.length) gl.deleteProgram(built);
+  programs.set(key, (made = { key, program: logs.length ? null : built, log: logs.join("\n"), uniforms, users: 0 }));
   return made;
 }
+
+// What an effect draws with is held while it does: the texts of its two
+// shaders and their program. Let go by the last effect that drew with it,
+// a program is deleted and a source written into its address forgotten,
+// so a reader who edits a shader for a whole visit keeps what is drawn
+// now, not every source typed on the way. A file fetched is kept: there
+// is one for each the page names, and asked for again it is not fetched
+// again.
+function hold(uses) {
+  for (const url of uses.urls) texts.get(url) && texts.get(url).users++;
+  if (uses.made?.key) uses.made.users++;
+}
+function release(uses) {
+  for (const url of uses.urls) {
+    const record = texts.get(url);
+    if (record && --record.users === 0 && url.startsWith("data:")) texts.delete(url);
+  }
+  const made = uses.made;
+  if (made?.key && --made.users === 0 && programs.get(made.key) === made) {
+    programs.delete(made.key);
+    if (made.program) gl.deleteProgram(made.program);
+  }
+}
+
+// How many sources written into addresses, and programs, the page holds:
+// for a test to see what it lets go.
+export const held = () => ({ texts: [...texts.keys()].filter((url) => url.startsWith("data:")).length, programs: programs.size });
 
 // A value as the numbers a shader takes it as: a colour premultiplied, as
 // Qt gives it.
@@ -390,10 +427,25 @@ export const ShaderEffect = defineType("ShaderEffect", Item, {
     const [asked, setAsked] = signal(false, self.$owner);
     const shader = (self.$shader = { canvas, drawn, kept: null, keep: () => setAsked(true) });
     onCleanup(() => shader.kept && gl.deleteTexture(shader.kept));
+    // What it draws with now, held until it draws with something else or
+    // is gone.
+    let uses = { urls: [], made: null };
+    const using = (urls, made) => {
+      if (made === uses.made && urls.length === uses.urls.length && urls.every((url, at) => url === uses.urls[at])) return made;
+      const before = uses;
+      hold((uses = { urls, made }));
+      release(before);
+      return made;
+    };
+    onCleanup(() => release(uses));
     const paper = canvas.getContext("bitmaprenderer");
 
     // The two shaders once both are there, and the program of them.
     const built = () => {
+      const urls = [self.vertexShader, self.fragmentShader].filter(Boolean).map((url) => located(String(url)));
+      return using(urls, compiled());
+    };
+    const compiled = () => {
       const stages = [self.vertexShader, self.fragmentShader].map((url) => (url ? text(located(String(url))).state() : {}));
       if (stages.some((stage) => !stage)) return null;
       const failed = stages.find((stage) => stage.error);
