@@ -79,6 +79,9 @@ for (const demo of DEMOS) {
     // by the time the scene's clock hands out (`ljos-web/clock`), so its
     // pace read against that is its pace, however few frames a second a
     // loaded machine runs; against the test's time it was the machine's.
+    // How far it went is added up a frame at a time: at a frame or two a
+    // second, STEPS frames can outlast a whole loop, and the clock read
+    // only at either end would then wrap and say it went less.
     function pace(page) {
       return canvas(page).evaluate(
         (element, [clock, frames, period, steps]) =>
@@ -86,11 +89,15 @@ for (const demo of DEMOS) {
             const read = new Function("canvas", `return (${clock})(canvas)`);
             const count = new Function("canvas", `return (${frames})(canvas)`);
             const counted = globalThis[Symbol.for("ljos-web/clock")];
-            const [v0, f0, s0, t0] = [read(element), count(element), counted.frames, counted.time];
+            const [f0, s0, t0] = [count(element), counted.frames, counted.time];
+            let [last, went] = [read(element), 0];
             const look = () => {
+              const now = read(element);
+              went += (((now - last) % period) + period) % period;
+              last = now;
               if (counted.frames - s0 < steps || count(element) === f0) return void requestAnimationFrame(look);
-              const went = (((read(element) - v0) % period) + period) % period;
-              resolve({ rate: (went * 1000) / (counted.time - t0), frames: count(element) - f0 });
+              const seconds = (counted.time - t0) / 1000;
+              resolve({ rate: went / seconds, frames: count(element) - f0, seconds });
             };
             look();
           }),
@@ -110,7 +117,10 @@ for (const demo of DEMOS) {
       const calm = await pace(page);
       expect(calm.frames, "asked for less motion, frames are still drawn").toBeGreaterThan(0);
       expect(calm.rate, "asked for less motion, the clock still goes on").toBeGreaterThan(0);
-      expect(calm.rate, "asked for less motion, it goes on more slowly").toBeLessThan(full.rate);
+      expect(
+        calm.rate,
+        `asked for less motion, it goes on more slowly (${calm.rate.toFixed(3)} a second over ${calm.seconds.toFixed(2)} s, against ${full.rate.toFixed(3)} over ${full.seconds.toFixed(2)} s)`,
+      ).toBeLessThan(full.rate);
 
       // The preference changed while the demo runs is taken at once,
       // not at the end of a loop: a quick pace again, from where it is.

@@ -52,6 +52,49 @@ async function started(page, heading) {
   return slot;
 }
 
+// The shader demo, started and drawing in the middle of the window, with
+// what its tests read of it: the effect's own state, and the colour the
+// screen shows at a point of the picture.
+async function shaderOf(page) {
+  await settled(page, "/demos/");
+  const slot = await started(page, "A shader effect");
+  const canvas = slot.locator("canvas.qq-shader").first();
+  const state = () =>
+    canvas.evaluate((canvas) => {
+      const effect = canvas.$effect;
+      return { x: effect.pointer.x, y: effect.pointer.y, tap: [effect.tap.x, effect.tap.y], ripple: effect.ripple, palette: effect.palette, drawn: effect.$shader.drawn() };
+    });
+  // The colour at a point of the picture, as the screen shows it (the
+  // canvas's own pixels leave it for the screen and are not kept).
+  // `where` gives the point when it is read, as the canvas stands then.
+  const colour = async (where) => {
+    const point = await where();
+    const png = await page.screenshot({ clip: { x: point.x, y: point.y, width: 1, height: 1 } });
+    return page.evaluate(async (data) => {
+      const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+      const copy = new OffscreenCanvas(1, 1).getContext("2d");
+      copy.drawImage(bitmap, 0, 0);
+      return [...copy.getImageData(0, 0, 1, 1).data];
+    }, png.toString("base64"));
+  };
+  const red = async (where) => {
+    const [r, g, b] = await colour(where);
+    return r > 235 && g < 20 && b < 20;
+  };
+  // Each press centres what it presses, which can scroll the canvas, so
+  // its box is measured each time a point of it is wanted: the box of the
+  // picture shown then, the effect or, while an edit is broken, the
+  // last one that compiled in its place.
+  const at = async (x, y) => {
+    const box = await slot.locator("canvas.qq-shader").filter({ visible: true }).first().boundingBox();
+    return { x: box.x + box.width * x, y: box.y + box.height * y };
+  };
+  await expect.poll(async () => (await state()).drawn, { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
+  await centre(canvas);
+  return { slot, canvas, state, colour, red, at };
+}
+
 // What Orbit's view says of itself, for a check of its drawing that fails:
 // which renderer on what, how far it got, and any error.
 async function drawingOf(canvas) {
@@ -167,47 +210,11 @@ test.describe("/demos/", () => {
 
   // The shader is for playing with and rewriting: its light swirls where
   // the pointer leads it, a tap rings out from where it was, a chip
-  // changes the colours, and its source, opened and edited, is the
-  // picture. An edit that does not compile is marked where the compiler
-  // said, and the picture before it goes on.
-  test("the shader answers the pointer, its chips and an edit of its source", async ({ page, errors }) => {
-    await settled(page, "/demos/");
-    const slot = await started(page, "A shader effect");
-    const canvas = slot.locator("canvas.qq-shader").first();
-    const state = () =>
-      canvas.evaluate((canvas) => {
-        const effect = canvas.$effect;
-        return { x: effect.pointer.x, y: effect.pointer.y, tap: [effect.tap.x, effect.tap.y], ripple: effect.ripple, palette: effect.palette, drawn: effect.$shader.drawn() };
-      });
-    // Whether the picture is red at a point of it, as the screen shows it
-    // (the canvas's own pixels leave it for the screen and are not kept).
-    // `where` gives the point when it is read, as the canvas stands then.
-    const colour = async (where) => {
-      const point = await where();
-      const png = await page.screenshot({ clip: { x: point.x, y: point.y, width: 1, height: 1 } });
-      return page.evaluate(async (data) => {
-        const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
-        const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
-        const copy = new OffscreenCanvas(1, 1).getContext("2d");
-        copy.drawImage(bitmap, 0, 0);
-        return [...copy.getImageData(0, 0, 1, 1).data];
-      }, png.toString("base64"));
-    };
-    const red = async (point) => {
-      const [r, g, b] = await colour(point);
-      return r > 235 && g < 20 && b < 20;
-    };
-    await expect.poll(async () => (await state()).drawn, { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
-    await centre(canvas);
-    // Each press centres what it presses, which can scroll the canvas, so
-    // its box is measured each time a point of it is wanted: the box of the
-    // picture shown then, the effect or, while an edit is broken, the
-    // last one that compiled in its place.
-    const at = async (x, y) => {
-      const box = await slot.locator("canvas.qq-shader").filter({ visible: true }).first().boundingBox();
-      return { x: box.x + box.width * x, y: box.y + box.height * y };
-    };
-
+  // changes the colours. Two tests, each in its own time: a machine that
+  // draws it at a frame or two a second (software GL on a loaded runner)
+  // takes most of a test's time on either half.
+  test("the shader's light follows the pointer, a tap rings out where it was, a chip changes its colours", async ({ page, errors }) => {
+    const { slot, state, at } = await shaderOf(page);
     const to = await at(0.82, 0.35);
     await page.mouse.move(to.x, to.y, { steps: 8 });
     await expect
@@ -227,7 +234,14 @@ test.describe("/demos/", () => {
 
     await press(slot.getByRole("radio", { name: "Ember colours" }));
     await expect.poll(async () => (await state()).palette, { message: "a chip chooses the colours" }).toBe(1);
+    expect(unexpected(errors)).toEqual([]);
+  });
 
+  // Its source, opened and edited, is the picture. An edit that does not
+  // compile is marked where the compiler said, and the picture before it
+  // goes on; Reset brings back the shader as written.
+  test("the shader's source, edited, is the picture; a broken edit keeps the last that compiled; Reset the shader as written", async ({ page, errors }) => {
+    const { slot, canvas, colour, red, at } = await shaderOf(page);
     await press(slot.getByRole("button", { name: "Edit the shader's source" }));
     await slot.getByRole("textbox", { name: "Edit the fragment shader" }).first().click();
     const editor = slot.locator('.cm-content[aria-label="Edit the fragment shader"]').first();
@@ -251,7 +265,7 @@ test.describe("/demos/", () => {
     await expect(slot.getByText(/^Did not compile; keeping the last working version:/), "Reset clears the compiler's complaint").toBeHidden({ timeout: 10_000 });
     const drawnReset = await canvas.evaluate((canvas) => canvas.$effect.$shader.drawn());
     await expect.poll(() => canvas.evaluate((canvas) => canvas.$effect.$shader.drawn()), { message: "the effect itself draws again" }).toBeGreaterThan(drawnReset + 5);
-    await expect.poll(() => red(shown), { message: "Reset draws the shader as written" }).toBe(false);
+    await expect.poll(() => red(shown), { message: "Reset draws the shader as written", timeout: 10_000 }).toBe(false);
     // Not a blank canvas either: its place looks different with it hidden.
     const behind = await shown();
     const drawnColour = await colour(() => behind);
