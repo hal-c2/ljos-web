@@ -395,7 +395,7 @@ msgstr "Loka valmynd"
 msgid "Close shell source"
 msgstr "Loka frumkóða skeljar"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "Loka kóða"
 
@@ -411,7 +411,7 @@ msgstr "Loka ritlinum"
 msgid "Close the editor of {0}"
 msgstr "Loka ritli {0}"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "Loka kóða skyggisins"
 
@@ -516,7 +516,7 @@ msgstr "Skjáborð"
 msgid "Diagnostics: {0}"
 msgstr "Greiningar: {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "Þýddist ekki; síðasta útgáfa sem virkaði heldur áfram: {0}"
 
@@ -560,7 +560,7 @@ msgstr "Dragðu hringinn · þrjár fjaðrir elta hann"
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "Dragðu til að snúa · skrunaðu eða klíptu til að þysja"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "Dragðu til að hringsnúa ljósinu · smelltu fyrir gáru"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "Breyta"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "Breyta skyggi"
 
@@ -613,7 +613,7 @@ msgstr "Breyta skyggi"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Breyta Shell.qml fyrir Pantry"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "Breyta brotaskygginum"
 
@@ -621,7 +621,7 @@ msgstr "Breyta brotaskygginum"
 msgid "Edit the running shell's QML"
 msgstr "Breyta QML fyrir keyrandi skel"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "Breyta kóða skyggisins"
 
@@ -734,7 +734,7 @@ msgstr "Fylgja kerfisþema"
 msgid "Forward"
 msgstr "Áfram"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "Brotaskyggir · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "Sýnir endurspilunar"
 msgid "Replay · no live agent"
 msgstr "Endurspilun · enginn virkur fulltrúi"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "Endurstilla"
 
@@ -1573,7 +1573,7 @@ msgstr "Endurstilla stöðu sýnishorna"
 msgid "Reset every file"
 msgstr "Endurstilla allar skrár"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "Endurstilla kóða skyggisins"
 
@@ -1726,7 +1726,7 @@ msgstr "Séð {0} af {1}"
 msgid "Settings"
 msgstr "Stillingar"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "Mynd skyggisins. Færðu bendilinn eða dragðu yfir hana til að hringsnúa ljósinu; smelltu til að senda gáru."
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "fyrir {minutes} mín."
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "{modelData}-litir"
 

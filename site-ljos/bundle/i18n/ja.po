@@ -395,7 +395,7 @@ msgstr "メニューを閉じる"
 msgid "Close shell source"
 msgstr "シェルのソースを閉じる"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "ソースを閉じる"
 
@@ -411,7 +411,7 @@ msgstr "エディタを閉じる"
 msgid "Close the editor of {0}"
 msgstr "{0} のエディタを閉じる"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "シェーダーのソースを閉じる"
 
@@ -516,7 +516,7 @@ msgstr "デスクトップ"
 msgid "Diagnostics: {0}"
 msgstr "診断: {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "コンパイルできませんでした。最後に動いた版を使い続けます: {0}"
 
@@ -560,7 +560,7 @@ msgstr "リングをドラッグ · 3 つのばねが追いかけます"
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "ドラッグで回転 · スクロールまたはピンチでズーム"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "ドラッグで光が渦巻く · タップで波紋"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "編集"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "シェーダーを編集"
 
@@ -613,7 +613,7 @@ msgstr "シェーダーを編集"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Pantry の Shell.qml を編集"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "フラグメントシェーダーを編集"
 
@@ -621,7 +621,7 @@ msgstr "フラグメントシェーダーを編集"
 msgid "Edit the running shell's QML"
 msgstr "実行中のシェルの QML を編集"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "シェーダーのソースを編集"
 
@@ -734,7 +734,7 @@ msgstr "システムの配色に合わせる"
 msgid "Forward"
 msgstr "進む"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "フラグメントシェーダー · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "リプレイ表示"
 msgid "Replay · no live agent"
 msgstr "リプレイ · ライブエージェントなし"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "リセット"
 
@@ -1573,7 +1573,7 @@ msgstr "デモの状態をリセット"
 msgid "Reset every file"
 msgstr "すべてのファイルをリセット"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "シェーダーのソースをリセット"
 
@@ -1726,7 +1726,7 @@ msgstr "{1} 種中 {0} 種を観察"
 msgid "Settings"
 msgstr "設定"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "シェーダーの画像。上でポインターを動かすかドラッグすると光が渦巻き、タップすると波紋が広がります。"
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "{minutes} 分前"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "{modelData} の配色"
 

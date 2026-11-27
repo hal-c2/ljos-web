@@ -395,7 +395,7 @@ msgstr "Cerrar menú"
 msgid "Close shell source"
 msgstr "Cerrar código del shell"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "Cerrar código"
 
@@ -411,7 +411,7 @@ msgstr "Cerrar el editor"
 msgid "Close the editor of {0}"
 msgstr "Cerrar el editor de {0}"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "Cerrar el código del shader"
 
@@ -516,7 +516,7 @@ msgstr "Escritorio"
 msgid "Diagnostics: {0}"
 msgstr "Diagnósticos: {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "No compiló; se mantiene la última versión que funcionaba: {0}"
 
@@ -560,7 +560,7 @@ msgstr "Arrastra el anillo · tres muelles lo persiguen"
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "Arrastra para orbitar · desplázate o pellizca para zoom"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "Arrastra para arremolinar la luz · toca para una onda"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "Editar"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "Editar shader"
 
@@ -613,7 +613,7 @@ msgstr "Editar shader"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Editar Shell.qml de Pantry"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "Editar el shader de fragmentos"
 
@@ -621,7 +621,7 @@ msgstr "Editar el shader de fragmentos"
 msgid "Edit the running shell's QML"
 msgstr "Editar el QML del shell en ejecución"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "Editar el código del shader"
 
@@ -734,7 +734,7 @@ msgstr "Seguir el tema del sistema"
 msgid "Forward"
 msgstr "Adelante"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "Shader de fragmentos · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "Vistas de repetición"
 msgid "Replay · no live agent"
 msgstr "Repetición · sin agente en vivo"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "Restablecer"
 
@@ -1573,7 +1573,7 @@ msgstr "Restablecer estado de las demos"
 msgid "Reset every file"
 msgstr "Restablecer todos los archivos"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "Restablecer el código del shader"
 
@@ -1726,7 +1726,7 @@ msgstr "Vistas {0} de {1}"
 msgid "Settings"
 msgstr "Ajustes"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "Imagen del shader. Mueve el puntero o arrastra sobre ella para arremolinar la luz; toca para lanzar una onda."
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "hace {minutes} min"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "Colores {modelData}"
 

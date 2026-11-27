@@ -395,7 +395,7 @@ msgstr "मेनू बंद करें"
 msgid "Close shell source"
 msgstr "शेल सोर्स बंद करें"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "सोर्स बंद करें"
 
@@ -411,7 +411,7 @@ msgstr "एडिटर बंद करें"
 msgid "Close the editor of {0}"
 msgstr "{0} का एडिटर बंद करें"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "शेडर का सोर्स बंद करें"
 
@@ -516,7 +516,7 @@ msgstr "डेस्कटॉप"
 msgid "Diagnostics: {0}"
 msgstr "निदान: {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "कंपाइल नहीं हुआ; आख़िरी चलने वाला वर्शन बना रहेगा: {0}"
 
@@ -560,7 +560,7 @@ msgstr "छल्ला खींचें · तीन स्प्रिंग
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "घुमाने के लिए खींचें · ज़ूम के लिए स्क्रॉल या पिंच करें"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "रोशनी घुमाने के लिए खींचें · लहर के लिए टैप करें"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "संपादित करें"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "शेडर बदलें"
 
@@ -613,7 +613,7 @@ msgstr "शेडर बदलें"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Pantry का Shell.qml संपादित करें"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "फ़्रैगमेंट शेडर बदलें"
 
@@ -621,7 +621,7 @@ msgstr "फ़्रैगमेंट शेडर बदलें"
 msgid "Edit the running shell's QML"
 msgstr "चल रहे शेल का QML संपादित करें"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "शेडर का सोर्स बदलें"
 
@@ -734,7 +734,7 @@ msgstr "सिस्टम रंग योजना अपनाएँ"
 msgid "Forward"
 msgstr "आगे"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "फ़्रैगमेंट शेडर · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "रीप्ले दृश्य"
 msgid "Replay · no live agent"
 msgstr "रीप्ले · लाइव एजेंट नहीं"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "रीसेट करें"
 
@@ -1573,7 +1573,7 @@ msgstr "डेमो स्थिति रीसेट करें"
 msgid "Reset every file"
 msgstr "सभी फ़ाइलें रीसेट करें"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "शेडर का सोर्स रीसेट करें"
 
@@ -1726,7 +1726,7 @@ msgstr "{1} में से {0} देखे गए"
 msgid "Settings"
 msgstr "सेटिंग्स"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "शेडर की तस्वीर। रोशनी घुमाने के लिए उस पर पॉइंटर ले जाएँ या खींचें; लहर भेजने के लिए टैप करें।"
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "{minutes} मिनट पहले"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "{modelData} रंग"
 
