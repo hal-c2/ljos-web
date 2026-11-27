@@ -10,7 +10,7 @@ msgstr ""
 msgid "1 h ago"
 msgstr "1 घंटा पहले"
 
-#: ../Site/HeroStage.qml:43
+#: ../Site/HeroStage.qml:42
 msgid "1 match"
 msgstr "1 मिलान"
 
@@ -18,7 +18,7 @@ msgstr "1 मिलान"
 msgid "10:00 Design review"
 msgstr "10:00 डिज़ाइन समीक्षा"
 
-#: ../Site/DemosPage.qml:120
+#: ../Site/DemosPage.qml:135
 msgid "3D you can orbit"
 msgstr "3D जिसे आप घुमा सकते हैं"
 
@@ -26,9 +26,17 @@ msgstr "3D जिसे आप घुमा सकते हैं"
 msgid "<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it."
 msgstr "<b>इस दुकान पर आज़माएँ।</b> बास्केट में कुछ जोड़ें, फिर नीचे कोड में <code>StatusSlot</code> को स्थानांतरित करें। लेआउट बदल जाएगा और बास्केट में आपका सामान बना रहेगा। कोई टाइपिंग त्रुटि कर दें, फिर भी आपके सुधार करने तक दुकान चलती रहेगी।"
 
-#: ../Site/DemosPage.qml:169
+#: ../Site/DemosPage.qml:184
 msgid "A bird field guide. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection."
 msgstr "पक्षियों की एक फ़ील्ड गाइड। चलने के बाद, खोज में टाइप करके सूची फ़िल्टर करें, नोट्स पढ़ने के लिए कोई प्रजाति चुनें, गिनती अपडेट करने के लिए पक्षियों को देखा गया चिह्नित करें, और अपना चयन बनाए रखते हुए लाइट व डार्क थीम बदलें।"
+
+#: ../Site/BuiltWith.qml:62
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
+msgstr "आपकी मशीन पर चल रहे कोडिंग एजेंटों के लिए एक नियंत्रण पटल, जिसमें एक टर्मिनल, ब्राउज़र टैब और एक QML लेआउट है जिसे आप इसके चलते हुए बदल सकते हैं।"
+
+#: ../Site/BuiltWith.qml:60
+msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
+msgstr "आपकी मशीन पर चल रहे कोडिंग एजेंटों के लिए एक नियंत्रण पटल, जिसमें एक टर्मिनल, ब्राउज़र टैब और एक QML लेआउट है जिसे आप इसके चलते हुए बदल सकते हैं। इसका <a href=\"/showcase/\">Office प्लगइन</a> शोकेस में है।"
 
 #: ../Demos/Shader.qml:107
 msgid "A custom fragment shader"
@@ -38,19 +46,19 @@ msgstr "कस्टम फ़्रैगमेंट शेडर"
 msgid "A door is open"
 msgstr "एक दरवाज़ा खुला है"
 
-#: ../Site/DemosPage.qml:185
+#: ../Site/DemosPage.qml:200
 msgid "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
 msgstr "पक्षियों की फ़ील्ड गाइड: चुनी गई प्रजाति के साथ प्रजातियों की सूची, नोट्स और देखे गए पक्षियों की गिनती।"
 
-#: ../Site/DemosPage.qml:134
+#: ../Site/DemosPage.qml:149
 msgid "A lit 3D scene of shapes on a floor. Drag to turn it."
 msgstr "फ़र्श पर आकृतियों वाला एक प्रकाशित 3D दृश्य। घुमाने के लिए खींचें।"
 
-#: ../Site/DemosPage.qml:121
+#: ../Site/DemosPage.qml:136
 msgid "A lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Once it runs, drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt."
 msgstr "उसी इंजन द्वारा रेंडर किया गया प्रकाशित 3D दृश्य जो डेस्कटॉप और मोबाइल पर नेटिव रूप से चलता है। चलने के बाद, घुमाने के लिए खींचें, ज़ूम करने के लिए स्क्रॉल या पिंच करें, और दृश्य को ढलते हुए देखने के लिए लाइट व डार्क थीम बदलें।"
 
-#: ../Site/BuiltWith.qml:39
+#: ../Site/BuiltWith.qml:43
 msgid "A recipe card for red lentil soup, converted from a web page by Eldur and running on Ljós."
 msgstr "लाल मसूर के सूप का एक रेसिपी कार्ड, जिसे Eldur ने एक वेब पेज से बदला है और जो Ljós पर चल रहा है।"
 
@@ -58,7 +66,7 @@ msgstr "लाल मसूर के सूप का एक रेसिपी
 msgid "A round smartwatch face with neon rings beside the same watch in 3D, in its case on a linked band, its screen's ring glowing."
 msgstr "नियॉन रिंग्स वाला एक गोल स्मार्टवॉच फ़ेस, और उसके बगल में वही घड़ी 3D में, अपने केस और लिंक बैंड के साथ, जिसकी स्क्रीन की रिंग चमक रही है।"
 
-#: ../Site/DemosPage.qml:144
+#: ../Site/DemosPage.qml:159
 msgid "A shader effect"
 msgstr "शेडर प्रभाव"
 
@@ -70,7 +78,7 @@ msgstr "एक स्मार्टवॉच का सॉफ़्टवेय
 msgid "A ten-minute walk after lunch would close your move ring."
 msgstr "दोपहर के भोजन के बाद दस मिनट की सैर आपका मूव रिंग पूरा कर देगी।"
 
-#: ../Site/BuiltWith.qml:45
+#: ../Site/BuiltWith.qml:49
 msgid "A terminal for Linux and macOS, with tabs, splits and one small config file. It tells you when an agent in a pane is waiting for you. The <a href=\"/showcase/\">showcase</a> shows it running."
 msgstr "Linux और macOS के लिए एक टर्मिनल, जिसमें टैब, स्प्लिट और एक छोटी कॉन्फ़िग फ़ाइल है। जब किसी फलक में कोई एजेंट आपका इंतज़ार कर रहा हो, तो यह आपको बताता है। <a href=\"/showcase/\">शोकेस</a> में यह चलता हुआ दिखता है।"
 
@@ -78,7 +86,7 @@ msgstr "Linux और macOS के लिए एक टर्मिनल, जि
 msgid "A visual designer where the design is the app’s own QML. A change on the canvas leaves the rest of the file as it was, and agents drive Studio through MCP."
 msgstr "एक विज़ुअल डिज़ाइनर जहाँ डिज़ाइन स्वयं ऐप का अपना QML होता है। कैनवास पर किया गया बदलाव बाकी फ़ाइल को वैसा ही छोड़ देता है, और एजेंट MCP के ज़रिए Studio को चलाते हैं।"
 
-#: ../Site/DemosPage.qml:168
+#: ../Site/DemosPage.qml:183
 msgid "A whole app"
 msgstr "पूरा ऐप"
 
@@ -90,23 +98,39 @@ msgstr "अप्रै"
 msgid "AUG"
 msgstr "अग"
 
-#: ../Shells/Desktop.qml:630 ../Shells/Desktop.qml:1154
+#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1153
 msgid "About ljos.dev"
 msgstr "ljos.dev के बारे में"
 
-#: ../Shells/Workbench.qml:413
+#: ../Shells/Workbench.qml:412
 msgid "Activity"
 msgstr "गतिविधि"
 
-#: ../Shells/Workbench.qml:418
+#: ../Shells/Workbench.qml:417
 msgid "Activity bar"
 msgstr "गतिविधि पट्टी"
 
-#: ../Demos/Lottie.qml:194
+#: ../Demos/PantryShell.qml:163
+msgid "Add an item, then edit the code. Your basket stays."
+msgstr "कोई आइटम जोड़ें, फिर कोड बदलें। आपकी बास्केट बनी रहती है।"
+
+#: ../Demos/PantryShell.qml:107
+msgid "Add bread"
+msgstr "ब्रेड जोड़ें"
+
+#: ../Demos/PantryShell.qml:140
+msgid "Add jam"
+msgstr "जैम जोड़ें"
+
+#: ../Demos/PantryShell.qml:74
+msgid "Add tea"
+msgstr "चाय जोड़ें"
+
+#: ../Demos/Lottie.qml:203
 msgid "Again"
 msgstr "दोबारा"
 
-#: ../Demos/AgentView.qml:330 ../Site/HeroStage.qml:26
+#: ../Demos/AgentView.qml:329 ../Site/HeroStage.qml:25
 msgid "Agent"
 msgstr "एजेंट"
 
@@ -114,11 +138,11 @@ msgstr "एजेंट"
 msgid "Agent MCP stream"
 msgstr "एजेंट MCP स्ट्रीम"
 
-#: ../Demos/AgentView.qml:390
+#: ../Demos/AgentView.qml:389
 msgid "Agent log"
 msgstr "एजेंट लॉग"
 
-#: ../Demos/AgentView.qml:144
+#: ../Demos/AgentView.qml:143
 msgid "Agent: make this a board"
 msgstr "एजेंट: इसे बोर्ड बनाएँ"
 
@@ -126,7 +150,7 @@ msgstr "एजेंट: इसे बोर्ड बनाएँ"
 msgid "All caught up"
 msgstr "सब कुछ देख लिया गया"
 
-#: ../Shells/Desktop.qml:854
+#: ../Shells/Desktop.qml:853
 msgid "All demos"
 msgstr "सभी डेमो"
 
@@ -134,7 +158,7 @@ msgstr "सभी डेमो"
 msgid "All doors closed"
 msgstr "सभी दरवाज़े बंद हैं"
 
-#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:219
+#: ../Demos/Watch/QuickSettings.qml:46 ../Demos/WatchDemo.qml:218
 msgid "Always on"
 msgstr "हमेशा चालू"
 
@@ -154,7 +178,7 @@ msgstr "ऐप चलते समय एक एजेंट सूची को
 msgid "An app’s layout doesn’t have to be fixed. Let people, or their agents, replace it live, without losing their work. If an edit won’t compile, the last working layout stays."
 msgstr "ऐप का लेआउट हमेशा तय रहना ज़रूरी नहीं है। लोगों या उनके एजेंटों को उनका काम खोए बिना इसे लाइव बदलने दें। यदि कोई संपादन कंपाइल नहीं होता, तो अंतिम कार्यशील लेआउट बना रहता है।"
 
-#: ../Shells/Workbench.qml:476
+#: ../Shells/Workbench.qml:475
 msgid "Appearance settings"
 msgstr "दिखावट सेटिंग्स"
 
@@ -166,11 +190,11 @@ msgstr "लागू करें"
 msgid "Apps"
 msgstr "ऐप्स"
 
-#: ../Site/Landing.qml:262
+#: ../Site/Landing.qml:292
 msgid "Apps and tools made with Ljós, all public on GitHub. The <a href=\"/showcase/\">showcase</a> has a recording of Hof and pictures of Studio, Eldur and HAL-C2."
 msgstr "Ljós से बने ऐप्स और उपकरण, सभी GitHub पर सार्वजनिक हैं। <a href=\"/showcase/\">शोकेस</a> में Hof की एक रिकॉर्डिंग तथा Studio, Eldur और HAL-C2 की तस्वीरें हैं।"
 
-#: ../Site/ShowcasePage.qml:46
+#: ../Site/ShowcasePage.qml:45
 msgid "Apps that run on Ljós today, recorded as they run. Each capture says what it shows about Ljós, and each app links to its source."
 msgstr "आज Ljós पर चलने वाले ऐप्स, चलते हुए रिकॉर्ड किए गए। हर रिकॉर्डिंग बताती है कि वह Ljós के बारे में क्या दिखाती है, और हर ऐप अपने सोर्स से जुड़ा है।"
 
@@ -182,11 +206,11 @@ msgstr "क्या आज रात का प्लान पक्का ह
 msgid "As the system"
 msgstr "सिस्टम के अनुसार"
 
-#: ../Demos/DispatchCard.qml:361
+#: ../Demos/DispatchCard.qml:360
 msgid "Assign crew"
 msgstr "टीम सौंपें"
 
-#: ../Demos/DispatchCard.qml:362
+#: ../Demos/DispatchCard.qml:361
 msgid "Assign crew to {0}"
 msgstr "{0} को टीम सौंपें"
 
@@ -198,11 +222,11 @@ msgstr "बैटरी {0} %"
 msgid "BPM"
 msgstr "BPM"
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:567 ../Shells/Desktop.qml:690
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:566 ../Shells/Desktop.qml:689
 msgid "Back"
 msgstr "पीछे"
 
-#: ../Pantry/Basket.qml:85
+#: ../Pantry/Basket.qml:82
 msgid "Basket"
 msgstr "बास्केट"
 
@@ -214,27 +238,35 @@ msgstr "बैटरी 20 % पर"
 msgid "Before"
 msgstr "पहले"
 
-#: ../Shells/Desktop.qml:721 ../Shells/Desktop.qml:845
+#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:844
 msgid "Benchmarks"
 msgstr "बेंचमार्क"
 
-#: ../Site/HeroStage.qml:35
+#: ../Site/HeroStage.qml:34
 msgid "Beta week"
 msgstr "बीटा सप्ताह"
 
-#: ../Demos/AgentView.qml:170
+#: ../Demos/AgentView.qml:169
 msgid "Board"
 msgstr "बोर्ड"
 
-#: ../Demos/AgentView.qml:171
+#: ../Demos/AgentView.qml:170
 msgid "Board layout"
 msgstr "बोर्ड लेआउट"
 
-#: ../Shells/Workbench.qml:883
+#: ../Shells/Workbench.qml:882
 msgid "Bottom panel"
 msgstr "निचला पैनल"
 
-#: ../Shells/Desktop.qml:715
+#: ../Demos/Motion.qml:26
+msgid "Bouncy"
+msgstr "उछलती"
+
+#: ../Demos/PantryShell.qml:92
+msgid "Bread · £{0}"
+msgstr "ब्रेड · £{0}"
+
+#: ../Shells/Desktop.qml:714
 msgid "Browse all interactive demos"
 msgstr "सभी इंटरैक्टिव डेमो ब्राउज़ करें"
 
@@ -242,11 +274,11 @@ msgstr "सभी इंटरैक्टिव डेमो ब्राउज
 msgid "Built for agents"
 msgstr "एजेंटों के लिए निर्मित"
 
-#: ../Site/Landing.qml:317
+#: ../Site/Landing.qml:347
 msgid "Built together"
 msgstr "साथ मिलकर निर्मित"
 
-#: ../Site/Footer.qml:126 ../Site/Landing.qml:250 ../Site/ShowcasePage.qml:31
+#: ../Site/Footer.qml:128 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
 msgid "Built with Ljós"
 msgstr "Ljós से निर्मित"
 
@@ -254,27 +286,27 @@ msgstr "Ljós से निर्मित"
 msgid "Cancel timer"
 msgstr "टाइमर रद्द करें"
 
-#: ../Shells/Desktop.qml:586
+#: ../Shells/Desktop.qml:585
 msgid "Capability: agentic first"
 msgstr "क्षमता: एजेंट-प्रथम"
 
-#: ../Shells/Desktop.qml:585
+#: ../Shells/Desktop.qml:584
 msgid "Capability: descriptive language"
 msgstr "क्षमता: वर्णनात्मक भाषा"
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:587
 msgid "Capability: live updates"
 msgstr "क्षमता: लाइव अपडेट"
 
-#: ../Shells/Desktop.qml:590
+#: ../Shells/Desktop.qml:589
 msgid "Capability: malleable"
 msgstr "क्षमता: लचीला इंटरफ़ेस"
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:586
 msgid "Capability: several renderers"
 msgstr "क्षमता: एकाधिक रेंडरर"
 
-#: ../Shells/Desktop.qml:589
+#: ../Shells/Desktop.qml:588
 msgid "Capability: tools"
 msgstr "क्षमता: उपकरण"
 
@@ -314,7 +346,7 @@ msgstr "जाँचें कि ऐप चल रहा है।"
 msgid "Check what still needs a crew."
 msgstr "जाँचें कि किसे अभी भी टीम चाहिए।"
 
-#: ../Site/Preferences.qml:31
+#: ../Site/Preferences.qml:32
 msgid "Classic desktop application window with menu bar, toolbar, sidebar, and status bar."
 msgstr "मेनू बार, टूलबार, साइडबार और स्टेटस बार वाली क्लासिक डेस्कटॉप ऐप विंडो।"
 
@@ -322,7 +354,7 @@ msgstr "मेनू बार, टूलबार, साइडबार और
 msgid "Clear all"
 msgstr "सभी साफ़ करें"
 
-#: ../Shells/Workbench.qml:1044
+#: ../Shells/Workbench.qml:1043
 msgid "Clear log"
 msgstr "लॉग साफ़ करें"
 
@@ -334,19 +366,19 @@ msgstr "जलवायु"
 msgid "Climate off"
 msgstr "एसी बंद"
 
-#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
+#: ../Shells/Cyberpunk.qml:352 ../Shells/Cyberpunk.qml:616
 msgid "Clock"
 msgstr "घड़ी"
 
-#: ../Shells/Cyberpunk.qml:356 ../Shells/Cyberpunk.qml:620
+#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
 msgid "Clock {0}"
 msgstr "घड़ी {0}"
 
-#: ../Shells/Desktop.qml:1180
+#: ../Shells/Desktop.qml:1179
 msgid "Close"
 msgstr "बंद करें"
 
-#: ../Site/ObserverDock.qml:185
+#: ../Site/ObserverDock.qml:184
 msgctxt "observer"
 msgid "Close"
 msgstr "बंद करें"
@@ -359,15 +391,23 @@ msgstr "मेनू बंद करें"
 msgid "Close shell source"
 msgstr "शेल सोर्स बंद करें"
 
-#: ../Site/ObserverDock.qml:186
+#: ../Site/ObserverDock.qml:185
 msgid "Close the Observer"
 msgstr "ऑब्ज़र्वर बंद करें"
 
-#: ../Shells/Desktop.qml:994 ../Shells/Workbench.qml:745
+#: ../Site/ShowcaseEngine.qml:311
+msgid "Close the editor"
+msgstr "एडिटर बंद करें"
+
+#: ../Site/ShowcaseEngine.qml:312
+msgid "Close the editor of {0}"
+msgstr "{0} का एडिटर बंद करें"
+
+#: ../Shells/Desktop.qml:993 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr "{0} बंद करें"
 
-#: ../Demos/DispatchCard.qml:332
+#: ../Demos/DispatchCard.qml:331
 msgid "Closed"
 msgstr "बंद"
 
@@ -379,15 +419,15 @@ msgstr "कोड"
 msgid "Code: {0}"
 msgstr "कोड: {0}"
 
-#: ../Shells/Workbench.qml:849
+#: ../Shells/Workbench.qml:848
 msgid "Collapse inspector"
 msgstr "इंस्पेक्टर समेटें"
 
-#: ../Site/Footer.qml:119
+#: ../Site/Footer.qml:121
 msgid "Community principles"
 msgstr "समुदाय सिद्धांत"
 
-#: ../Shells/Cyberpunk.qml:51
+#: ../Shells/Cyberpunk.qml:49
 msgid "Console"
 msgstr "कंसोल"
 
@@ -408,19 +448,19 @@ msgstr "कॉपी करें"
 msgid "Copy {0}"
 msgstr "{0} कॉपी करें"
 
-#: ../Demos/WatchDemo.qml:176
+#: ../Demos/WatchDemo.qml:175
 msgid "Crown ▲"
 msgstr "क्राउन ▲"
 
-#: ../Demos/WatchDemo.qml:183
+#: ../Demos/WatchDemo.qml:182
 msgid "Crown ▼"
 msgstr "क्राउन ▼"
 
-#: ../Site/ShellSwitcher.qml:54
+#: ../Site/ShellSwitcher.qml:56
 msgid "Current shell: {label}"
 msgstr "वर्तमान शेल: {label}"
 
-#: ../Site/Preferences.qml:29
+#: ../Site/Preferences.qml:30
 msgid "Cyberpunk"
 msgstr "साइबरपंक"
 
@@ -428,15 +468,15 @@ msgstr "साइबरपंक"
 msgid "DEC"
 msgstr "दिस"
 
-#: ../Demos/Lottie.qml:98
+#: ../Demos/Lottie.qml:97
 msgid "Dance (loops)"
 msgstr "डांस (लूप)"
 
-#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:36
+#: ../Demos/Cockpit/SettingsPanel.qml:47 ../Site/Preferences.qml:37
 msgid "Dark"
 msgstr "डार्क"
 
-#: ../Shells/Desktop.qml:506
+#: ../Shells/Desktop.qml:505
 msgid "Dark colour scheme"
 msgstr "डार्क रंग योजना"
 
@@ -444,11 +484,11 @@ msgstr "डार्क रंग योजना"
 msgid "Defrost"
 msgstr "डीफ़्रॉस्ट"
 
-#: ../Shells/Cyberpunk.qml:52 ../Shells/Desktop.qml:714 ../Shells/Desktop.qml:849 ../Site/Footer.qml:101 ../Site/Router.qml:39 ../Site/Router.qml:47 ../Site/Router.qml:83
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:848 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
 msgid "Demos"
 msgstr "डेमो"
 
-#: ../Shells/Workbench.qml:604
+#: ../Shells/Workbench.qml:603
 msgid "Demos/"
 msgstr "डेमो/"
 
@@ -456,11 +496,11 @@ msgstr "डेमो/"
 msgid "Design review at 10:00"
 msgstr "10:00 बजे डिज़ाइन समीक्षा"
 
-#: ../Site/Preferences.qml:31
+#: ../Site/Preferences.qml:32
 msgid "Desktop"
 msgstr "डेस्कटॉप"
 
-#: ../Shells/Workbench.qml:1169
+#: ../Shells/Workbench.qml:1168
 msgid "Diagnostics: {0}"
 msgstr "निदान: {0}"
 
@@ -480,31 +520,35 @@ msgstr "दूरी"
 msgid "Do not disturb"
 msgstr "परेशान न करें"
 
-#: ../Shells/Cyberpunk.qml:57 ../Site/Footer.qml:100 ../Site/Router.qml:38
+#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:39
 msgid "Docs"
 msgstr "दस्तावेज़"
 
-#: ../Shells/Desktop.qml:943
+#: ../Shells/Desktop.qml:942
 msgid "Documents"
 msgstr "दस्तावेज़"
 
-#: ../Demos/AgentView.qml:187 ../Demos/Watch/WorkoutPage.qml:169
+#: ../Demos/AgentView.qml:186 ../Demos/Watch/WorkoutPage.qml:169
 msgid "Done"
 msgstr "पूर्ण"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Done. Try Assign crew or List / Board."
 msgstr "पूर्ण। “टीम सौंपें” या सूची / बोर्ड आज़माएँ।"
 
-#: ../Demos/Orbit.qml:273
+#: ../Demos/Motion.qml:66
+msgid "Drag the ring · three springs chase it"
+msgstr "छल्ला खींचें · तीन स्प्रिंग उसका पीछा करती हैं"
+
+#: ../Demos/Orbit.qml:271
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "घुमाने के लिए खींचें · ज़ूम के लिए स्क्रॉल या पिंच करें"
 
-#: ../Demos/WatchDemo.qml:343
+#: ../Demos/WatchDemo.qml:342
 msgid "Drag to turn it"
 msgstr "घुमाने के लिए खींचें"
 
-#: ../Demos/Orbit.qml:290
+#: ../Demos/Orbit.qml:288
 msgid "Drawn by Ljós's 3D renderer"
 msgstr "Ljós के 3D रेंडरर द्वारा चित्रित"
 
@@ -524,28 +568,28 @@ msgstr "चालक {0} पर सेट"
 msgid "Driver warmer"
 msgstr "चालक की ओर गर्म करें"
 
-#: ../Site/DemosPage.qml:51
+#: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "हर डेमो एक पूरा Ljós ऐप है जो ljos check पास करता है, पहले से कंपाइल किया गया है और इस पेज में लगाया गया है। डेमो चलने पर हेडर में लाइट और डार्क थीम बदलें और उसे साथ बदलते देखें। कॉकपिट और स्मार्टवॉच पेजों पर लाइव सोर्स बदलें, और {shopLink} पर एक दुकान का शेल चलते-चलते फिर से लिखें। जहाँ ब्राउज़र में ज़रूरी WebAssembly या WebGL 2 नहीं है, वहाँ डेमो अपनी तस्वीर और विवरण दिखाता रहता है।"
-
-#: ../Site/DemosPage.qml:48
-msgid "front page"
-msgstr "मुख्य पेज"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"
 msgstr "अलग-अलग"
+
+#: ../Site/ShowcaseEngine.qml:311
+msgid "Edit"
+msgstr "संपादित करें"
 
 #: ../Site/CodeBlock.qml:812
 msgctxt "stage"
 msgid "Edit"
 msgstr "संपादित करें"
 
-#: ../Demos/PantryDemo.qml:287
+#: ../Demos/PantryDemo.qml:280
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Pantry का Shell.qml संपादित करें"
 
-#: ../Site/LiveSource.qml:210
+#: ../Site/LiveSource.qml:209
 msgid "Edit the running shell's QML"
 msgstr "चल रहे शेल का QML संपादित करें"
 
@@ -553,11 +597,11 @@ msgstr "चल रहे शेल का QML संपादित करें
 msgid "Edit this shell's QML"
 msgstr "इस शेल का QML संपादित करें"
 
-#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813
+#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813 ../Site/ShowcaseEngine.qml:312
 msgid "Edit {0}"
 msgstr "{0} संपादित करें"
 
-#: ../Site/ProDemoPage.qml:382
+#: ../Site/ProDemoPage.qml:430 ../Site/ShowcaseEngine.qml:401
 msgid "Edit {0} of {1}"
 msgstr "{1} में {0} संपादित करें"
 
@@ -565,19 +609,19 @@ msgstr "{1} में {0} संपादित करें"
 msgid "Edited"
 msgstr "संपादित"
 
-#: ../Shells/Workbench.qml:693
+#: ../Shells/Workbench.qml:692
 msgid "Editor"
 msgstr "संपादक"
 
-#: ../Site/Preferences.qml:28
+#: ../Site/Preferences.qml:29
 msgid "Editorial layout for reading, trying demos, and comparing specs."
 msgstr "पढ़ने, डेमो आज़माने और विशिष्टताओं की तुलना के लिए संपादकीय लेआउट।"
 
-#: ../Site/BuiltWith.qml:34 ../Site/Footer.qml:136
+#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:138
 msgid "Eldur"
 msgstr "Eldur"
 
-#: ../Site/Preferences.qml:28
+#: ../Site/Preferences.qml:29
 msgid "Elegant"
 msgstr "एलिगेंट"
 
@@ -585,11 +629,11 @@ msgstr "एलिगेंट"
 msgid "End"
 msgstr "समाप्त"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "End result, not run"
 msgstr "अंतिम परिणाम, चलाया नहीं गया"
 
-#: ../Site/Capability.qml:100
+#: ../Site/Capability.qml:99
 msgid "Example"
 msgstr "उदाहरण"
 
@@ -597,11 +641,11 @@ msgstr "उदाहरण"
 msgid "Exercise"
 msgstr "व्यायाम"
 
-#: ../Shells/Workbench.qml:761
+#: ../Shells/Workbench.qml:760
 msgid "Expand inspector"
 msgstr "इंस्पेक्टर फैलाएँ"
 
-#: ../Shells/Workbench.qml:431 ../Shells/Workbench.qml:518 ../Shells/Workbench.qml:1102
+#: ../Shells/Workbench.qml:430 ../Shells/Workbench.qml:517 ../Shells/Workbench.qml:1101
 msgid "Explorer"
 msgstr "एक्सप्लोरर"
 
@@ -641,32 +685,32 @@ msgstr "तेज़, और निष्क्रिय होने पर श
 msgid "Feeder 12 needs a crew. Find its button."
 msgstr "Feeder 12 को टीम की ज़रूरत है। उसका बटन खोजें।"
 
-#: ../Demos/FieldGuide.qml:89
+#: ../Demos/FieldGuide.qml:88
 msgid "Field guide"
 msgstr "फ़ील्ड गाइड"
 
-#: ../Shells/Desktop.qml:441
+#: ../Shells/Desktop.qml:440
 msgctxt "menu bar"
 msgid "File"
 msgstr "फ़ाइल"
 
-#: ../Shells/Desktop.qml:512
+#: ../Shells/Desktop.qml:511
 msgid "Follow system colour scheme"
 msgstr "सिस्टम रंग योजना अपनाएँ"
 
-#: ../Shells/Desktop.qml:572 ../Shells/Desktop.qml:696
+#: ../Shells/Desktop.qml:571 ../Shells/Desktop.qml:695
 msgid "Forward"
 msgstr "आगे"
 
-#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
+#: ../Shells/Cyberpunk.qml:364 ../Shells/Cyberpunk.qml:607
 msgid "Frame rate"
 msgstr "फ़्रेम दर"
 
-#: ../Shells/Cyberpunk.qml:368 ../Shells/Cyberpunk.qml:611
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate not measured yet"
 msgstr "फ़्रेम दर अभी मापी नहीं गई"
 
-#: ../Shells/Cyberpunk.qml:368 ../Shells/Cyberpunk.qml:611
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate {0} fps"
 msgstr "फ़्रेम दर {0} fps"
 
@@ -674,7 +718,7 @@ msgstr "फ़्रेम दर {0} fps"
 msgid "Frunk"
 msgstr "फ़्रंक"
 
-#: ../Site/Preferences.qml:29
+#: ../Site/Preferences.qml:30
 msgid "Full-bleed HUD console with live telemetry rails and mission-style panels."
 msgstr "लाइव टेलीमेट्री रेल और मिशन-शैली पैनल वाला फ़ुल-ब्लीड HUD कंसोल।"
 
@@ -682,7 +726,7 @@ msgstr "लाइव टेलीमेट्री रेल और मिश�
 msgid "Gear {0}"
 msgstr "गियर {0}"
 
-#: ../Demos/Lottie.qml:98
+#: ../Demos/Lottie.qml:97
 msgid "Genie (plays once)"
 msgstr "जिन्न (एक बार)"
 
@@ -690,15 +734,15 @@ msgstr "जिन्न (एक बार)"
 msgid "Get started"
 msgstr "शुरू करें"
 
-#: ../Shells/Desktop.qml:612
+#: ../Shells/Desktop.qml:611
 msgid "Getting started guide"
 msgstr "प्रारंभिक मार्गदर्शिका"
 
-#: ../Site/Footer.qml:117
+#: ../Site/Footer.qml:119
 msgid "GitHub"
 msgstr "GitHub"
 
-#: ../Demos/WatchDemo.qml:160
+#: ../Demos/WatchDemo.qml:159
 msgid "Give the watch its other screen"
 msgstr "घड़ी को उसकी दूसरी स्क्रीन दें"
 
@@ -706,20 +750,20 @@ msgstr "घड़ी को उसकी दूसरी स्क्रीन �
 msgid "Glow"
 msgstr "चमक"
 
-#: ../Shells/Desktop.qml:559
+#: ../Shells/Desktop.qml:558
 msgctxt "menu bar"
 msgid "Go"
 msgstr "जाएँ"
 
-#: ../Shells/Desktop.qml:697
+#: ../Shells/Desktop.qml:696
 msgid "Go to next route"
 msgstr "अगले रूट पर जाएँ"
 
-#: ../Shells/Desktop.qml:691
+#: ../Shells/Desktop.qml:690
 msgid "Go to previous route"
 msgstr "पिछले रूट पर जाएँ"
 
-#: ../Site/Landing.qml:397
+#: ../Site/Landing.qml:427
 msgid "Goals and principles"
 msgstr "लक्ष्य और सिद्धांत"
 
@@ -727,13 +771,21 @@ msgstr "लक्ष्य और सिद्धांत"
 msgid "Grid face"
 msgstr "ग्रिड फ़ेस"
 
-#: ../Demos/Lottie.qml:114
+#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:140
+msgid "HAL-C2"
+msgstr "HAL-C2"
+
+#: ../Demos/Lottie.qml:113
 msgid "HAL-C2's dancing avatar, looping"
 msgstr "HAL-C2 का नाचता अवतार, लगातार लूप में"
 
-#: ../Demos/Lottie.qml:126
+#: ../Demos/Lottie.qml:130
 msgid "HAL-C2's genie avatar, plays once"
 msgstr "HAL-C2 का जिन्न अवतार, एक बार चलता है"
+
+#: ../Site/BuiltWith.qml:65
+msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
+msgstr "Ljós पर HAL-C2 की रूप-रंग सेटिंग: बाईं ओर सेटिंग के खंड, System/Light/Dark रंग योजना के विकल्प और थीम की एक सूची, जिसमें HAL-C2 चुनी हुई है।"
 
 #: ../Demos/Watch/HeartPage.qml:13
 msgid "HEART"
@@ -755,24 +807,24 @@ msgstr "हृदय गति, पिछले {0} सेकंड"
 msgid "Heating"
 msgstr "हीटिंग"
 
-#: ../Shells/Desktop.qml:604
+#: ../Shells/Desktop.qml:603
 msgctxt "menu bar"
 msgid "Help"
 msgstr "सहायता"
 
-#: ../Shells/Desktop.qml:702 ../Shells/Desktop.qml:827 ../Site/Router.qml:47 ../Site/Router.qml:81
+#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:826 ../Site/Router.qml:48 ../Site/Router.qml:82
 msgid "Home"
 msgstr "होम"
 
-#: ../Shells/Desktop.qml:1098 ../Shells/Workbench.qml:1056
+#: ../Shells/Desktop.qml:1097 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr "{0} ms में हाइड्रेटेड"
 
-#: ../Demos/FieldGuide.qml:261
+#: ../Demos/FieldGuide.qml:260
 msgid "I have seen this one"
 msgstr "मैंने इसे देखा है"
 
-#: ../Site/Preferences.qml:30
+#: ../Site/Preferences.qml:31
 msgid "IDE-style workspace with file tree, tabbed centre pane, and inspector docks."
 msgstr "फ़ाइल ट्री, टैब वाले मध्य फलक और इंस्पेक्टर डॉक्स वाला IDE-शैली कार्यक्षेत्र।"
 
@@ -792,11 +844,11 @@ msgstr "{0, plural, one {# मील} other {# मील}} आगे, {1}, {2} �
 msgid "Inspect every node, patch state in flight, drop a new shell on the wire."
 msgstr "हर नोड की जाँच करें, चलते समय स्टेट पैच करें, तुरंत नया शेल लागू करें।"
 
-#: ../Demos/AgentView.qml:576
+#: ../Demos/AgentView.qml:575
 msgid "Inspect {0}"
 msgstr "{0} की जाँच करें"
 
-#: ../Shells/Workbench.qml:797 ../Shells/Workbench.qml:1104
+#: ../Shells/Workbench.qml:796 ../Shells/Workbench.qml:1103
 msgid "Inspector"
 msgstr "इंस्पेक्टर"
 
@@ -804,7 +856,7 @@ msgstr "इंस्पेक्टर"
 msgid "It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href=\"/start/mcp/\">Connect an agent</a>."
 msgstr "यह स्क्रीन पर दिखने वाली सामग्री पढ़ सकता है, बटन दबा सकता है, टाइप कर सकता है और जाँच सकता है कि बदलाव काम किए या नहीं। आप चुनते हैं कि इसे क्या करने की अनुमति है। <a href=\"/start/mcp/\">एजेंट कनेक्ट करें</a>।"
 
-#: ../Site/ProDemoPage.qml:228
+#: ../Site/ProDemoPage.qml:236
 msgid "Its files"
 msgstr "इसकी फ़ाइलें"
 
@@ -819,6 +871,10 @@ msgstr "जुला"
 #: ../Demos/Watch/Watch.qml:429
 msgid "JUN"
 msgstr "जून"
+
+#: ../Demos/PantryShell.qml:125
+msgid "Jam · £{0}"
+msgstr "जैम · £{0}"
 
 #: ../Demos/Watch/WorkoutPage.qml:122
 msgid "KCAL"
@@ -852,9 +908,13 @@ msgstr "लेन सहायता तैयार"
 msgid "Language"
 msgstr "भाषा"
 
-#: ../Site/LanguageSwitcher.qml:58
+#: ../Site/LanguageSwitcher.qml:60
 msgid "Language: {0}"
 msgstr "भाषा: {0}"
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "भाषा: {languageName} – दूसरी चुनें"
 
 #: ../Demos/Watch/StopwatchPage.qml:56
 msgid "Lap"
@@ -864,11 +924,15 @@ msgstr "लैप"
 msgid "Lap {0}   {1}"
 msgstr "लैप {0}   {1}"
 
-#: ../Site/HeroApp.qml:15 ../Site/HeroApp.qml:39
+#: ../Site/HeroApp.qml:14 ../Site/HeroApp.qml:38
 msgid "Launch week"
 msgstr "लॉन्च सप्ताह"
 
-#: ../Site/Footer.qml:91
+#: ../Demos/Motion.qml:27
+msgid "Lazy"
+msgstr "आलसी"
+
+#: ../Site/Footer.qml:93
 msgid "Learn"
 msgstr "सीखें"
 
@@ -876,23 +940,23 @@ msgstr "सीखें"
 msgid "Left door"
 msgstr "बायाँ दरवाज़ा"
 
-#: ../Demos/FieldGuide.qml:201
+#: ../Demos/FieldGuide.qml:200
 msgid "Length"
 msgstr "लंबाई"
 
-#: ../Demos/WatchDemo.qml:204
+#: ../Demos/WatchDemo.qml:203
 msgid "Lets the watch rest on its always-on face, as it does by itself after fifteen seconds"
 msgstr "घड़ी को उसके हमेशा चालू फ़ेस पर विश्राम करने देता है, जैसे वह पंद्रह सेकंड बाद स्वयं करती है"
 
-#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:35
+#: ../Demos/Cockpit/SettingsPanel.qml:53 ../Site/Preferences.qml:36
 msgid "Light"
 msgstr "लाइट"
 
-#: ../Shells/Desktop.qml:500
+#: ../Shells/Desktop.qml:499
 msgid "Light colour scheme"
 msgstr "लाइट रंग योजना"
 
-#: ../Site/DemosPage.qml:158
+#: ../Site/DemosPage.qml:173
 msgid "Light pooling over a card of text, following the pointer."
 msgstr "पॉइंटर के पीछे चलते हुए टेक्स्ट कार्ड पर फैलती रोशनी।"
 
@@ -900,11 +964,11 @@ msgstr "पॉइंटर के पीछे चलते हुए टेक�
 msgid "Linked"
 msgstr "लिंक किया गया"
 
-#: ../Demos/AgentView.qml:163
+#: ../Demos/AgentView.qml:162
 msgid "List"
 msgstr "सूची"
 
-#: ../Demos/AgentView.qml:164
+#: ../Demos/AgentView.qml:163
 msgid "List layout"
 msgstr "सूची लेआउट"
 
@@ -912,7 +976,7 @@ msgstr "सूची लेआउट"
 msgid "Live app"
 msgstr "लाइव ऐप"
 
-#: ../Site/DemosPage.qml:45 ../Site/Landing.qml:388
+#: ../Site/DemosPage.qml:44 ../Site/Landing.qml:418
 msgid "Live demos"
 msgstr "लाइव डेमो"
 
@@ -928,23 +992,23 @@ msgstr "ओपन ट्री पर लाइव रनटाइम"
 msgid "Live stage"
 msgstr "लाइव स्टेज"
 
-#: ../Site/Footer.qml:62 ../Site/Router.qml:47
+#: ../Site/Footer.qml:64 ../Site/Router.qml:48
 msgid "Ljós"
 msgstr "Ljós"
 
-#: ../Site/BuiltWith.qml:43 ../Site/Footer.qml:137
+#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:139
 msgid "Ljós Hof"
 msgstr "Ljós Hof"
 
-#: ../Site/BuiltWith.qml:48
+#: ../Site/BuiltWith.qml:54
 msgid "Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right."
 msgstr "साथ-साथ दो फलकों के साथ Ljós Hof: बाईं ओर फ़ोकस किए गए फलक में git log, और दाईं ओर एक डायरेक्टरी सूची।"
 
-#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:135
+#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:137
 msgid "Ljós Studio"
 msgstr "Ljós Studio"
 
-#: ../Site/BuiltWith.qml:30
+#: ../Site/BuiltWith.qml:32
 msgid "Ljós Studio with a rectangle selected on the canvas: the layers on the left, its properties on the right and its QML under the canvas."
 msgstr "कैनवास पर चुने गए एक आयत के साथ Ljós Studio: बाईं ओर परतें, दाईं ओर इसके गुण और कैनवास के नीचे इसका QML।"
 
@@ -952,19 +1016,19 @@ msgstr "कैनवास पर चुने गए एक आयत के �
 msgid "Ljós is a Rust UI toolkit for apps that people and their agents can change live, with declarative interfaces and typed TypeScript."
 msgstr "Ljós एक Rust UI टूलकिट है ऐसे ऐप्स के लिए जिन्हें लोग और उनके एजेंट डिक्लेरेटिव इंटरफ़ेस और टाइप्ड TypeScript के साथ चलते-चलते बदल सकते हैं।"
 
-#: ../Site/GitHubMark.qml:27
+#: ../Site/GitHubMark.qml:28
 msgid "Ljós on GitHub"
 msgstr "GitHub पर Ljós"
 
-#: ../Site/Landing.qml:335
+#: ../Site/Landing.qml:365
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr "Ljós <a href=\"https://community-software.org/\">Community Software</a> के सिद्धांतों का पालन करने का प्रयास करता है: हम इसे साथ मिलकर, बराबरी से, खुले में बनाते हैं।<br><br>सभी का स्वागत है।<br>हम सब बराबर हैं।<br>हर योगदान मायने रखता है।<br>प्रभाव भागीदारी से बढ़ता है।<br>लोगों के प्रति दयालु रहें, विचारों के प्रति सटीक।<br>“नहीं” और “अभी नहीं” वैध उत्तर हैं।<br>अपना और एक-दूसरे का ध्यान रखें।<br><br>कोड मदद करने का एक तरीका है। परीक्षण, दस्तावेज़, डिज़ाइन, अनुवाद और एक्सेसिबिलिटी समीक्षाएँ भी उतनी ही महत्वपूर्ण हैं, और नए लोगों के प्रश्नों का स्वागत है।"
 
-#: ../Shells/Desktop.qml:643
+#: ../Shells/Desktop.qml:642
 msgid "Ljós — {0}"
 msgstr "Ljós — {0}"
 
-#: ../Site/Brand.qml:25
+#: ../Site/Brand.qml:26
 msgid "Ljós, home"
 msgstr "Ljós, होम"
 
@@ -980,7 +1044,7 @@ msgstr "रूप"
 msgid "Look at the app before changing it."
 msgstr "बदलने से पहले ऐप को देखें।"
 
-#: ../Site/DemosPage.qml:222
+#: ../Site/DemosPage.qml:109 ../Site/Landing.qml:246
 msgid "Lottie animations"
 msgstr "Lottie एनीमेशन"
 
@@ -1000,11 +1064,11 @@ msgstr "मार्च"
 msgid "MAY"
 msgstr "मई"
 
-#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:1017
+#: ../Shells/Workbench.qml:897 ../Shells/Workbench.qml:1016
 msgid "MCP log"
 msgstr "MCP लॉग"
 
-#: ../Shells/Desktop.qml:616
+#: ../Shells/Desktop.qml:615
 msgid "MCP servers for agents"
 msgstr "एजेंटों के लिए MCP सर्वर"
 
@@ -1012,7 +1076,7 @@ msgstr "एजेंटों के लिए MCP सर्वर"
 msgid "MI LEFT"
 msgstr "शेष MI"
 
-#: ../Site/Footer.qml:120
+#: ../Site/Footer.qml:122
 msgid "MIT licence"
 msgstr "MIT लाइसेंस"
 
@@ -1036,7 +1100,7 @@ msgstr "सूची को बोर्ड बनाएँ: board.ts संप�
 msgid "Malleable"
 msgstr "लचीला"
 
-#: ../Site/Footer.qml:67
+#: ../Site/Footer.qml:69
 msgid "Malleable software, everywhere."
 msgstr "लचीला सॉफ़्टवेयर, हर जगह।"
 
@@ -1048,11 +1112,11 @@ msgstr "मानचित्र: {0} का मार्ग"
 msgid "Media"
 msgstr "मीडिया"
 
-#: ../Shells/Cyberpunk.qml:632 ../Shells/Desktop.qml:1193 ../Shells/Elegant.qml:205 ../Shells/Workbench.qml:1205 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1192 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "मेनू"
 
-#: ../Shells/Desktop.qml:435
+#: ../Shells/Desktop.qml:434
 msgid "Menu bar"
 msgstr "मेनू बार"
 
@@ -1060,7 +1124,7 @@ msgstr "मेनू बार"
 msgid "Message"
 msgstr "संदेश"
 
-#: ../Shells/Cyberpunk.qml:55
+#: ../Shells/Cyberpunk.qml:53
 msgid "Metrics"
 msgstr "मेट्रिक्स"
 
@@ -1100,7 +1164,7 @@ msgstr "अभी बज रहा है"
 msgid "Navigation"
 msgstr "नेविगेशन"
 
-#: ../Site/HeroStage.qml:262
+#: ../Site/HeroStage.qml:261
 msgid "Next step"
 msgstr "अगला चरण"
 
@@ -1112,19 +1176,19 @@ msgstr "अगला ट्रैक"
 msgid "Next: {0}"
 msgstr "अगला: {0}"
 
-#: ../Shells/Workbench.qml:929
+#: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
 msgstr "खुली फ़ाइल में कोई कंपाइलर या लिंट निदान नहीं है।"
 
-#: ../Demos/DispatchCard.qml:352
+#: ../Demos/DispatchCard.qml:351
 msgid "No crew"
 msgstr "कोई टीम नहीं"
 
-#: ../Pantry/Note.qml:17
+#: ../Pantry/Note.qml:16
 msgid "Note for the baker"
 msgstr "बेकर के लिए नोट"
 
-#: ../Pantry/Note.qml:18
+#: ../Pantry/Note.qml:17
 msgid "Note for the baker…"
 msgstr "बेकर के लिए नोट…"
 
@@ -1136,7 +1200,7 @@ msgstr "अभी कुछ नहीं बनाया गया है।"
 msgid "Nothing drawn yet. Run it to see what it does."
 msgstr "अभी कुछ नहीं बनाया गया है। देखने के लिए इसे चलाएँ।"
 
-#: ../Site/SearchResults.qml:39
+#: ../Site/SearchResults.qml:41
 msgid "Nothing matches “{query}”. Try a type name, like ListView."
 msgstr "“{query}” से कुछ मेल नहीं खाता। किसी टाइप का नाम आज़माएँ, जैसे ListView।"
 
@@ -1152,27 +1216,27 @@ msgstr "अक्टू"
 msgid "OUTDOOR RUN"
 msgstr "आउटडोर दौड़"
 
-#: ../Shells/Cyberpunk.qml:600
+#: ../Shells/Cyberpunk.qml:598
 msgid "Objects"
 msgstr "ऑब्जेक्ट्स"
 
-#: ../Shells/Cyberpunk.qml:360
+#: ../Shells/Cyberpunk.qml:358
 msgid "Objects alive"
 msgstr "सक्रिय ऑब्जेक्ट्स"
 
-#: ../Shells/Cyberpunk.qml:362 ../Shells/Cyberpunk.qml:602
+#: ../Shells/Cyberpunk.qml:360 ../Shells/Cyberpunk.qml:600
 msgid "Objects alive {0}"
 msgstr "सक्रिय ऑब्जेक्ट्स {0}"
 
-#: ../Shells/Desktop.qml:1104
+#: ../Shells/Desktop.qml:1103
 msgid "Objects alive: {0}"
 msgstr "सक्रिय ऑब्जेक्ट्स: {0}"
 
-#: ../Shells/Workbench.qml:1069 ../Shells/Workbench.qml:1184
+#: ../Shells/Workbench.qml:1068 ../Shells/Workbench.qml:1183
 msgid "Objects: {0}"
 msgstr "ऑब्जेक्ट्स: {0}"
 
-#: ../Demos/AgentView.qml:330 ../Shells/Desktop.qml:727 ../Shells/Workbench.qml:439 ../Site/HeroStage.qml:26 ../Site/ObserverDock.qml:122 ../Site/ObserverDock.qml:174
+#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:726 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
 msgid "Observer"
 msgstr "ऑब्ज़र्वर"
 
@@ -1181,15 +1245,15 @@ msgctxt "stage"
 msgid "Observer"
 msgstr "ऑब्ज़र्वर"
 
-#: ../Demos/PantryDemo.qml:250
+#: ../Demos/PantryDemo.qml:243
 msgid "Observer for the Pantry"
 msgstr "Pantry के लिए ऑब्ज़र्वर"
 
-#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:295
+#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:300
 msgid "Observer for {0}"
 msgstr "{0} के लिए ऑब्ज़र्वर"
 
-#: ../Shells/Desktop.qml:620
+#: ../Shells/Desktop.qml:619
 msgid "Observer guide"
 msgstr "ऑब्ज़र्वर गाइड"
 
@@ -1197,7 +1261,7 @@ msgstr "ऑब्ज़र्वर गाइड"
 msgid "Observer tree"
 msgstr "ऑब्ज़र्वर ट्री"
 
-#: ../Site/ObserverDock.qml:174
+#: ../Site/ObserverDock.qml:173
 msgid "Observer · {0}"
 msgstr "ऑब्ज़र्वर · {0}"
 
@@ -1209,15 +1273,15 @@ msgstr "बंद"
 msgid "On"
 msgstr "चालू"
 
-#: ../Main.qml:668 ../Site/Toc.qml:22 ../Site/Toc.qml:25
+#: ../Main.qml:689 ../Site/Toc.qml:24 ../Site/Toc.qml:27
 msgid "On this page"
 msgstr "इस पेज पर"
 
-#: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
+#: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:362
 msgid "On-call crew"
 msgstr "ऑन-कॉल टीम"
 
-#: ../Site/DemosPage.qml:145
+#: ../Site/DemosPage.qml:160
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
 msgstr "चलने के बाद, रोशनी हिलाने के लिए पॉइंटर को कार्ड पर घुमाएँ और रंग बदलने के लिए टैप करें। शेडर किसी पूर्व-रेंडर टेक्सचर के बजाय लाइव ऐप सामग्री पर चलता है और पेज की लाइट व डार्क थीम का पालन करता है।"
 
@@ -1229,47 +1293,47 @@ msgstr "एक मिनट कम"
 msgid "One minute more"
 msgstr "एक मिनट अधिक"
 
-#: ../Demos/DispatchCard.qml:332
+#: ../Demos/DispatchCard.qml:331
 msgid "Open"
 msgstr "खुला"
 
-#: ../Site/Landing.qml:381
+#: ../Site/Landing.qml:411
 msgid "Open a window, then change it while it runs."
 msgstr "एक विंडो खोलें, फिर चलते हुए उसे बदलें।"
 
-#: ../Shells/Desktop.qml:466
+#: ../Shells/Desktop.qml:465
 msgid "Open benchmarks"
 msgstr "बेंचमार्क खोलें"
 
-#: ../Shells/Desktop.qml:454
+#: ../Shells/Desktop.qml:453
 msgid "Open demos"
 msgstr "डेमो खोलें"
 
-#: ../Shells/Desktop.qml:471
+#: ../Shells/Desktop.qml:470
 msgid "Open documentation"
 msgstr "दस्तावेज़ खोलें"
 
-#: ../Shells/Workbench.qml:711
+#: ../Shells/Workbench.qml:710
 msgid "Open files"
 msgstr "खुली फ़ाइलें"
 
-#: ../Shells/Desktop.qml:449
+#: ../Shells/Desktop.qml:448
 msgid "Open home"
 msgstr "होम खोलें"
 
-#: ../Shells/Desktop.qml:703
+#: ../Shells/Desktop.qml:702
 msgid "Open landing page"
 msgstr "मुख्य पृष्ठ खोलें"
 
-#: ../Shells/Desktop.qml:722
+#: ../Shells/Desktop.qml:721
 msgid "Open native desktop benchmark tables"
 msgstr "नेटिव डेस्कटॉप बेंचमार्क तालिकाएँ खोलें"
 
-#: ../Shells/Desktop.qml:959 ../Shells/Desktop.qml:1044
+#: ../Shells/Desktop.qml:958 ../Shells/Desktop.qml:1043
 msgid "Open pages"
 msgstr "खुले पृष्ठ"
 
-#: ../Shells/Desktop.qml:459
+#: ../Shells/Desktop.qml:458
 msgid "Open showcase"
 msgstr "शोकेस खोलें"
 
@@ -1281,7 +1345,7 @@ msgstr "अपने ऐप के हर हिस्से, उसके म�
 msgid "Open the message from {0}"
 msgstr "{0} का संदेश खोलें"
 
-#: ../Demos/WatchDemo.qml:190
+#: ../Demos/WatchDemo.qml:189
 msgid "Other face"
 msgstr "दूसरा फ़ेस"
 
@@ -1289,11 +1353,11 @@ msgstr "दूसरा फ़ेस"
 msgid "Our benchmark mail app shows its first frame in under 90 ms, uses under 24 MiB of private memory, and takes 0 % CPU when idle.<br><br>These are <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">native numbers</a> from Linux on 10 Nov 2026. They don’t measure this web page."
 msgstr "हमारा बेंचमार्क मेल ऐप 90 ms से कम में अपना पहला फ़्रेम दिखाता है, 24 MiB से कम प्राइवेट मेमोरी उपयोग करता है, और निष्क्रिय रहने पर 0 % CPU लेता है।<br><br>ये 10 नवं 2026 को Linux पर लिए गए <a href=\"https://github.com/hal-c2/ljos-ui/blob/main/docs/BENCHMARKS.md\">नेटिव आँकड़े</a> हैं। ये इस वेब पेज को नहीं मापते।"
 
-#: ../Shells/Workbench.qml:898
+#: ../Shells/Workbench.qml:897
 msgid "Output"
 msgstr "आउटपुट"
 
-#: ../Shells/Desktop.qml:822
+#: ../Shells/Desktop.qml:821
 msgid "Overview"
 msgstr "अवलोकन"
 
@@ -1301,15 +1365,15 @@ msgstr "अवलोकन"
 msgid "PAUSED"
 msgstr "रुका हुआ"
 
-#: ../Shells/Desktop.qml:1042
+#: ../Shells/Desktop.qml:1041
 msgid "Page"
 msgstr "पृष्ठ"
 
-#: ../Shells/Desktop.qml:810 ../Shells/Desktop.qml:1043 ../Site/PageTree.qml:20
+#: ../Shells/Desktop.qml:809 ../Shells/Desktop.qml:1042 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr "पृष्ठ"
 
-#: ../Shells/Workbench.qml:895
+#: ../Shells/Workbench.qml:894
 msgid "Panel"
 msgstr "पैनल"
 
@@ -1337,11 +1401,11 @@ msgstr "यात्री {0} पर सेट"
 msgid "Passenger warmer"
 msgstr "यात्री की ओर गर्म करें"
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:264 ../Site/ReplayFrame.qml:107 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Demos/Watch/WorkoutPage.qml:149 ../Site/DemoFrame.qml:269 ../Site/ReplayFrame.qml:106 ../Site/ShowcaseApp.qml:197
 msgid "Pause"
 msgstr "रोकें"
 
-#: ../Demos/Lottie.qml:145
+#: ../Demos/Lottie.qml:154
 msgid "Pause both avatars"
 msgstr "दोनों अवतार रोकें"
 
@@ -1353,23 +1417,23 @@ msgstr "{0} की रिकॉर्डिंग रोकें"
 msgid "Pause timer"
 msgstr "टाइमर रोकें"
 
-#: ../Site/DemoFrame.qml:277 ../Site/ReplayFrame.qml:123
+#: ../Site/DemoFrame.qml:282 ../Site/ReplayFrame.qml:122
 msgid "Pause {0}"
 msgstr "{0} रोकें"
 
-#: ../Demos/AgentView.qml:645
+#: ../Demos/AgentView.qml:644
 msgid "Pick an object to see its properties."
 msgstr "इसके गुण देखने के लिए कोई ऑब्जेक्ट चुनें।"
 
-#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:159 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
+#: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
 msgid "Play"
 msgstr "चलाएँ"
 
-#: ../Demos/Lottie.qml:145
+#: ../Demos/Lottie.qml:154
 msgid "Play both avatars"
 msgstr "दोनों अवतार चलाएँ"
 
-#: ../Demos/Lottie.qml:175
+#: ../Demos/Lottie.qml:184
 msgid "Play the genie avatar again"
 msgstr "जिन्न अवतार दोबारा चलाएँ"
 
@@ -1377,23 +1441,19 @@ msgstr "जिन्न अवतार दोबारा चलाएँ"
 msgid "Play the recording of {0}"
 msgstr "{0} की रिकॉर्डिंग चलाएँ"
 
-#: ../Demos/Lottie.qml:214
+#: ../Demos/Lottie.qml:223
 msgid "Playback speed {modelData}×"
 msgstr "प्लेबैक गति {modelData}×"
 
-#: ../Site/Search.qml:163
+#: ../Site/Search.qml:164
 msgid "Press / to search"
 msgstr "खोजने के लिए / दबाएँ"
-
-#: ../Site/DemosPage.qml:223
-msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
-msgstr "चलाने पर प्लेयर और दो Lottie फ़ाइलें (HAL-C2 के अवतार) लोड होती हैं, जिन्हें Ljós बिना किसी JavaScript Lottie लाइब्रेरी के पढ़ता और चित्रित करता है। लूप में चलने वाले डांस और एक बार चलने वाले जिन्न को नियंत्रित करने के लिए “रोकें”, “दोबारा” और गति बटन आज़माएँ। कम गति चालू होने पर दोनों आधी गति से चलते हैं, स्क्रीन से बाहर होने पर रुक जाते हैं, और निष्क्रिय रहने पर CPU उपयोग नहीं करते।"
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
 msgstr "इसे ऐसे दबाएँ जैसे कोई व्यक्ति दबाता।"
 
-#: ../Shells/Workbench.qml:1103
+#: ../Shells/Workbench.qml:1102
 msgid "Preview"
 msgstr "पूर्वावलोकन"
 
@@ -1405,11 +1465,11 @@ msgstr "पिछला ट्रैक"
 msgid "Previous: {0}"
 msgstr "पिछला: {0}"
 
-#: ../Shells/Workbench.qml:898 ../Shells/Workbench.qml:947 ../Shells/Workbench.qml:1105
+#: ../Shells/Workbench.qml:897 ../Shells/Workbench.qml:946 ../Shells/Workbench.qml:1104
 msgid "Problems"
 msgstr "समस्याएँ"
 
-#: ../Site/Footer.qml:108
+#: ../Site/Footer.qml:110
 msgid "Project"
 msgstr "प्रोजेक्ट"
 
@@ -1425,11 +1485,11 @@ msgstr "आवाज़ कम करें"
 msgid "RUN COMPLETE"
 msgstr "दौड़ पूरी हुई"
 
-#: ../Shells/Workbench.qml:996
+#: ../Shells/Workbench.qml:995
 msgid "Recorded MCP calls appear here as you step the agent replay."
 msgstr "जैसे-जैसे आप एजेंट रीप्ले के चरण आगे बढ़ाते हैं, रिकॉर्ड किए गए MCP कॉल यहाँ दिखते हैं।"
 
-#: ../Site/HeroStage.qml:241
+#: ../Site/HeroStage.qml:240
 msgid "Recorded replay"
 msgstr "रिकॉर्डेड रीप्ले"
 
@@ -1437,23 +1497,35 @@ msgstr "रिकॉर्डेड रीप्ले"
 msgid "Recorded running"
 msgstr "चलते हुए रिकॉर्ड किया गया"
 
-#: ../Shells/Desktop.qml:519 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:518 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr "गति कम करें"
 
-#: ../Shells/Cyberpunk.qml:373
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "गति कम करें: बंद – कम गति उपयोग करें"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "गति कम करें: चालू – पूरी गति उपयोग करें"
+
+#: ../Demos/Motion.qml:351
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr "कम मोशन चालू है: स्प्रिंग धीरे चलती हैं और कभी छल्ले से आगे नहीं झूलतीं।"
+
+#: ../Shells/Cyberpunk.qml:371
 msgid "Renderer"
 msgstr "रेंडरर"
 
-#: ../Shells/Cyberpunk.qml:375
+#: ../Shells/Cyberpunk.qml:373
 msgid "Renderer {0}"
 msgstr "रेंडरर {0}"
 
-#: ../Shells/Desktop.qml:1120 ../Shells/Workbench.qml:1063 ../Shells/Workbench.qml:1191
+#: ../Shells/Desktop.qml:1119 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr "रेंडरर: {0}"
 
-#: ../Demos/AgentView.qml:321
+#: ../Demos/AgentView.qml:320
 msgid "Replay views"
 msgstr "रीप्ले दृश्य"
 
@@ -1461,23 +1533,23 @@ msgstr "रीप्ले दृश्य"
 msgid "Replay · no live agent"
 msgstr "रीप्ले · लाइव एजेंट नहीं"
 
-#: ../Demos/PantryDemo.qml:234 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:151 ../Site/ShellSource.qml:172
+#: ../Demos/PantryDemo.qml:227 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "रीसेट करें"
 
-#: ../Site/HeroStage.qml:256
+#: ../Site/HeroStage.qml:255
 msgid "Reset demo"
 msgstr "डेमो रीसेट करें"
 
-#: ../Shells/Desktop.qml:482
+#: ../Shells/Desktop.qml:481
 msgid "Reset demo state"
 msgstr "डेमो स्थिति रीसेट करें"
 
-#: ../Site/ProDemoPage.qml:325
+#: ../Site/ProDemoPage.qml:373
 msgid "Reset every file"
 msgstr "सभी फ़ाइलें रीसेट करें"
 
-#: ../Demos/PantryDemo.qml:235
+#: ../Demos/PantryDemo.qml:228
 msgid "Reset to the app's shell"
 msgstr "ऐप के शेल पर रीसेट करें"
 
@@ -1485,11 +1557,15 @@ msgstr "ऐप के शेल पर रीसेट करें"
 msgid "Reset {0} to as written"
 msgstr "{0} को मूल रूप में रीसेट करें"
 
+#: ../Site/ShowcaseEngine.qml:372
+msgid "Reset {0} to its file"
+msgstr "{0} को उसकी फ़ाइल पर रीसेट करें"
+
 #: ../Site/Landing.qml:53
 msgid "Reshape the running interface, human or agent."
 msgstr "चलते इंटरफ़ेस को नया रूप दें, चाहे इंसान हो या एजेंट।"
 
-#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:266 ../Site/ReplayFrame.qml:100 ../Site/ReplayFrame.qml:109
+#: ../Demos/Watch/TimerPage.qml:98 ../Demos/Watch/WorkoutPage.qml:157 ../Site/DemoFrame.qml:271 ../Site/ReplayFrame.qml:99 ../Site/ReplayFrame.qml:108
 msgid "Resume"
 msgstr "जारी रखें"
 
@@ -1497,11 +1573,11 @@ msgstr "जारी रखें"
 msgid "Resume timer"
 msgstr "टाइमर जारी रखें"
 
-#: ../Site/DemoFrame.qml:279 ../Site/ReplayFrame.qml:116 ../Site/ReplayFrame.qml:125
+#: ../Site/DemoFrame.qml:284 ../Site/ReplayFrame.qml:115 ../Site/ReplayFrame.qml:124
 msgid "Resume {0}"
 msgstr "{0} जारी रखें"
 
-#: ../Site/LiveSource.qml:181
+#: ../Site/LiveSource.qml:180
 msgid "Retry"
 msgstr "पुनः प्रयास करें"
 
@@ -1513,42 +1589,46 @@ msgstr "दायाँ दरवाज़ा"
 msgid "Room Hekla, with the hardware team. The prototype boards came in this morning."
 msgstr "कमरा Hekla, हार्डवेयर टीम के साथ। प्रोटोटाइप बोर्ड आज सुबह आ गए।"
 
-#: ../Demos/WatchDemo.qml:159
+#: ../Demos/WatchDemo.qml:158
 msgid "Round, 454"
 msgstr "गोल, 454"
 
-#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
+#: ../Shells/Cyberpunk.qml:345 ../Shells/Cyberpunk.qml:589
 msgid "Route"
 msgstr "रूट"
 
-#: ../Shells/Cyberpunk.qml:349 ../Shells/Cyberpunk.qml:593
+#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
 msgid "Route {0}"
 msgstr "रूट {0}"
 
-#: ../Shells/Desktop.qml:1091 ../Shells/Workbench.qml:1163
+#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr "रूट: {0}"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:268 ../Site/ReplayFrame.qml:111
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
 msgctxt "stage"
 msgid "Run"
 msgstr "चलाएँ"
 
-#: ../Site/ReplayFrame.qml:100
+#: ../Site/ReplayFrame.qml:99
 msgid "Run again"
 msgstr "फिर चलाएँ"
 
-#: ../Site/ReplayFrame.qml:116
+#: ../Site/ReplayFrame.qml:115
 msgid "Run again: {0}"
 msgstr "फिर चलाएँ: {0}"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:281 ../Site/ReplayFrame.qml:127
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "{0} चलाएँ"
 
 #: ../Demos/Cockpit/SettingsPanel.qml:118 ../Site/DeviceFrame.qml:33
 msgid "Running"
 msgstr "चल रहा है"
+
+#: ../Site/DemosPage.qml:110 ../Site/Landing.qml:247
+msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
+msgstr "चलाने पर प्लेयर और दो Lottie फ़ाइलें (HAL-C2 के अवतार) लोड होती हैं, जिन्हें Ljós बिना किसी JavaScript Lottie लाइब्रेरी के पढ़ता और चित्रित करता है। लूप में चलने वाले डांस और एक बार चलने वाले जिन्न को नियंत्रित करने के लिए “रोकें”, “दोबारा” और गति बटन आज़माएँ। कम गति चालू होने पर दोनों आधी गति से चलते हैं, स्क्रीन से बाहर होने पर रुक जाते हैं, और निष्क्रिय रहने पर CPU उपयोग नहीं करते।"
 
 #: ../Demos/Watch/Watch.qml:424
 msgid "SAT"
@@ -1566,27 +1646,27 @@ msgstr "स्टॉपवॉच"
 msgid "SUN"
 msgstr "रवि"
 
-#: ../Site/ShellChoices.qml:51
+#: ../Site/ShellChoices.qml:50
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "वही ऐप, अलग शेल। बदलने पर आपका रूट, स्क्रॉल स्थान और चलते हुए डेमो बने रहते हैं।"
 
-#: ../Shells/Desktop.qml:775
+#: ../Shells/Desktop.qml:774
 msgid "Scheme"
 msgstr "योजना"
 
-#: ../Site/Search.qml:162
+#: ../Site/Search.qml:163
 msgid "Search"
 msgstr "खोजें"
 
-#: ../Demos/FieldGuide.qml:97
+#: ../Demos/FieldGuide.qml:96
 msgid "Search by name…"
 msgstr "नाम से खोजें…"
 
-#: ../Site/Search.qml:111
+#: ../Site/Search.qml:112
 msgid "Search docs and demos"
 msgstr "दस्तावेज़ और डेमो खोजें"
 
-#: ../Site/SearchResults.qml:22
+#: ../Site/SearchResults.qml:24
 msgid "Search results"
 msgstr "खोज परिणाम"
 
@@ -1598,7 +1678,7 @@ msgstr "सीट बंद"
 msgid "Seat {0}"
 msgstr "सीट {0}"
 
-#: ../Shells/Cyberpunk.qml:426
+#: ../Shells/Cyberpunk.qml:424
 msgid "Sections"
 msgstr "अनुभाग"
 
@@ -1610,7 +1690,7 @@ msgstr "चलते ऐप के भीतर देखें"
 msgid "See it run"
 msgstr "इसे चलते देखें"
 
-#: ../Demos/FieldGuide.qml:281
+#: ../Demos/FieldGuide.qml:280
 msgid "Seen {0} of {1}"
 msgstr "{1} में से {0} देखे गए"
 
@@ -1622,7 +1702,7 @@ msgstr "सेटिंग्स"
 msgid "Shader canvas. Move the pointer to stir the light; tap to change the colours."
 msgstr "शेडर कैनवास। रोशनी हिलाने के लिए पॉइंटर घुमाएँ; रंग बदलने के लिए टैप करें।"
 
-#: ../Site/ShellChoices.qml:40 ../Site/ShellSource.qml:82
+#: ../Site/ShellChoices.qml:39 ../Site/ShellSource.qml:82
 msgid "Shell"
 msgstr "शेल"
 
@@ -1631,27 +1711,31 @@ msgctxt "code language"
 msgid "Shell"
 msgstr "Shell"
 
-#: ../Shells/Workbench.qml:464
+#: ../Shells/Workbench.qml:463
 msgid "Shell switcher"
 msgstr "शेल स्विचर"
 
-#: ../Demos/PantryDemo.qml:229
+#: ../Demos/PantryDemo.qml:222
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml: इसे लाइव संपादित करें"
 
-#: ../Shells/Desktop.qml:1126
+#: ../Shells/Desktop.qml:1125
 msgid "Shell: Desktop"
 msgstr "शेल: डेस्कटॉप"
 
-#: ../Shells/Workbench.qml:1157
+#: ../Shells/Workbench.qml:1156
 msgid "Shell: Workbench"
 msgstr "शेल: वर्कबेंच"
 
-#: ../Shells/Cyberpunk.qml:58 ../Shells/Desktop.qml:870
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "शेल: {label} – दूसरा लेआउट चुनें"
+
+#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:869
 msgid "Shells"
 msgstr "शेल"
 
-#: ../Shells/Workbench.qml:551
+#: ../Shells/Workbench.qml:550
 msgid "Shells/"
 msgstr "शेल/"
 
@@ -1663,7 +1747,7 @@ msgstr "पहले P में शिफ्ट करें: पार्क �
 msgid "Shift to {0}"
 msgstr "{0} पर शिफ्ट करें"
 
-#: ../Site/HeroApp.qml:20 ../Site/HeroApp.qml:44
+#: ../Site/HeroApp.qml:19 ../Site/HeroApp.qml:43
 msgid "Ship the beta"
 msgstr "बीटा जारी करें"
 
@@ -1687,15 +1771,15 @@ msgstr "{0} का कम हिस्सा दिखाएँ"
 msgid "Show the source"
 msgstr "सोर्स दिखाएँ"
 
-#: ../Shells/Cyberpunk.qml:53 ../Site/Footer.qml:102 ../Site/Router.qml:40 ../Site/Router.qml:47 ../Site/Router.qml:85
+#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:41 ../Site/Router.qml:48 ../Site/Router.qml:86
 msgid "Showcase"
 msgstr "शोकेस"
 
-#: ../Demos/WatchDemo.qml:191
+#: ../Demos/WatchDemo.qml:190
 msgid "Shows the watch's other face"
 msgstr "घड़ी का दूसरा फ़ेस दिखाता है"
 
-#: ../Demos/WatchDemo.qml:166
+#: ../Demos/WatchDemo.qml:165
 msgid "Side button"
 msgstr "साइड बटन"
 
@@ -1703,31 +1787,35 @@ msgstr "साइड बटन"
 msgid "Simulated drive"
 msgstr "सिम्युलेटेड ड्राइव"
 
-#: ../Shells/Workbench.qml:582
+#: ../Shells/Workbench.qml:581
 msgid "Site/"
 msgstr "साइट/"
 
-#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41
+#: ../Site/HeroApp.qml:16 ../Site/HeroApp.qml:40
 msgid "Sketch the shell"
 msgstr "शेल की रूपरेखा बनाएँ"
 
-#: ../Main.qml:404 ../Main.qml:438
+#: ../Main.qml:411 ../Main.qml:445
 msgid "Skip to content"
 msgstr "सामग्री पर जाएँ"
 
-#: ../Demos/WatchDemo.qml:203
+#: ../Demos/WatchDemo.qml:202
 msgid "Sleep"
 msgstr "स्लीप"
+
+#: ../Demos/Motion.qml:25
+msgid "Snappy"
+msgstr "फुर्तीली"
 
 #: ../Site/LandingCopy.qml:9
 msgid "Software you can reshape while it runs."
 msgstr "सॉफ़्टवेयर जिसे आप चलते-चलते नया रूप दे सकते हैं।"
 
-#: ../Shells/Cyberpunk.qml:490 ../Site/HeroStage.qml:26
+#: ../Shells/Cyberpunk.qml:488 ../Site/HeroStage.qml:25
 msgid "Source"
 msgstr "सोर्स"
 
-#: ../Shells/Workbench.qml:820
+#: ../Shells/Workbench.qml:819
 msgctxt "panel"
 msgid "Source"
 msgstr "सोर्स"
@@ -1741,7 +1829,7 @@ msgstr "सोर्स"
 msgid "Source of {0}"
 msgstr "{0} का सोर्स"
 
-#: ../Shells/Desktop.qml:624
+#: ../Shells/Desktop.qml:623
 msgid "Source on GitHub"
 msgstr "GitHub पर सोर्स"
 
@@ -1753,7 +1841,15 @@ msgstr "गति"
 msgid "Speed limit {0}"
 msgstr "गति सीमा {0}"
 
-#: ../Demos/WatchDemo.qml:159
+#: ../Demos/Motion.qml:88
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr "स्प्रिंग का मंच। छल्ला खींचें या तीर वाली कुंजियों से हिलाएँ; तीन स्प्रिंग उसके पीछे चलती हैं।"
+
+#: ../Site/DemosPage.qml:210
+msgid "Springs you drag"
+msgstr "खींचने वाली स्प्रिंग"
+
+#: ../Demos/WatchDemo.qml:158
 msgid "Square, 410 × 502"
 msgstr "चौकोर, 410 × 502"
 
@@ -1765,11 +1861,11 @@ msgstr "खड़े रहें"
 msgid "Start"
 msgstr "शुरू करें"
 
-#: ../Shells/Desktop.qml:578 ../Shells/Desktop.qml:835
+#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:834
 msgid "Start in a minute"
 msgstr "एक मिनट में शुरू करें"
 
-#: ../Site/Landing.qml:352
+#: ../Site/Landing.qml:382
 msgid "Start reading"
 msgstr "पढ़ना शुरू करें"
 
@@ -1785,23 +1881,23 @@ msgstr "स्टॉपवॉच शुरू करें"
 msgid "Start timer"
 msgstr "टाइमर शुरू करें"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:275 ../Site/ReplayFrame.qml:119
+#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
 msgid "Starting {0}…"
 msgstr "{0} शुरू हो रहा है…"
 
-#: ../Site/Runner.qml:106
+#: ../Site/Runner.qml:105
 msgid "Starting {what}…"
 msgstr "{what} शुरू हो रहा है…"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:262 ../Site/ReplayFrame.qml:103
+#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
 msgid "Starting…"
 msgstr "शुरू हो रहा है…"
 
-#: ../Shells/Desktop.qml:1075 ../Shells/Workbench.qml:1141
+#: ../Shells/Desktop.qml:1074 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr "स्टेटस बार"
 
-#: ../Demos/AgentView.qml:408
+#: ../Demos/AgentView.qml:407
 msgid "Step {0} of {1}"
 msgstr "चरण {0} / {1}"
 
@@ -1833,35 +1929,35 @@ msgstr "स्टॉपवॉच"
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr "Svala GT एक काल्पनिक कार है। इसका मॉडल इस उदाहरण में एक Blender स्क्रिप्ट से आया है; नक्शा, संगीत और सड़कें काल्पनिक हैं। आप जो कुछ भी देखते हैं वह Ljós द्वारा बनाया गया है।"
 
-#: ../Shells/Desktop.qml:765
+#: ../Shells/Desktop.qml:764
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr "एलिगेंट, साइबरपंक, वर्कबेंच और डेस्कटॉप शेल के बीच बदलें"
 
-#: ../Site/ShellSwitcher.qml:54
+#: ../Site/ShellSwitcher.qml:56
 msgid "Switch shell"
 msgstr "शेल बदलें"
 
-#: ../Shells/Desktop.qml:542
+#: ../Shells/Desktop.qml:541
 msgid "Switch to Cyberpunk shell"
 msgstr "साइबरपंक शेल पर जाएँ"
 
-#: ../Shells/Desktop.qml:550
+#: ../Shells/Desktop.qml:549
 msgid "Switch to Desktop shell"
 msgstr "डेस्कटॉप शेल पर जाएँ"
 
-#: ../Shells/Desktop.qml:538
+#: ../Shells/Desktop.qml:537
 msgid "Switch to Elegant shell"
 msgstr "एलिगेंट शेल पर जाएँ"
 
-#: ../Shells/Desktop.qml:546
+#: ../Shells/Desktop.qml:545
 msgid "Switch to Workbench shell"
 msgstr "वर्कबेंच शेल पर जाएँ"
 
-#: ../Main.qml:943
+#: ../Main.qml:964
 msgid "Switched to {shell}. Your place and edits are kept."
 msgstr "{shell} पर स्विच किया गया। आपका स्थान और संपादन सुरक्षित हैं।"
 
-#: ../Site/Preferences.qml:34
+#: ../Site/Preferences.qml:35
 msgid "System"
 msgstr "सिस्टम"
 
@@ -1885,11 +1981,15 @@ msgstr "मंगल"
 msgid "Take a screenshot to check the result."
 msgstr "परिणाम जाँचने के लिए स्क्रीनशॉट लें।"
 
-#: ../Site/HeroApp.qml:50
+#: ../Site/HeroApp.qml:49
 msgid "Task list"
 msgstr "कार्य सूची"
 
-#: ../Shells/Cyberpunk.qml:570
+#: ../Demos/PantryShell.qml:59
+msgid "Tea · £{0}"
+msgstr "चाय · £{0}"
+
+#: ../Shells/Cyberpunk.qml:568
 msgid "Telemetry"
 msgstr "टेलीमेट्री"
 
@@ -1902,7 +2002,7 @@ msgctxt "code language"
 msgid "Text"
 msgstr "टेक्स्ट"
 
-#: ../Demos/PantryDemo.qml:163
+#: ../Demos/PantryDemo.qml:160
 msgid "The Pantry, running"
 msgstr "Pantry, चल रहा है"
 
@@ -1910,11 +2010,11 @@ msgstr "Pantry, चल रहा है"
 msgid "The QML of the shell you are looking at. Edit it and press Apply: the page and your place on it stay."
 msgstr "आप जो शेल देख रहे हैं उसका QML। इसे संपादित करें और “लागू करें” दबाएँ: पेज और उस पर आपका स्थान बना रहता है।"
 
-#: ../Site/PageSource.qml:49
+#: ../Site/PageSource.qml:51
 msgid "The QML this page is made from. The shell around it is its own file: open the shell menu to see it."
 msgstr "यह पेज जिस QML से बना है। इसके चारों ओर का शेल अपनी अलग फ़ाइल है: इसे देखने के लिए शेल मेनू खोलें।"
 
-#: ../Site/Landing.qml:372
+#: ../Site/Landing.qml:402
 msgid "The big picture, in plain words."
 msgstr "पूरी तस्वीर, सरल शब्दों में।"
 
@@ -1926,11 +2026,11 @@ msgstr "कार लॉक है। कुछ भी खोलने के �
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr "कार। तीर कुंजियाँ हिस्सा चुनती हैं; स्पेस उसे खोलता या बंद करता है।"
 
-#: ../Main.qml:642
+#: ../Main.qml:663
 msgid "The docs"
 msgstr "दस्तावेज़"
 
-#: ../Site/ProDemoPage.qml:255
+#: ../Site/ProDemoPage.qml:266
 msgid "The files of {0}"
 msgstr "{0} की फ़ाइलें"
 
@@ -1938,27 +2038,35 @@ msgstr "{0} की फ़ाइलें"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "रूफ़टॉप वाली जगह आठ बजे खुलती है। जैकेट ले आना, वहाँ ऊपर ठंड होती है।"
 
-#: ../Site/LiveSource.qml:170
+#: ../Site/LiveSource.qml:169
 msgid "The shell's QML could not be loaded: {0}"
 msgstr "शेल का QML लोड नहीं हो सका: {0}"
 
-#: ../Demos/WatchDemo.qml:154
+#: ../Demos/WatchDemo.qml:153
 msgid "The watch's buttons"
 msgstr "घड़ी के बटन"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "थीम: डार्क – लाइट पर जाएँ"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "थीम: लाइट – डार्क पर जाएँ"
 
 #: ../Site/DocPage.qml:60
 msgid "There is no page at this address. The address may have moved — search, or begin at {0}."
 msgstr "इस पते पर कोई पेज नहीं है। संभव है पता बदल गया हो — खोजें, या {0} से शुरू करें।"
 
-#: ../Site/LiveSource.qml:63
+#: ../Site/LiveSource.qml:62
 msgid "There is no {0}.qml to edit."
 msgstr "संपादित करने के लिए कोई {0}.qml नहीं है।"
 
-#: ../Main.qml:786
+#: ../Main.qml:807
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "इस संपादन में site.source.live नहीं है, जहाँ इसका संपादक दिखता है, इसलिए पिछला चला हुआ संपादन बना रहता है।"
 
-#: ../Site/PageView.qml:248
+#: ../Site/PageView.qml:287
 msgid "This page could not be loaded."
 msgstr "यह पेज लोड नहीं हो सका।"
 
@@ -1966,15 +2074,23 @@ msgstr "यह पेज लोड नहीं हो सका।"
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "यह पैनल ब्राउज़र में चलता है। डेस्कटॉप पर, ljos observe कमांड चलते हुए ऐप पर ऑब्ज़र्वर खोलता है।"
 
-#: ../Site/Footer.qml:148
+#: ../Site/Footer.qml:151
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "यह साइट स्वयं एक Ljós ऐप है, जो बिल्ड के समय HTML में लिखी जाती है और आपके ब्राउज़र में लाइव चलती है।"
 
-#: ../Shells/Desktop.qml:1163
+#: ../Shells/Desktop.qml:1162
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "यह साइट ljos-web के साथ Solid DOM में कंपाइल किए गए Ljós को चलाती है, जिसमें 3D दृश्यों के लिए WebGPU और WebGL2 फ़ॉलबैक है। बिना रीलोड किए दृश्य मेनू या टूलबार से शेल बदलें।"
 
-#: ../Demos/DispatchCard.qml:230
+#: ../Site/DemosPage.qml:211
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr "स्प्रिंग पर लगी तीन गेंदें एक छल्ले का पीछा करती हैं: फुर्तीली, उछलती और आलसी। ऐप का अपना TypeScript SpringAnimation का स्प्रिंग नियम एक-एक फ़्रेम करके चलाता है, तीन सेटिंग के साथ। छल्ला खींचें या तीर वाली कुंजियों से हिलाएँ; अकेला छोड़ने पर वह अपने आप उछलकर दूसरी जगह जाता है। कम मोशन चालू होने पर स्प्रिंग धीमी हो जाती हैं और कभी छल्ले से आगे नहीं झूलतीं, पर चलती रहती हैं। थम जाने पर कुछ नहीं चलता और ऐप 0 % CPU लेता है।"
+
+#: ../Site/DemosPage.qml:227
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr "छल्ले का पीछा करती स्प्रिंग पर लगी तीन गेंदें, हर एक अपने ढंग से।"
+
+#: ../Demos/DispatchCard.qml:229
 msgid "Tickets"
 msgstr "टिकट"
 
@@ -1986,27 +2102,27 @@ msgstr "समय समाप्त"
 msgid "Timer"
 msgstr "टाइमर"
 
-#: ../Shells/Desktop.qml:531
+#: ../Shells/Desktop.qml:530
 msgid "Toggle Observer panel"
 msgstr "ऑब्ज़र्वर पैनल टॉगल करें"
 
-#: ../Shells/Desktop.qml:776
+#: ../Shells/Desktop.qml:775
 msgid "Toggle light and dark colour scheme"
 msgstr "लाइट और डार्क रंग योजना टॉगल करें"
 
-#: ../Shells/Desktop.qml:728
+#: ../Shells/Desktop.qml:727
 msgid "Toggle live Observer panel"
 msgstr "लाइव ऑब्ज़र्वर पैनल टॉगल करें"
 
-#: ../Shells/Desktop.qml:525
+#: ../Shells/Desktop.qml:524
 msgid "Toggle sidebar"
 msgstr "साइडबार टॉगल करें"
 
-#: ../Shells/Desktop.qml:678
+#: ../Shells/Desktop.qml:677
 msgid "Toolbar"
 msgstr "टूलबार"
 
-#: ../Site/ShowcasePage.qml:75
+#: ../Site/ShowcasePage.qml:74
 msgid "Tools built with Ljós"
 msgstr "Ljós से निर्मित उपकरण"
 
@@ -2014,7 +2130,7 @@ msgstr "Ljós से निर्मित उपकरण"
 msgid "Trunk"
 msgstr "डिक्की"
 
-#: ../Site/Landing.qml:390
+#: ../Site/Landing.qml:420
 msgid "Try Ljós in your browser, with nothing to install."
 msgstr "बिना कुछ इंस्टॉल किए अपने ब्राउज़र में Ljós आज़माएँ।"
 
@@ -2022,15 +2138,15 @@ msgstr "बिना कुछ इंस्टॉल किए अपने ब�
 msgid "Try a demo"
 msgstr "डेमो आज़माएँ"
 
-#: ../Site/PageView.qml:276 ../Site/ReplayFrame.qml:105
+#: ../Site/PageView.qml:315 ../Site/ReplayFrame.qml:104
 msgid "Try again"
 msgstr "फिर प्रयास करें"
 
-#: ../Demos/PantryDemo.qml:316
-msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
-msgstr "StatusSlot को Basket के नीचे ले जाकर, color: \"#241a10\" सेट करके, या दुकान का नाम बदलकर देखें। आपकी बास्केट और नोट वैसे ही बने रहते हैं।"
+#: ../Demos/PantryDemo.qml:309
+msgid "Try moving StatusSlot below Basket, setting fill: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+msgstr "StatusSlot को Basket के नीचे ले जाकर, fill: \"#241a10\" सेट करके, या दुकान का नाम बदलकर देखें। आपकी बास्केट और नोट वैसे ही बने रहते हैं।"
 
-#: ../Site/ReplayFrame.qml:121
+#: ../Site/ReplayFrame.qml:120
 msgid "Try {0} again"
 msgstr "{0} फिर आज़माएँ"
 
@@ -2038,23 +2154,23 @@ msgstr "{0} फिर आज़माएँ"
 msgid "Turn the crown to set"
 msgstr "सेट करने के लिए क्राउन घुमाएँ"
 
-#: ../Site/BuiltWith.qml:36
+#: ../Site/BuiltWith.qml:38
 msgid "Turns a static HTML, CSS and JavaScript page into a runnable QML app you can read and edit. What it can’t convert, it reports."
 msgstr "किसी स्टैटिक HTML, CSS और JavaScript पेज को एक चलने योग्य QML ऐप में बदलता है जिसे आप पढ़ और संपादित कर सकते हैं। जो यह नहीं बदल पाता, उसकी रिपोर्ट देता है।"
 
-#: ../Demos/WatchDemo.qml:184
+#: ../Demos/WatchDemo.qml:183
 msgid "Turns the crown down a notch"
 msgstr "क्राउन को एक पायदान नीचे घुमाता है"
 
-#: ../Demos/WatchDemo.qml:177
+#: ../Demos/WatchDemo.qml:176
 msgid "Turns the crown up a notch"
 msgstr "क्राउन को एक पायदान ऊपर घुमाता है"
 
-#: ../Site/DemosPage.qml:236
+#: ../Site/DemosPage.qml:125 ../Site/Landing.qml:261
 msgid "Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls."
 msgstr "प्लेबैक और गति नियंत्रणों के ऊपर अगल-बगल दो कार्ड, जो HAL-C2 के डांस और जिन्न अवतार दिखाते हैं।"
 
-#: ../Demos/AgentView.qml:330
+#: ../Demos/AgentView.qml:329
 msgid "TypeScript"
 msgstr "TypeScript"
 
@@ -2078,24 +2194,24 @@ msgstr "लाइट थीम उपयोग करें"
 msgid "Values"
 msgstr "मान"
 
-#: ../Shells/Desktop.qml:492
+#: ../Shells/Desktop.qml:491
 msgctxt "menu bar"
 msgid "View"
 msgstr "दृश्य"
 
-#: ../Shells/Desktop.qml:781
+#: ../Shells/Desktop.qml:780
 msgid "View QML"
 msgstr "QML देखें"
 
-#: ../Shells/Desktop.qml:477 ../Site/ShellChoices.qml:151
+#: ../Shells/Desktop.qml:476 ../Site/ShellChoices.qml:150
 msgid "View this shell's QML"
 msgstr "इस शेल का QML देखें"
 
-#: ../Shells/Desktop.qml:782
+#: ../Shells/Desktop.qml:781
 msgid "View this shell's QML source"
 msgstr "इस शेल का QML सोर्स देखें"
 
-#: ../Shells/Desktop.qml:1038 ../Shells/Workbench.qml:1098
+#: ../Shells/Desktop.qml:1037 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr "दृश्य"
 
@@ -2119,39 +2235,43 @@ msgstr "आवाज़ 10 में से {0}"
 msgid "WED"
 msgstr "बुध"
 
-#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:203
+#: ../Demos/Watch/Main.qml:137 ../Demos/WatchDemo.qml:202
 msgid "Wake"
 msgstr "जगाएँ"
 
-#: ../Demos/WatchDemo.qml:167
+#: ../Demos/WatchDemo.qml:166
 msgid "Wakes the watch, or goes back to its face"
 msgstr "घड़ी को जगाता है, या उसके फ़ेस पर लौटता है"
 
-#: ../Site/DocPage.qml:56 ../Site/Landing.qml:370
+#: ../Site/DocPage.qml:56 ../Site/Landing.qml:400
 msgid "What is Ljós?"
 msgstr "Ljós क्या है?"
 
-#: ../Site/Landing.qml:399
+#: ../Site/Landing.qml:429
 msgid "What we care about, and what we leave out on purpose."
 msgstr "हमारे लिए क्या महत्वपूर्ण है, और हम जानबूझकर क्या बाहर रखते हैं।"
 
-#: ../Demos/WatchDemo.qml:220
+#: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
 msgstr "क्या घड़ी के विश्राम के दौरान फ़ेस हल्की रोशनी में चालू रहता है"
 
-#: ../Demos/FieldGuide.qml:228
+#: ../Demos/FieldGuide.qml:227
 msgid "Wingspan"
 msgstr "पंखों का फैलाव"
 
-#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42
+#: ../Site/HeroApp.qml:17 ../Site/HeroApp.qml:41
 msgid "Wire up the Observer"
 msgstr "ऑब्ज़र्वर जोड़ें"
 
-#: ../Site/Preferences.qml:30
+#: ../Demos/Motion.qml:351
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr "कम मोशन चालू होने पर स्प्रिंग धीरे चलती हैं और कभी छल्ले से आगे नहीं झूलतीं।"
+
+#: ../Site/Preferences.qml:31
 msgid "Workbench"
 msgstr "वर्कबेंच"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Working…"
 msgstr "कार्य जारी है…"
 
@@ -2159,7 +2279,7 @@ msgstr "कार्य जारी है…"
 msgid "Workout"
 msgstr "कसरत"
 
-#: ../Shells/Workbench.qml:527
+#: ../Shells/Workbench.qml:526
 msgid "Workspace: ljos.dev"
 msgstr "कार्यक्षेत्र: ljos.dev"
 
@@ -2167,7 +2287,7 @@ msgstr "कार्यक्षेत्र: ljos.dev"
 msgid "Write app logic in TypeScript and catch mistakes with <code>ljos check</code>. Use Rust where you need it. Already have QML? <a href=\"/language/porting-from-qt/\">Bring it along</a>."
 msgstr "TypeScript में ऐप लॉजिक लिखें और <code>ljos check</code> से गलतियाँ पकड़ें। जहाँ ज़रूरत हो वहाँ Rust उपयोग करें। पहले से QML है? <a href=\"/language/porting-from-qt/\">उसे साथ ले आएँ</a>।"
 
-#: ../Site/HeroApp.qml:19 ../Site/HeroApp.qml:43 ../Site/HeroStage.qml:34
+#: ../Site/HeroApp.qml:18 ../Site/HeroApp.qml:42 ../Site/HeroStage.qml:33
 msgid "Write the release notes"
 msgstr "रिलीज़ नोट्स लिखें"
 
@@ -2183,15 +2303,15 @@ msgstr "आपका एजेंट भी ऐप का उपयोग कर
 msgid "Your car"
 msgstr "आपकी कार"
 
-#: ../Demos/AgentView.qml:187
+#: ../Demos/AgentView.qml:186
 msgid "Your edit"
 msgstr "आपका संपादन"
 
-#: ../Site/Footer.qml:103 ../Site/Landing.qml:379
+#: ../Site/Footer.qml:105 ../Site/Landing.qml:409
 msgid "Your first app"
 msgstr "आपका पहला ऐप"
 
-#: ../Demos/FieldGuide.qml:271
+#: ../Demos/FieldGuide.qml:270
 msgid "Your notes on this species…"
 msgstr "इस प्रजाति पर आपके नोट्स…"
 
@@ -2199,63 +2319,67 @@ msgstr "इस प्रजाति पर आपके नोट्स…"
 msgid "Your turn: try any button in the app and watch this log."
 msgstr "आपकी बारी: ऐप में कोई भी बटन आज़माएँ और यह लॉग देखें।"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "answered"
 msgstr "उत्तर मिला"
 
-#: ../Demos/AgentLogRow.qml:212
+#: ../Demos/AgentLogRow.qml:211
 msgid "app"
 msgstr "ऐप"
 
-#: ../Demos/AgentView.qml:488
+#: ../Demos/AgentView.qml:487
 msgid "board.ts, the code this app runs"
 msgstr "board.ts, वह कोड जो यह ऐप चलाता है"
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "मुख्य पेज"
 
 #: ../Site/CodeBlock.qml:578
 msgid "in the {0} harness"
 msgstr "{0} हार्नेस में"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "kept the last board"
 msgstr "पिछला बोर्ड रखा गया"
 
-#: ../Demos/DispatchCard.qml:249
+#: ../Demos/DispatchCard.qml:248
 msgid "no crew"
 msgstr "कोई टीम नहीं"
 
-#: ../Site/HeroStage.qml:43
+#: ../Site/HeroStage.qml:42
 msgid "no match"
 msgstr "कोई मिलान नहीं"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "refused"
 msgstr "अस्वीकृत"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "reloaded"
 msgstr "रीलोड हुआ"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "reloading"
 msgstr "रीलोड हो रहा है"
 
-#: ../Demos/AgentLogRow.qml:152
+#: ../Demos/AgentLogRow.qml:151
 msgid "sent"
 msgstr "भेजा गया"
 
-#: ../Demos/AgentView.qml:656
+#: ../Demos/AgentView.qml:655
 msgid "set by the agent"
 msgstr "एजेंट द्वारा सेट"
 
-#: ../Site/DemosPage.qml:133
+#: ../Site/DemosPage.qml:148
 msgid "the 3D demo"
 msgstr "3D डेमो"
 
-#: ../Site/DemosPage.qml:235
+#: ../Site/DemosPage.qml:124 ../Site/Landing.qml:260
 msgid "the Lottie demo"
 msgstr "Lottie डेमो"
 
-#: ../Demos/PantryDemo.qml:251
+#: ../Demos/PantryDemo.qml:244
 msgid "the Pantry"
 msgstr "Pantry"
 
@@ -2267,15 +2391,15 @@ msgstr "एजेंट रीप्ले"
 msgid "the app runs the module built from it now"
 msgstr "ऐप अब इससे बना मॉड्यूल चला रहा है"
 
-#: ../Site/DemosPage.qml:184
+#: ../Site/DemosPage.qml:199
 msgid "the field guide"
 msgstr "फ़ील्ड गाइड"
 
-#: ../Site/DemosPage.qml:211
+#: ../Site/DemosPage.qml:226
 msgid "the motion demo"
 msgstr "गति डेमो"
 
-#: ../Site/DemosPage.qml:157
+#: ../Site/DemosPage.qml:172
 msgid "the shader demo"
 msgstr "शेडर डेमो"
 
@@ -2287,15 +2411,15 @@ msgstr "वॉच डेमो"
 msgid "this example"
 msgstr "यह उदाहरण"
 
-#: ../Main.qml:199
+#: ../Main.qml:206
 msgid "this page"
 msgstr "यह पेज"
 
-#: ../Demos/DispatchCard.qml:142
+#: ../Demos/DispatchCard.qml:141
 msgid "{0, plural, one {# open} other {# open}}, all assigned"
 msgstr "{0, plural, one {# खुला} other {# खुले}}, सभी सौंपे गए"
 
-#: ../Demos/DispatchCard.qml:142
+#: ../Demos/DispatchCard.qml:141
 msgid "{0, plural, one {# open} other {# open}}, {1, plural, one {# unassigned} other {# unassigned}}"
 msgstr "{0, plural, one {# खुला} other {# खुले}}, {1, plural, one {# असाइन नहीं} other {# असाइन नहीं}}"
 
@@ -2303,13 +2427,17 @@ msgstr "{0, plural, one {# खुला} other {# खुले}}, {1, plural, on
 msgid "{0} NEW"
 msgstr "{0} नई"
 
-#: ../Demos/FieldGuide.qml:218 ../Demos/FieldGuide.qml:245
+#: ../Demos/FieldGuide.qml:217 ../Demos/FieldGuide.qml:244
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Shells/Cyberpunk.qml:367 ../Shells/Cyberpunk.qml:610
+#: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
 msgid "{0} fps"
 msgstr "{0} fps"
+
+#: ../Demos/PantryShell.qml:68 ../Demos/PantryShell.qml:101 ../Demos/PantryShell.qml:134
+msgid "{0} in basket"
+msgstr "बास्केट में {0}"
 
 #: ../Demos/Cockpit/Cluster.qml:150
 msgid "{0} kW"
@@ -2335,7 +2463,7 @@ msgstr "10 में से {0}"
 msgid "{0} of {1}"
 msgstr "{1} में से {0}"
 
-#: ../Site/HeroApp.qml:78
+#: ../Site/HeroApp.qml:77
 msgid "{0} of {1} done"
 msgstr "{1} में से {0} पूर्ण"
 
@@ -2355,7 +2483,7 @@ msgstr "{0} {1} शेष"
 msgid "{0} {1} to {2}"
 msgstr "{2} तक {0} {1}"
 
-#: ../Demos/FieldGuide.qml:192
+#: ../Demos/FieldGuide.qml:191
 msgid "{0} · {1}"
 msgstr "{0} · {1}"
 
@@ -2367,15 +2495,15 @@ msgstr "{0} →"
 msgid "{0}, {1}"
 msgstr "{0}, {1}"
 
-#: ../Demos/Lottie.qml:228
+#: ../Demos/Lottie.qml:237
 msgid "{0}×"
 msgstr "{0}×"
 
-#: ../Pantry/Basket.qml:31
+#: ../Pantry/Basket.qml:30
 msgid "{count, plural, one {# in the basket} other {# in the basket}} · £{0}"
 msgstr "बास्केट में {count, plural, one {# आइटम} other {# आइटम}} · £{0}"
 
-#: ../Demos/FieldGuide.qml:143
+#: ../Demos/FieldGuide.qml:142
 msgid "{latin} · {season}"
 msgstr "{latin} · {season}"
 
@@ -2383,15 +2511,15 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "{minutes} मिनट पहले"
 
-#: ../Site/Runner.qml:112
+#: ../Site/Runner.qml:111
 msgid "{name} did not compile"
 msgstr "{name} कंपाइल नहीं हुआ"
 
-#: ../Site/Runner.qml:110
+#: ../Site/Runner.qml:109
 msgid "{name} is paused"
 msgstr "{name} रुका हुआ है"
 
-#: ../Site/Runner.qml:108
+#: ../Site/Runner.qml:107
 msgid "{name} runs"
 msgstr "{name} चल रहा है"
 
@@ -2411,86 +2539,9 @@ msgstr "← {0}"
 msgid "♪ {0} · {1}"
 msgstr "♪ {0} · {1}"
 
-#: ../Demos/FieldGuide.qml:137
+#: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
 
-#: ../Site/BuiltWith.qml:54
-msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
-msgstr "आपकी मशीन पर चल रहे कोडिंग एजेंटों के लिए एक नियंत्रण पटल, जिसमें एक टर्मिनल, ब्राउज़र टैब और एक QML लेआउट है जिसे आप इसके चलते हुए बदल सकते हैं। इसका <a href=\"/showcase/\">Office प्लगइन</a> शोकेस में है।"
-
-#: ../Site/BuiltWith.qml:52 ../Site/Footer.qml:138
-msgid "HAL-C2"
-msgstr "HAL-C2"
-
-#: ../Site/BuiltWith.qml:57
-msgid "HAL-C2’s Appearance settings on Ljós: settings sections down the left, System/Light/Dark color scheme options, and a list of themes with HAL-C2 chosen."
-msgstr "Ljós पर HAL-C2 की रूप-रंग सेटिंग: बाईं ओर सेटिंग के खंड, System/Light/Dark रंग योजना के विकल्प और थीम की एक सूची, जिसमें HAL-C2 चुनी हुई है।"
-
-#: ../Site/BuiltWith.qml:62
-msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
-msgstr "आपकी मशीन पर चल रहे कोडिंग एजेंटों के लिए एक नियंत्रण पटल, जिसमें एक टर्मिनल, ब्राउज़र टैब और एक QML लेआउट है जिसे आप इसके चलते हुए बदल सकते हैं।"
-
-#: ../Site/LanguageSwitcher.qml:141
-msgid "Language: {languageName} – choose another"
-msgstr "भाषा: {languageName} – दूसरी चुनें"
-
-#: ../Main.qml:635
-msgid "Reduce motion: off – use less motion"
-msgstr "गति कम करें: बंद – कम गति उपयोग करें"
-
-#: ../Main.qml:635
-msgid "Reduce motion: on – use full motion"
-msgstr "गति कम करें: चालू – पूरी गति उपयोग करें"
-
-#: ../Site/ShellSwitcher.qml:167
-msgid "Shell: {label} – choose another layout"
-msgstr "शेल: {label} – दूसरा लेआउट चुनें"
-
-#: ../Site/ThemeToggle.qml:11
-msgid "Theme: dark – switch to light"
-msgstr "थीम: डार्क – लाइट पर जाएँ"
-
-#: ../Site/ThemeToggle.qml:11
-msgid "Theme: light – switch to dark"
-msgstr "थीम: लाइट – डार्क पर जाएँ"
-
-#: ../Demos/Motion.qml:26
-msgid "Snappy"
-msgstr "फुर्तीली"
-
-#: ../Demos/Motion.qml:27
-msgid "Bouncy"
-msgstr "उछलती"
-
-#: ../Demos/Motion.qml:28
-msgid "Lazy"
-msgstr "आलसी"
-
-#: ../Demos/Motion.qml:67
-msgid "Drag the ring · three springs chase it"
-msgstr "छल्ला खींचें · तीन स्प्रिंग उसका पीछा करती हैं"
-
-#: ../Demos/Motion.qml:89
-msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
-msgstr "स्प्रिंग का मंच। छल्ला खींचें या तीर वाली कुंजियों से हिलाएँ; तीन स्प्रिंग उसके पीछे चलती हैं।"
-
-#: ../Demos/Motion.qml:352
-msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
-msgstr "कम मोशन चालू है: स्प्रिंग धीरे चलती हैं और कभी छल्ले से आगे नहीं झूलतीं।"
-
-#: ../Demos/Motion.qml:352
-msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
-msgstr "कम मोशन चालू होने पर स्प्रिंग धीरे चलती हैं और कभी छल्ले से आगे नहीं झूलतीं।"
-
-#: ../Site/DemosPage.qml:195
-msgid "Springs you drag"
-msgstr "खींचने वाली स्प्रिंग"
-
-#: ../Site/DemosPage.qml:196
-msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
-msgstr "स्प्रिंग पर लगी तीन गेंदें एक छल्ले का पीछा करती हैं: फुर्तीली, उछलती और आलसी। ऐप का अपना TypeScript SpringAnimation का स्प्रिंग नियम एक-एक फ़्रेम करके चलाता है, तीन सेटिंग के साथ। छल्ला खींचें या तीर वाली कुंजियों से हिलाएँ; अकेला छोड़ने पर वह अपने आप उछलकर दूसरी जगह जाता है। कम मोशन चालू होने पर स्प्रिंग धीमी हो जाती हैं और कभी छल्ले से आगे नहीं झूलतीं, पर चलती रहती हैं। थम जाने पर कुछ नहीं चलता और ऐप 0 % CPU लेता है।"
-
-#: ../Site/DemosPage.qml:212
-msgid "Three balls on springs chasing a ring, each moving its own way."
-msgstr "छल्ले का पीछा करती स्प्रिंग पर लगी तीन गेंदें, हर एक अपने ढंग से।"
+#~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
+#~ msgstr "StatusSlot को Basket के नीचे ले जाकर, color: \"#241a10\" सेट करके, या दुकान का नाम बदलकर देखें। आपकी बास्केट और नोट वैसे ही बने रहते हैं।"

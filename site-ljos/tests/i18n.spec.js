@@ -154,6 +154,20 @@ test.describe("a page in the reader's language", () => {
     expect(said).toEqual([]);
   });
 
+  // The front page's shop is read in the reader's language too: its line,
+  // its products and its buttons, not only the page around it.
+  test("the front page's shop is in the reader's language", async ({ page }) => {
+    await page.setViewportSize(DESKTOP);
+    await open(page, "/?lang=de");
+    await expect(headline(page, translated("de", HEADLINE))).toBeVisible();
+    for (const message of ["Add an item, then edit the code. Your basket stays.", "Add bread"]) {
+      expect(translated("de", message), `${message} has a translation`).toBeTruthy();
+    }
+    await expect(page.getByText(translated("de", "Add an item, then edit the code. Your basket stays."), { exact: true }).filter({ visible: true })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: translated("de", "Add bread"), exact: true }).filter({ visible: true })).toHaveCount(1);
+    await expect(page.getByText("Add an item, then edit the code. Your basket stays.", { exact: true }).filter({ visible: true })).toHaveCount(0);
+  });
+
   test("the address names the language, and the browser's own is taken where it names none", async ({ browser }) => {
     const asked = await browser.newPage();
     await open(asked, "/?lang=ja");
