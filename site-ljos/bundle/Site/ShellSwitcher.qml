@@ -54,11 +54,14 @@ Rectangle {
     // they see, "Elegant", finds it); where only the icon does, the
     // name says what it is for.
     Accessible.name: switcher.compact || !label ? t`Switch shell` : t`Current shell: ${label}`
+    Accessible.description: tip.text
     Accessible.onPressAction: () => switcher.toggle()
     Keys.onPressed: (event) => {
         if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             switcher.toggle();
             event.accepted = true;
+        } else if (event.key === Key.Escape) {
+            event.accepted = tip.dismiss();
         }
     }
 
@@ -157,5 +160,13 @@ Rectangle {
         Accessible.ignored: true
         cursorShape: Cursor.PointingHand
         onClicked: switcher.toggle()
+    }
+    // Held back while its choices are open: they say it all.
+    HeaderTip {
+        id: tip
+        text: label ? t`Shell: ${label} – choose another layout` : ""
+        hovered: hit.containsMouse
+        // A shell that holds the compact switcher gives it a tip of its own.
+        quiet: switcher.opened || switcher.compact
     }
 }

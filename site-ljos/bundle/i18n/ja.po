@@ -2470,3 +2470,27 @@ msgstr "Ljós 上の HAL-C2 の外観設定。左に設定のセクション、S
 #: ../Site/BuiltWith.qml:62
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
 msgstr "お使いのマシン上のコーディングエージェントを操るコントロール画面です。ターミナル、ブラウザのタブ、そして動かしたまま編集できる QML のレイアウトを備えています。"
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "言語: {languageName} – 別の言語を選ぶ"
+
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "視差効果を減らす: オフ – 動きを減らす"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "視差効果を減らす: オン – すべての動きを使う"
+
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "シェル: {label} – 別のレイアウトを選ぶ"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "テーマ: ダーク – ライトに切り替え"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "テーマ: ライト – ダークに切り替え"

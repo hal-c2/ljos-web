@@ -16,6 +16,7 @@ DemosPage 1.0 DemosPage.qml
 NavLink 1.0 NavLink.qml
 ControlsHost 1.0 ControlsHost.qml
 IconButton 1.0 IconButton.qml
+HeaderTip 1.0 HeaderTip.qml
 ThemeToggle 1.0 ThemeToggle.qml
 MenuButton 1.0 MenuButton.qml
 Search 1.0 Search.qml

@@ -8,6 +8,7 @@ IconButton {
     id: toggle
 
     label: Theme.dark ? t`Use the light theme` : t`Use the dark theme`
+    tip: Theme.dark ? t`Theme: dark – switch to light` : t`Theme: light – switch to dark`
     onPressed: Theme.toggle()
 
     // The moon: a disc with a bite out of it.

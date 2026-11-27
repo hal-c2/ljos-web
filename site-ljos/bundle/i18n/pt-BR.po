@@ -2470,3 +2470,27 @@ msgstr "As configurações de aparência do HAL-C2 no Ljós: as seções de conf
 #: ../Site/BuiltWith.qml:62
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
 msgstr "Um painel de controle para os agentes de programação da sua máquina, com um terminal, abas de navegador e um layout QML que você pode editar enquanto ele roda."
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "Idioma: {languageName} – escolher outro"
+
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "Reduzir movimento: desligado – usar menos movimento"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "Reduzir movimento: ligado – usar todo o movimento"
+
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "Shell: {label} – escolher outro layout"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "Tema: escuro – mudar para claro"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "Tema: claro – mudar para escuro"

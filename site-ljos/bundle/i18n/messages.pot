@@ -2469,3 +2469,27 @@ msgstr ""
 #: ../Site/BuiltWith.qml:62
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
 msgstr ""
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr ""
+
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr ""
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr ""
+
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr ""
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr ""
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr ""
