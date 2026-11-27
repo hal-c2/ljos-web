@@ -340,12 +340,26 @@ const own = {
   // Every tab says whose site it is, the review's too.
   "/review/": `${reviewTitle}${after}`,
 };
+// An excerpt is lines cut from a file, so QML's may be an object's
+// members with no object around them (a delegate's required
+// properties), which the grammar reads as broken and marks with a
+// squiggle. Such an excerpt is coloured as the inside of an object, and
+// only its own lines kept, where those lines say what it does.
+function excerptRich(code, lang) {
+  const plain = highlight(code, lang);
+  if (lang !== "qml" || !plain.includes("tok-invalid")) return plain;
+  const lines = highlight(`Item {\n${code}\n}`, lang).split("\n");
+  const inner = lines.slice(1, -1).join("\n");
+  const text = (html) => html.replace(/<[^>]*>/gu, "");
+  return inner.includes("tok-invalid") || text(inner) !== text(plain) ? plain : inner;
+}
+
 // The framework review's data (bundle/Review/review.json): each excerpt
 // coloured as a code block's is, the same way the page's own code is.
 const review = (() => {
   const data = JSON.parse(readFileSync(join(bundle, "Review/review.json"), "utf8"));
-  for (const feature of data.features) for (const excerpt of Object.values(feature.excerpts)) excerpt.rich = packRich(highlight(excerpt.code, excerpt.lang));
-  for (const one of data.frameworks) for (const excerpt of one.prose.shows ?? []) excerpt.rich = packRich(highlight(excerpt.code, excerpt.lang));
+  for (const feature of data.features) for (const excerpt of Object.values(feature.excerpts)) excerpt.rich = packRich(excerptRich(excerpt.code, excerpt.lang));
+  for (const one of data.frameworks) for (const excerpt of one.prose.shows ?? []) excerpt.rich = packRich(excerptRich(excerpt.code, excerpt.lang));
   return data;
 })();
 // The apps built with Ljós the showcase shows, as data, and the

@@ -110,6 +110,33 @@ test("with no script, every page's footer leads to the review, and the review st
   }
 });
 
+// Each excerpt is cut from an app that builds and runs, so nothing in
+// it is marked broken: QML's members cut from an object (a delegate's
+// required properties) are coloured as the inside of one.
+test("no code the review shows is marked as broken", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await expect(page.locator(".tok-keyword").first()).toBeAttached();
+    await expect(page.locator(".tok-invalid")).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+  const page = await browser.newPage();
+  try {
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    for (const feature of review.features) {
+      await page.getByRole("tab", { name: feature.label, exact: true }).click();
+      await expect(page.locator(".tok-keyword").first(), feature.id).toBeAttached();
+      await expect(page.locator(".tok-invalid"), feature.id).toHaveCount(0);
+    }
+  } finally {
+    await page.close();
+  }
+});
+
 test("a placeholder number or excerpt is said to be one", async ({ page }) => {
   await page.goto(route);
   await page.waitForSelector(hydrated);
