@@ -94,18 +94,6 @@ msgstr "AGO"
 msgid "About ljos.dev"
 msgstr "Sobre o ljos.dev"
 
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▸"
-msgstr "Sobre este movimento ▸"
-
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▾"
-msgstr "Sobre este movimento ▾"
-
-#: ../Demos/Motion.qml:301
-msgid "About this motion. Tap to open or close."
-msgstr "Sobre este movimento. Toque para abrir ou fechar."
-
 #: ../Shells/Workbench.qml:413
 msgid "Activity"
 msgstr "Atividade"
@@ -1080,10 +1068,6 @@ msgstr "Métricas"
 msgid "Miles"
 msgstr "Milhas"
 
-#: ../Site/DemosPage.qml:195
-msgid "Motion"
-msgstr "Movimento"
-
 #: ../Demos/Watch/HeartPage.qml:53
 msgid "Move"
 msgstr "Mover"
@@ -1232,10 +1216,6 @@ msgstr "Nesta página"
 #: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
 msgid "On-call crew"
 msgstr "Equipe de plantão"
-
-#: ../Site/DemosPage.qml:196
-msgid "Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU."
-msgstr "Quando estiver rodando, clique em Embaralhar blocos para vê-los se reorganizar com um único valor suavizado, e pressione e arraste na bandeja de mola para o disco seguir seu ponteiro com efeito mola. Quando o movimento para, nada continua rodando e um app em repouso usa 0 % de CPU."
 
 #: ../Site/DemosPage.qml:145
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
@@ -1408,10 +1388,6 @@ msgstr "Pressione / para buscar"
 #: ../Site/DemosPage.qml:223
 msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
 msgstr "Executá-lo carrega o player e dois arquivos Lottie (os avatares do HAL-C2), lidos e desenhados pelo Ljós sem nenhuma biblioteca Lottie em JavaScript. Teste Pausar, Repetir e os botões de velocidade para controlar a dança em loop e o gênio de execução única. Ambos rodam na metade da velocidade quando o movimento reduzido está ativado, pausam fora da tela e não usam CPU em repouso."
-
-#: ../Demos/Motion.qml:108
-msgid "Press and move — the puck springs after you"
-msgstr "Pressione e mova — o disco segue você com efeito mola"
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
@@ -1719,10 +1695,6 @@ msgstr "Vitrine"
 msgid "Shows the watch's other face"
 msgstr "Mostra o outro mostrador do relógio"
 
-#: ../Demos/Motion.qml:258 ../Demos/Motion.qml:279
-msgid "Shuffle the tiles"
-msgstr "Embaralhar blocos"
-
 #: ../Demos/WatchDemo.qml:166
 msgid "Side button"
 msgstr "Botão lateral"
@@ -1780,14 +1752,6 @@ msgstr "Velocidade"
 #: ../Demos/Cockpit/AssistView.qml:144
 msgid "Speed limit {0}"
 msgstr "Limite de velocidade {0}"
-
-#: ../Demos/Motion.qml:165
-msgid "Spring tray. Press and move to lead the puck; it springs after the pointer."
-msgstr "Bandeja de mola. Pressione e mova para guiar o disco; ele segue o ponteiro com efeito mola."
-
-#: ../Demos/Motion.qml:339
-msgid "Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen."
-msgstr "Molas, comportamentos, transições de lista e estados são declarados junto aos valores que movimentam — sem laço de animação para você manter, e nada roda fora da tela."
 
 #: ../Demos/WatchDemo.qml:159
 msgid "Square, 410 × 502"
@@ -2013,10 +1977,6 @@ msgstr "Este site roda o Ljós compilado para Solid DOM com ljos-web, com WebGPU
 #: ../Demos/DispatchCard.qml:230
 msgid "Tickets"
 msgstr "Chamados"
-
-#: ../Site/DemosPage.qml:212
-msgid "Tiles that shuffle and settle, driven by one eased value."
-msgstr "Blocos que se embaralham e se acomodam, movidos por um único valor suavizado."
 
 #: ../Demos/Watch/TimerPage.qml:57
 msgid "Time's up"
@@ -2494,3 +2454,43 @@ msgstr "Tema: escuro – mudar para claro"
 #: ../Site/ThemeToggle.qml:11
 msgid "Theme: light – switch to dark"
 msgstr "Tema: claro – mudar para escuro"
+
+#: ../Demos/Motion.qml:26
+msgid "Snappy"
+msgstr "Ágil"
+
+#: ../Demos/Motion.qml:27
+msgid "Bouncy"
+msgstr "Saltitante"
+
+#: ../Demos/Motion.qml:28
+msgid "Lazy"
+msgstr "Preguiçosa"
+
+#: ../Demos/Motion.qml:67
+msgid "Drag the ring · three springs chase it"
+msgstr "Arraste o anel · três molas o perseguem"
+
+#: ../Demos/Motion.qml:89
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr "Palco de molas. Arraste o anel ou mova-o com as setas do teclado; três molas o seguem."
+
+#: ../Demos/Motion.qml:352
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr "O movimento reduzido está ativado: as molas se movem mais devagar e nunca passam do anel."
+
+#: ../Demos/Motion.qml:352
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr "Com o movimento reduzido, as molas se movem mais devagar e nunca passam do anel."
+
+#: ../Site/DemosPage.qml:195
+msgid "Springs you drag"
+msgstr "Molas que você arrasta"
+
+#: ../Site/DemosPage.qml:196
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr "Três bolas em molas perseguem um anel: Ágil, Saltitante e Preguiçosa. O próprio TypeScript do app calcula a lei de mola do SpringAnimation quadro a quadro, com três ajustes. Arraste o anel ou mova-o com as setas; deixado sozinho, ele pula para outro lugar. Com o movimento reduzido, as molas ficam mais lentas e nunca passam do anel, mas continuam se movendo. Quando param, nada fica rodando e o app usa 0 % de CPU."
+
+#: ../Site/DemosPage.qml:212
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr "Três bolas em molas perseguindo um anel, cada uma do seu jeito."

@@ -94,18 +94,6 @@ msgstr "8月"
 msgid "About ljos.dev"
 msgstr "ljos.dev について"
 
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▸"
-msgstr "このモーションについて ▸"
-
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▾"
-msgstr "このモーションについて ▾"
-
-#: ../Demos/Motion.qml:301
-msgid "About this motion. Tap to open or close."
-msgstr "このモーションについて。タップして開閉します。"
-
 #: ../Shells/Workbench.qml:413
 msgid "Activity"
 msgstr "アクティビティ"
@@ -1080,10 +1068,6 @@ msgstr "メトリクス"
 msgid "Miles"
 msgstr "マイル"
 
-#: ../Site/DemosPage.qml:195
-msgid "Motion"
-msgstr "モーション"
-
 #: ../Demos/Watch/HeartPage.qml:53
 msgid "Move"
 msgstr "ムーブ"
@@ -1232,10 +1216,6 @@ msgstr "このページの内容"
 #: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
 msgid "On-call crew"
 msgstr "待機チーム"
-
-#: ../Site/DemosPage.qml:196
-msgid "Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU."
-msgstr "実行後、「タイルをシャッフル」をクリックすると 1 つのイージング値で並び替わる様子が見られます。スプリングトレイ内で押してドラッグすると、パックがバネのようにポインターを追いかけます。動きが止まると処理は一切回らず、静止時の CPU 使用率は 0 % です。"
 
 #: ../Site/DemosPage.qml:145
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
@@ -1408,10 +1388,6 @@ msgstr "/ キーで検索"
 #: ../Site/DemosPage.qml:223
 msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
 msgstr "実行すると、プレーヤーと 2 つの Lottie ファイル（HAL-C2 のアバター）が読み込まれます。JavaScript の Lottie ライブラリは使わず、Ljós が読み込みと描画を行います。「一時停止」「もう一度」や速度ボタンで、ループするダンスと 1 回再生のジーニーを操作してみてください。「視差効果を減らす」がオンのときはどちらも半分の速度で再生され、画面外では一時停止し、待機時は CPU を使用しません。"
-
-#: ../Demos/Motion.qml:108
-msgid "Press and move — the puck springs after you"
-msgstr "押したまま動かす — パックがバネのように追従します"
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
@@ -1719,10 +1695,6 @@ msgstr "ショーケース"
 msgid "Shows the watch's other face"
 msgstr "ウォッチのもう一方の文字盤を表示します"
 
-#: ../Demos/Motion.qml:258 ../Demos/Motion.qml:279
-msgid "Shuffle the tiles"
-msgstr "タイルをシャッフル"
-
 #: ../Demos/WatchDemo.qml:166
 msgid "Side button"
 msgstr "サイドボタン"
@@ -1780,14 +1752,6 @@ msgstr "速度"
 #: ../Demos/Cockpit/AssistView.qml:144
 msgid "Speed limit {0}"
 msgstr "制限速度 {0}"
-
-#: ../Demos/Motion.qml:165
-msgid "Spring tray. Press and move to lead the puck; it springs after the pointer."
-msgstr "スプリングトレイ。押して動かすとパックがバネのようにポインターを追います。"
-
-#: ../Demos/Motion.qml:339
-msgid "Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen."
-msgstr "スプリング、ビヘイビア、リスト遷移、状態は動かす値のすぐ隣に宣言します。アニメーションループを自前で管理する必要はなく、画面外で無駄に動くこともありません。"
 
 #: ../Demos/WatchDemo.qml:159
 msgid "Square, 410 × 502"
@@ -2013,10 +1977,6 @@ msgstr "このサイトは ljos-web で Solid DOM にコンパイルされた Lj
 #: ../Demos/DispatchCard.qml:230
 msgid "Tickets"
 msgstr "チケット"
-
-#: ../Site/DemosPage.qml:212
-msgid "Tiles that shuffle and settle, driven by one eased value."
-msgstr "1 つのイージング値でシャッフルして落ち着くタイル。"
 
 #: ../Demos/Watch/TimerPage.qml:57
 msgid "Time's up"
@@ -2494,3 +2454,43 @@ msgstr "テーマ: ダーク – ライトに切り替え"
 #: ../Site/ThemeToggle.qml:11
 msgid "Theme: light – switch to dark"
 msgstr "テーマ: ライト – ダークに切り替え"
+
+#: ../Demos/Motion.qml:26
+msgid "Snappy"
+msgstr "キビキビ"
+
+#: ../Demos/Motion.qml:27
+msgid "Bouncy"
+msgstr "ポヨン"
+
+#: ../Demos/Motion.qml:28
+msgid "Lazy"
+msgstr "のんびり"
+
+#: ../Demos/Motion.qml:67
+msgid "Drag the ring · three springs chase it"
+msgstr "リングをドラッグ · 3 つのばねが追いかけます"
+
+#: ../Demos/Motion.qml:89
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr "ばねのステージ。リングをドラッグするか矢印キーで動かすと、3 つのばねが追いかけます。"
+
+#: ../Demos/Motion.qml:352
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr "動きを減らす設定がオンです。ばねはゆっくり動き、リングを通り過ぎることはありません。"
+
+#: ../Demos/Motion.qml:352
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr "動きを減らす設定がオンのときは、ばねがゆっくり動き、リングを通り過ぎることはありません。"
+
+#: ../Site/DemosPage.qml:195
+msgid "Springs you drag"
+msgstr "ドラッグするばね"
+
+#: ../Site/DemosPage.qml:196
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr "ばねにつながった 3 つのボールが 1 つのリングを追いかけます。キビキビ、ポヨン、のんびりです。アプリ自身の TypeScript が SpringAnimation のばねの法則を 1 フレームずつ計算し、3 通りの調整で動かします。リングをドラッグするか矢印キーで動かしてください。放っておくとリングは自分で跳び回ります。動きを減らす設定がオンのときは、ばねがゆっくりになりリングを通り過ぎませんが、止まりはしません。落ち着くと何も動かず、アプリの CPU 使用率は 0 % です。"
+
+#: ../Site/DemosPage.qml:212
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr "リングを追いかける、ばねにつながった 3 つのボール。それぞれ動き方が違います。"

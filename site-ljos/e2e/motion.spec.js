@@ -1,167 +1,136 @@
-// Reduced motion reduces movement; it never snaps or freezes. A reader
-// who asks for it (prefers-reduced-motion: reduce) still sees the
-// motion demo's puck travel to where they pressed, in steps a person
-// can follow, only without the spring's overshoot. Every other spec
-// runs with no preference, which is full motion.
+// The motion demo: three springs chase one ring, each its own way. With
+// no preference the bouncy one swings past the ring and back; a reader
+// who asks for less motion (prefers-reduced-motion: reduce) still sees
+// every ball travel to the ring, in steps a person can follow, only more
+// slowly and without a swing past it. Reduced motion reduces movement;
+// it never snaps or freezes.
 import { centre, expect, open, press, runButton, test } from "./fixtures.js";
 
-test.use({ reducedMotion: "reduce" });
+// How long the balls get to come to rest before the ring is moved, and
+// how long they are watched after, at most: longer than the calmest
+// travel takes.
+const SETTLE = 6_000;
+const WATCH = 4_000;
+// At rest: every ball within 0.5 px for this long.
+const STILL = 120;
 
-// Where the puck is, relative to its tray, read in the page on every
-// animation frame: first until it rests, as [ms, x, y], then after a
-// press at the tray's left edge until it has come to rest, as [ms, x].
-// Read in the page, not from the test, so a busy machine cannot make
-// the test look away while the puck travels.
-//
-// Every ms is the scene's own time: what the animation clock
-// (`ljos-web/clock`) has handed its animations. The puck moves by that
-// time, so where it is at each ms is the same on a loaded machine,
-// which only draws fewer of them; timed by the page's clock, a slow
-// frame looked like a jump or a rest.
-//
-// The press is measured from where the puck rests, so `start` is read
-// only once it has stayed within 0.5 px for STILL ms (a spring's turn
-// is still for a frame or two, a rest is not), or the clock has nothing
-// left to run, or SETTLE ms have gone by, which `rest.still` then says.
-const STILL = 100;
-const SETTLE = 2_000;
-// How long after the press the puck is watched, at most: longer than
-// the softened travel takes.
-const WATCH = 2_500;
-async function pressAndWatch(page) {
+// The reader holds the ring at the stage's left, waits for the balls to
+// rest round it, and leads it across to the right. Where each ball is,
+// across, is read in the page on every animation frame, so a busy
+// machine cannot make the test look away while they travel, and timed
+// by the scene's own clock (`ljos-web/clock`): a loaded machine draws
+// fewer frames of the same motion, not a different motion.
+async function chase(page) {
   await open(page, "/demos/");
   const run = runButton(page, "Run the motion demo");
   await press(run);
   await expect(run).toBeHidden();
-  const tray = page.getByRole("group", { name: /Spring tray/ });
-  await centre(tray);
-  const box = await tray.boundingBox();
-  const PRESS = 20;
-  const { rest, start, target } = await tray.evaluate(
-    async (area, { press, still, settle, watch }) => {
-      const host = area.parentElement;
-      const puck = () =>
-        [...host.querySelectorAll("*")].find((element) => {
-          const style = getComputedStyle(element);
-          return Math.round(element.getBoundingClientRect().width) === 54 && parseFloat(style.borderTopLeftRadius) >= 26;
-        });
-      // Where the puck is in its tray: [x, y], or null where it is not drawn.
-      const place = () => {
-        const round = puck();
-        if (!round) return null;
-        const own = round.getBoundingClientRect();
-        const tray = host.getBoundingClientRect();
-        return [own.x - tray.x, own.y - tray.y];
-      };
-      const read = () => place()?.[0] ?? null;
+  const stage = page.getByRole("group", { name: /Spring stage/ });
+  await centre(stage);
+  const box = await stage.boundingBox();
+  // Held, the ring does not hop on its own.
+  await page.mouse.move(box.x + box.width * 0.15, box.y + box.height / 2);
+  await page.mouse.down();
+  const rest = await stage.evaluate(
+    (area, { still, settle, watch }) => {
+      // The balls are the ones with their spring's initial on them.
+      const balls = [...area.querySelectorAll("div.qq-text")].filter((text) => /^[SBL]$/.test(text.textContent.trim())).map((text) => [text.textContent.trim(), text.parentElement]);
+      const read = () => balls.map(([, ball]) => {
+        const own = ball.getBoundingClientRect();
+        return own.width ? own.x + own.width / 2 - area.getBoundingClientRect().x : null;
+      });
       const clock = globalThis[Symbol.for("ljos-web/clock")];
-      const rest = await new Promise((resolve) => {
+      window.__balls = { names: balls.map(([name]) => name), seen: [], moved: null, done: false };
+      return new Promise((resolve) => {
         const seen = [];
-        const t0 = clock.time;
+        // The scene's clock stands still while nothing in it moves, so
+        // this wait is timed by the page's: at rest, the scene has no job
+        // left and its clock would never reach `settle`.
+        const t0 = performance.now();
         const frame = () => {
-          const at = clock.time - t0;
-          const where = place();
-          seen.push([Math.round(at), where?.[0] ?? null, where?.[1] ?? null]);
-          // From the last reading at least `still` ago, so the readings
-          // span the whole window however far apart the frames fall;
-          // both ways, so a puck still across but moving down is not at rest.
+          const at = performance.now() - t0;
+          seen.push([at, ...read()]);
           const from = seen.findLastIndex(([t]) => t <= at - still);
           const recent = from < 0 ? [] : seen.slice(from);
-          const within = (axis) => {
-            const values = recent.map((reading) => reading[axis]);
-            return Math.max(...values) - Math.min(...values) <= 0.5;
+          const drawn = seen.at(-1).slice(1).every((x) => x !== null);
+          const quiet = (drawn && !clock.jobs && seen.length >= 2) || (recent.length >= 2 && balls.every((_, i) => {
+            const xs = recent.map((reading) => reading[i + 1]);
+            return xs.every((x) => x !== null) && Math.max(...xs) - Math.min(...xs) <= 0.5;
+          }));
+          if (!quiet && at < settle) return requestAnimationFrame(frame);
+          // From here every frame is kept, timed from the move.
+          const watching = () => {
+            const state = window.__balls;
+            const since = state.moved === null ? 0 : clock.time - state.moved;
+            state.seen.push([Math.round(since), ...read()]);
+            const last = state.seen.slice(-2);
+            const resting = state.moved !== null && since > 200 && !clock.jobs && last.length === 2 && last[0].slice(1).every((x, i) => x === last[1][i + 1]);
+            if (since >= watch || resting) state.done = true;
+            else requestAnimationFrame(watching);
           };
-          const drawn = recent.length >= 2 && recent.every(([, x]) => x !== null);
-          // Nothing left to run: the clock's time stands, and so does
-          // the puck, once two frames in a row find it in one place.
-          const idle = !clock.jobs && seen.length >= 2 && where !== null && seen.at(-2)[1] === where[0] && seen.at(-2)[2] === where[1];
-          const quiet = (drawn && within(1) && within(2)) || idle;
-          if (quiet || at >= settle) resolve({ still: quiet, after: Math.round(at), seen });
-          else requestAnimationFrame(frame);
+          requestAnimationFrame(watching);
+          resolve({ quiet, after: Math.round(at), names: balls.map(([name]) => name) });
         };
         requestAnimationFrame(frame);
       });
-      // Watched until WATCH ms of the scene's time have gone by since
-      // the press, or, once it has moved, the clock has nothing left to
-      // run and two frames in a row find it in one place.
-      window.__puck = [];
-      window.__pressed = null;
-      window.__watched = false;
-      const t0 = clock.time;
-      // Where the first frame after the press found it, and whether one
-      // since found it elsewhere: what else ran the clock meanwhile and
-      // stopped is not the puck at rest after a move it never made.
-      let from;
-      let moved = false;
-      const frame = () => {
-        const x = read();
-        const before = window.__puck.at(-1);
-        window.__puck.push([Math.round(clock.time - t0), x]);
-        const pressed = window.__pressed;
-        if (pressed !== null && from === undefined) from = x;
-        if (pressed !== null && x !== null && from != null && Math.abs(x - from) > 0.5) moved = true;
-        const after = pressed === null ? 0 : clock.time - pressed;
-        const settled = moved && after > 0 && !clock.jobs && before?.[1] === x;
-        if (after >= watch || settled) window.__watched = true;
-        else requestAnimationFrame(frame);
-      };
-      requestAnimationFrame(frame);
-      // Where the press sends it, as Motion.qml's lead() puts it: the
-      // puck's middle under the pointer, kept inside the tray.
-      const round = puck();
-      const width = round ? round.getBoundingClientRect().width : 0;
-      const own = host.getBoundingClientRect();
-      const pointer = area.getBoundingClientRect().x - own.x + press;
-      return { rest, start: read(), target: Math.max(0, Math.min(own.width - width, pointer - width / 2)) };
     },
-    { press: PRESS, still: STILL, settle: SETTLE, watch: WATCH },
+    { still: STILL, settle: SETTLE, watch: WATCH },
   );
-  const trace = (samples) => JSON.stringify(samples.map(([t, ...place]) => [t, ...place.map((v) => (v === null ? null : Math.round(v * 10) / 10))]));
-  const before = `${rest.still ? `at rest after ${rest.after} ms` : `not at rest after ${rest.after} ms`}; before the press [ms, x, y] ${trace(rest.seen)}`;
-  expect(start, `the puck is drawn (${before})`).not.toBeNull();
-  expect(rest.still, `the puck is at rest before the press (${before})`).toBe(true);
-  // From here on the clock's time counts as after the press: until the
-  // press lands it only runs if something else is moving.
-  await page.evaluate(() => (window.__pressed = globalThis[Symbol.for("ljos-web/clock")].time));
-  await page.mouse.click(box.x + PRESS, box.y + box.height / 2);
-  await test.step("the puck is watched until it rests after the press", () =>
-    page.waitForFunction(() => window.__watched, null, { timeout: 0, polling: "raf" }),
-  );
-  const samples = await page.evaluate(() => window.__puck);
-  const xs = samples.map(([, x]) => x);
-  // Every failure says what was seen, for each frame read.
-  const seen = `start ${start}, target ${target}; ${before}; after it [ms, x] ${trace(samples)}`;
-  return { start, target, rest, samples, xs, end: xs.at(-1), seen };
+  expect(rest.names.sort(), "the three balls are drawn").toEqual(["B", "L", "S"]);
+  expect(rest.quiet, `the balls are at rest round the held ring (after ${rest.after} ms)`).toBe(true);
+  await page.evaluate(() => (window.__balls.moved = globalThis[Symbol.for("ljos-web/clock")].time));
+  await page.mouse.move(box.x + box.width * 0.85, box.y + box.height / 2);
+  await test.step("the balls are watched until they rest by the ring", () => page.waitForFunction(() => window.__balls.done, null, { timeout: 0, polling: "raf" }));
+  const { names, seen } = await page.evaluate(() => window.__balls);
+  await page.mouse.up();
+  // Each ball's frames as [ms, x], only those where it was drawn.
+  const ball = (name) => {
+    const i = names.indexOf(name) + 1;
+    const frames = seen.filter((reading) => reading[i] !== null).map((reading) => [reading[0], Math.round(reading[i] * 10) / 10]);
+    return { frames, start: frames[0][1], end: frames.at(-1)[1], said: `${name} [ms, x] ${JSON.stringify(frames)}` };
+  };
+  return { snappy: ball("S"), bouncy: ball("B"), lazy: ball("L"), width: box.width };
 }
 
-test("with reduced motion the puck still travels; it does not jump", async ({ page, wasm }) => {
-  test.skip(!wasm, "the same on both; held once");
-  const { start, target, rest, samples, end, seen } = await pressAndWatch(page);
-  // The puck goes where a reader sends it and nowhere else: as the demo
-  // appears and takes its frame's size, it stays in the tray's middle.
-  const drawnBefore = rest.seen.filter(([, x]) => x !== null);
-  const spread = (axis) => Math.max(...drawnBefore.map((reading) => reading[axis])) - Math.min(...drawnBefore.map((reading) => reading[axis]));
-  expect(Math.max(spread(1), spread(2)), `nothing moves the puck before a reader does (${seen})`).toBeLessThanOrEqual(0.5);
-  expect(start - target, `the press is far enough away to watch it travel (${seen})`).toBeGreaterThan(50);
-  expect(end, `the puck is still drawn when it arrives (${seen})`).not.toBeNull();
-  expect(Math.abs(end - target), `it ends where the reader pressed (${seen})`).toBeLessThanOrEqual(3);
-  // A jump goes there between one frame and the next; travel takes
-  // time. Timed in the scene's time, not counted in frames: a busy
-  // machine draws fewer frames of the same travel.
-  // Only frames where the puck was found: a frame that lost it says
-  // nothing about where it was. Timed from the last frame still at the
-  // start, so sparse frames do not cut off the beginning of the travel.
-  const drawn = samples.filter(([, x]) => x !== null);
-  const moved = drawn.findIndex(([, x]) => x < start - 2);
-  expect(moved, `it leaves where it was (${seen})`).toBeGreaterThan(0);
-  const onset = drawn[moved - 1];
-  const there = drawn.find(([t, x]) => t >= drawn[moved][0] && Math.abs(x - end) <= 2);
-  expect(drawn.some(([, x]) => x < start - 2 && x > end + 2), `on its way it is seen between where it was and where it goes (${seen})`).toBe(true);
-  expect(there[0] - onset[0], `it takes time to get there; it does not jump (${seen})`).toBeGreaterThanOrEqual(100);
+// When a ball has come within 2 px of where it ends, for good.
+function arrival({ frames, end }) {
+  const away = frames.findLastIndex(([, x]) => Math.abs(x - end) > 2);
+  return frames[Math.min(away + 1, frames.length - 1)][0];
+}
+
+test.describe("with no preference", () => {
+  test("the bouncy spring swings past the ring, and the snappy one is there first", async ({ page, wasm }) => {
+    test.skip(!wasm, "the same on both; held once");
+    const { snappy, bouncy, lazy, width } = await chase(page);
+    const travel = bouncy.end - bouncy.start;
+    expect(travel, `the ring went far enough to watch (${bouncy.said})`).toBeGreaterThan(width * 0.5);
+    const past = Math.max(...bouncy.frames.map(([, x]) => x)) - bouncy.end;
+    expect(past, `the bouncy ball swings past the ring (${bouncy.said})`).toBeGreaterThan(travel * 0.2);
+    expect(arrival(snappy), `the snappy ball arrives before the lazy one (${snappy.said}; ${lazy.said})`).toBeLessThan(arrival(lazy));
+  });
 });
 
-test("with reduced motion the puck's travel is softened: no overshoot", async ({ page, wasm }) => {
-  test.skip(!wasm, "the same on both; held once");
-  const { xs, end, seen } = await pressAndWatch(page);
-  expect(Math.min(...xs), `it never passes its goal (${seen})`).toBeGreaterThanOrEqual(end - 2);
+test.describe("with reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("every ball still travels to the ring; none jumps", async ({ page, wasm }) => {
+    test.skip(!wasm, "the same on both; held once");
+    const run = await chase(page);
+    for (const ball of [run.snappy, run.bouncy, run.lazy]) {
+      expect(ball.end - ball.start, `it went across (${ball.said})`).toBeGreaterThan(run.width * 0.5);
+      // A jump goes there between one frame and the next; travel takes time.
+      const moved = ball.frames.findIndex(([, x]) => x > ball.start + 2);
+      expect(moved, `it leaves where it was (${ball.said})`).toBeGreaterThan(0);
+      expect(ball.frames.some(([, x]) => x > ball.start + 2 && x < ball.end - 2), `it is seen on its way (${ball.said})`).toBe(true);
+      expect(arrival(ball) - ball.frames[moved - 1][0], `it takes time to get there (${ball.said})`).toBeGreaterThanOrEqual(150);
+    }
+  });
+
+  test("no ball swings past the ring, and the calm ones take longer", async ({ page, wasm }) => {
+    test.skip(!wasm, "the same on both; held once");
+    const { snappy, bouncy, lazy } = await chase(page);
+    for (const ball of [snappy, bouncy, lazy]) expect(Math.max(...ball.frames.map(([, x]) => x)), `it never passes where it ends (${ball.said})`).toBeLessThanOrEqual(ball.end + 2);
+    // Lazy with no preference is there in about 1.3 s; calm, it is slower.
+    expect(arrival(lazy), `the lazy ball takes its time (${lazy.said})`).toBeGreaterThan(1_500);
+  });
 });

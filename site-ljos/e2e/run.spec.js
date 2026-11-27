@@ -31,7 +31,7 @@ const WHAT = {
   "3D you can orbit": "the 3D demo",
   "A shader effect": "the shader demo",
   "A whole app": "the field guide",
-  Motion: "the motion demo",
+  "Springs you drag": "the motion demo",
 };
 const RUN = Object.fromEntries(Object.entries(WHAT).map(([heading, what]) => [heading, `Run ${what}`]));
 async function start(page, heading) {
@@ -583,12 +583,12 @@ test.describe("/demos/", () => {
 
   test("at most three are started at once; a fourth stops the first started out of view", async ({ page, errors }) => {
     await open(page, "/demos/");
-    for (const heading of ["3D you can orbit", "A shader effect", "A whole app", "Motion"]) await start(page, heading);
+    for (const heading of ["3D you can orbit", "A shader effect", "A whole app", "Springs you drag"]) await start(page, heading);
     // The 3D demo started first, and is out of view now: it is the one
     // stopped, and waits for its Run again; the others keep their place.
     await centre(demo(page, "3D you can orbit"));
     await expect(runButton(demo(page, "3D you can orbit"), RUN["3D you can orbit"])).toBeVisible();
-    for (const heading of ["A shader effect", "A whole app", "Motion"]) {
+    for (const heading of ["A shader effect", "A whole app", "Springs you drag"]) {
       await centre(demo(page, heading));
       await expect(runButton(demo(page, heading), RUN[heading]), `${heading} still runs`).toBeHidden();
     }
@@ -599,7 +599,7 @@ test.describe("/demos/", () => {
     await open(page, "/demos/");
     const canvas = (await start(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await expect.poll(() => drawn(canvas), { message: "it draws" }).toBeGreaterThan(5);
-    await centre(demo(page, "Motion"));
+    await centre(demo(page, "Springs you drag"));
     expect(await drawnWhileStopped(canvas, "out of view"), `out of view, it draws nothing over ${WATCHED} of the page's frames`).toBe(0);
     await centre(canvas);
     await keepsDrawing(canvas, "back in view, it draws again");

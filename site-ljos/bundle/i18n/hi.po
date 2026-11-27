@@ -94,18 +94,6 @@ msgstr "अग"
 msgid "About ljos.dev"
 msgstr "ljos.dev के बारे में"
 
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▸"
-msgstr "इस गति के बारे में ▸"
-
-#: ../Demos/Motion.qml:322
-msgid "About this motion ▾"
-msgstr "इस गति के बारे में ▾"
-
-#: ../Demos/Motion.qml:301
-msgid "About this motion. Tap to open or close."
-msgstr "इस गति के बारे में। खोलने या बंद करने के लिए टैप करें।"
-
 #: ../Shells/Workbench.qml:413
 msgid "Activity"
 msgstr "गतिविधि"
@@ -1080,10 +1068,6 @@ msgstr "मेट्रिक्स"
 msgid "Miles"
 msgstr "मील"
 
-#: ../Site/DemosPage.qml:195
-msgid "Motion"
-msgstr "गति"
-
 #: ../Demos/Watch/HeartPage.qml:53
 msgid "Move"
 msgstr "चाल"
@@ -1232,10 +1216,6 @@ msgstr "इस पेज पर"
 #: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:363
 msgid "On-call crew"
 msgstr "ऑन-कॉल टीम"
-
-#: ../Site/DemosPage.qml:196
-msgid "Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU."
-msgstr "चलने के बाद, टाइलों को एक ही ईज़्ड मान पर पुनर्व्यवस्थित होते देखने के लिए “टाइलें मिलाएँ” पर क्लिक करें, और स्प्रिंग ट्रे में दबाकर खींचें ताकि पक आपके पॉइंटर के पीछे उछलता चले। गति रुकने पर कुछ भी टिक नहीं करता और विश्राम पर ऐप 0 % CPU उपयोग करता है।"
 
 #: ../Site/DemosPage.qml:145
 msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
@@ -1408,10 +1388,6 @@ msgstr "खोजने के लिए / दबाएँ"
 #: ../Site/DemosPage.qml:223
 msgid "Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle."
 msgstr "चलाने पर प्लेयर और दो Lottie फ़ाइलें (HAL-C2 के अवतार) लोड होती हैं, जिन्हें Ljós बिना किसी JavaScript Lottie लाइब्रेरी के पढ़ता और चित्रित करता है। लूप में चलने वाले डांस और एक बार चलने वाले जिन्न को नियंत्रित करने के लिए “रोकें”, “दोबारा” और गति बटन आज़माएँ। कम गति चालू होने पर दोनों आधी गति से चलते हैं, स्क्रीन से बाहर होने पर रुक जाते हैं, और निष्क्रिय रहने पर CPU उपयोग नहीं करते।"
-
-#: ../Demos/Motion.qml:108
-msgid "Press and move — the puck springs after you"
-msgstr "दबाएँ और घुमाएँ — पक स्प्रिंग की तरह आपके पीछे आता है"
 
 #: ../Demos/AgentReplay.qml:42
 msgid "Press it, as a person would."
@@ -1719,10 +1695,6 @@ msgstr "शोकेस"
 msgid "Shows the watch's other face"
 msgstr "घड़ी का दूसरा फ़ेस दिखाता है"
 
-#: ../Demos/Motion.qml:258 ../Demos/Motion.qml:279
-msgid "Shuffle the tiles"
-msgstr "टाइलें मिलाएँ"
-
 #: ../Demos/WatchDemo.qml:166
 msgid "Side button"
 msgstr "साइड बटन"
@@ -1780,14 +1752,6 @@ msgstr "गति"
 #: ../Demos/Cockpit/AssistView.qml:144
 msgid "Speed limit {0}"
 msgstr "गति सीमा {0}"
-
-#: ../Demos/Motion.qml:165
-msgid "Spring tray. Press and move to lead the puck; it springs after the pointer."
-msgstr "स्प्रिंग ट्रे। पक को चलाने के लिए दबाएँ और घुमाएँ; यह स्प्रिंग की तरह पॉइंटर के पीछे चलता है।"
-
-#: ../Demos/Motion.qml:339
-msgid "Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen."
-msgstr "स्प्रिंग, बिहेवियर, सूची संक्रमण और स्टेट सीधे उन मानों के साथ घोषित होते हैं जिन्हें वे चलाते हैं — आपको कोई एनीमेशन लूप चलाने की ज़रूरत नहीं, और स्क्रीन से बाहर कुछ भी टिक नहीं करता।"
 
 #: ../Demos/WatchDemo.qml:159
 msgid "Square, 410 × 502"
@@ -2013,10 +1977,6 @@ msgstr "यह साइट ljos-web के साथ Solid DOM में कं
 #: ../Demos/DispatchCard.qml:230
 msgid "Tickets"
 msgstr "टिकट"
-
-#: ../Site/DemosPage.qml:212
-msgid "Tiles that shuffle and settle, driven by one eased value."
-msgstr "वे टाइलें जो एक ही ईज़्ड मान से मिल जाती हैं और व्यवस्थित हो जाती हैं।"
 
 #: ../Demos/Watch/TimerPage.qml:57
 msgid "Time's up"
@@ -2494,3 +2454,43 @@ msgstr "थीम: डार्क – लाइट पर जाएँ"
 #: ../Site/ThemeToggle.qml:11
 msgid "Theme: light – switch to dark"
 msgstr "थीम: लाइट – डार्क पर जाएँ"
+
+#: ../Demos/Motion.qml:26
+msgid "Snappy"
+msgstr "फुर्तीली"
+
+#: ../Demos/Motion.qml:27
+msgid "Bouncy"
+msgstr "उछलती"
+
+#: ../Demos/Motion.qml:28
+msgid "Lazy"
+msgstr "आलसी"
+
+#: ../Demos/Motion.qml:67
+msgid "Drag the ring · three springs chase it"
+msgstr "छल्ला खींचें · तीन स्प्रिंग उसका पीछा करती हैं"
+
+#: ../Demos/Motion.qml:89
+msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
+msgstr "स्प्रिंग का मंच। छल्ला खींचें या तीर वाली कुंजियों से हिलाएँ; तीन स्प्रिंग उसके पीछे चलती हैं।"
+
+#: ../Demos/Motion.qml:352
+msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
+msgstr "कम मोशन चालू है: स्प्रिंग धीरे चलती हैं और कभी छल्ले से आगे नहीं झूलतीं।"
+
+#: ../Demos/Motion.qml:352
+msgid "With reduced motion on, the springs move more slowly and never swing past the ring."
+msgstr "कम मोशन चालू होने पर स्प्रिंग धीरे चलती हैं और कभी छल्ले से आगे नहीं झूलतीं।"
+
+#: ../Site/DemosPage.qml:195
+msgid "Springs you drag"
+msgstr "खींचने वाली स्प्रिंग"
+
+#: ../Site/DemosPage.qml:196
+msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
+msgstr "स्प्रिंग पर लगी तीन गेंदें एक छल्ले का पीछा करती हैं: फुर्तीली, उछलती और आलसी। ऐप का अपना TypeScript SpringAnimation का स्प्रिंग नियम एक-एक फ़्रेम करके चलाता है, तीन सेटिंग के साथ। छल्ला खींचें या तीर वाली कुंजियों से हिलाएँ; अकेला छोड़ने पर वह अपने आप उछलकर दूसरी जगह जाता है। कम मोशन चालू होने पर स्प्रिंग धीमी हो जाती हैं और कभी छल्ले से आगे नहीं झूलतीं, पर चलती रहती हैं। थम जाने पर कुछ नहीं चलता और ऐप 0 % CPU लेता है।"
+
+#: ../Site/DemosPage.qml:212
+msgid "Three balls on springs chasing a ring, each moving its own way."
+msgstr "छल्ले का पीछा करती स्प्रिंग पर लगी तीन गेंदें, हर एक अपने ढंग से।"

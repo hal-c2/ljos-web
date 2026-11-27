@@ -114,3 +114,59 @@ test("the agent's card reads back as the declarative source its calls amount to"
   const source = stage.sourceOf("North", ["Open only"], [{ key: "A-1", title: "One", state: "Open", crew: "" }], { "A-1": "Crew" });
   expect(source).toBe('DispatchCard {\n    heading: "North"\n    filters: ["Open only"]\n    tickets: [\n        { key: "A-1", state: "Open", crew: "Crew",\n          title: "One" },\n    ]\n}');
 });
+
+// Motion's springs, stepped as SpringAnimation steps them: each tuning
+// moves its own way, and reduced motion slows every one without a swing
+// past the ring, and never holds it still.
+test("Motion's springs differ: the bouncy one swings past the ring, the snappy one gets there first", async () => {
+  const motion = await import("../bundle/Demos/logic/motion.ts");
+  const peak = (tuning) => Math.max(...motion.trace(tuning, 0, 100, 4));
+  const settled = (tuning) => motion.trace(tuning, 0, 100, 6).findIndex((_, i, all) => all.slice(i).every((v) => Math.abs(v - 100) < 1));
+  const [snappy, bouncy, lazy] = [{ spring: 8, damping: 0.5 }, { spring: 3, damping: 0.07 }, { spring: 0.6, damping: 0.18 }];
+  expect(peak(bouncy), "the bouncy spring swings well past").toBeGreaterThan(130);
+  expect(peak(snappy), "the snappy spring barely passes").toBeLessThan(105);
+  expect(settled(snappy), "the snappy spring settles before the lazy one").toBeLessThan(settled(lazy));
+});
+
+test("under reduced motion each spring is slower, never swings past, and still gets there", async () => {
+  const motion = await import("../bundle/Demos/logic/motion.ts");
+  for (const tuning of [{ spring: 8, damping: 0.5 }, { spring: 3, damping: 0.07 }, { spring: 0.6, damping: 0.18 }, { spring: 20, damping: 0.01 }]) {
+    const calm = motion.tuned(tuning, true);
+    const full = motion.trace(tuning, 0, 100, 0.2);
+    const slow = motion.trace(calm, 0, 100, 0.2);
+    expect(slow.at(-1), `${motion.said(tuning)} calmed is behind after 0.2 s`).toBeLessThan(full.at(-1));
+    expect(slow.at(-1), `${motion.said(tuning)} calmed has moved after 0.2 s`).toBeGreaterThan(1);
+    const whole = motion.trace(calm, 0, 100, 8);
+    expect(Math.max(...whole), `${motion.said(tuning)} calmed never passes the ring`).toBeLessThanOrEqual(100.0001);
+    expect(whole.at(-1), `${motion.said(tuning)} calmed arrives`).toBeGreaterThan(99);
+    expect(motion.dampingRatio(calm)).toBeGreaterThanOrEqual(1);
+  }
+  expect(motion.tuned({ spring: 3, damping: 0.07 }, false)).toEqual({ spring: 3, damping: 0.07 });
+});
+
+test("Motion's ring hops round for ever and is never led past the stage's inset", async () => {
+  const motion = await import("../bundle/Demos/logic/motion.ts");
+  expect(motion.hop(motion.HOPS.length)).toEqual(motion.hop(0));
+  expect(motion.hop(-1)).toEqual(motion.hop(motion.HOPS.length - 1));
+  for (let i = 1; i < motion.HOPS.length * 2; i++) {
+    const [a, b] = [motion.hop(i - 1), motion.hop(i)];
+    expect(Math.hypot(a.x - b.x, a.y - b.y), `hop ${i} goes somewhere`).toBeGreaterThan(0.25);
+  }
+  for (const [x, y] of [[-50, -50], [0, 0], [200, 100], [999, 999]]) {
+    const part = motion.partOf(x, y, 400, 200, 30);
+    for (const v of [part.x, part.y]) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
+    const px = motion.placeOf(part.x, 400, 30);
+    expect(px).toBeGreaterThanOrEqual(30);
+    expect(px).toBeLessThanOrEqual(370);
+  }
+  expect(motion.placeOf(motion.partOf(123, 0, 400, 200, 30).x, 400, 30)).toBeCloseTo(123);
+  expect(motion.rope({ x: 0, y: 0 }, { x: 0, y: 10 })).toEqual({ length: 10, angle: 90 });
+  // At rest the balls sit apart round the ring, none on another.
+  const seats = [0, 1, 2].map((i) => motion.seat(i, 3, 40));
+  for (const [i, a] of seats.entries()) {
+    expect(Math.hypot(a.x, a.y)).toBeCloseTo(40);
+    for (const b of seats.slice(i + 1)) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(60);
+  }
+  expect(motion.ballOn(1200, 640, 0.1)).toBe(64);
+  expect(motion.ballOn(300, 200, 0.1)).toBe(26);
+});
