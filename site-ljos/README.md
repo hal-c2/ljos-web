@@ -39,6 +39,10 @@ and is built and tested, never deployed.
   and turns red the day it starts to work, so the fix takes it
   out of `known.js`. Full motion is the default;
   `e2e/motion.spec.js` asks for reduced motion on purpose.
+  `e2e/lines.spec.js` checks that a running app's lines of text do
+  not lie on each other; with `LJOS_E2E_FIREFOX=1` it runs in
+  Firefox too (`pnpm test:e2e --project firefox`, after
+  `pnpm exec playwright install firefox`).
 
 ## Design
 
