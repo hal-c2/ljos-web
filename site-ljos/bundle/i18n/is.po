@@ -62,10 +62,6 @@ msgstr "Kringlótt skífa snjallúrs með neonhringjum við hliðina á sama úr
 msgid "A shader effect"
 msgstr "Skuggaáhrif"
 
-#: ../Site/DemosPage.qml:64
-msgid "A shell you rewrite"
-msgstr "Skel sem þú endurskrifar"
-
 #: ../Site/Landing.qml:212
 msgid "A smartwatch's software beside the watch in 3D. Once it runs, swipe or tap the face, and drag the watch to turn it. The <a href=\"/demos/\">live demos</a> have more, and the <a href=\"/demos/watch/\">watch's own page</a> lets you edit every file. Where the browser lacks the WebAssembly or WebGL 2 it needs, a picture stands in."
 msgstr "Hugbúnaður snjallúrs við hliðina á úrinu í þrívídd. Þegar hann keyrir geturðu strokið yfir skífuna eða ýtt á hana, og dregið úrið til að snúa því. Í <a href=\"/demos/\">lifandi sýnishornum</a> er meira, og á <a href=\"/demos/watch/\">eigin síðu úrsins</a> geturðu breytt öllum skrám. Þar sem vafra skortir nauðsynlegt WebAssembly eða WebGL 2 kemur mynd í staðinn."
@@ -117,10 +113,6 @@ msgstr "Virkni"
 #: ../Shells/Workbench.qml:418
 msgid "Activity bar"
 msgstr "Virknistika"
-
-#: ../Site/DemosPage.qml:65
-msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
-msgstr "Bættu vörum í körfuna og breyttu svo Shell.qml beint á síðunni. Færðu Slot til að endurraða viðmótinu á meðan karfan heldur vörunum sínum, eða gerðu málskipunarvillu: síðasta skelin sem þýddist heldur áfram að keyra og skilaboð þýðandans birtast við hliðina á ritlinum. Skiptu milli ljóss og dökks þema til að sjá báðar skeljarnar fylgja með."
 
 #: ../Demos/Lottie.qml:194
 msgid "Again"
@@ -545,8 +537,12 @@ msgid "Driver warmer"
 msgstr "Ökumaður hlýrri"
 
 #: ../Site/DemosPage.qml:51
-msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
-msgstr "Hvert sýnishorn er fullbúið Ljós-forrit sem stenst ljos check, forþýtt og sett upp á þessari síðu. Þegar innrammað sýnishorn keyrir skaltu skipta milli ljóss og dökks þema í hausnum til að sjá það fylgja með, og breyta frumkóðanum í beinni í Pantry og á síðum mælaborðsins og snjallúrsins. Þar sem vafra skortir nauðsynlegt WebAssembly eða WebGL 2 heldur sýnishornið mynd sinni og lýsingu."
+msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "Hver kynning er heilt Ljós-forrit sem stenst ljos check, þýtt fyrir fram og sett inn í þessa síðu. Þegar kynning keyrir geturðu skipt á milli ljóss og dökks útlits í hausnum og séð hana fylgja. Breyttu kóðanum lifandi á síðum stjórnklefans og snjallúrsins, og endurskrifaðu skel verslunar á meðan hún keyrir á {shopLink}. Kynning heldur mynd sinni og lýsingu þar sem vafrann vantar WebAssembly eða WebGL 2 sem hún þarf."
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "forsíðunni"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"

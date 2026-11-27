@@ -287,7 +287,8 @@ test("an ordered list's numbers are said, a bullet is not", async ({ page }) => 
 // the footer, and each demo's picture, drawn before any script runs and
 // where none ever does, at the size the page gives them.
 for (const [route, demos] of [
-  ["/", 1],
+  // The watch, and the Lottie player under it.
+  ["/", 2],
   // Five demos framed in the page, and each pro demo's card.
   ["/demos/", 5 + proDemos.length],
 ]) {
@@ -541,7 +542,7 @@ test("a demo whose renderer cannot start keeps its picture", async ({ browser })
 
 // A 3D scene costs a GPU device and its frames, so on /demos/ it is made
 // only once a reader asks for it with its Run, not for a reader who reads
-// the flagship and leaves, nor for one who scrolls past it. Its own words
+// the page's top and leaves, nor for one who scrolls past it. Its own words
 // stand in the page only once it is.
 for (const viewport of [
   { width: 390, height: 844 },
@@ -553,7 +554,7 @@ for (const viewport of [
       const page = await context.newPage();
       await page.goto("/demos/");
       await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-      await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+      await expect(page.getByText("Live demos", { exact: true }).first()).toBeVisible();
       // The scene's heading, over its frame.
       const heading = page.getByText("3D you can orbit", { exact: true });
       expect((await heading.boundingBox()).y, "the scene starts below the first view").toBeGreaterThan(viewport.height * 1.25);
@@ -582,8 +583,8 @@ for (const viewport of [
 for (const [route, name, nth, colorScheme, width] of [
   ["/quality/motion/", "Edit Main.qml", 1, "light", 1440],
   ["/quality/motion/", "Edit Main.qml", 1, "dark", 390],
-  ["/demos/", "Edit the Pantry's Shell.qml", 0, "dark", 1440],
-  ["/demos/", "Edit the Pantry's Shell.qml", 0, "light", 390],
+  ["/", "Edit the Pantry's Shell.qml", 0, "dark", 1440],
+  ["/", "Edit the Pantry's Shell.qml", 0, "light", 390],
 ]) {
   test(`${route}'s code editor's focus ring stands clear of its code at ${width} in ${colorScheme}`, async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width, height: 1100 }, colorScheme });
@@ -602,6 +603,14 @@ for (const [route, name, nth, colorScheme, width] of [
         }
         page.scrollTop += node.getBoundingClientRect().top - 120;
       });
+      // The front page's sections rise into place as they come into
+      // view: the field is read once it has stopped moving.
+      await expect
+        .poll(() => field.evaluate((node) => new Promise((done) => {
+          const top = node.getBoundingClientRect().top;
+          requestAnimationFrame(() => requestAnimationFrame(() => done(node.getBoundingClientRect().top === top)));
+        })), { message: "the field has risen into place" })
+        .toBe(true);
       // Near its first line: the middle of a long file is out of sight,
       // and a click there would scroll the editor to it.
       await field.click({ position: { x: 24, y: 12 } });
@@ -664,7 +673,7 @@ test("on a phone the Pantry stands whole inside the page", async ({ browser }) =
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage();
-    await page.goto("/demos/");
+    await page.goto("/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     // The Pantry's own shell, once it is made in the page.
     const jam = shownBox(page.getByText(/^Jam · £/));

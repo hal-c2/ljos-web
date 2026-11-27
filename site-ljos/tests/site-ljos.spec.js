@@ -150,25 +150,28 @@ test("a docs page reads with JavaScript off: title, prose, table, code, sidebar 
   }
 });
 
-test("the demos page names what stands there, flagship first, readable with no script", async ({ browser }) => {
+test("the demos page names what stands there, the cockpit and the watch first, the Lottie player under them, readable with no script", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {
     const page = await context.newPage();
     await page.goto("/demos/");
     // The page's own words: the code in a field is the reader's to
-  // edit, and an `import QtQuick` there pitches nothing.
-  const words = await page.locator("#app").evaluate((app) => {
-    const fields = Array.from(app.querySelectorAll('[role="textbox"]'));
-    for (const field of fields) field.style.visibility = "hidden";
-    const text = app.innerText;
-    for (const field of fields) field.style.visibility = "";
-    return text;
-  });
-    expect(words.indexOf("A shell you rewrite")).toBeGreaterThan(-1);
-    expect(words.indexOf("A shell you rewrite")).toBeLessThan(words.indexOf("3D you can orbit"));
-    // The flagship stands in its place as written: its app's own
-    // shell, prerendered, until hydration takes it over.
-    await expect(shown(page.getByText("The Corner Pantry", { exact: true }))).toBeVisible();
+    // edit, and an `import QtQuick` there pitches nothing.
+    const words = await page.locator("#app").evaluate((app) => {
+      const fields = Array.from(app.querySelectorAll('[role="textbox"]'));
+      for (const field of fields) field.style.visibility = "hidden";
+      const text = app.innerText;
+      for (const field of fields) field.style.visibility = "";
+      return text;
+    });
+    const order = [...proDemos.map((demo) => demo.card), "Lottie animations", "3D you can orbit"];
+    for (const title of order) expect(words.indexOf(title), title).toBeGreaterThan(-1);
+    for (const [index, title] of order.slice(1).entries()) expect(words.indexOf(order[index]), `${order[index]} before ${title}`).toBeLessThan(words.indexOf(title));
+    // The shop whose shell a reader rewrites is the front page's: one
+    // copy of it on the site, linked from here.
+    await expect(page.getByText("The Corner Pantry", { exact: true })).toHaveCount(0);
+    expect(words).not.toContain("A shell you rewrite");
+    await expect(page.getByRole("link", { name: "front page", exact: true })).toHaveAttribute("href", `${(process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/")}`);
     await expect(page.getByText("This demo mounts here.")).toHaveCount(0);
   } finally {
     await context.close();
@@ -576,7 +579,7 @@ test("a reader who moves on while the editor loads keeps their focus where they 
 // pictured (a code block's result): it is fetched once a reader edits,
 // and not before.
 for (const [route, fallback, name] of [
-  ["/demos/", "The Corner Pantry", "Edit the Pantry's Shell.qml"],
+  ["/", "The Corner Pantry", "Edit the Pantry's Shell.qml"],
   ["/language/overview/", null, "Edit Main.qml"],
 ]) {
   test(`${route} fetches the compiler only once a reader edits`, async ({ page }) => {
@@ -726,7 +729,7 @@ const MY_SHELL = [
 ].join("\n");
 
 test("the flagship: rewrite the Pantry's shell and its state survives", async ({ page }) => {
-  await page.goto("/demos/");
+  await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
   await (await stageButton(page, "Add tea")).click();
@@ -749,6 +752,8 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
 
   const editor = await codeEditor(page, "Edit the Pantry's Shell.qml");
   const app = APP_SHELL;
+  // The editor draws the lines in view: its first ones, from the top.
+  await page.keyboard.press("Control+Home");
   await expect(editor).toContainText("import Pantry");
   await editor.fill(MY_SHELL);
   await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
@@ -804,7 +809,7 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
       globalThis.__ljosTest = { pantryApplies: 0 };
     });
     const page = await context.newPage();
-    await page.goto("/demos/");
+    await page.goto("/");
     await shownInHeldTime(page, page.locator('#app[data-ljos-hydrated="true"]'));
     await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
     // Loading the demo applies nothing: the app's shell the build
@@ -911,8 +916,8 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
 // The count is the test's, never the visitor's: a page loaded with
 // no `__ljosTest` put there first runs the demo and holds no global
 // of the demo's.
-test("a visitor's demos page holds no test hook", async ({ page }) => {
-  await page.goto("/demos/");
+test("a visitor's front page holds no test hook", async ({ page }) => {
+  await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // The basket answers in the app's own shell, as the build made it.
   await (await stageButton(page, "Add tea")).click();
@@ -982,20 +987,19 @@ test("the landing's showcase demo stands in its slot", async ({ page }) => {
 test("every showcase demo stands in its slot on the demos page", async ({ page }) => {
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // Each demo but the flagship is made once its Run is pressed, so the
+  // Each framed demo is made once its Run is pressed, so the
   // reader scrolls to it and presses it, as a reader would; what it
   // shows is in its own frame, and what it says is on screen. The
   // whole app, the motion demo and the Lottie demo draw as the page does, so once one
   // runs its frame holds its own words, not a canvas, and its picture
   // is gone.
   const demos = [
-    ["A shell you rewrite", null, null],
     ...proDemos.map((demo) => [demo.card, null, null]),
+    ["Lottie animations", "demo-lottie.webp", "Genie (plays once)", "Dance (loops)", "Run the Lottie demo"],
     ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom", null, "Run the 3D demo"],
     ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
     ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
     ["Motion", "demo-motion.webp", "Shuffle the tiles", "Press and move — the puck springs after you", "Run the motion demo"],
-    ["Lottie animations", "demo-lottie.webp", "Genie (plays once)", "Dance (loops)", "Run the Lottie demo"],
   ];
   const headingOf = (title) => shown(page.getByText(title, { exact: true }));
   for (const [index, [title, picture, inside, drawn, label]] of demos.entries()) {
@@ -1012,17 +1016,15 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
     await pause.click();
     await expect(page.getByRole("button", { name: label.replace(/^Run /, "Resume ") }), `${title} paused offers to resume`).toBeVisible();
   }
-  // The other demos did not take the flagship's place away.
-  await stageButton(page, "Add bread");
 });
 
-test("the demos page reads with JavaScript off: the app's shell and words stand", async ({ browser }) => {
+test("the demos page reads with JavaScript off: its words and pictures stand", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {
     const page = await context.newPage();
     await page.goto("/demos/");
     await expect(shown(page.getByText("Live demos", { exact: true })).first()).toBeVisible();
-    await expect(shown(page.getByText("The Corner Pantry", { exact: true }))).toBeVisible();
+    await expect(shown(page.getByText("Lottie animations", { exact: true }))).toBeVisible();
     await expect(shown(page.getByText(/complete Ljós app that passes ljos check/))).toBeVisible();
   } finally {
     await context.close();

@@ -62,10 +62,6 @@ msgstr "Un cadran rond de montre connectée aux anneaux néon à côté de la m�
 msgid "A shader effect"
 msgstr "Un effet de shader"
 
-#: ../Site/DemosPage.qml:64
-msgid "A shell you rewrite"
-msgstr "Un shell que vous réécrivez"
-
 #: ../Site/Landing.qml:212
 msgid "A smartwatch's software beside the watch in 3D. Once it runs, swipe or tap the face, and drag the watch to turn it. The <a href=\"/demos/\">live demos</a> have more, and the <a href=\"/demos/watch/\">watch's own page</a> lets you edit every file. Where the browser lacks the WebAssembly or WebGL 2 it needs, a picture stands in."
 msgstr "Le logiciel d’une montre connectée à côté de la montre en 3D. Une fois lancé, balayez ou touchez le cadran, et glissez sur la montre pour la faire tourner. Les <a href=\"/demos/\">démos en direct</a> en proposent davantage, et la <a href=\"/demos/watch/\">page dédiée à la montre</a> vous permet de modifier tous les fichiers. Si le navigateur ne dispose pas de WebAssembly ou de WebGL 2, une image prend le relais."
@@ -117,10 +113,6 @@ msgstr "Activité"
 #: ../Shells/Workbench.qml:418
 msgid "Activity bar"
 msgstr "Barre d’activité"
-
-#: ../Site/DemosPage.qml:65
-msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
-msgstr "Ajoutez des articles au panier, puis modifiez Shell.qml directement dans la page. Déplacez un Slot pour réorganiser l’interface tandis que le panier garde ses articles, ou introduisez une erreur de syntaxe : le dernier shell qui a compilé reste actif et le message du compilateur s’affiche à côté de l’éditeur. Basculez entre les thèmes clair et sombre pour voir les deux shells suivre."
 
 #: ../Demos/Lottie.qml:194
 msgid "Again"
@@ -545,8 +537,12 @@ msgid "Driver warmer"
 msgstr "Conducteur plus chaud"
 
 #: ../Site/DemosPage.qml:51
-msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
-msgstr "Chaque démo est une application Ljós complète qui passe ljos check, précompilée et intégrée dans cette page. Lorsqu’une démo encadrée tourne, basculez entre les thèmes clair et sombre dans l’en-tête pour la voir s’adapter, et modifiez le code en direct dans Pantry ainsi que sur les pages du tableau de bord et de la montre connectée. Si le navigateur ne dispose pas de WebAssembly ou de WebGL 2, la démo conserve son image et sa description."
+msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "Chaque démo est une application Ljós complète qui passe ljos check, compilée à l’avance et montée dans cette page. Une fois une démo lancée, passez du thème clair au thème sombre dans l’en-tête pour la voir suivre. Modifiez le code en direct sur les pages du cockpit et de la montre connectée, et réécrivez le shell d’une boutique pendant qu’elle tourne sur la {shopLink}. Une démo garde son image et sa description si le navigateur n’a pas le WebAssembly ou le WebGL 2 qu’il lui faut."
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "page d’accueil"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"

@@ -55,7 +55,7 @@ test("the front page's board keeps each line in its own room", async ({ page, er
 });
 
 test("the Pantry keeps each line in its own room", async ({ page, errors }) => {
-  await open(page, "/demos/");
+  await open(page, "/");
   const lines = await linesAround(page, "The Corner Pantry", 4);
   expect(lines.length, "the Pantry draws its lines").toBeGreaterThan(1);
   expect(faults(lines)).toEqual([]);

@@ -874,13 +874,13 @@ test("the demos page comes on Try again when its chunk could not be fetched", as
     await press(page.getByRole("link", { name: "Demos", exact: true }).filter({ visible: true }).first());
     await page.waitForURL("**/demos/");
     await failed;
-    const pantry = page.getByText("The Corner Pantry", { exact: true });
+    const heading = page.getByText("Lottie animations", { exact: true });
     await expect(page.getByText("This page could not be loaded.", { exact: true })).toBeVisible({ timeout: 30_000 });
-    await expect(pantry).toHaveCount(0);
+    await expect(heading).toHaveCount(0);
     down = false;
     const again = page.getByRole("button", { name: "Try again", exact: true });
     await press(again);
-    await expect(pantry, "the page, asked for again on its route").toBeVisible({ timeout: 30_000 });
+    await expect(heading, "the page, asked for again on its route").toBeVisible({ timeout: 30_000 });
     await expect(again).toHaveCount(0);
     expect(new URL(page.url()).pathname.endsWith("/demos/"), "still on the demos page").toBe(true);
   } finally {
@@ -932,7 +932,7 @@ test("Try again from the keyboard keeps the focus on the button, then gives it t
 
     down = false;
     await page.keyboard.press("Enter");
-    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Lottie animations", { exact: true })).toBeVisible({ timeout: 30_000 });
     await expect(again).toHaveCount(0);
     // The button is gone from sight, but an item keeps the focus it had
     // while hidden: the page that came must have taken it from it.

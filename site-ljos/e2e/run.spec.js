@@ -568,11 +568,12 @@ test.describe("/demos/", () => {
   test.skip(({ wasm }) => !wasm, "without WebAssembly nothing runs");
 
   test("every demo but the Pantry waits for Run", async ({ page }) => {
-    await open(page, "/demos/");
-    const pantry = demo(page, "A shell you rewrite");
+    // The Pantry is the front page's, and runs with it.
+    await open(page, "/");
+    const pantry = page.getByRole("group", { name: "The Pantry, running" });
     await centre(pantry);
-    await expect(runButton(pantry), "the Pantry runs with the page").toHaveCount(0);
-    await expect(pantry.getByLabel("The Pantry, running")).toBeVisible();
+    await expect(pantry).toBeVisible();
+    await open(page, "/demos/");
     for (const [heading, name] of Object.entries(RUN)) {
       const slot = demo(page, heading);
       await centre(slot);

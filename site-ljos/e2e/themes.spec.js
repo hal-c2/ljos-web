@@ -176,7 +176,7 @@ for (const colorScheme of SCHEMES) {
 
     // The demos, under their headings on /demos/; the flagship is made
     // as a reader scrolls to it.
-    for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
+    for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
       test(`the demo "${heading}" is readable`, async ({ page }) => {
         await open(page, "/demos/");
         const title = page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${heading}$`) }).first();

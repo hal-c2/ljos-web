@@ -16,7 +16,7 @@ const FRAMED = {
 // watch's own words stand before it (Elegant's Capability), so the
 // next words after it are the section below's headline.
 const FOLLOWS = {
-  "/": { "the watch": "Built together" },
+  "/": { "the watch": "Lottie animations" },
   "/demos/": { "the 3D demo": "A shader effect", "the shader demo": "A whole app", "the field guide": "Motion", "the motion demo": null },
   "/demos/cockpit/": { "the cockpit": "Its files" },
   "/demos/watch/": { "the watch": "Wear it with the pointer" },

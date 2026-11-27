@@ -195,7 +195,7 @@ test("no page but the demos page's first load holds the demos page", () => {
   expect(reaching(["DemosPage-"], pageReport(dist, { base })), "a chunk no page imports statically").toEqual({});
   expect(reaching(["DemosPage-"], [demosPage]), "the DemosPage-* chunk the demos page waits for, counted").toHaveProperty(["/demos/"]);
   const written = readFileSync(join(dist, "demos/index.html"), "utf8");
-  expect(written, "the demos page as written, with its Pantry").toContain("The Corner Pantry");
+  expect(written, "the demos page as written, with its Lottie player").toContain("Lottie animations");
 });
 
 // The front page is a module of its own (bundle/Site/later.js), with
@@ -393,7 +393,7 @@ test("/ fetches no compiler and no editor through its whole replay", async ({ pa
 // compiler, its wasm and modules, the editor) only once the reader
 // reaches for a block's code and edits it: a reader who only reads
 // fetches none.
-for (const route of ["language/overview/", "demos/"]) {
+for (const route of ["language/overview/", ""]) {
   test(`/${route} fetches the compiler and the editor for the reader's first edit, not before`, async ({ page }) => {
     const asked = [];
     page.on("requestfinished", (request) => {
