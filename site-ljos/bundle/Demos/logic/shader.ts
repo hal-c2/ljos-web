@@ -90,11 +90,12 @@ void main() {
 // The palettes the shader draws, by the `palette` uniform it is given.
 export const PALETTES = ["Aurora", "Ember", "Lagoon"] as const
 
-// A shader as an address the effect reads it from: the text itself, so
-// an edit needs no file and no server.
-export function addressOf(source: string): string {
-    return "data:text/plain;charset=utf-8," + encodeURIComponent(source)
+// The chip's swatch for palette `index`: the palette's first colour.
+const SWATCHES: readonly string[] = ["#1af2bf", "#ff521f", "#0dbfff"]
+export function swatchOf(index: number): string {
+    return SWATCHES[index] ?? SWATCHES[0] ?? "#1af2bf"
 }
+
 
 export interface Point {
     readonly x: number
@@ -155,6 +156,8 @@ export const RIPPLE_DONE = 6
 export function advanceRipple(ripple: number, dt: number, calm: boolean): number {
     return Math.min(ripple + dt * (calm ? 0.35 : 1), RIPPLE_DONE)
 }
+
+export const NO_DIAGNOSTICS: Diagnostic[] = []
 
 export interface Diagnostic {
     readonly message: string
