@@ -55,7 +55,12 @@ Rectangle {
                     anchors.leftMargin: 10
                     y: 8
                     color: look.ink2
+                    // In the card whatever the language: a longer name
+                    // is set smaller, never past the card's edge.
+                    width: parent.width - 20
                     font.size: 18
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: 12
                     text: t`Tea · £${basket.teaPrice.toFixed(2)}`
                 }
                 Text {
@@ -88,7 +93,10 @@ Rectangle {
                     anchors.leftMargin: 10
                     y: 8
                     color: look.ink2
+                    width: parent.width - 20
                     font.size: 18
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: 12
                     text: t`Bread · £${basket.breadPrice.toFixed(2)}`
                 }
                 Text {
@@ -121,7 +129,10 @@ Rectangle {
                     anchors.leftMargin: 10
                     y: 8
                     color: look.ink2
+                    width: parent.width - 20
                     font.size: 18
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: 12
                     text: t`Jam · £${basket.jamPrice.toFixed(2)}`
                 }
                 Text {
@@ -158,6 +169,8 @@ Rectangle {
             width: 444
         }
         Text {
+            width: 444
+            wrap: Text.Wrap
             color: look.muted2
             font.size: 16
             text: t`Add an item, then edit the code. Your basket stays.`
