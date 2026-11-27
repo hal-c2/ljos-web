@@ -471,7 +471,7 @@ test("a browser with no WebGPU runs the 3D scene and the shader", async ({ brows
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     for (const [heading, picture, run] of [
       ["3D you can orbit", /^A lit 3D scene/, "Run the 3D demo"],
-      ["A shader effect", /^Light pooling over a card/, "Run the shader demo"],
+      ["A shader effect", /^Bands of liquid light/, "Run the shader demo"],
     ]) {
       await page.getByText(heading, { exact: true }).scrollIntoViewIfNeeded();
       await page.getByRole("button", { name: run }).click();

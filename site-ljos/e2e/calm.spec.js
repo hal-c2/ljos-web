@@ -53,7 +53,8 @@ const DEMOS = [
     frames: (canvas) => canvas.$effect.$shader.drawn(),
     start: 0,
     period: 4 * Math.PI,
-    fastest: (4 * Math.PI) / 24,
+    // One loop in 12 s with no preference (Shader's `loopSeconds`).
+    fastest: (4 * Math.PI) / 12,
   },
 ];
 

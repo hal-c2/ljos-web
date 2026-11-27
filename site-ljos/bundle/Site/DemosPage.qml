@@ -157,7 +157,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`A shader effect`
-        body: t`Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes.`
+        body: t`A GLSL fragment shader whose uniforms are the effect's own properties. Once it runs, move or drag across it to swirl the light, tap to send out a ripple, and pick its colours. Press Edit shader to rewrite it: each edit is drawn as you type, and if one does not compile, the error is shown where it broke while the last version that compiled keeps running.`
 
         Slot {
             name: "demo-shader"
@@ -167,10 +167,12 @@ Column {
                     scroller: demos.scroller
                     needs: "webgl2"
                     route: "/demos/"
+                    // On a phone: room for the picture, its source and its bars.
+                    least: 440
                     picture: "/pictures/demo-shader.webp"
                     pictureDark: "/pictures/demo-shader-dark.webp"
                     what: t`the shader demo`
-                    description: t`Light pooling over a card of text, following the pointer.`
+                    description: t`Bands of liquid light swirling round a point, with palette chips under them and an Edit shader button over them.`
                     source: Later.shader
                 }
             }

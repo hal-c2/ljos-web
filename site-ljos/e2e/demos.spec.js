@@ -6,6 +6,7 @@
 // and then run.
 import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, playThrough, press, runButton, sceneRuns, signature, test, unexpected } from "./fixtures.js";
 import { sourceView } from "./known.js";
+import { SOURCE as SHADER } from "../bundle/Demos/logic/shader.ts";
 
 function headingOf(page, heading) {
   return page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${heading}$`) }).first();
@@ -161,6 +162,82 @@ test.describe("/demos/", () => {
     await settled(page, "/demos/");
     const shader = await started(page, "A shader effect");
     await expectFramesAdvance(shader);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  // The shader is for playing with and rewriting: its light swirls where
+  // the pointer leads it, a tap rings out from where it was, a chip
+  // changes the colours, and its source, opened and edited, is the
+  // picture. An edit that does not compile is marked where the compiler
+  // said, and the picture before it goes on.
+  test("the shader answers the pointer, its chips and an edit of its source", async ({ page, errors }) => {
+    await settled(page, "/demos/");
+    const slot = await started(page, "A shader effect");
+    const canvas = slot.locator("canvas.qq-shader").first();
+    const state = () =>
+      canvas.evaluate((canvas) => {
+        const effect = canvas.$effect;
+        return { x: effect.pointer.x, y: effect.pointer.y, tap: [effect.tap.x, effect.tap.y], ripple: effect.ripple, palette: effect.palette, drawn: effect.$shader.drawn() };
+      });
+    // Whether the picture is red at a point of it, as the screen shows it
+    // (the canvas's own pixels leave it for the screen and are not kept).
+    const red = async (point) => {
+      const png = await page.screenshot({ clip: { x: point.x, y: point.y, width: 1, height: 1 } });
+      const [r, g, b] = await page.evaluate(async (data) => {
+        const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+        const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
+        const copy = new OffscreenCanvas(1, 1).getContext("2d");
+        copy.drawImage(bitmap, 0, 0);
+        return [...copy.getImageData(0, 0, 1, 1).data];
+      }, png.toString("base64"));
+      return r > 235 && g < 20 && b < 20;
+    };
+    await expect.poll(async () => (await state()).drawn, { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
+    await centre(canvas);
+    const box = await canvas.boundingBox();
+    const at = (x, y) => ({ x: box.x + box.width * x, y: box.y + box.height * y });
+
+    const to = at(0.82, 0.35);
+    await page.mouse.move(to.x, to.y, { steps: 8 });
+    await expect
+      .poll(async () => { const { x, y } = await state(); return x > 0.75 && y < 0.45 ? "there" : `at ${x.toFixed(2)}, ${y.toFixed(2)}`; }, { message: "the light's vortex goes where the pointer is" })
+      .toBe("there");
+
+    const tap = at(0.25, 0.6);
+    const before = Date.now();
+    await page.mouse.click(tap.x, tap.y);
+    const tapped = await state();
+    // The ripple ages one second a second, so it can be no older than the
+    // time since the tap went out, however slow this machine is.
+    const since = (Date.now() - before) / 1000;
+    expect(tapped.tap[0], "the ripple starts where the tap was").toBeCloseTo(0.25, 1);
+    expect(tapped.tap[1]).toBeCloseTo(0.6, 1);
+    expect(tapped.ripple, `and is no older than the ${since.toFixed(2)} s since the tap`).toBeLessThanOrEqual(since + 0.1);
+
+    await press(slot.getByRole("radio", { name: "Ember colours" }));
+    await expect.poll(async () => (await state()).palette, { message: "a chip chooses the colours" }).toBe(1);
+
+    await press(slot.getByRole("button", { name: "Edit the shader's source" }));
+    await slot.getByRole("textbox", { name: "Edit the fragment shader" }).first().click();
+    const editor = slot.locator('.cm-content[aria-label="Edit the fragment shader"]').first();
+    await expect(editor, "the source opens in an editor").toBeFocused({ timeout: 30_000 });
+    const source = SHADER;
+    expect(source).toContain("fragColor = vec4(mix(day, night, dark), 1.0);");
+    await editor.fill(source.replace("fragColor = vec4(mix(day, night, dark), 1.0);", "fragColor = vec4(1.0, 0.0, 0.0, 1.0);"));
+    // Left of the middle: the source is open over the right of it.
+    const shown = at(0.2, 0.5);
+    await expect.poll(() => red(shown), { message: "the edited shader is the picture", timeout: 10_000 }).toBe(true);
+
+    await editor.fill(source.replace("fragColor = vec4(mix(day, night, dark), 1.0);", "fragColor = vec4(1.0, 0.0, 0.0, 1.0)\nwhat;"));
+    await expect(editor.locator(".cm-lintRange-error").first(), "a broken edit is marked where the compiler said").toBeVisible({ timeout: 10_000 });
+    await expect(slot.getByText(/^Did not compile; keeping the last working version: Line \d+:/)).toBeVisible();
+    const kept = slot.locator("canvas.qq-shader").nth(1);
+    const drawnBefore = await kept.evaluate((canvas) => canvas.$effect.$shader.drawn());
+    await expect.poll(() => kept.evaluate((canvas) => canvas.$effect.$shader.drawn()), { message: "the last shader that compiled goes on drawing" }).toBeGreaterThan(drawnBefore + 5);
+
+    await press(slot.getByRole("button", { name: "Reset the shader's source" }));
+    await expect(slot.getByText(/^Not drawn/)).toBeHidden({ timeout: 10_000 });
+    await expect.poll(() => red(shown), { message: "Reset draws the shader as written" }).toBe(false);
     expect(unexpected(errors)).toEqual([]);
   });
 

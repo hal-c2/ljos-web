@@ -1,29 +1,47 @@
 // The demos' remix knobs are one-line edits a reader makes: whatever
 // number they type, the demo keeps to what it can draw.
 import { expect, test } from "@playwright/test";
-import { nextPalette, paletteIndex } from "../bundle/Demos/logic/shader.ts";
+import { diagnosticsOf, follow, paletteOf, PALETTES } from "../bundle/Demos/logic/shader.ts";
 
-test("a Shader start palette out of range opens on one of the scheme's own ramps", () => {
-  const count = 3;
-  // light.frag keeps the dark ramps at 0..2 and the light ones at 3..5.
-  for (const choice of [-4, -1, 0, 2, 3, 5, 6, 7, 100]) {
-    const dark = paletteIndex(choice, true, count);
-    const light = paletteIndex(choice, false, count);
-    expect(dark, `startPalette ${choice} in dark`).toBeGreaterThanOrEqual(0);
-    expect(dark, `startPalette ${choice} in dark`).toBeLessThan(count);
-    expect(light, `startPalette ${choice} in light`).toBeGreaterThanOrEqual(count);
-    expect(light, `startPalette ${choice} in light`).toBeLessThan(2 * count);
-    expect(light - dark, `startPalette ${choice}: the same ramp in both schemes`).toBe(count);
+test("a Shader start palette out of range opens on one of the palettes the shader draws", () => {
+  for (const choice of [-4, -1, 0, 2, 3, 5, 6, 7, 100, 1.4]) {
+    const palette = paletteOf(choice);
+    expect(palette, `startPalette ${choice}`).toBeGreaterThanOrEqual(0);
+    expect(palette, `startPalette ${choice}`).toBeLessThan(PALETTES.length);
+    expect(Number.isInteger(palette), `startPalette ${choice}`).toBe(true);
   }
+  expect(paletteOf(4)).toBe(1);
+  expect(paletteOf(-1)).toBe(2);
 });
 
-test("a tap from any start palette moves to the next of the scheme's ramps", () => {
-  const count = 3;
-  expect(nextPalette(0, count)).toBe(1);
-  expect(nextPalette(2, count)).toBe(0);
-  expect(nextPalette(-1, count)).toBe(0);
-  expect(nextPalette(-5, count)).toBe(2);
-  expect(nextPalette(7, count)).toBe(2);
+// The vortex eases after the pointer at the same pace whatever the frame
+// rate, and more slowly under reduced motion, never jumping there.
+test("the shader's vortex follows the pointer by time, not by frames, and slower when calm", () => {
+  const from = { x: 0, y: 0 };
+  const to = { x: 1, y: 1 };
+  const once = follow(from, to, 0.1, false);
+  let twice = follow(from, to, 0.05, false);
+  twice = follow(twice, to, 0.05, false);
+  expect(twice.x).toBeCloseTo(once.x, 6);
+  expect(once.x).toBeGreaterThan(0);
+  expect(once.x).toBeLessThan(1);
+  const calm = follow(from, to, 0.1, true);
+  expect(calm.x).toBeGreaterThan(0);
+  expect(calm.x).toBeLessThan(once.x);
+});
+
+// What a GLSL compiler says of an edit is marked on the line it names.
+test("a compiler's log is the editor's diagnostics, on the lines it names", () => {
+  const source = "a\nb\nc\nd";
+  const log = "ERROR: 0:3: 'nope' : undeclared identifier\nERROR: 0:99: '' : syntax error\nERROR: 2 compilation errors.  No code generated.\n";
+  const found = diagnosticsOf(log, source);
+  expect(found.map((d) => d.line), "the count at the end is no error of its own").toEqual([3, 4]);
+  expect(found[0].message).toBe("'nope' : undeclared identifier");
+  expect(found.every((d) => d.severity === "error" && d.column === 1)).toBe(true);
+  expect(diagnosticsOf("", source)).toEqual([]);
+  expect(diagnosticsOf("the browser has no WebGL 2 to draw a shader with", source)).toEqual([
+    { message: "the browser has no WebGL 2 to draw a shader with", line: 1, column: 1, severity: "error" },
+  ]);
 });
 
 // The TypeScript the front page shows, which lays out the app beside it:
