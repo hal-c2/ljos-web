@@ -2474,3 +2474,27 @@ msgstr "Настройки оформления HAL-C2 на Ljós: раздел�
 #: ../Site/BuiltWith.qml:62
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
 msgstr "Пульт управления агентами для программирования на вашем компьютере, с терминалом, вкладками браузера и раскладкой на QML, которую можно менять прямо во время работы."
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "Язык: {languageName} – выбрать другой"
+
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "Уменьшить движение: выкл. – меньше движения"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "Уменьшить движение: вкл. – полное движение"
+
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "Оболочка: {label} – выбрать другую раскладку"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "Тема: тёмная – переключить на светлую"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "Тема: светлая – переключить на тёмную"

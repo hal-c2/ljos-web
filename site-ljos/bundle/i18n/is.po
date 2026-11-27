@@ -2474,3 +2474,27 @@ msgstr "Útlitsstillingar HAL-C2 á Ljós: hlutar stillinganna vinstra megin, li
 #: ../Site/BuiltWith.qml:62
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
 msgstr "Stjórnborð fyrir forritunarfulltrúana á vélinni þinni, með skjáhermi, vafraflipum og QML-útliti sem þú getur breytt á meðan það keyrir."
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "Tungumál: {languageName} – velja annað"
+
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "Draga úr hreyfingu: slökkt – nota minni hreyfingu"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "Draga úr hreyfingu: kveikt – nota fulla hreyfingu"
+
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "Skel: {label} – velja aðra uppsetningu"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "Þema: dökkt – skipta í ljóst"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "Þema: ljóst – skipta í dökkt"

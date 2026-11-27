@@ -58,11 +58,15 @@ Rectangle {
     // theirs among the choices; "Language" in the language shown, so one
     // who does hears what the button is for.
     Accessible.name: shortName + " · " + t`Language: ${preferences ? preferences.languageName : "English"}`
+    readonly property string languageName: preferences ? preferences.languageName : "English"
+    Accessible.description: tip.text
     Accessible.onPressAction: () => switcher.toggle(true)
     Keys.onPressed: (event) => {
         if (event.key === Key.Return || event.key === Key.Enter || event.key === Key.Space) {
             switcher.toggle(true);
             event.accepted = true;
+        } else if (event.key === Key.Escape) {
+            event.accepted = tip.dismiss();
         }
     }
 
@@ -130,5 +134,12 @@ Rectangle {
         Accessible.ignored: true
         cursorShape: Cursor.PointingHand
         onClicked: switcher.toggle()
+    }
+    // Held back while its choices are open: they say it all.
+    HeaderTip {
+        id: tip
+        text: t`Language: ${languageName} – choose another`
+        hovered: hit.containsMouse
+        quiet: switcher.opened
     }
 }

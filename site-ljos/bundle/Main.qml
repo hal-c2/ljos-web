@@ -621,7 +621,21 @@ Rectangle {
                     preferences: sitePreferences
                     onChoosing: main.controlsShown = true
                 }
-                MotionToggle {}
+                // The toggle is another lane's file: its tip is given here.
+                MotionToggle {
+                    Accessible.description: motionTip.text
+                    // Escape, unused by the toggle, hides the tip.
+                    Keys.onEscapePressed: (event) => event.accepted = motionTip.dismiss()
+
+                    Hover {
+                        id: motionOver
+                    }
+                    HeaderTip {
+                        id: motionTip
+                        text: Theme.calm ? t`Reduce motion: on – use full motion` : t`Reduce motion: off – use less motion`
+                        hovered: motionOver.hovered
+                    }
+                }
                 ThemeToggle {}
             }
         }

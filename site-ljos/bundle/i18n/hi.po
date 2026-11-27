@@ -2474,3 +2474,27 @@ msgstr "Ljós पर HAL-C2 की रूप-रंग सेटिंग: ब�
 #: ../Site/BuiltWith.qml:62
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs."
 msgstr "आपकी मशीन पर चल रहे कोडिंग एजेंटों के लिए एक नियंत्रण पटल, जिसमें एक टर्मिनल, ब्राउज़र टैब और एक QML लेआउट है जिसे आप इसके चलते हुए बदल सकते हैं।"
+
+#: ../Site/LanguageSwitcher.qml:141
+msgid "Language: {languageName} – choose another"
+msgstr "भाषा: {languageName} – दूसरी चुनें"
+
+#: ../Main.qml:635
+msgid "Reduce motion: off – use less motion"
+msgstr "गति कम करें: बंद – कम गति उपयोग करें"
+
+#: ../Main.qml:635
+msgid "Reduce motion: on – use full motion"
+msgstr "गति कम करें: चालू – पूरी गति उपयोग करें"
+
+#: ../Site/ShellSwitcher.qml:167
+msgid "Shell: {label} – choose another layout"
+msgstr "शेल: {label} – दूसरा लेआउट चुनें"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: dark – switch to light"
+msgstr "थीम: डार्क – लाइट पर जाएँ"
+
+#: ../Site/ThemeToggle.qml:11
+msgid "Theme: light – switch to dark"
+msgstr "थीम: लाइट – डार्क पर जाएँ"
