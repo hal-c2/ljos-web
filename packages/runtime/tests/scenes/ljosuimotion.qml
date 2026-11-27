@@ -1,7 +1,8 @@
 // Reduced motion in a file of Ljós's API (ljosui.spec.js): what would
-// slide is where it goes at once, a number of the file's own too, and a
-// fade or a change of colour still fades. A loop that never ends keeps
-// its pace. `ljosuimotioncompat.qml` is the same file in QML as Qt has it.
+// slide still slides, on a curve that never overshoots or bounces, a
+// spring never swings past where it goes, and a fade or a change of
+// colour still fades. A loop that never ends keeps its pace.
+// `ljosuimotioncompat.qml` is the same file in QML as Qt has it.
 import Ljos.Ui
 
 Item {
@@ -14,9 +15,25 @@ Item {
     property alias blink: blink
     property real open: moved ? 1 : 0
     property real spin: 0
+    // A slide whose curve goes past its end and back, and a lively spring.
+    property real flung: moved ? 100 : 0
+    property real sprung: moved ? 100 : 0
 
     Behavior on open {
         NumberAnimation { duration: 400 }
+    }
+    Behavior on flung {
+        NumberAnimation {
+            duration: 400
+            easing.type: Easing.OutBack
+            easing.overshoot: 3
+        }
+    }
+    Behavior on sprung {
+        SpringAnimation {
+            spring: 5
+            damping: 0.1
+        }
     }
     NumberAnimation on spin {
         from: 0

@@ -1,12 +1,14 @@
-// Reduced motion as Ljós has it (ljos-ui's ARCHITECTURE §14 and
-// `ljos_quick`'s animation/motion.rs), for the animations of a file in
-// Ljós's API. It is there for people whom movement on a screen makes
-// dizzy or sick (WCAG 2.2 SC 2.3.3): asked for less motion, what an
-// animation would slide, grow or turn is at its end at once, and so is a
-// number of the program's own, which may well place something. A fade or
-// a change of colour moves nothing and shows that something changed, so
-// it stays, at most FADE_MAX long. A run that never ends keeps its pace:
-// it says something is busy, and stopped it would say nothing.
+// Reduced motion as Ljós has it, for the animations of a file in Ljós's
+// API. It is there for people whom movement on a screen makes dizzy or
+// sick (WCAG 2.2 SC 2.3.3), and it reduces movement rather than removing
+// it: what an animation would slide, grow or turn still goes there, so
+// the reader can follow where it went, but calmly. A curve that goes past
+// its end, springs back or bounces is traded for a plain ease of the same
+// length, and a spring never swings past where it goes. Nothing jumps.
+// A fade or a change of colour moves nothing and shows that something
+// changed, so it stays, at most FADE_MAX long. A run that never ends
+// keeps its pace: it says something is busy, and stopped it would say
+// nothing.
 //
 // QML as Qt has it leaves reduced motion to the program (it reads
 // `Qt.styleHints.accessibility`), so QtQuick's own types are untouched:
@@ -16,13 +18,14 @@
 // changes ends as it began.
 import { defineType } from "../../object.ts";
 import { lessMotion } from "../../QtQml/application.ts";
-import { AnimatorJob, put, STOPPED } from "../../QtQuick/animation/jobs.js";
+import { curve } from "../../QtQuick/animation/easing.js";
 import { rgba } from "../../QtQuick/animation/property.js";
 
 // ljos-ui's `REDUCED_FADE_MAX_MS`.
 export const FADE_MAX = 150;
 
-const NONE = Object.freeze([]);
+// Easing.InOutSine: it starts and stops softly and stays between its ends.
+const PLAIN = curve(19, 1, 1.70158, 0.3);
 
 const fades = (action) => action.property.key === "opacity" || (typeof action.to !== "number" && rgba(action.to) !== null);
 
@@ -32,55 +35,48 @@ function endless(animation) {
   return false;
 }
 
-// What moves is put at its end as the run starts, and what fades fades.
-class CalmJob extends AnimatorJob {
-  constructor(length, ease, fading, moving) {
-    super(length, ease, fading);
-    this.moving = moving;
-    this.placed = false;
+// Whether a curve keeps to its ends and only goes forward: then it is
+// calm already, whatever its name (a Bézier curve can be either).
+const SAMPLES = 64;
+function steady(ease) {
+  let last = 0;
+  for (let step = 1; step <= SAMPLES; step++) {
+    const at = ease(step / SAMPLES);
+    if (!(at >= last - 1e-9) || at > 1 + 1e-9) return false;
+    last = at;
   }
-
-  updateTime(time) {
-    if (this.state !== STOPPED && !this.placed) {
-      this.placed = true;
-      for (const action of this.moving) put(action, action.to);
-    }
-    super.updateTime(time);
-  }
-
-  loopStarted() {
-    super.loopStarted();
-    this.placed = false;
-  }
-}
-
-function calm(self, mine, reverse) {
-  const fading = mine.filter(fades);
-  const moving = fading.length ? mine.filter((action) => !fading.includes(action)) : mine;
-  const length = fading.length ? Math.min(FADE_MAX, Math.max(0, self.duration)) : 0;
-  const job = new CalmJob(length, self.$curve(), fading.length ? fading : NONE, moving);
-  job.fromDefined = self.from !== undefined;
-  job.mirrored = reverse;
-  // What it was made from, to tell when that has changed (PropertyAnimation's `$stale`).
-  job.said = [self.duration, self.from, self.to];
-  return job;
+  return true;
 }
 
 // `Base` as Ljós's API has it: the same animation, calm when asked to be.
 function calmed(name, Base) {
-  const make = Base.proto.$make;
-  return defineType(name, Base, {
-    methods: {
-      $make(actions, modified, reverse, defaultTarget) {
-        if (!lessMotion() || endless(this)) return make.call(this, actions, modified, reverse, defaultTarget);
-        // A spring or a glide still under way stops where it is: from
-        // here on the property is put, not pulled.
-        for (const job of this.$active ?? NONE) job.stop();
-        if (this.$active) this.$active = NONE;
-        return calm(this, this.$select(actions, modified, defaultTarget), reverse);
-      },
+  const proto = Base.proto;
+  const make = proto.$make;
+  const methods = {
+    $make(actions, modified, reverse, defaultTarget) {
+      const job = make.call(this, actions, modified, reverse, defaultTarget);
+      if (!lessMotion() || endless(this) || !job.actions) return job;
+      if (job.actions.every(fades)) job.length = Math.min(FADE_MAX, job.length);
+      else if (!steady(job.ease)) job.ease = PLAIN;
+      return job;
     },
-  });
+  };
+  // A spring or a glide that follows its value: told each time it is
+  // given a new end whether it may swing past it.
+  if (proto.$tune) {
+    const tune = proto.$tune;
+    methods.$tune = function (job, action) {
+      tune.call(this, job, action);
+      job.noOvershoot = lessMotion() && !endless(this);
+      // A spring damped a little past critical comes to rest without
+      // swinging; the stop at its end (SpringJob) only catches what a
+      // 16 ms step leaves over. Its velocity grows by spring × distance
+      // ÷ mass each step and moves it a 62.5th of that, so critical is
+      // 2·√(spring × mass ÷ 62.5).
+      if (job.noOvershoot && job.spring > 0) job.damping = Math.max(job.damping, Math.min(1, 1.1 * 2 * Math.sqrt((job.spring * job.mass) / 62.5)));
+    };
+  }
+  return defineType(name, Base, { methods });
 }
 
 export { calmed };

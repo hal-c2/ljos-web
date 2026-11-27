@@ -69,8 +69,8 @@ Item {
         width: rise.width
         opacity: rise.shown
         // On the opacity itself, not on `shown`: asked for less motion, an
-        // animation of Ljós's API puts a number at its end at once and
-        // still fades what fades.
+        // animation of Ljós's API keeps a fade to the calm fade's length,
+        // and it tells a fade by the property it runs on.
         Behavior on opacity {
             enabled: rise.seen
             NumberAnimation {

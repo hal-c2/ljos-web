@@ -59,11 +59,12 @@ const qtQuick = {
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
   "site/src/islands/ControlsHost.qml": "it builds the Astro reference's page with Qt Quick Controls, which readers' in-page compiles import",
   // The Astro reference's Motion demo calms its own motion (a softer
-  // spring, shorter glides) when a reader asks for less; Ljos.Ui's
-  // animations would put what moves at its end at once. site-ljos's steps
-  // its springs itself from a FrameAnimation, which runs on under reduced
-  // motion, so it needs no QtQuick.
-  "site/src/demos/motion/Motion.qml": "its animations calm themselves; Ljos.Ui's put what moves at its end under reduced motion",
+  // spring, shorter glides) when a reader asks for less, its own way;
+  // Ljos.Ui's animations calm themselves (no overshoot, a spring that
+  // never swings past). site-ljos's steps its springs itself from a
+  // FrameAnimation, which runs on under reduced motion, so it needs no
+  // QtQuick.
+  "site/src/demos/motion/Motion.qml": "its animations calm themselves its own way, not as Ljos.Ui's do under reduced motion",
 };
 
 // Files that import a module of QtQuick's other than QtQuick3D's, and why.

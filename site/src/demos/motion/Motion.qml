@@ -2,8 +2,8 @@ import Ljos.Ui
 import Ljos.Core
 import Ljos.Layout
 // Its animations are QtQuick's: the demo calms its own motion (a softer
-// spring, shorter glides) when asked for less, where Ljos.Ui's would put
-// what moves at its end at once.
+// spring, shorter glides) when asked for less, its own way rather than
+// as Ljos.Ui's calm themselves.
 import QtQuick as Q
 
 // Motion with a job to do: a puck that springs after your pointer

@@ -665,6 +665,9 @@ export class SpringJob extends Job {
     this.modulus = 0;
     this.maxVelocity = 0;
     this.skip = false;
+    // Reduced motion in Ljós's API (Ljos/Ui/motion.js): it stops where it
+    // goes rather than swinging past it.
+    this.noOvershoot = false;
   }
 
   duration() {
@@ -714,7 +717,8 @@ export class SpringJob extends Job {
     }
     if (springy) {
       for (let tick = 0; tick < count; tick++) {
-        const force = this.spring * this.distance(to) - this.damping * this.velocity;
+        const before = this.distance(to);
+        const force = this.spring * before - this.damping * this.velocity;
         this.velocity += this.mass === 1 ? force : force / this.mass;
         if (this.maxVelocity > 0) {
           this.velocity = Math.max(-this.maxVelocity, Math.min(this.maxVelocity, this.velocity));
@@ -724,8 +728,14 @@ export class SpringJob extends Job {
           this.value %= modulus;
           if (this.value < 0) this.value += modulus;
         }
+        if (this.noOvershoot && before !== 0 && Math.sign(this.distance(to)) !== Math.sign(before)) {
+          this.value = to;
+          this.velocity = 0;
+          stopped = true;
+          break;
+        }
       }
-      if (Math.abs(this.velocity) < this.epsilon && Math.abs(to - this.value) < this.epsilon) {
+      if (!stopped && Math.abs(this.velocity) < this.epsilon && Math.abs(to - this.value) < this.epsilon) {
         this.velocity = 0;
         this.value = to;
         stopped = true;
