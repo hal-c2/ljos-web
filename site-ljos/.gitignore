@@ -5,6 +5,7 @@ playwright-report/
 bundle/ljos-site.json
 bundle/Site/Content.qml
 bundle/Site/ShowcaseApps.qml
+bundle/Site/ReviewData.qml
 bundle/Site/ProText.qml
 bundle/Site/LandingCode.qml
 bundle/Examples/

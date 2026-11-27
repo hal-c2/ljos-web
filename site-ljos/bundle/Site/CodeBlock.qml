@@ -372,6 +372,18 @@ Column {
         case "gherkin":
         case "feature":
             return "Gherkin";
+        // The other frameworks' own languages, as the review shows them.
+        case "slint":
+            return "Slint";
+        case "dart":
+            return "Dart";
+        case "cpp":
+        case "c++":
+            return "C++";
+        case "tsx":
+            return "TSX";
+        case "declare":
+            return "Declare";
         case "text":
         case "txt":
         case "plain":

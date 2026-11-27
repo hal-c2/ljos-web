@@ -23,6 +23,12 @@ landing.awaited = true;
 function showcase() { return import("./ShowcasePage.qml"); }
 showcase.awaited = true;
 
+// The framework review, which no other page's first load carries, with
+// its numbers, code and words (ReviewBuilt). Chosen by the address alone,
+// as the showcase is, so the page made at `/review/` waits for it.
+function review() { return import("./ReviewPage.qml"); }
+review.awaited = true;
+
 // The demos page, which no other page's first load carries: the Pantry
 // and the demos it shows are the front page's too, which a docs page has
 // no use for. It is chosen by the address alone, so the page made at

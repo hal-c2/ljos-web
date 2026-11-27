@@ -193,7 +193,7 @@ Flickable {
         Column {
             width: view.width
             Accessible.role: Accessible.Client
-            Accessible.name: docItem.visible ? (docItem.page ? docItem.page.title : "") : pageLoader.route === "/demos/" ? "Live demos" : pageLoader.route === "/showcase/" ? "Built with Ljós" : view.router && view.router.pro ? view.router.pro.title : "Home"
+            Accessible.name: docItem.visible ? (docItem.page ? docItem.page.title : "") : pageLoader.route === "/demos/" ? "Live demos" : pageLoader.route === "/showcase/" ? "Built with Ljós" : pageLoader.route === "/review/" ? "Framework review" : view.router && view.router.pro ? view.router.pro.title : "Home"
 
             // Only this route's page is made, so the HTML the build
             // writes for a route holds that page and no other. The
@@ -212,8 +212,8 @@ Flickable {
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
                 Layout.alignment: Align.HCenter
                 readonly property var demo: view.router ? view.router.pro : null
-                component: route === "/" || route === "/demos/" || route === "/showcase/" || demo ? null : emptyPage
-                readonly property var page: route === "/" ? Later.landing : route === "/demos/" ? Later.demosPage : route === "/showcase/" ? Later.showcase : demo ? Later.proDemo : ""
+                component: route === "/" || route === "/demos/" || route === "/showcase/" || route === "/review/" || demo ? null : emptyPage
+                readonly property var page: route === "/" ? Later.landing : route === "/demos/" ? Later.demosPage : route === "/showcase/" ? Later.showcase : route === "/review/" ? Later.review : demo ? Later.proDemo : ""
                 source: page
                 // Every pro demo is the one module (later.js), so going
                 // from one to the next sets no new source: a page that
