@@ -19,9 +19,9 @@ import { expect, test } from "@playwright/test";
 const HELD_AT = Date.UTC(2026, 0, 1);
 // Pages without a live block, then pages with them.
 const PAGES = ["/", "/start/install/", "/rust/overview/", "/demos/", "/start/", "/start/first-app/", "/controls/buttons-and-toggles/", "/ui/animation/", "/data/models/"];
-// The pages that hold the Pantry, whose own shell is compiled live too:
+// The page that holds the Pantry, whose own shell is compiled live too:
 // without WebAssembly its fallback shell runs and says why, once.
-const PANTRY = new Set(["/", "/demos/"]);
+const PANTRY = new Set(["/"]);
 // `ljos-web/wasm-check.js`'s NEEDS_WASM, as a reader reads it.
 const NEEDS_WASM = /^Live editing needs WebAssembly/;
 const PICTURE = 'img[alt="What this example draws"]';

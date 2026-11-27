@@ -62,10 +62,6 @@ msgstr "नियॉन रिंग्स वाला एक गोल स्�
 msgid "A shader effect"
 msgstr "शेडर प्रभाव"
 
-#: ../Site/DemosPage.qml:64
-msgid "A shell you rewrite"
-msgstr "ऐसा शेल जिसे आप फिर से लिख सकते हैं"
-
 #: ../Site/Landing.qml:212
 msgid "A smartwatch's software beside the watch in 3D. Once it runs, swipe or tap the face, and drag the watch to turn it. The <a href=\"/demos/\">live demos</a> have more, and the <a href=\"/demos/watch/\">watch's own page</a> lets you edit every file. Where the browser lacks the WebAssembly or WebGL 2 it needs, a picture stands in."
 msgstr "एक स्मार्टवॉच का सॉफ़्टवेयर, 3D में उसी घड़ी के बगल में। इसके चलने पर, फ़ेस पर स्वाइप या टैप करें, और घड़ी को घुमाने के लिए खींचें। <a href=\"/demos/\">लाइव डेमो</a> में और भी बहुत कुछ है, और <a href=\"/demos/watch/\">घड़ी का अपना पेज</a> आपको सभी फ़ाइलें संपादित करने देता है। जहाँ ब्राउज़र में आवश्यक WebAssembly या WebGL 2 न हो, वहाँ इसकी जगह एक तस्वीर दिखाई देती है।"
@@ -117,10 +113,6 @@ msgstr "गतिविधि"
 #: ../Shells/Workbench.qml:418
 msgid "Activity bar"
 msgstr "गतिविधि पट्टी"
-
-#: ../Site/DemosPage.qml:65
-msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
-msgstr "बास्केट में सामान जोड़ें, फिर सीधे इसी पेज पर Shell.qml संपादित करें। बास्केट का सामान खोए बिना इंटरफ़ेस पुनर्व्यवस्थित करने के लिए किसी Slot को ले जाएँ, या कोई सिंटैक्स त्रुटि डालें: अंतिम सफल संकलित शेल चलता रहेगा और संपादक के बगल में कंपाइलर संदेश दिखेगा। दोनों शेल को बदलते देखने के लिए लाइट और डार्क थीम बदलें।"
 
 #: ../Demos/Lottie.qml:194
 msgid "Again"
@@ -545,8 +537,12 @@ msgid "Driver warmer"
 msgstr "चालक की ओर गर्म करें"
 
 #: ../Site/DemosPage.qml:51
-msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
-msgstr "हर डेमो एक पूरा Ljós ऐप है जो ljos check पास करता है, पहले से कंपाइल होकर इस पेज में माउंट किया गया है। किसी फ़्रेम किए गए डेमो के चलने पर, उसे बदलते देखने के लिए हेडर में लाइट और डार्क थीम बदलें, और Pantry तथा कॉकपिट व स्मार्टवॉच पेजों पर लाइव सोर्स संपादित करें। जहाँ ब्राउज़र में आवश्यक WebAssembly या WebGL 2 न हो, वहाँ डेमो अपनी तस्वीर और विवरण बनाए रखता है।"
+msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "हर डेमो एक पूरा Ljós ऐप है जो ljos check पास करता है, पहले से कंपाइल किया गया है और इस पेज में लगाया गया है। डेमो चलने पर हेडर में लाइट और डार्क थीम बदलें और उसे साथ बदलते देखें। कॉकपिट और स्मार्टवॉच पेजों पर लाइव सोर्स बदलें, और {shopLink} पर एक दुकान का शेल चलते-चलते फिर से लिखें। जहाँ ब्राउज़र में ज़रूरी WebAssembly या WebGL 2 नहीं है, वहाँ डेमो अपनी तस्वीर और विवरण दिखाता रहता है।"
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "मुख्य पेज"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"

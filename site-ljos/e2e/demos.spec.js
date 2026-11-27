@@ -1,8 +1,9 @@
-// The demos: the front page's Pantry and watch, and /demos/' five,
-// each driven by the input it is for. A demo is the slot under its
-// heading. The Pantry runs with the page, as a plain example would: it
-// holds still, and its shell is the one compiled with the page. The
-// others wait for their Run, and then run.
+// The demos: the front page's Pantry, watch and Lottie player, and
+// /demos/' five, each driven by the input it is for. A demo is the slot
+// under its heading. The Pantry runs with the page, as a plain example
+// would: it holds still, and its shell is the one compiled with the
+// page. It is the front page's alone. The others wait for their Run,
+// and then run.
 import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, playThrough, press, runButton, sceneRuns, signature, test, unexpected } from "./fixtures.js";
 import { sourceView } from "./known.js";
 
@@ -16,7 +17,7 @@ function demo(page, heading) {
   return headingOf(page, heading).locator("xpath=../..");
 }
 
-// A demo but the flagship is made only once its frame nears the screen
+// A framed demo is made only once its frame nears the screen
 // (DemoFrame), as a reader scrolls to it: bring its heading to the
 // middle of the window, and the frame under it is made.
 async function reach(page, heading) {
@@ -29,7 +30,7 @@ async function settled(page, route) {
   await page.waitForTimeout(800);
 }
 
-// Each demo's Run button, by the demo's heading; the Pantry has none.
+// Each demo's Run button, by the demo's heading.
 const RUN = {
   "3D you can orbit": "Run the 3D demo",
   "A shader effect": "Run the shader demo",
@@ -86,17 +87,7 @@ function rigOf(canvas) {
 test.describe("/demos/", () => {
   test("loads with nothing in its console", async ({ page, errors }) => {
     await settled(page, "/demos/");
-    for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion", "Lottie animations"]) await expect(demo(page, heading), heading).toBeVisible();
-    expect(unexpected(errors)).toEqual([]);
-  });
-
-  test("the Pantry answers a press and keys", async ({ page, errors }) => {
-    await settled(page, "/demos/");
-    const pantry = await started(page, "A shell you rewrite");
-    const before = await signature(pantry);
-    await press(pantry.getByRole("button").first());
-    await page.keyboard.press("Space");
-    await expect.poll(() => signature(pantry), { message: "a press changes the Pantry" }).not.toBe(before);
+    for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) await expect(demo(page, heading), heading).toBeVisible();
     expect(unexpected(errors)).toEqual([]);
   });
 
@@ -256,7 +247,7 @@ test.describe("/demos/", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
-  for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion", "Lottie animations"]) {
+  for (const heading of ["Lottie animations", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
     test(`${heading}: show source opens its QML`, async ({ page }) => {
       test.fail(true, sourceView);
       await settled(page, "/demos/");
@@ -273,6 +264,17 @@ test.describe("/demos/", () => {
 });
 
 test.describe("the front page", () => {
+  test("the Pantry answers a press and keys", async ({ page, errors }) => {
+    await settled(page, "/");
+    const pantry = page.getByRole("group", { name: "The Pantry, running" });
+    await centre(pantry);
+    const before = await signature(pantry);
+    await press(pantry.getByRole("button").first());
+    await page.keyboard.press("Space");
+    await expect.poll(() => signature(pantry), { message: "a press changes the Pantry" }).not.toBe(before);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   test("loads with nothing in its console; the Pantry and the watch run", async ({ page, errors }) => {
     await settled(page, "/");
     const button = runButton(page, "Run the watch");

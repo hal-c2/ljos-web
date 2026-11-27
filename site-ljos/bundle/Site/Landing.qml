@@ -10,7 +10,8 @@ import "../nav.js" as Nav
 // The front page, read top to bottom: what Ljós is and a replay that
 // shows it, what that means for agents with a live app to drive, a shell
 // the reader changes here, TypeScript and the rest in a card each, a
-// smartwatch in 3D, how the project works, and where to go next.
+// smartwatch in 3D, Lottie files drawn under it, how the project works,
+// and where to go next.
 // Existing QML is named once, as the way in; the porting page tells
 // that story. The words are the page's; how they stand (the hero beside
 // its live app, the sections on the grid, rising in as they are first
@@ -229,6 +230,36 @@ Column {
                         what: t`the watch`
                         description: t`A round smartwatch face with neon rings beside the same watch in 3D, in its case on a linked band, its screen's ring glowing.`
                         source: Later.watch
+                    }
+                }
+            }
+        }
+    }
+
+    // Under the watch, the Lottie player: two files read and drawn by
+    // the engine, made once the reader presses its Run, as the watch is.
+    Rise {
+        Capability {
+            id: lottie
+            wide: landing.wide
+            flip: true
+            title: t`Lottie animations`
+            body: t`Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle.`
+            onFollowed: (link) => landing.follow(link)
+
+            Slot {
+                name: "showcase-lottie"
+                delegate: Component {
+                    DemoFrame {
+                        width: lottie.exampleWidth
+                        scroller: landing.scroller
+                        // Narrow, the cards shrink and the controls wrap.
+                        least: 320
+                        picture: "/pictures/demo-lottie.webp"
+                        pictureDark: "/pictures/demo-lottie-dark.webp"
+                        what: t`the Lottie demo`
+                        description: t`Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls.`
+                        source: Later.lottie
                     }
                 }
             }

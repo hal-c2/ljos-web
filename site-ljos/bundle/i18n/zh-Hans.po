@@ -62,10 +62,6 @@ msgstr "带有霓虹圆环的圆形智能手表表盘，旁边是同一款 3D �
 msgid "A shader effect"
 msgstr "着色器效果"
 
-#: ../Site/DemosPage.qml:64
-msgid "A shell you rewrite"
-msgstr "可由你重写的外壳"
-
 #: ../Site/Landing.qml:212
 msgid "A smartwatch's software beside the watch in 3D. Once it runs, swipe or tap the face, and drag the watch to turn it. The <a href=\"/demos/\">live demos</a> have more, and the <a href=\"/demos/watch/\">watch's own page</a> lets you edit every file. Where the browser lacks the WebAssembly or WebGL 2 it needs, a picture stands in."
 msgstr "智能手表的软件与 3D 手表并排呈现。运行后，可在表盘上滑动或轻点，并拖动手表旋转查看。<a href=\"/demos/\">在线演示</a>里还有更多内容，在<a href=\"/demos/watch/\">手表专属页面</a>中还可以编辑所有文件。若浏览器不支持所需的 WebAssembly 或 WebGL 2，则会以图片代替。"
@@ -117,10 +113,6 @@ msgstr "活动"
 #: ../Shells/Workbench.qml:418
 msgid "Activity bar"
 msgstr "活动栏"
-
-#: ../Site/DemosPage.qml:65
-msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
-msgstr "往购物篮中添加商品，然后直接在页面里编辑 Shell.qml。移动 Slot 即可重新排列界面，同时购物篮中的商品不会丢失；或者故意引入一个语法错误：上一个编译通过的外壳会继续运行，编辑器旁会显示编译器信息。切换浅色和深色主题，可以看到两个外壳都会同步跟随。"
 
 #: ../Demos/Lottie.qml:194
 msgid "Again"
@@ -545,8 +537,12 @@ msgid "Driver warmer"
 msgstr "主驾调暖"
 
 #: ../Site/DemosPage.qml:51
-msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
-msgstr "每个演示都是一个通过 ljos check 的完整 Ljós 应用，预先编译并嵌入本页。运行页内演示后，可在顶部切换浅色和深色主题观察其跟随变化，还可以在 Pantry 以及座舱和智能手表页面中实时编辑源码。若浏览器不支持所需的 WebAssembly 或 WebGL 2，演示会保留其预览图与说明。"
+msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "每个演示都是一个通过 ljos check 的完整 Ljós 应用，预先编译并嵌入本页。演示运行后，在页眉中切换浅色和深色主题，看它随之变化。在驾驶舱和智能手表页面上编辑实时源码，并在{shopLink}上趁商店运行时改写它的外壳。如果浏览器缺少所需的 WebAssembly 或 WebGL 2，演示会保留其图片和说明。"
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "首页"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"

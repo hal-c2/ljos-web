@@ -62,10 +62,6 @@ msgstr "ネオンリングを備えた円形のスマートウォッチの文字
 msgid "A shader effect"
 msgstr "シェーダー効果"
 
-#: ../Site/DemosPage.qml:64
-msgid "A shell you rewrite"
-msgstr "書き換えられるシェル"
-
 #: ../Site/Landing.qml:212
 msgid "A smartwatch's software beside the watch in 3D. Once it runs, swipe or tap the face, and drag the watch to turn it. The <a href=\"/demos/\">live demos</a> have more, and the <a href=\"/demos/watch/\">watch's own page</a> lets you edit every file. Where the browser lacks the WebAssembly or WebGL 2 it needs, a picture stands in."
 msgstr "3D のウォッチの横に並ぶスマートウォッチのソフトウェアです。実行したら、文字盤をスワイプまたはタップし、ウォッチをドラッグして回転できます。<a href=\"/demos/\">ライブデモ</a>には他にも多数のデモがあり、<a href=\"/demos/watch/\">ウォッチ専用ページ</a>ではすべてのファイルを編集できます。必要な WebAssembly や WebGL 2 がないブラウザーでは、代わりに画像が表示されます。"
@@ -117,10 +113,6 @@ msgstr "アクティビティ"
 #: ../Shells/Workbench.qml:418
 msgid "Activity bar"
 msgstr "アクティビティバー"
-
-#: ../Site/DemosPage.qml:65
-msgid "Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow."
-msgstr "バスケットに商品を入れ、ページ上で直接 Shell.qml を編集してみてください。Slot を動かすとバスケットの中身を保ったまま画面を組み替えられます。構文エラーを入れても、最後にコンパイルできたシェルが動き続け、エディターの横にコンパイラーのメッセージが表示されます。ライトとダークを切り替えると、両方のシェルが追従します。"
 
 #: ../Demos/Lottie.qml:194
 msgid "Again"
@@ -545,8 +537,12 @@ msgid "Driver warmer"
 msgstr "運転席を上げる"
 
 #: ../Site/DemosPage.qml:51
-msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
-msgstr "各デモは ljos check を通過した完全な Ljós アプリで、事前コンパイルされてこのページに組み込まれています。フレーム内のデモを実行したら、ヘッダーでライトとダークを切り替えて追従する様子を確認したり、Pantry やコックピット、スマートウォッチのページでソースをライブ編集したりできます。必要な WebAssembly や WebGL 2 がないブラウザーでは、画像と説明が表示されます。"
+msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
+msgstr "各デモは ljos check を通る完全な Ljós アプリで、事前にコンパイルされ、このページに組み込まれています。デモが動いたら、ヘッダーでライトとダークのテーマを切り替えて、追従する様子を見てください。コックピットとスマートウォッチのページではライブのソースを編集でき、{shopLink}ではお店のシェルを動かしたまま書き換えられます。ブラウザに必要な WebAssembly や WebGL 2 がない場合、デモは画像と説明を表示したままになります。"
+
+#: ../Site/DemosPage.qml:48
+msgid "front page"
+msgstr "トップページ"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"

@@ -4,24 +4,23 @@ import Ljos.Ui
 import Ljos.Layout
 import Ljos.Blocks
 import Site
-import Demos
 import "../Demos/later.js" as Later
 import "../nav.js" as Nav
 
-// The demos page: complete Ljós apps running in the page, flagship
-// first. Each demo stands in its named Slot as the slot's own
-// delegate. The flagship is made with the page, so the prerendered
-// page holds it as first made and hydration takes it over in place.
-// The others stand in a frame their own size from the first paint,
-// a picture of each in it, and are made once the reader presses its
-// Run; a browser without what one needs keeps the picture, and its
-// words say what it shows. Each of those waits for its Run (Runner):
-// what runs on a page is the reader's to start, and at most three run
-// at once. The flagship has no Run: it holds still until pressed, as a
-// plain example does, and its shell is the one compiled with the page. Nothing on this page is needed to read it. The sections
-// are written out, not repeated over a model: a Slot's delegate is
-// made by the Slot, in the Slot's place, and a Repeater's model is
-// not its to give.
+// The demos page: complete Ljós apps running in the page, the pro
+// demos first (the cockpit and the watch), each a card that opens its
+// own page, then the Lottie player under them, then the rest. The shop
+// whose shell a reader rewrites is the front page's, and only linked
+// from here: one copy of it on the site. Each framed demo stands in its
+// named Slot as the slot's own delegate, in a frame its own size from
+// the first paint, a picture of it in there, and is made once the
+// reader presses its Run; a browser without what one needs keeps the
+// picture, and its words say what it shows. Each waits for its Run
+// (Runner): what runs on a page is the reader's to start, and at most
+// three run at once. Nothing on this page is needed to read it. The
+// sections are written out, not repeated over a model: a Slot's
+// delegate is made by the Slot, in the Slot's place, and a Repeater's
+// model is not its to give.
 Column {
     id: demos
 
@@ -45,32 +44,21 @@ Column {
             text: t`Live demos`
         }
         Text {
+            id: intro
+            readonly property string shopLink: Nav.anchor(Nav.at(Content.base, "/"), t`front page`, true)
             // Read from the side the page starts on (LayoutMirroring).
             Layout.alignment: App.layoutDirection === Direction.RightToLeft ? Align.Right : Align.Left
             width: Math.min(parent.width, Theme.measure)
-            text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs.`
+            format: Text.RichText
+            text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the ${shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs.`
             color: Theme.textMuted
+            linkColor: Theme.link
             font.family: Theme.sans
             font.size: Theme.subtitleSize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.subtitleLine - 2
             wrap: Text.Wrap
-        }
-    }
-
-    DemoSection {
-        width: demos.textWidth
-        wide: demos.wide
-        title: t`A shell you rewrite`
-        body: t`Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow.`
-
-        Slot {
-            name: "demo-shell"
-            delegate: Component {
-                PantryDemo {
-                    width: demos.textWidth
-                }
-            }
+            onLinkActivated: (link) => Nav.go(link)
         }
     }
 
@@ -109,6 +97,33 @@ Column {
                 LinkButton {
                     label: card.modelData.open
                     href: card.modelData.route
+                }
+            }
+        }
+    }
+
+    // Under the cockpit and the watch: the Lottie player.
+    DemoSection {
+        width: demos.textWidth
+        wide: demos.wide
+        title: t`Lottie animations`
+        body: t`Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle.`
+
+        Slot {
+            name: "demo-lottie"
+            delegate: Component {
+                DemoFrame {
+                    width: demos.textWidth
+                    scroller: demos.scroller
+                    route: "/demos/"
+                    // Narrow, the cards shrink and the controls wrap: two
+                    // rows of buttons under them need this much.
+                    least: 320
+                    picture: "/pictures/demo-lottie.webp"
+                    pictureDark: "/pictures/demo-lottie-dark.webp"
+                    what: t`the Lottie demo`
+                    description: t`Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls.`
+                    source: Later.lottie
                 }
             }
         }
@@ -211,32 +226,6 @@ Column {
                     what: t`the motion demo`
                     description: t`Tiles that shuffle and settle, driven by one eased value.`
                     source: Later.motion
-                }
-            }
-        }
-    }
-
-    DemoSection {
-        width: demos.textWidth
-        wide: demos.wide
-        title: t`Lottie animations`
-        body: t`Running it loads the player and two Lottie files (HAL-C2's avatars), read and drawn by Ljós with no JavaScript Lottie library. Try Pause, Again, and the speed buttons to control the looping dance and one-shot genie. Both play at half speed when reduced motion is on, pause off screen, and use no CPU while idle.`
-
-        Slot {
-            name: "demo-lottie"
-            delegate: Component {
-                DemoFrame {
-                    width: demos.textWidth
-                    scroller: demos.scroller
-                    route: "/demos/"
-                    // Narrow, the cards shrink and the controls wrap: two
-                    // rows of buttons under them need this much.
-                    least: 320
-                    picture: "/pictures/demo-lottie.webp"
-                    pictureDark: "/pictures/demo-lottie-dark.webp"
-                    what: t`the Lottie demo`
-                    description: t`Two side-by-side cards showing HAL-C2's dance and genie avatars above playback and speed controls.`
-                    source: Later.lottie
                 }
             }
         }
