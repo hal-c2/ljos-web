@@ -6,10 +6,12 @@
 // too (playwright.config.js, LJOS_E2E_FIREFOX).
 import { expect, open, test, unexpected } from "./fixtures.js";
 
-// Every line of text drawn inside the element the first `marker` text
-// stands in, `up` levels above it: its words, its box and its font size.
+// Every line of text drawn inside the element the first shown `marker` text
+// stands in, `up` levels above it: its words, its box and its font size. A
+// copy that is not shown can stay behind: the front page's agent replay keeps
+// the list it turned into a board, at no size.
 async function linesAround(page, marker, up) {
-  const text = page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${marker}$`) }).first();
+  const text = page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${marker}$`), visible: true }).first();
   await expect(text, `${marker} is drawn`).toBeVisible();
   return text.evaluate((element, up) => {
     let scope = element;
