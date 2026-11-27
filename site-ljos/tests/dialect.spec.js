@@ -50,7 +50,7 @@ const qtQuick = {
   ...site(["Cockpit/CarModel", "Cockpit/CarScene", "Cockpit/ChaseView", "Cockpit/Strip", "Cockpit/WallClock", "Watch/Strip", "Watch/WallClock", "Watch/WatchScene"].map((name) => `Demos/${name}`), synced),
   // By name only (`import QtQuick as Q`), for the types Ljos.Ui lacks.
   ...site(["Demos/Lottie"], "Ljos.Ui has no Item.TopLeft for the transformOrigin its avatars scale about"),
-  ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
+  ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect"),
   // ShowcaseApp's recording, loaded when a reader asks (Loader.source given
   // an import), with what it sets on the item loaded and reads of it;
   // Ljos.Ui's Loader takes a url only and its item is a QtObject with none

@@ -26,7 +26,11 @@ msgstr "Þrívídd sem þú getur snúið"
 msgid "<b>Try it on this shop.</b> Add something to the basket, then move <code>StatusSlot</code> in the code below. The layout changes and the basket keeps its items. Make a typo and the shop keeps working while you fix it."
 msgstr "<b>Prófaðu á þessari búð.</b> Bættu einhverju í körfuna og færðu síðan <code>StatusSlot</code> í kóðanum hér að neðan. Útlitið breytist en karfan heldur vörunum sínum. Gerðu innsláttarvillu og búðin heldur áfram að keyra á meðan þú lagar hana."
 
-#: ../Site/DemosPage.qml:184
+#: ../Site/DemosPage.qml:160
+msgid "A GLSL fragment shader whose uniforms are the effect's own properties. Once it runs, move or drag across it to swirl the light, tap to send out a ripple, and pick its colours. Press Edit shader to rewrite it: each edit is drawn as you type, and if one does not compile, the error is shown where it broke while the last version that compiled keeps running."
+msgstr "GLSL-brotaskyggir þar sem uniform-breyturnar eru eigin eiginleikar áhrifanna. Þegar hann keyrir geturðu fært bendilinn eða dregið yfir hann til að hringsnúa ljósinu, smellt til að senda út gáru og valið litina. Ýttu á Breyta skyggi til að endurskrifa hann: hver breyting er teiknuð um leið og þú skrifar, og ef ein þýðist ekki birtist villan þar sem hún brotnaði á meðan síðasta útgáfan sem þýddist heldur áfram að keyra."
+
+#: ../Site/DemosPage.qml:186
 msgid "A bird field guide. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection."
 msgstr "Fuglahandbók. Þegar hún keyrir geturðu síað listann með leitinni, valið tegund til að lesa athugasemdir, merkt við séða fugla til að uppfæra talninguna og skipt á milli ljóss og dökks þema án þess að missa valið."
 
@@ -38,15 +42,11 @@ msgstr "Stjórnborð fyrir forritunarfulltrúana á vélinni þinni, með skjáh
 msgid "A control surface for the coding agents on your machine, with a terminal, browser tabs and a QML layout you can edit while it runs. Its <a href=\"/showcase/\">Office plugin</a> is in the showcase."
 msgstr "Stjórnborð fyrir forritunarfulltrúana á vélinni þinni, með skjáhermi, vafraflipum og QML-útliti sem þú getur breytt á meðan það keyrir. <a href=\"/showcase/\">Office-viðbótin</a> þess er í sýningarglugganum."
 
-#: ../Demos/Shader.qml:107
-msgid "A custom fragment shader"
-msgstr "Sérsniðinn bútaskuggari"
-
 #: ../Demos/Cockpit/Cluster.qml:94
 msgid "A door is open"
 msgstr "Hurð er opin"
 
-#: ../Site/DemosPage.qml:200
+#: ../Site/DemosPage.qml:202
 msgid "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
 msgstr "Fuglahandbók: listi yfir tegundir við hliðina á valinni tegund, með athugasemdum og fjölda séðra fugla."
 
@@ -86,7 +86,7 @@ msgstr "Skjáhermir fyrir Linux og macOS, með flipum, skiptirúðum og einni l�
 msgid "A visual designer where the design is the app’s own QML. A change on the canvas leaves the rest of the file as it was, and agents drive Studio through MCP."
 msgstr "Sjónrænn hönnunarritill þar sem hönnunin er eigið QML forritsins. Breyting á striganum skilur afganginn af skránni eftir óbreyttan, og fulltrúar stýra Studio í gegnum MCP."
 
-#: ../Site/DemosPage.qml:183
+#: ../Site/DemosPage.qml:185
 msgid "A whole app"
 msgstr "Heilt forrit"
 
@@ -98,7 +98,7 @@ msgstr "APR"
 msgid "AUG"
 msgstr "ÁGÚ"
 
-#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1153
+#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1166
 msgid "About ljos.dev"
 msgstr "Um ljos.dev"
 
@@ -110,19 +110,19 @@ msgstr "Virkni"
 msgid "Activity bar"
 msgstr "Virknistika"
 
-#: ../Demos/PantryShell.qml:163
+#: ../Demos/PantryShell.qml:176
 msgid "Add an item, then edit the code. Your basket stays."
 msgstr "Settu vöru í körfuna og breyttu svo kóðanum. Karfan þín helst."
 
-#: ../Demos/PantryShell.qml:107
+#: ../Demos/PantryShell.qml:115
 msgid "Add bread"
 msgstr "Bæta við brauði"
 
-#: ../Demos/PantryShell.qml:140
+#: ../Demos/PantryShell.qml:151
 msgid "Add jam"
 msgstr "Bæta við sultu"
 
-#: ../Demos/PantryShell.qml:74
+#: ../Demos/PantryShell.qml:79
 msgid "Add tea"
 msgstr "Bæta við tei"
 
@@ -150,7 +150,7 @@ msgstr "Fulltrúi: breyttu þessu í töflu"
 msgid "All caught up"
 msgstr "Allt lesið"
 
-#: ../Shells/Desktop.qml:853
+#: ../Shells/Desktop.qml:866
 msgid "All demos"
 msgstr "Öll sýnishorn"
 
@@ -226,6 +226,10 @@ msgstr "BPM"
 msgid "Back"
 msgstr "Til baka"
 
+#: ../Site/DemosPage.qml:175
+msgid "Bands of liquid light swirling round a point, with palette chips under them and an Edit shader button over them."
+msgstr "Bönd af fljótandi ljósi sem hringsnúast um punkt, með litavalshnappa undir og hnappinn Breyta skyggi yfir."
+
 #: ../Pantry/Basket.qml:82
 msgid "Basket"
 msgstr "Karfa"
@@ -238,7 +242,7 @@ msgstr "Rafhlaða í 20 %"
 msgid "Before"
 msgstr "Fyrir"
 
-#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:844
+#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:857
 msgid "Benchmarks"
 msgstr "Afkastamælingar"
 
@@ -262,7 +266,7 @@ msgstr "Neðri spjaldgluggi"
 msgid "Bouncy"
 msgstr "Fjaðrandi"
 
-#: ../Demos/PantryShell.qml:92
+#: ../Demos/PantryShell.qml:100
 msgid "Bread · £{0}"
 msgstr "Brauð · £{0}"
 
@@ -374,7 +378,7 @@ msgstr "Klukka"
 msgid "Clock {0}"
 msgstr "Klukka {0}"
 
-#: ../Shells/Desktop.qml:1179
+#: ../Shells/Desktop.qml:1192
 msgid "Close"
 msgstr "Loka"
 
@@ -391,6 +395,10 @@ msgstr "Loka valmynd"
 msgid "Close shell source"
 msgstr "Loka frumkóða skeljar"
 
+#: ../Demos/Shader.qml:202
+msgid "Close source"
+msgstr "Loka kóða"
+
 #: ../Site/ObserverDock.qml:185
 msgid "Close the Observer"
 msgstr "Loka Vaktara"
@@ -403,7 +411,11 @@ msgstr "Loka ritlinum"
 msgid "Close the editor of {0}"
 msgstr "Loka ritli {0}"
 
-#: ../Shells/Desktop.qml:993 ../Shells/Workbench.qml:744
+#: ../Demos/Shader.qml:187
+msgid "Close the shader's source"
+msgstr "Loka kóða skyggisins"
+
+#: ../Shells/Desktop.qml:1006 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr "Loka {0}"
 
@@ -484,7 +496,7 @@ msgstr "Dökkt litakerfi"
 msgid "Defrost"
 msgstr "Afþíðing"
 
-#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:848 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:861 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
 msgid "Demos"
 msgstr "Sýnishorn"
 
@@ -503,6 +515,10 @@ msgstr "Skjáborð"
 #: ../Shells/Workbench.qml:1168
 msgid "Diagnostics: {0}"
 msgstr "Greiningar: {0}"
+
+#: ../Demos/Shader.qml:370
+msgid "Did not compile; keeping the last working version: {0}"
+msgstr "Þýddist ekki; síðasta útgáfa sem virkaði heldur áfram: {0}"
 
 #: ../Demos/Watch/NoteDetail.qml:69
 msgid "Dismiss"
@@ -524,7 +540,7 @@ msgstr "Ekki trufla"
 msgid "Docs"
 msgstr "Skjöl"
 
-#: ../Shells/Desktop.qml:942
+#: ../Shells/Desktop.qml:955
 msgid "Documents"
 msgstr "Skjölun"
 
@@ -543,6 +559,10 @@ msgstr "Dragðu hringinn · þrjár fjaðrir elta hann"
 #: ../Demos/Orbit.qml:271
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "Dragðu til að snúa · skrunaðu eða klíptu til að þysja"
+
+#: ../Demos/Shader.qml:175
+msgid "Drag to swirl the light · tap for a ripple"
+msgstr "Dragðu til að hringsnúa ljósinu · smelltu fyrir gáru"
 
 #: ../Demos/WatchDemo.qml:342
 msgid "Drag to turn it"
@@ -585,13 +605,25 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "Breyta"
 
+#: ../Demos/Shader.qml:202
+msgid "Edit shader"
+msgstr "Breyta skyggi"
+
 #: ../Demos/PantryDemo.qml:280
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Breyta Shell.qml fyrir Pantry"
 
+#: ../Demos/Shader.qml:351
+msgid "Edit the fragment shader"
+msgstr "Breyta brotaskygginum"
+
 #: ../Site/LiveSource.qml:209
 msgid "Edit the running shell's QML"
 msgstr "Breyta QML fyrir keyrandi skel"
+
+#: ../Demos/Shader.qml:187
+msgid "Edit the shader's source"
+msgstr "Breyta kóða skyggisins"
 
 #: ../Site/ShellSource.qml:135
 msgid "Edit this shell's QML"
@@ -701,6 +733,10 @@ msgstr "Fylgja kerfisþema"
 #: ../Shells/Desktop.qml:571 ../Shells/Desktop.qml:695
 msgid "Forward"
 msgstr "Áfram"
+
+#: ../Demos/Shader.qml:299
+msgid "Fragment shader · GLSL ES 3.0"
+msgstr "Brotaskyggir · GLSL ES 3.0"
 
 #: ../Shells/Cyberpunk.qml:364 ../Shells/Cyberpunk.qml:607
 msgid "Frame rate"
@@ -812,11 +848,11 @@ msgctxt "menu bar"
 msgid "Help"
 msgstr "Hjálp"
 
-#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:826 ../Site/Router.qml:48 ../Site/Router.qml:82
+#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:839 ../Site/Router.qml:48 ../Site/Router.qml:82
 msgid "Home"
 msgstr "Heim"
 
-#: ../Shells/Desktop.qml:1097 ../Shells/Workbench.qml:1055
+#: ../Shells/Desktop.qml:1110 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr "Virkjað á {0} ms"
 
@@ -872,7 +908,7 @@ msgstr "JÚL"
 msgid "JUN"
 msgstr "JÚN"
 
-#: ../Demos/PantryShell.qml:125
+#: ../Demos/PantryShell.qml:136
 msgid "Jam · £{0}"
 msgstr "Sulta · £{0}"
 
@@ -955,10 +991,6 @@ msgstr "Ljóst"
 #: ../Shells/Desktop.qml:499
 msgid "Light colour scheme"
 msgstr "Ljóst litakerfi"
-
-#: ../Site/DemosPage.qml:173
-msgid "Light pooling over a card of text, following the pointer."
-msgstr "Ljós sem líður yfir textakort og eltir bendilinn."
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Linked"
@@ -1112,7 +1144,7 @@ msgstr "Kort: leið til {0}"
 msgid "Media"
 msgstr "Miðlar"
 
-#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1192 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1205 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "Valmynd"
 
@@ -1139,10 +1171,6 @@ msgstr "Hreyfing"
 #: ../Demos/Watch/FacePulse.qml:103
 msgid "Move ring"
 msgstr "Hreyfihringur"
-
-#: ../Demos/Shader.qml:98
-msgid "Move to stir the light · tap for other colours"
-msgstr "Færðu bendilinn til að hreyfa ljósið · ýttu fyrir fleiri liti"
 
 #: ../Demos/Watch/Watch.qml:414
 msgid "Music"
@@ -1228,7 +1256,7 @@ msgstr "Virkir hlutir"
 msgid "Objects alive {0}"
 msgstr "Virkir hlutir {0}"
 
-#: ../Shells/Desktop.qml:1103
+#: ../Shells/Desktop.qml:1116
 msgid "Objects alive: {0}"
 msgstr "Virkir hlutir: {0}"
 
@@ -1273,17 +1301,13 @@ msgstr "Af"
 msgid "On"
 msgstr "Á"
 
-#: ../Main.qml:689 ../Site/Toc.qml:24 ../Site/Toc.qml:27
+#: ../Main.qml:700 ../Site/Toc.qml:24 ../Site/Toc.qml:27
 msgid "On this page"
 msgstr "Á þessari síðu"
 
 #: ../Demos/AgentReplay.qml:29 ../Demos/DispatchCard.qml:362
 msgid "On-call crew"
 msgstr "Vaktlið"
-
-#: ../Site/DemosPage.qml:160
-msgid "Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes."
-msgstr "Þegar sýnishornið keyrir skaltu færa bendilinn yfir kortið til að hræra ljósinu og ýta til að skipta um liti. Skuggarinn keyrir yfir lifandi efni forritsins í stað forreiknaðrar áferðar og fylgir ljósu og dökku þema síðunnar."
 
 #: ../Demos/Watch/TimerPage.qml:46
 msgid "One minute less"
@@ -1329,7 +1353,7 @@ msgstr "Opna upphafssíðu"
 msgid "Open native desktop benchmark tables"
 msgstr "Opna töflur yfir innbyggðar skjáborðsmælingar"
 
-#: ../Shells/Desktop.qml:958 ../Shells/Desktop.qml:1043
+#: ../Shells/Desktop.qml:971 ../Shells/Desktop.qml:1056
 msgid "Open pages"
 msgstr "Opnar síður"
 
@@ -1357,7 +1381,7 @@ msgstr "Viðmiðunarpóstforritið okkar sýnir fyrsta rammann á undir 90 ms, n
 msgid "Output"
 msgstr "Úttak"
 
-#: ../Shells/Desktop.qml:821
+#: ../Shells/Desktop.qml:834
 msgid "Overview"
 msgstr "Yfirlit"
 
@@ -1365,11 +1389,11 @@ msgstr "Yfirlit"
 msgid "PAUSED"
 msgstr "Í BIÐ"
 
-#: ../Shells/Desktop.qml:1041
+#: ../Shells/Desktop.qml:1054
 msgid "Page"
 msgstr "Síða"
 
-#: ../Shells/Desktop.qml:809 ../Shells/Desktop.qml:1042 ../Site/PageTree.qml:21
+#: ../Shells/Desktop.qml:822 ../Shells/Desktop.qml:1055 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr "Síður"
 
@@ -1501,11 +1525,11 @@ msgstr "Tekið upp í keyrslu"
 msgid "Reduce motion"
 msgstr "Draga úr hreyfingu"
 
-#: ../Main.qml:635
+#: ../Main.qml:646
 msgid "Reduce motion: off – use less motion"
 msgstr "Draga úr hreyfingu: slökkt – nota minni hreyfingu"
 
-#: ../Main.qml:635
+#: ../Main.qml:646
 msgid "Reduce motion: on – use full motion"
 msgstr "Draga úr hreyfingu: kveikt – nota fulla hreyfingu"
 
@@ -1521,7 +1545,7 @@ msgstr "Teiknari"
 msgid "Renderer {0}"
 msgstr "Teiknari {0}"
 
-#: ../Shells/Desktop.qml:1119 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
+#: ../Shells/Desktop.qml:1132 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr "Teiknari: {0}"
 
@@ -1533,7 +1557,7 @@ msgstr "Sýnir endurspilunar"
 msgid "Replay · no live agent"
 msgstr "Endurspilun · enginn virkur fulltrúi"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "Endurstilla"
 
@@ -1548,6 +1572,10 @@ msgstr "Endurstilla stöðu sýnishorna"
 #: ../Site/ProDemoPage.qml:373
 msgid "Reset every file"
 msgstr "Endurstilla allar skrár"
+
+#: ../Demos/Shader.qml:311
+msgid "Reset the shader's source"
+msgstr "Endurstilla kóða skyggisins"
 
 #: ../Demos/PantryDemo.qml:228
 msgid "Reset to the app's shell"
@@ -1601,7 +1629,7 @@ msgstr "Leið"
 msgid "Route {0}"
 msgstr "Leið {0}"
 
-#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1162
+#: ../Shells/Desktop.qml:1103 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr "Leið: {0}"
 
@@ -1650,7 +1678,7 @@ msgstr "SUN"
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "Sama forrit, önnur skel. Skiptin halda leiðinni þinni, skrunstöðu og keyrandi sýnishornum."
 
-#: ../Shells/Desktop.qml:774
+#: ../Shells/Desktop.qml:787
 msgid "Scheme"
 msgstr "Þema"
 
@@ -1698,9 +1726,9 @@ msgstr "Séð {0} af {1}"
 msgid "Settings"
 msgstr "Stillingar"
 
-#: ../Demos/Shader.qml:73
-msgid "Shader canvas. Move the pointer to stir the light; tap to change the colours."
-msgstr "Skuggastrigi. Færðu bendilinn til að hræra ljósinu; ýttu til að skipta um liti."
+#: ../Demos/Shader.qml:139
+msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
+msgstr "Mynd skyggisins. Færðu bendilinn eða dragðu yfir hana til að hringsnúa ljósinu; smelltu til að senda gáru."
 
 #: ../Site/ShellChoices.qml:39 ../Site/ShellSource.qml:82
 msgid "Shell"
@@ -1719,7 +1747,7 @@ msgstr "Skeljaskiptir"
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml: breyttu í beinni"
 
-#: ../Shells/Desktop.qml:1125
+#: ../Shells/Desktop.qml:1138
 msgid "Shell: Desktop"
 msgstr "Skel: Skjáborð"
 
@@ -1731,7 +1759,7 @@ msgstr "Skel: Vinnubekkur"
 msgid "Shell: {label} – choose another layout"
 msgstr "Skel: {label} – velja aðra uppsetningu"
 
-#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:869
+#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:882
 msgid "Shells"
 msgstr "Skeljar"
 
@@ -1845,7 +1873,7 @@ msgstr "Hámarkshraði {0}"
 msgid "Spring stage. Drag the ring or move it with the arrow keys; three springs follow it."
 msgstr "Fjaðrasvið. Dragðu hringinn eða færðu hann með örvatökkunum; þrjár fjaðrir fylgja honum."
 
-#: ../Site/DemosPage.qml:210
+#: ../Site/DemosPage.qml:212
 msgid "Springs you drag"
 msgstr "Fjaðrir sem þú dregur"
 
@@ -1861,7 +1889,7 @@ msgstr "Staða"
 msgid "Start"
 msgstr "Byrja"
 
-#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:834
+#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:847
 msgid "Start in a minute"
 msgstr "Byrjaðu á einni mínútu"
 
@@ -1893,7 +1921,7 @@ msgstr "Ræsi: {what}…"
 msgid "Starting…"
 msgstr "Ræsi…"
 
-#: ../Shells/Desktop.qml:1074 ../Shells/Workbench.qml:1140
+#: ../Shells/Desktop.qml:1087 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr "Stöðustika"
 
@@ -1953,7 +1981,7 @@ msgstr "Skipta í skelina Fáguð"
 msgid "Switch to Workbench shell"
 msgstr "Skipta í skelina Vinnubekkur"
 
-#: ../Main.qml:964
+#: ../Main.qml:975
 msgid "Switched to {shell}. Your place and edits are kept."
 msgstr "Skipt yfir í {shell}. Staða þín og breytingar haldast."
 
@@ -1985,7 +2013,7 @@ msgstr "Taktu skjámynd til að athuga útkomuna."
 msgid "Task list"
 msgstr "Verkefnalisti"
 
-#: ../Demos/PantryShell.qml:59
+#: ../Demos/PantryShell.qml:64
 msgid "Tea · £{0}"
 msgstr "Te · £{0}"
 
@@ -2026,7 +2054,7 @@ msgstr "Bíllinn er læstur. Aflæstu honum til að opna eitthvað."
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr "Bíllinn. Örvatakkar velja hluta; bilslá opnar eða lokar."
 
-#: ../Main.qml:663
+#: ../Main.qml:674
 msgid "The docs"
 msgstr "Skjölunin"
 
@@ -2062,7 +2090,7 @@ msgstr "Engin síða er á þessari slóð. Hún gæti hafa færst — leitaðu,
 msgid "There is no {0}.qml to edit."
 msgstr "Engin {0}.qml til að breyta."
 
-#: ../Main.qml:807
+#: ../Main.qml:818
 msgid "This edit has no site.source.live, where its editor is shown, so the last edit that ran stays."
 msgstr "Þessi breyting hefur ekki site.source.live þar sem ritillinn birtist, svo síðasta virka breyting helst."
 
@@ -2078,15 +2106,15 @@ msgstr "Þetta spjald keyrir í vafranum. Á skjáborði opnar skipunin ljos obs
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "Þessi vefur er sjálfur Ljós-forrit, skrifað í HTML við smíði og keyrir í beinni í vafranum þínum."
 
-#: ../Shells/Desktop.qml:1162
+#: ../Shells/Desktop.qml:1175
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "Þessi vefur keyrir Ljós þýtt í Solid DOM með ljos-web, með WebGPU og WebGL2-varaleið fyrir þrívíddarsenur. Skiptu um skel í Skoða-valmyndinni eða verkfærastikunni án endurhleðslu."
 
-#: ../Site/DemosPage.qml:211
+#: ../Site/DemosPage.qml:213
 msgid "Three balls on springs chase one ring: Snappy, Bouncy and Lazy. The app's own TypeScript steps SpringAnimation's spring law one frame at a time, with three tunings. Drag the ring or move it with the arrow keys; left alone, it hops round by itself. With reduced motion on, the springs slow down and never swing past the ring, but still move. Once they settle, nothing ticks and the app uses 0 % CPU."
 msgstr "Þrjár kúlur á fjöðrum elta einn hring: Snögg, Fjaðrandi og Löt. Eigið TypeScript forritsins reiknar fjaðralögmál SpringAnimation ramma fyrir ramma, með þremur stillingum. Dragðu hringinn eða færðu hann með örvatökkunum; ef hann er látinn í friði hoppar hann sjálfur á nýjan stað. Með minni hreyfingu hægja fjaðrirnar á sér og sveiflast aldrei fram hjá hringnum, en hreyfast samt. Þegar þær eru kyrrar tifar ekkert og forritið notar 0 % CPU."
 
-#: ../Site/DemosPage.qml:227
+#: ../Site/DemosPage.qml:229
 msgid "Three balls on springs chasing a ring, each moving its own way."
 msgstr "Þrjár kúlur á fjöðrum sem elta hring, hver á sinn hátt."
 
@@ -2106,7 +2134,7 @@ msgstr "Tímamælir"
 msgid "Toggle Observer panel"
 msgstr "Opna eða loka Vaktaraspjaldi"
 
-#: ../Shells/Desktop.qml:775
+#: ../Shells/Desktop.qml:788
 msgid "Toggle light and dark colour scheme"
 msgstr "Skipta milli ljóss og dökks þema"
 
@@ -2199,7 +2227,7 @@ msgctxt "menu bar"
 msgid "View"
 msgstr "Skoða"
 
-#: ../Shells/Desktop.qml:780
+#: ../Shells/Desktop.qml:793
 msgid "View QML"
 msgstr "Skoða QML"
 
@@ -2207,11 +2235,11 @@ msgstr "Skoða QML"
 msgid "View this shell's QML"
 msgstr "Skoða QML fyrir þessa skel"
 
-#: ../Shells/Desktop.qml:781
+#: ../Shells/Desktop.qml:794
 msgid "View this shell's QML source"
 msgstr "Skoða QML-frumkóða þessarar skeljar"
 
-#: ../Shells/Desktop.qml:1037 ../Shells/Workbench.qml:1097
+#: ../Shells/Desktop.qml:1050 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr "Sýnir"
 
@@ -2391,15 +2419,15 @@ msgstr "endurspilun fulltrúans"
 msgid "the app runs the module built from it now"
 msgstr "forritið keyrir nú eininguna sem var smíðuð héðan"
 
-#: ../Site/DemosPage.qml:199
+#: ../Site/DemosPage.qml:201
 msgid "the field guide"
 msgstr "fuglahandbókin"
 
-#: ../Site/DemosPage.qml:226
+#: ../Site/DemosPage.qml:228
 msgid "the motion demo"
 msgstr "hreyfisýnishornið"
 
-#: ../Site/DemosPage.qml:172
+#: ../Site/DemosPage.qml:174
 msgid "the shader demo"
 msgstr "skuggasýnishornið"
 
@@ -2435,7 +2463,7 @@ msgstr "{0} cm"
 msgid "{0} fps"
 msgstr "{0} fps"
 
-#: ../Demos/PantryShell.qml:68 ../Demos/PantryShell.qml:101 ../Demos/PantryShell.qml:134
+#: ../Demos/PantryShell.qml:73 ../Demos/PantryShell.qml:109 ../Demos/PantryShell.qml:145
 msgid "{0} in basket"
 msgstr "{0} í körfunni"
 
@@ -2510,6 +2538,10 @@ msgstr "{latin} · {season}"
 #: ../Demos/Watch/Watch.qml:160
 msgid "{minutes} min ago"
 msgstr "fyrir {minutes} mín."
+
+#: ../Demos/Shader.qml:241
+msgid "{modelData} colours"
+msgstr "{modelData}-litir"
 
 #: ../Site/Runner.qml:111
 msgid "{name} did not compile"

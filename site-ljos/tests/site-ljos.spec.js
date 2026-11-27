@@ -997,7 +997,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
     ...proDemos.map((demo) => [demo.card, null, null]),
     ["Lottie animations", "demo-lottie.webp", "Genie (plays once)", "Dance (loops)", "Run the Lottie demo"],
     ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom", null, "Run the 3D demo"],
-    ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
+    ["A shader effect", "demo-shader.webp", "Drag to swirl the light · tap for a ripple", null, "Run the shader demo"],
     ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
     ["Springs you drag", "demo-motion.webp", "Drag the ring · three springs chase it", "Snappy", "Run the motion demo"],
   ];
