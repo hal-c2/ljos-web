@@ -98,7 +98,7 @@ msgstr "APR"
 msgid "AUG"
 msgstr "ÁGÚ"
 
-#: ../Shells/Desktop.qml:629 ../Shells/Desktop.qml:1166
+#: ../Shells/Desktop.qml:632 ../Shells/Desktop.qml:1169
 msgid "About ljos.dev"
 msgstr "Um ljos.dev"
 
@@ -150,7 +150,7 @@ msgstr "Fulltrúi: breyttu þessu í töflu"
 msgid "All caught up"
 msgstr "Allt lesið"
 
-#: ../Shells/Desktop.qml:866
+#: ../Shells/Desktop.qml:869
 msgid "All demos"
 msgstr "Öll sýnishorn"
 
@@ -222,7 +222,7 @@ msgstr "RAFHL. {0} %"
 msgid "BPM"
 msgstr "BPM"
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:566 ../Shells/Desktop.qml:689
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:569 ../Shells/Desktop.qml:692
 msgid "Back"
 msgstr "Til baka"
 
@@ -242,7 +242,7 @@ msgstr "Rafhlaða í 20 %"
 msgid "Before"
 msgstr "Fyrir"
 
-#: ../Shells/Desktop.qml:720 ../Shells/Desktop.qml:857
+#: ../Shells/Desktop.qml:723 ../Shells/Desktop.qml:860
 msgid "Benchmarks"
 msgstr "Afkastamælingar"
 
@@ -270,7 +270,7 @@ msgstr "Fjaðrandi"
 msgid "Bread · £{0}"
 msgstr "Brauð · £{0}"
 
-#: ../Shells/Desktop.qml:714
+#: ../Shells/Desktop.qml:717
 msgid "Browse all interactive demos"
 msgstr "Skoða öll gagnvirk sýnishorn"
 
@@ -282,7 +282,7 @@ msgstr "Byggt fyrir fulltrúa"
 msgid "Built together"
 msgstr "Byggt saman"
 
-#: ../Site/Footer.qml:128 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
+#: ../Site/Footer.qml:129 ../Site/Landing.qml:280 ../Site/ShowcasePage.qml:30
 msgid "Built with Ljós"
 msgstr "Byggt með Ljós"
 
@@ -290,27 +290,27 @@ msgstr "Byggt með Ljós"
 msgid "Cancel timer"
 msgstr "Hætta við tímamæli"
 
-#: ../Shells/Desktop.qml:585
+#: ../Shells/Desktop.qml:588
 msgid "Capability: agentic first"
 msgstr "Eiginleiki: fulltrúar í fyrsta sæti"
 
-#: ../Shells/Desktop.qml:584
+#: ../Shells/Desktop.qml:587
 msgid "Capability: descriptive language"
 msgstr "Eiginleiki: lýsandi mál"
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:590
 msgid "Capability: live updates"
 msgstr "Eiginleiki: lifandi uppfærslur"
 
-#: ../Shells/Desktop.qml:589
+#: ../Shells/Desktop.qml:592
 msgid "Capability: malleable"
 msgstr "Eiginleiki: sveigjanlegt"
 
-#: ../Shells/Desktop.qml:586
+#: ../Shells/Desktop.qml:589
 msgid "Capability: several renderers"
 msgstr "Eiginleiki: margir teiknarar"
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:591
 msgid "Capability: tools"
 msgstr "Eiginleiki: verkfæri"
 
@@ -378,7 +378,7 @@ msgstr "Klukka"
 msgid "Clock {0}"
 msgstr "Klukka {0}"
 
-#: ../Shells/Desktop.qml:1192
+#: ../Shells/Desktop.qml:1195
 msgid "Close"
 msgstr "Loka"
 
@@ -415,7 +415,7 @@ msgstr "Loka ritli {0}"
 msgid "Close the shader's source"
 msgstr "Loka kóða skyggisins"
 
-#: ../Shells/Desktop.qml:1006 ../Shells/Workbench.qml:744
+#: ../Shells/Desktop.qml:1009 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr "Loka {0}"
 
@@ -427,7 +427,7 @@ msgstr "Lokað"
 msgid "Code"
 msgstr "Kóði"
 
-#: ../Site/CodeBlock.qml:425
+#: ../Site/CodeBlock.qml:437
 msgid "Code: {0}"
 msgstr "Kóði: {0}"
 
@@ -435,9 +435,13 @@ msgstr "Kóði: {0}"
 msgid "Collapse inspector"
 msgstr "Fella saman skoðara"
 
-#: ../Site/Footer.qml:121
+#: ../Site/Footer.qml:122
 msgid "Community principles"
 msgstr "Samfélagsreglur"
+
+#: ../Site/ReviewPage.qml:174
+msgid "Compare at least two."
+msgstr "Berðu saman að minnsta kosti tvo."
 
 #: ../Shells/Cyberpunk.qml:49
 msgid "Console"
@@ -447,16 +451,16 @@ msgstr "Stjórnborð"
 msgid "Cooling"
 msgstr "Kælir"
 
-#: ../Site/CodeBlock.qml:589 ../Site/CodeBlock.qml:590
+#: ../Site/CodeBlock.qml:601 ../Site/CodeBlock.qml:602
 msgid "Copied"
 msgstr "Afritað"
 
-#: ../Site/CodeBlock.qml:589
+#: ../Site/CodeBlock.qml:601
 msgctxt "code"
 msgid "Copy"
 msgstr "Afrita"
 
-#: ../Site/CodeBlock.qml:590
+#: ../Site/CodeBlock.qml:602
 msgid "Copy {0}"
 msgstr "Afrita {0}"
 
@@ -488,7 +492,7 @@ msgstr "Dans (í lykkju)"
 msgid "Dark"
 msgstr "Dökkt"
 
-#: ../Shells/Desktop.qml:505
+#: ../Shells/Desktop.qml:508
 msgid "Dark colour scheme"
 msgstr "Dökkt litakerfi"
 
@@ -496,7 +500,7 @@ msgstr "Dökkt litakerfi"
 msgid "Defrost"
 msgstr "Afþíðing"
 
-#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:713 ../Shells/Desktop.qml:861 ../Site/Footer.qml:103 ../Site/Router.qml:40 ../Site/Router.qml:48 ../Site/Router.qml:84
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:716 ../Shells/Desktop.qml:864 ../Site/Footer.qml:103 ../Site/Router.qml:42 ../Site/Router.qml:50 ../Site/Router.qml:88
 msgid "Demos"
 msgstr "Sýnishorn"
 
@@ -536,11 +540,11 @@ msgstr "Vegalengd"
 msgid "Do not disturb"
 msgstr "Ekki trufla"
 
-#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:39
+#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:41
 msgid "Docs"
 msgstr "Skjöl"
 
-#: ../Shells/Desktop.qml:955
+#: ../Shells/Desktop.qml:958
 msgid "Documents"
 msgstr "Skjölun"
 
@@ -588,9 +592,17 @@ msgstr "Ökumaður stilltur á {0}"
 msgid "Driver warmer"
 msgstr "Ökumaður hlýrri"
 
+#: ../Site/ReviewPage.qml:202
+msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+msgstr "Hver súla er miðgildi keyrslna hennar, línan yfir enda hennar nær frá minnsta til mesta gildis og undir hverju grafi er skipunin sem mældi það. Styttri súla er betri á öllum gröfum."
+
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "Hver kynning er heilt Ljós-forrit sem stenst ljos check, þýtt fyrir fram og sett inn í þessa síðu. Þegar kynning keyrir geturðu skipt á milli ljóss og dökks útlits í hausnum og séð hana fylgja. Breyttu kóðanum lifandi á síðum stjórnklefans og snjallúrsins, og endurskrifaðu skel verslunar á meðan hún keyrir á {shopLink}. Kynning heldur mynd sinni og lýsingu þar sem vafrann vantar WebAssembly eða WebGL 2 sem hún þarf."
+
+#: ../Site/ReviewPage.qml:274
+msgid "Each framework, by a fan"
+msgstr "Hver rammi, frá aðdáanda"
 
 #: ../Demos/Cockpit/ClimatePanel.qml:244
 msgid "Each side"
@@ -600,7 +612,7 @@ msgstr "Hvor hlið"
 msgid "Edit"
 msgstr "Breyta"
 
-#: ../Site/CodeBlock.qml:812
+#: ../Site/CodeBlock.qml:824
 msgctxt "stage"
 msgid "Edit"
 msgstr "Breyta"
@@ -629,7 +641,7 @@ msgstr "Breyta kóða skyggisins"
 msgid "Edit this shell's QML"
 msgstr "Breyta QML fyrir þessa skel"
 
-#: ../Site/CodeBlock.qml:740 ../Site/CodeBlock.qml:813 ../Site/ShowcaseEngine.qml:312
+#: ../Site/CodeBlock.qml:752 ../Site/CodeBlock.qml:825 ../Site/ShowcaseEngine.qml:312
 msgid "Edit {0}"
 msgstr "Breyta {0}"
 
@@ -637,7 +649,7 @@ msgstr "Breyta {0}"
 msgid "Edit {0} of {1}"
 msgstr "Breyta {0} ({1})"
 
-#: ../Site/CodeBlock.qml:867
+#: ../Site/CodeBlock.qml:879
 msgid "Edited"
 msgstr "Breytt"
 
@@ -649,7 +661,7 @@ msgstr "Ritill"
 msgid "Editorial layout for reading, trying demos, and comparing specs."
 msgstr "Ritstýrt útlit til að lesa, prófa sýnishorn og bera saman lýsingar."
 
-#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:138
+#: ../Site/BuiltWith.qml:36 ../Site/Footer.qml:139
 msgid "Eldur"
 msgstr "Eldur"
 
@@ -713,6 +725,10 @@ msgstr "Blásari {0}"
 msgid "Fast, and quiet when idle"
 msgstr "Hratt, og kyrrt í bið"
 
+#: ../Site/ReviewCode.qml:37
+msgid "Feature"
+msgstr "Eiginleiki"
+
 #: ../Demos/AgentReplay.qml:41
 msgid "Feeder 12 needs a crew. Find its button."
 msgstr "Feeder 12 vantar lið. Finndu hnappinn þess."
@@ -721,16 +737,16 @@ msgstr "Feeder 12 vantar lið. Finndu hnappinn þess."
 msgid "Field guide"
 msgstr "Fuglahandbók"
 
-#: ../Shells/Desktop.qml:440
+#: ../Shells/Desktop.qml:443
 msgctxt "menu bar"
 msgid "File"
 msgstr "Skrá"
 
-#: ../Shells/Desktop.qml:511
+#: ../Shells/Desktop.qml:514
 msgid "Follow system colour scheme"
 msgstr "Fylgja kerfisþema"
 
-#: ../Shells/Desktop.qml:571 ../Shells/Desktop.qml:695
+#: ../Shells/Desktop.qml:574 ../Shells/Desktop.qml:698
 msgid "Forward"
 msgstr "Áfram"
 
@@ -749,6 +765,18 @@ msgstr "Rammatíðni ótímamæld enn"
 #: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "Frame rate {0} fps"
 msgstr "Rammatíðni {0} fps"
+
+#: ../Site/ReviewTable.qml:39
+msgid "Framework"
+msgstr "Rammi"
+
+#: ../Site/Footer.qml:105 ../Site/Router.qml:50 ../Site/Router.qml:92
+msgid "Framework review"
+msgstr "Samanburður ramma"
+
+#: ../Site/ReviewPage.qml:123
+msgid "Frameworks to compare"
+msgstr "Rammar til að bera saman"
 
 #: ../Demos/Cockpit/CarPanel.qml:39 ../Demos/Cockpit/CarPanel.qml:226
 msgid "Frunk"
@@ -770,11 +798,11 @@ msgstr "Andi (einu sinni)"
 msgid "Get started"
 msgstr "Hefjast handa"
 
-#: ../Shells/Desktop.qml:611
+#: ../Shells/Desktop.qml:614
 msgid "Getting started guide"
 msgstr "Byrjunarleiðbeiningar"
 
-#: ../Site/Footer.qml:119
+#: ../Site/Footer.qml:120
 msgid "GitHub"
 msgstr "GitHub"
 
@@ -786,16 +814,16 @@ msgstr "Skiptir úrinu yfir á hinn skjáinn"
 msgid "Glow"
 msgstr "Glóð"
 
-#: ../Shells/Desktop.qml:558
+#: ../Shells/Desktop.qml:561
 msgctxt "menu bar"
 msgid "Go"
 msgstr "Fara"
 
-#: ../Shells/Desktop.qml:696
+#: ../Shells/Desktop.qml:699
 msgid "Go to next route"
 msgstr "Fara á næstu leið"
 
-#: ../Shells/Desktop.qml:690
+#: ../Shells/Desktop.qml:693
 msgid "Go to previous route"
 msgstr "Fara á fyrri leið"
 
@@ -807,7 +835,7 @@ msgstr "Markmið og meginreglur"
 msgid "Grid face"
 msgstr "Rúðuskífa"
 
-#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:140
+#: ../Site/BuiltWith.qml:58 ../Site/Footer.qml:141
 msgid "HAL-C2"
 msgstr "HAL-C2"
 
@@ -843,16 +871,16 @@ msgstr "Hjartsláttur, síðustu {0} sekúndur"
 msgid "Heating"
 msgstr "Hitar"
 
-#: ../Shells/Desktop.qml:603
+#: ../Shells/Desktop.qml:606
 msgctxt "menu bar"
 msgid "Help"
 msgstr "Hjálp"
 
-#: ../Shells/Desktop.qml:701 ../Shells/Desktop.qml:839 ../Site/Router.qml:48 ../Site/Router.qml:82
+#: ../Shells/Desktop.qml:704 ../Shells/Desktop.qml:842 ../Site/Router.qml:50 ../Site/Router.qml:86
 msgid "Home"
 msgstr "Heim"
 
-#: ../Shells/Desktop.qml:1110 ../Shells/Workbench.qml:1055
+#: ../Shells/Desktop.qml:1113 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr "Virkjað á {0} ms"
 
@@ -988,7 +1016,7 @@ msgstr "Lætur úrið hvíla á alltaf-á skífunni, eins og það gerir sjálft
 msgid "Light"
 msgstr "Ljóst"
 
-#: ../Shells/Desktop.qml:499
+#: ../Shells/Desktop.qml:502
 msgid "Light colour scheme"
 msgstr "Ljóst litakerfi"
 
@@ -1024,11 +1052,11 @@ msgstr "Lifandi keyrsluumhverfi yfir opnu tré"
 msgid "Live stage"
 msgstr "Lifandi svið"
 
-#: ../Site/Footer.qml:64 ../Site/Router.qml:48
+#: ../Site/Footer.qml:64 ../Site/Router.qml:50
 msgid "Ljós"
 msgstr "Ljós"
 
-#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:139
+#: ../Site/BuiltWith.qml:47 ../Site/Footer.qml:140
 msgid "Ljós Hof"
 msgstr "Ljós Hof"
 
@@ -1036,7 +1064,7 @@ msgstr "Ljós Hof"
 msgid "Ljós Hof with two panes side by side: git log in the focused one on the left, a directory listing on the right."
 msgstr "Ljós Hof með tveimur rúðum hlið við hlið: git log í virku rúðunni vinstra megin, möppulisti hægra megin."
 
-#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:137
+#: ../Site/BuiltWith.qml:25 ../Site/Footer.qml:138
 msgid "Ljós Studio"
 msgstr "Ljós Studio"
 
@@ -1056,7 +1084,7 @@ msgstr "Ljós á GitHub"
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr "Ljós leitast við að fylgja reglum <a href=\"https://community-software.org/\">Community Software</a>: við smíðum það saman, sem jafningjar, fyrir opnum tjöldum.<br><br>Allir eru velkomnir.<br>Við erum jafningjar.<br>Sérhvert framlag skiptir máli.<br>Áhrif vaxa með þátttöku.<br>Vertu vinsamlegur við fólk, nákvæmur um hugmyndir.<br>„Nei“ og „ekki enn“ eru gild svör.<br>Farðu vel með þig og hvert annað.<br><br>Kóði er ein leið til að hjálpa. Prófanir, skjölun, hönnun, þýðingar og aðgengisrýni vega alveg jafn þungt, og spurningar nýliða eru velkomnar."
 
-#: ../Shells/Desktop.qml:642
+#: ../Shells/Desktop.qml:645
 msgid "Ljós — {0}"
 msgstr "Ljós — {0}"
 
@@ -1100,7 +1128,7 @@ msgstr "MAÍ"
 msgid "MCP log"
 msgstr "MCP-skrá"
 
-#: ../Shells/Desktop.qml:615
+#: ../Shells/Desktop.qml:618
 msgid "MCP servers for agents"
 msgstr "MCP-þjónar fyrir fulltrúa"
 
@@ -1108,7 +1136,7 @@ msgstr "MCP-þjónar fyrir fulltrúa"
 msgid "MI LEFT"
 msgstr "MI EFTIR"
 
-#: ../Site/Footer.qml:122
+#: ../Site/Footer.qml:123
 msgid "MIT licence"
 msgstr "MIT-leyfi"
 
@@ -1140,15 +1168,19 @@ msgstr "Sveigjanlegur hugbúnaður, alls staðar."
 msgid "Map: the route to {0}"
 msgstr "Kort: leið til {0}"
 
+#: ../Site/ReviewChart.qml:195
+msgid "Measured with"
+msgstr "Mælt með"
+
 #: ../Demos/Cockpit/Cockpit.qml:195
 msgid "Media"
 msgstr "Miðlar"
 
-#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1205 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1208 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "Valmynd"
 
-#: ../Shells/Desktop.qml:434
+#: ../Shells/Desktop.qml:437
 msgid "Menu bar"
 msgstr "Valmyndastika"
 
@@ -1188,6 +1220,10 @@ msgstr "NÓV"
 msgid "NOW PLAYING"
 msgstr "Í SPILUN"
 
+#: ../Site/ReviewPage.qml:140
+msgid "Native"
+msgstr "Innbyggt"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "Leiðsögn"
@@ -1204,6 +1240,14 @@ msgstr "Næsta lag"
 msgid "Next: {0}"
 msgstr "Næst: {0}"
 
+#: ../Site/ReviewChart.qml:185
+msgid "No bar for {0}: this is measured for native apps only."
+msgstr "Engin súla fyrir {0}: þetta er aðeins mælt fyrir innbyggð forrit."
+
+#: ../Site/ReviewChart.qml:185
+msgid "No bar for {0}: this is measured for web apps only."
+msgstr "Engin súla fyrir {0}: þetta er aðeins mælt fyrir vefforrit."
+
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
 msgstr "Engar þýðanda- eða gæðagreiningar í opinni skrá."
@@ -1211,6 +1255,10 @@ msgstr "Engar þýðanda- eða gæðagreiningar í opinni skrá."
 #: ../Demos/DispatchCard.qml:351
 msgid "No crew"
 msgstr "Ekkert lið"
+
+#: ../Site/ReviewChart.qml:185
+msgid "No number yet for {0}."
+msgstr "Engin tala enn fyrir {0}."
 
 #: ../Pantry/Note.qml:16
 msgid "Note for the baker"
@@ -1220,11 +1268,11 @@ msgstr "Skilaboð til bakarans"
 msgid "Note for the baker…"
 msgstr "Skilaboð til bakarans…"
 
-#: ../Site/CodeBlock.qml:1025
+#: ../Site/CodeBlock.qml:1037
 msgid "Nothing drawn yet."
 msgstr "Ekkert teiknað enn."
 
-#: ../Site/CodeBlock.qml:1025
+#: ../Site/CodeBlock.qml:1037
 msgid "Nothing drawn yet. Run it to see what it does."
 msgstr "Ekkert teiknað enn. Keyrðu það til að sjá hvað það gerir."
 
@@ -1256,7 +1304,7 @@ msgstr "Virkir hlutir"
 msgid "Objects alive {0}"
 msgstr "Virkir hlutir {0}"
 
-#: ../Shells/Desktop.qml:1116
+#: ../Shells/Desktop.qml:1119
 msgid "Objects alive: {0}"
 msgstr "Virkir hlutir: {0}"
 
@@ -1264,7 +1312,7 @@ msgstr "Virkir hlutir: {0}"
 msgid "Objects: {0}"
 msgstr "Hlutir: {0}"
 
-#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:726 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
+#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:729 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
 msgid "Observer"
 msgstr "Vaktari"
 
@@ -1277,11 +1325,11 @@ msgstr "Vaktari"
 msgid "Observer for the Pantry"
 msgstr "Vaktari: Pantry"
 
-#: ../Site/CodeBlock.qml:849 ../Site/DemoFrame.qml:300
+#: ../Site/CodeBlock.qml:861 ../Site/DemoFrame.qml:300
 msgid "Observer for {0}"
 msgstr "Vaktari: {0}"
 
-#: ../Shells/Desktop.qml:619
+#: ../Shells/Desktop.qml:622
 msgid "Observer guide"
 msgstr "Leiðarvísir Vaktara"
 
@@ -1325,15 +1373,15 @@ msgstr "Opið"
 msgid "Open a window, then change it while it runs."
 msgstr "Opnaðu glugga og breyttu honum á meðan hann keyrir."
 
-#: ../Shells/Desktop.qml:465
+#: ../Shells/Desktop.qml:468
 msgid "Open benchmarks"
 msgstr "Opna afkastamælingar"
 
-#: ../Shells/Desktop.qml:453
+#: ../Shells/Desktop.qml:456
 msgid "Open demos"
 msgstr "Opna sýnishorn"
 
-#: ../Shells/Desktop.qml:470
+#: ../Shells/Desktop.qml:473
 msgid "Open documentation"
 msgstr "Opna skjölun"
 
@@ -1341,23 +1389,23 @@ msgstr "Opna skjölun"
 msgid "Open files"
 msgstr "Opnar skrár"
 
-#: ../Shells/Desktop.qml:448
+#: ../Shells/Desktop.qml:451
 msgid "Open home"
 msgstr "Opna forsíðu"
 
-#: ../Shells/Desktop.qml:702
+#: ../Shells/Desktop.qml:705
 msgid "Open landing page"
 msgstr "Opna upphafssíðu"
 
-#: ../Shells/Desktop.qml:721
+#: ../Shells/Desktop.qml:724
 msgid "Open native desktop benchmark tables"
 msgstr "Opna töflur yfir innbyggðar skjáborðsmælingar"
 
-#: ../Shells/Desktop.qml:971 ../Shells/Desktop.qml:1056
+#: ../Shells/Desktop.qml:974 ../Shells/Desktop.qml:1059
 msgid "Open pages"
 msgstr "Opnar síður"
 
-#: ../Shells/Desktop.qml:458
+#: ../Shells/Desktop.qml:461
 msgid "Open showcase"
 msgstr "Opna sýningarglugga"
 
@@ -1381,7 +1429,7 @@ msgstr "Viðmiðunarpóstforritið okkar sýnir fyrsta rammann á undir 90 ms, n
 msgid "Output"
 msgstr "Úttak"
 
-#: ../Shells/Desktop.qml:834
+#: ../Shells/Desktop.qml:837
 msgid "Overview"
 msgstr "Yfirlit"
 
@@ -1389,11 +1437,11 @@ msgstr "Yfirlit"
 msgid "PAUSED"
 msgstr "Í BIÐ"
 
-#: ../Shells/Desktop.qml:1054
+#: ../Shells/Desktop.qml:1057
 msgid "Page"
 msgstr "Síða"
 
-#: ../Shells/Desktop.qml:822 ../Shells/Desktop.qml:1055 ../Site/PageTree.qml:21
+#: ../Shells/Desktop.qml:825 ../Shells/Desktop.qml:1058 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr "Síður"
 
@@ -1449,6 +1497,14 @@ msgstr "Gera hlé: {0}"
 msgid "Pick an object to see its properties."
 msgstr "Veldu hlut til að sjá eiginleika hans."
 
+#: ../Site/ReviewPage.qml:127
+msgid "Pick the frameworks to compare"
+msgstr "Veldu rammana sem á að bera saman"
+
+#: ../Site/ReviewPage.qml:97
+msgid "Placeholder data"
+msgstr "Staðgengilsgögn"
+
 #: ../Demos/Cockpit/MediaPanel.qml:128 ../Demos/Lottie.qml:168 ../Demos/Watch/MusicPage.qml:128 ../Site/ShowcaseApp.qml:197
 msgid "Play"
 msgstr "Spila"
@@ -1493,7 +1549,7 @@ msgstr "Fyrra: {0}"
 msgid "Problems"
 msgstr "Vandamál"
 
-#: ../Site/Footer.qml:110
+#: ../Site/Footer.qml:111
 msgid "Project"
 msgstr "Verkefni"
 
@@ -1521,7 +1577,7 @@ msgstr "Upptekin endurspilun"
 msgid "Recorded running"
 msgstr "Tekið upp í keyrslu"
 
-#: ../Shells/Desktop.qml:518 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:521 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr "Draga úr hreyfingu"
 
@@ -1545,7 +1601,7 @@ msgstr "Teiknari"
 msgid "Renderer {0}"
 msgstr "Teiknari {0}"
 
-#: ../Shells/Desktop.qml:1132 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
+#: ../Shells/Desktop.qml:1135 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr "Teiknari: {0}"
 
@@ -1557,7 +1613,7 @@ msgstr "Sýnir endurspilunar"
 msgid "Replay · no live agent"
 msgstr "Endurspilun · enginn virkur fulltrúi"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:836 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "Endurstilla"
 
@@ -1565,7 +1621,7 @@ msgstr "Endurstilla"
 msgid "Reset demo"
 msgstr "Endurstilla sýnishorn"
 
-#: ../Shells/Desktop.qml:481
+#: ../Shells/Desktop.qml:484
 msgid "Reset demo state"
 msgstr "Endurstilla stöðu sýnishorna"
 
@@ -1581,7 +1637,7 @@ msgstr "Endurstilla kóða skyggisins"
 msgid "Reset to the app's shell"
 msgstr "Endurstilla á skel forritsins"
 
-#: ../Site/CodeBlock.qml:825
+#: ../Site/CodeBlock.qml:837
 msgid "Reset {0} to as written"
 msgstr "Endurstilla upphaflegt: {0}"
 
@@ -1629,11 +1685,11 @@ msgstr "Leið"
 msgid "Route {0}"
 msgstr "Leið {0}"
 
-#: ../Shells/Desktop.qml:1103 ../Shells/Workbench.qml:1162
+#: ../Shells/Desktop.qml:1106 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr "Leið: {0}"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
+#: ../Site/CodeBlock.qml:819 ../Site/DemoFrame.qml:273 ../Site/ReplayFrame.qml:110
 msgctxt "stage"
 msgid "Run"
 msgstr "Keyra"
@@ -1646,7 +1702,7 @@ msgstr "Keyra aftur"
 msgid "Run again: {0}"
 msgstr "Keyra aftur: {0}"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
+#: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "Keyra: {0}"
 
@@ -1678,7 +1734,7 @@ msgstr "SUN"
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "Sama forrit, önnur skel. Skiptin halda leiðinni þinni, skrunstöðu og keyrandi sýnishornum."
 
-#: ../Shells/Desktop.qml:787
+#: ../Shells/Desktop.qml:790
 msgid "Scheme"
 msgstr "Þema"
 
@@ -1747,7 +1803,7 @@ msgstr "Skeljaskiptir"
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml: breyttu í beinni"
 
-#: ../Shells/Desktop.qml:1138
+#: ../Shells/Desktop.qml:1141
 msgid "Shell: Desktop"
 msgstr "Skel: Skjáborð"
 
@@ -1759,7 +1815,7 @@ msgstr "Skel: Vinnubekkur"
 msgid "Shell: {label} – choose another layout"
 msgstr "Skel: {label} – velja aðra uppsetningu"
 
-#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:882
+#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:885
 msgid "Shells"
 msgstr "Skeljar"
 
@@ -1779,27 +1835,31 @@ msgstr "Skipta í {0}"
 msgid "Ship the beta"
 msgstr "Gefa út beta"
 
-#: ../Site/CodeBlock.qml:1218
+#: ../Site/CodeBlock.qml:1230
 msgid "Show all {0, plural, one {# line} other {# lines}}"
 msgstr "Sýna {0, plural, one {# línu} other {allar # línur}}"
 
-#: ../Site/CodeBlock.qml:1219
+#: ../Site/CodeBlock.qml:1231
 msgid "Show all {0, plural, one {# line} other {# lines}} of {1}"
 msgstr "Sýna {0, plural, one {# línu} other {allar # línur}} í {1}"
 
-#: ../Site/CodeBlock.qml:1218
+#: ../Site/CodeBlock.qml:1230
 msgid "Show less"
 msgstr "Sýna minna"
 
-#: ../Site/CodeBlock.qml:1219
+#: ../Site/CodeBlock.qml:1231
 msgid "Show less of {0}"
 msgstr "Sýna minna úr {0}"
 
-#: ../Site/CodeBlock.qml:833
+#: ../Site/ReviewPage.qml:212
+msgid "Show the numbers as a table"
+msgstr "Sýna tölurnar sem töflu"
+
+#: ../Site/CodeBlock.qml:845
 msgid "Show the source"
 msgstr "Sýna frumkóða"
 
-#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:41 ../Site/Router.qml:48 ../Site/Router.qml:86
+#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:43 ../Site/Router.qml:50 ../Site/Router.qml:90
 msgid "Showcase"
 msgstr "Sýning"
 
@@ -1839,6 +1899,10 @@ msgstr "Snögg"
 msgid "Software you can reshape while it runs."
 msgstr "Hugbúnaður sem þú getur endurmótað á meðan hann keyrir."
 
+#: ../Site/ReviewPage.qml:105
+msgid "Some numbers, code or words here stand in for what is still being measured and written. Each placeholder number says so in the table."
+msgstr "Sumar tölur, kóði eða orð hér koma í stað þess sem enn er verið að mæla og skrifa. Hver staðgengilstala segir það í töflunni."
+
 #: ../Shells/Cyberpunk.qml:488 ../Site/HeroStage.qml:25
 msgid "Source"
 msgstr "Frumkóði"
@@ -1848,7 +1912,7 @@ msgctxt "panel"
 msgid "Source"
 msgstr "Frumkóði"
 
-#: ../Site/CodeBlock.qml:832
+#: ../Site/CodeBlock.qml:844
 msgctxt "stage tab"
 msgid "Source"
 msgstr "Frumkóði"
@@ -1857,7 +1921,7 @@ msgstr "Frumkóði"
 msgid "Source of {0}"
 msgstr "Frumkóði {0}"
 
-#: ../Shells/Desktop.qml:623
+#: ../Shells/Desktop.qml:626
 msgid "Source on GitHub"
 msgstr "Frumkóði á GitHub"
 
@@ -1889,7 +1953,7 @@ msgstr "Staða"
 msgid "Start"
 msgstr "Byrja"
 
-#: ../Shells/Desktop.qml:577 ../Shells/Desktop.qml:847
+#: ../Shells/Desktop.qml:580 ../Shells/Desktop.qml:850
 msgid "Start in a minute"
 msgstr "Byrjaðu á einni mínútu"
 
@@ -1909,7 +1973,7 @@ msgstr "Ræsa skeiðklukku"
 msgid "Start timer"
 msgstr "Ræsa tímamæli"
 
-#: ../Site/CodeBlock.qml:808 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
+#: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:280 ../Site/ReplayFrame.qml:118
 msgid "Starting {0}…"
 msgstr "Ræsi: {0}…"
 
@@ -1917,11 +1981,11 @@ msgstr "Ræsi: {0}…"
 msgid "Starting {what}…"
 msgstr "Ræsi: {what}…"
 
-#: ../Site/CodeBlock.qml:807 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
+#: ../Site/CodeBlock.qml:819 ../Site/DemoFrame.qml:267 ../Site/ReplayFrame.qml:102
 msgid "Starting…"
 msgstr "Ræsi…"
 
-#: ../Shells/Desktop.qml:1087 ../Shells/Workbench.qml:1140
+#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr "Stöðustika"
 
@@ -1929,7 +1993,7 @@ msgstr "Stöðustika"
 msgid "Step {0} of {1}"
 msgstr "Skref {0} af {1}"
 
-#: ../Demos/Watch/TimerPage.qml:115 ../Site/CodeBlock.qml:807
+#: ../Demos/Watch/TimerPage.qml:115 ../Site/CodeBlock.qml:819
 msgid "Stop"
 msgstr "Stöðva"
 
@@ -1941,7 +2005,7 @@ msgstr "Stöðva skeiðklukku"
 msgid "Stop the car first: nothing opens while it moves."
 msgstr "Stöðvaðu bílinn fyrst: ekkert opnast á ferð."
 
-#: ../Site/CodeBlock.qml:808
+#: ../Site/CodeBlock.qml:820
 msgid "Stop {0}"
 msgstr "Stöðva: {0}"
 
@@ -1957,7 +2021,7 @@ msgstr "Skeiðklukka"
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr "Svala GT er skáldaður bíll. Líkanið kemur úr Blender-skriftu í þessu dæmi; kortið, tónlistin og göturnar eru líka skálduð. Allt sem þú sérð er teiknað af Ljós."
 
-#: ../Shells/Desktop.qml:764
+#: ../Shells/Desktop.qml:767
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr "Skipta milli skeljanna Fáguð, Cyberpunk, Vinnubekkur og Skjáborð"
 
@@ -1965,19 +2029,19 @@ msgstr "Skipta milli skeljanna Fáguð, Cyberpunk, Vinnubekkur og Skjáborð"
 msgid "Switch shell"
 msgstr "Skipta um skel"
 
-#: ../Shells/Desktop.qml:541
+#: ../Shells/Desktop.qml:544
 msgid "Switch to Cyberpunk shell"
 msgstr "Skipta í skelina Cyberpunk"
 
-#: ../Shells/Desktop.qml:549
+#: ../Shells/Desktop.qml:552
 msgid "Switch to Desktop shell"
 msgstr "Skipta í skelina Skjáborð"
 
-#: ../Shells/Desktop.qml:537
+#: ../Shells/Desktop.qml:540
 msgid "Switch to Elegant shell"
 msgstr "Skipta í skelina Fáguð"
 
-#: ../Shells/Desktop.qml:545
+#: ../Shells/Desktop.qml:548
 msgid "Switch to Workbench shell"
 msgstr "Skipta í skelina Vinnubekkur"
 
@@ -2025,7 +2089,7 @@ msgstr "Fjarmæling"
 msgid "Temperature"
 msgstr "Hitastig"
 
-#: ../Site/CodeBlock.qml:379
+#: ../Site/CodeBlock.qml:391
 msgctxt "code language"
 msgid "Text"
 msgstr "Texti"
@@ -2054,6 +2118,10 @@ msgstr "Bíllinn er læstur. Aflæstu honum til að opna eitthvað."
 msgid "The car. Arrow keys choose a part; Space opens or closes it."
 msgstr "Bíllinn. Örvatakkar velja hluta; bilslá opnar eða lokar."
 
+#: ../Site/ReviewCode.qml:27
+msgid "The code of each picked framework"
+msgstr "Kóði hvers valins ramma"
+
 #: ../Main.qml:674
 msgid "The docs"
 msgstr "Skjölunin"
@@ -2062,9 +2130,21 @@ msgstr "Skjölunin"
 msgid "The files of {0}"
 msgstr "Skrár: {0}"
 
+#: ../Site/ReviewPage.qml:188
+msgid "The numbers"
+msgstr "Tölurnar"
+
+#: ../Site/ReviewTable.qml:31
+msgid "The numbers of the picked frameworks"
+msgstr "Tölur valinna ramma"
+
 #: ../Demos/Watch/Watch.qml:153
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "Þakstaðurinn opnar klukkan átta. Taktu jakkann, það er kalt þarna uppi."
+
+#: ../Site/ReviewPage.qml:248
+msgid "The same feature in each one's code"
+msgstr "Sami eiginleiki í kóða hvers og eins"
 
 #: ../Site/LiveSource.qml:169
 msgid "The shell's QML could not be loaded: {0}"
@@ -2102,11 +2182,11 @@ msgstr "Ekki tókst að hlaða þessari síðu."
 msgid "This panel runs in the browser. On the desktop, the ljos observe command opens the Observer on a running app."
 msgstr "Þetta spjald keyrir í vafranum. Á skjáborði opnar skipunin ljos observe Vaktarann fyrir keyrandi forrit."
 
-#: ../Site/Footer.qml:151
+#: ../Site/Footer.qml:152
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "Þessi vefur er sjálfur Ljós-forrit, skrifað í HTML við smíði og keyrir í beinni í vafranum þínum."
 
-#: ../Shells/Desktop.qml:1175
+#: ../Shells/Desktop.qml:1178
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "Þessi vefur keyrir Ljós þýtt í Solid DOM með ljos-web, með WebGPU og WebGL2-varaleið fyrir þrívíddarsenur. Skiptu um skel í Skoða-valmyndinni eða verkfærastikunni án endurhleðslu."
 
@@ -2130,29 +2210,33 @@ msgstr "Tíminn er liðinn"
 msgid "Timer"
 msgstr "Tímamælir"
 
-#: ../Shells/Desktop.qml:530
+#: ../Shells/Desktop.qml:533
 msgid "Toggle Observer panel"
 msgstr "Opna eða loka Vaktaraspjaldi"
 
-#: ../Shells/Desktop.qml:788
+#: ../Shells/Desktop.qml:791
 msgid "Toggle light and dark colour scheme"
 msgstr "Skipta milli ljóss og dökks þema"
 
-#: ../Shells/Desktop.qml:727
+#: ../Shells/Desktop.qml:730
 msgid "Toggle live Observer panel"
 msgstr "Opna eða loka lifandi Vaktaraspjaldi"
 
-#: ../Shells/Desktop.qml:524
+#: ../Shells/Desktop.qml:527
 msgid "Toggle sidebar"
 msgstr "Opna eða loka hliðarstiku"
 
-#: ../Shells/Desktop.qml:677
+#: ../Shells/Desktop.qml:680
 msgid "Toolbar"
 msgstr "Verkfærastika"
 
 #: ../Site/ShowcasePage.qml:74
 msgid "Tools built with Ljós"
 msgstr "Verkfæri byggð með Ljós"
+
+#: ../Site/ReviewPage.qml:47
+msgid "Totally biased review of mostly Rust UI frameworks"
+msgstr "Algjörlega hlutdræg úttekt á UI-römmum, flestum í Rust"
 
 #: ../Demos/Cockpit/CarPanel.qml:40 ../Demos/Cockpit/CarPanel.qml:234
 msgid "Trunk"
@@ -2218,28 +2302,28 @@ msgstr "Nota dökkt þema"
 msgid "Use the light theme"
 msgstr "Nota ljóst þema"
 
-#: ../Site/CodeBlock.qml:1120 ../Site/CodeBlock.qml:1139
+#: ../Site/CodeBlock.qml:1132 ../Site/CodeBlock.qml:1151
 msgid "Values"
 msgstr "Gildi"
 
-#: ../Shells/Desktop.qml:491
+#: ../Shells/Desktop.qml:494
 msgctxt "menu bar"
 msgid "View"
 msgstr "Skoða"
 
-#: ../Shells/Desktop.qml:793
+#: ../Shells/Desktop.qml:796
 msgid "View QML"
 msgstr "Skoða QML"
 
-#: ../Shells/Desktop.qml:476 ../Site/ShellChoices.qml:150
+#: ../Shells/Desktop.qml:479 ../Site/ShellChoices.qml:150
 msgid "View this shell's QML"
 msgstr "Skoða QML fyrir þessa skel"
 
-#: ../Shells/Desktop.qml:794
+#: ../Shells/Desktop.qml:797
 msgid "View this shell's QML source"
 msgstr "Skoða QML-frumkóða þessarar skeljar"
 
-#: ../Shells/Desktop.qml:1050 ../Shells/Workbench.qml:1097
+#: ../Shells/Desktop.qml:1053 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr "Sýnir"
 
@@ -2271,6 +2355,14 @@ msgstr "Vekja"
 msgid "Wakes the watch, or goes back to its face"
 msgstr "Vekur úrið, eða fer aftur á skífuna"
 
+#: ../Site/ReviewPage.qml:141
+msgid "Web"
+msgstr "Vefur"
+
+#: ../Site/ReviewSection.qml:64
+msgid "What a fan shows first"
+msgstr "Það sem aðdáandi sýnir fyrst"
+
 #: ../Site/DocPage.qml:56 ../Site/Landing.qml:400
 msgid "What is Ljós?"
 msgstr "Hvað er Ljós?"
@@ -2278,6 +2370,10 @@ msgstr "Hvað er Ljós?"
 #: ../Site/Landing.qml:429
 msgid "What we care about, and what we leave out on purpose."
 msgstr "Það sem skiptir okkur máli — og það sem við sleppum viljandi."
+
+#: ../Site/ReviewSection.qml:155
+msgid "Where it is not as strong"
+msgstr "Þar sem hann er ekki eins sterkur"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2335,7 +2431,7 @@ msgstr "Bíllinn þinn"
 msgid "Your edit"
 msgstr "Þín breyting"
 
-#: ../Site/Footer.qml:105 ../Site/Landing.qml:409
+#: ../Site/Footer.qml:106 ../Site/Landing.qml:409
 msgid "Your first app"
 msgstr "Fyrsta forritið þitt"
 
@@ -2363,7 +2459,7 @@ msgstr "board.ts, kóðinn sem þetta forrit keyrir"
 msgid "front page"
 msgstr "forsíðunni"
 
-#: ../Site/CodeBlock.qml:578
+#: ../Site/CodeBlock.qml:590
 msgid "in the {0} harness"
 msgstr "í prófunarramma {0}"
 
@@ -2459,6 +2555,10 @@ msgstr "{0} NÝ"
 msgid "{0} cm"
 msgstr "{0} cm"
 
+#: ../Site/ReviewSection.qml:205
+msgid "{0} docs"
+msgstr "Skjölun fyrir {0}"
+
 #: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
 msgid "{0} fps"
 msgstr "{0} fps"
@@ -2495,9 +2595,17 @@ msgstr "{0} af {1}"
 msgid "{0} of {1} done"
 msgstr "{0} af {1} lokið"
 
+#: ../Site/ReviewSection.qml:210
+msgid "{0} repository"
+msgstr "Kóðageymsla fyrir {0}"
+
 #: ../Demos/Watch/FacePulse.qml:147
 msgid "{0} steps"
 msgstr "{0} skref"
+
+#: ../Site/ReviewSection.qml:200
+msgid "{0} website"
+msgstr "Vefsíða fyrir {0}"
 
 #: ../Demos/Cockpit/AssistView.qml:178 ../Demos/Cockpit/Cluster.qml:177 ../Demos/Cockpit/NavPanel.qml:205 ../Demos/Cockpit/StatusBar.qml:68
 msgid "{0} {1}"
@@ -2518,6 +2626,10 @@ msgstr "{0} · {1}"
 #: ../Site/DocPage.qml:464
 msgid "{0} →"
 msgstr "{0} →"
+
+#: ../Site/ReviewSection.qml:21
+msgid "{0}, by a fan"
+msgstr "{0}, frá aðdáanda"
 
 #: ../Demos/Cockpit/MediaPanel.qml:250
 msgid "{0}, {1}"
