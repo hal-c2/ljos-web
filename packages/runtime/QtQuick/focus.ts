@@ -359,17 +359,24 @@ export function activate(item: Focusable): void {
 // is the one it is in.
 export function keyWindow(target: Node): FocusWindow | null {
   let found: FocusWindow | null = null;
+  let only: FocusWindow | null = null;
+  let tops = 0;
   for (const window of windows) {
     // An item that was a window's top before it was given a parent, as a
     // button box's buttons are, is in its parent's window now: keys that
-    // reach it while the page's focus is on it are that window's.
-    if (parentOf(window.top)) continue;
+    // reach it while the page's focus is on it are that window's. Nor is a
+    // window whose top is not on the page (made and not yet shown) one
+    // keys can reach, so the first Tab of a page that shows one window is
+    // that window's.
+    if (parentOf(window.top) || !window.top.$node?.isConnected) continue;
+    tops++;
+    only = window;
     const top = window.top.$node!;
     if (top.contains(target) && (!found || found.top.$node!.contains(top))) found = window;
   }
   if (found) return found;
   if (current) return current;
-  return windows.size === 1 ? windows.values().next().value! : null;
+  return tops === 1 ? only : null;
 }
 
 // The item the keys go to, or nothing: then they are the window's.
