@@ -113,8 +113,16 @@ test("no QML file imports QtQuick.Layouts, QtQuick.Shapes or QtQml", () => {
   expect(on).toEqual([]);
 });
 
+// Files that hold other frameworks' code as data, quoted as they write it.
+const quoted = {
+  // The framework review's data (written by scripts/build.mjs): the Qt
+  // Quick inbox translates with qsTr, and the review shows its code.
+  "site-ljos/bundle/Site/ReviewData.qml": "the review quotes Qt Quick's inbox, which says qsTr",
+};
+
 test("no QML file says qsTr: words a reader sees are t``", () => {
-  expect(files.filter(({ text }) => /\bqsTr\s*\(/.test(text)).map(({ file }) => file)).toEqual([]);
+  // Generated, so a checkout not yet built has no such file to name.
+  expect(files.filter(({ file, text }) => !(file in quoted) && /\bqsTr\s*\(/.test(text)).map(({ file }) => file)).toEqual([]);
 });
 
 test("no QML file imports Ljos.Controls.Basic: the site's controls are the styled Ljos.Controls", () => {
