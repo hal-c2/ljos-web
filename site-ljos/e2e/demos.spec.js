@@ -234,6 +234,7 @@ test.describe("/demos/", () => {
     const kept = slot.locator("canvas.qq-shader").nth(1);
     const drawnBefore = await kept.evaluate((canvas) => canvas.$effect.$shader.drawn());
     await expect.poll(() => kept.evaluate((canvas) => canvas.$effect.$shader.drawn()), { message: "the last shader that compiled goes on drawing" }).toBeGreaterThan(drawnBefore + 5);
+    expect(await red(shown), "and what it draws is the red edit, not the shader as written").toBe(true);
 
     await press(slot.getByRole("button", { name: "Reset the shader's source" }));
     await expect(slot.getByText(/^Not drawn/)).toBeHidden({ timeout: 10_000 });
