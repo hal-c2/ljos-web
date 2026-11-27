@@ -42,20 +42,28 @@ export function attachCodeEditor(item, { lang = "qml", label = "Code", descripti
   // fills it, and says how tall its lines are (`implicitHeight`).
   Object.assign(host.style, { position: "absolute", left: "0", top: "0", width: "100%", margin: "0", padding: "0" });
   const words = wordsOf(like);
-  if (words) {
+  const restyle = () => {
+    if (!words) return;
     const look = getComputedStyle(words);
     for (const property of LOOK) host.style[property] = look[property];
-  }
-  // A phone zooms in on a field whose words are under 16px as it is
-  // focused: on a coarse pointer the editor is never smaller, its lines
-  // as far apart for their size (the press that brought it in moves
-  // the page, not the page by itself).
-  const size = parseFloat(host.style.fontSize);
-  if (size < 16 && globalThis.matchMedia?.("(pointer: coarse)").matches) {
-    const pitch = parseFloat(host.style.lineHeight);
-    host.style.fontSize = "16px";
-    host.style.lineHeight = pitch > 0 ? `${Math.round((16 * pitch) / size)}px` : "";
-  }
+    // A phone zooms in on a field whose words are under 16px as it is
+    // focused: on a coarse pointer the editor is never smaller, its lines
+    // as far apart for their size (the press that brought it in moves
+    // the page, not the page by itself).
+    const size = parseFloat(host.style.fontSize);
+    if (size < 16 && globalThis.matchMedia?.("(pointer: coarse)").matches) {
+      const pitch = parseFloat(host.style.lineHeight);
+      host.style.fontSize = "16px";
+      host.style.lineHeight = pitch > 0 ? `${Math.round((16 * pitch) / size)}px` : "";
+    }
+  };
+  restyle();
+  // The Text, hidden, still draws what its bindings say: a page's scheme
+  // picked while the editor is in (its ink, its size) reaches the Text's
+  // style, and from there the editor, which took its look once only and
+  // kept the old ink on the new ground.
+  const restyled = typeof MutationObserver === "function" && like?.$node ? new MutationObserver(restyle) : null;
+  restyled?.observe(like.$node, { attributes: true, attributeFilter: ["style", "class"], subtree: true });
   host.style.setProperty("--ljos-code-pad", "0");
   host.style.background = "transparent";
   host.style.maxHeight = "none";
@@ -184,6 +192,7 @@ export function attachCodeEditor(item, { lang = "qml", label = "Code", descripti
     },
     destroy() {
       watch?.disconnect();
+      restyled?.disconnect();
       editor.destroy();
       host.remove();
       if (like) like.visible = true;
