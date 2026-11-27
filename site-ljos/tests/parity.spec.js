@@ -28,9 +28,10 @@ function routesUnder(dir, prefix = "") {
   });
 }
 
-// The pro demos and the showcase are pages of this site alone: the
-// Astro site, the reference for the docs, has no page of theirs.
-const OWN = ["/showcase/", ...demos.map(route)];
+// The pro demos, the showcase and the framework review are pages of this
+// site alone: the Astro site, the reference for the docs, has no page of
+// theirs.
+const OWN = ["/showcase/", "/review/", ...demos.map(route)];
 
 const SECTIONS = [
   { id: "start", label: "Start" },

@@ -24,6 +24,7 @@ const PAGES = [
   { route: "/demos/", region: "Live demos" },
   { route: "/demos/cockpit/", region: "Svala GT cockpit" },
   { route: "/start/first-app/", region: "Your First App" },
+  { route: "/review/", region: "Framework review" },
 ];
 
 // bundle/tokens.js, read as the build reads it: each shell's look.

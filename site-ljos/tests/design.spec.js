@@ -186,7 +186,7 @@ test("the page's head says tokens.js's colours, for both schemes and for the rea
 // What every page has before any script runs: a language, a title and
 // a description of its own, a viewport, the site's icon and colours,
 // and exactly one render shown — the one for the reader's window.
-const PAGES = ["/", "/demos/", "/showcase/", "/start/", "/start/mcp/"];
+const PAGES = ["/", "/demos/", "/showcase/", "/review/", "/start/", "/start/mcp/"];
 for (const route of PAGES) {
   test(`${route} has a reader's and a crawler's basics, with no script`, async ({ browser }) => {
     for (const [width, scheme] of [

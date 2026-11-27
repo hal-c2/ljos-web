@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
 
 const base = (process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/");
 // A pro demo's page too: its files are listed as it is written.
-const ROUTES = ["", "demos/", "showcase/", "demos/cockpit/", "demos/watch/"];
+const ROUTES = ["", "demos/", "showcase/", "review/", "demos/cockpit/", "demos/watch/"];
 const SIZES = [
   { width: 1440, height: 900 },
   { width: 390, height: 844 },
