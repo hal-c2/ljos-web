@@ -52,7 +52,7 @@ async function unscripted(page) {
   );
 }
 
-const ROUTES = ["/", "/start/", "/demos/", "/showcase/", "/demos/cockpit/"];
+const ROUTES = ["/", "/start/", "/demos/", "/showcase/", "/review/", "/demos/cockpit/"];
 const SIZES = [
   { width: 390, height: 844 },
   { width: 1440, height: 900 },

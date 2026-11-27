@@ -18,6 +18,7 @@ const base = process.env.LJOS_SITE_BASE ?? "/";
 const AWAITED = {
   "/": ["Landing-"],
   "/showcase/": ["ShowcasePage-"],
+  "/review/": ["ReviewPage-"],
   "/demos/": ["DemosPage-"],
   ...Object.fromEntries(demos.map((demo) => [route(demo), ["ProDemoPage-"]])),
 };
@@ -133,6 +134,18 @@ test("no page but the showcase's first load holds the showcase", () => {
   const written = readFileSync(join(dist, "showcase/index.html"), "utf8");
   expect(written, "the showcase as written").toContain("Built with Ljós");
   expect(written, "an app the showcase shows, as written").toContain("The Office");
+});
+
+// The framework review is a module of its own too, with its numbers,
+// code and words (ReviewBuilt): only the review's first load holds it.
+test("no page but the review's first load holds the review", () => {
+  const review = report.find(({ route }) => route === "/review/");
+  expect(reaching(["ReviewPage-"], report.filter((entry) => entry !== review))).toEqual({});
+  expect(reaching(["ReviewPage-"], pageReport(dist, { base })), "a chunk no page imports statically").toEqual({});
+  expect(reaching(["ReviewPage-"], [review]), "the ReviewPage-* chunk the review waits for, counted").toHaveProperty(["/review/"]);
+  const written = readFileSync(join(dist, "review/index.html"), "utf8");
+  expect(written, "the review as written").toContain("Totally biased review of mostly Rust UI frameworks");
+  expect(written, "a framework the review shows, as written").toContain("Sycamore");
 });
 
 // The header's one icon is a picture (Site/GitHubMark.qml): QtQuick.Shapes
