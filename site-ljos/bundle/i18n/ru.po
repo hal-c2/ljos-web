@@ -395,7 +395,7 @@ msgstr "Закрыть меню"
 msgid "Close shell source"
 msgstr "Закрыть код оболочки"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "Закрыть код"
 
@@ -411,7 +411,7 @@ msgstr "Закрыть редактор"
 msgid "Close the editor of {0}"
 msgstr "Закрыть редактор {0}"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "Закрыть код шейдера"
 
@@ -516,7 +516,7 @@ msgstr "Десктоп"
 msgid "Diagnostics: {0}"
 msgstr "Диагностика: {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "Не скомпилировалось; работает последняя рабочая версия: {0}"
 
@@ -560,7 +560,7 @@ msgstr "Тяните кольцо · за ним гонятся три пруж�
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "Тяните для вращения · прокрутка или щипок для масштаба"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "Тяните, чтобы закрутить свет · нажмите для волны"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "Править"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "Изменить шейдер"
 
@@ -613,7 +613,7 @@ msgstr "Изменить шейдер"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Править Shell.qml в Pantry"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "Изменить фрагментный шейдер"
 
@@ -621,7 +621,7 @@ msgstr "Изменить фрагментный шейдер"
 msgid "Edit the running shell's QML"
 msgstr "Править QML текущей оболочки"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "Изменить код шейдера"
 
@@ -734,7 +734,7 @@ msgstr "Следовать системной теме"
 msgid "Forward"
 msgstr "Вперёд"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "Фрагментный шейдер · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "Виды повтора"
 msgid "Replay · no live agent"
 msgstr "Повтор · без живого агента"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "Сброс"
 
@@ -1573,7 +1573,7 @@ msgstr "Сбросить состояние демо"
 msgid "Reset every file"
 msgstr "Сбросить все файлы"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "Сбросить код шейдера"
 
@@ -1726,7 +1726,7 @@ msgstr "Встречено {0} из {1}"
 msgid "Settings"
 msgstr "Настройки"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "Изображение шейдера. Водите или тяните по нему, чтобы закрутить свет; нажмите, чтобы пустить волну."
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "{minutes} мин назад"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "Цвета {modelData}"
 

@@ -395,7 +395,7 @@ msgstr "إغلاق القائمة"
 msgid "Close shell source"
 msgstr "إغلاق مصدر الغلاف"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "إغلاق الشيفرة"
 
@@ -411,7 +411,7 @@ msgstr "إغلاق المحرر"
 msgid "Close the editor of {0}"
 msgstr "إغلاق محرر {0}"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "إغلاق شيفرة المظلِّل"
 
@@ -516,7 +516,7 @@ msgstr "سطح المكتب"
 msgid "Diagnostics: {0}"
 msgstr "التشخيصات: {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "لم يُصرَّف؛ يبقى آخر إصدار عمل: {0}"
 
@@ -560,7 +560,7 @@ msgstr "اسحب الحلقة · ثلاثة نوابض تطاردها"
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "اسحب للدوران · مرّر أو قرّب للتكبير"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "اسحب لتدوير الضوء · انقر لإرسال تموّج"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "تعديل"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "تحرير المظلِّل"
 
@@ -613,7 +613,7 @@ msgstr "تحرير المظلِّل"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "تعديل Shell.qml في Pantry"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "تحرير مظلِّل الأجزاء"
 
@@ -621,7 +621,7 @@ msgstr "تحرير مظلِّل الأجزاء"
 msgid "Edit the running shell's QML"
 msgstr "تعديل QML للغلاف الجاري تشغيله"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "تحرير شيفرة المظلِّل"
 
@@ -734,7 +734,7 @@ msgstr "اتباع مظهر النظام"
 msgid "Forward"
 msgstr "للأمام"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "مظلِّل الأجزاء · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "طرق عرض الإعادة"
 msgid "Replay · no live agent"
 msgstr "إعادة تشغيل · دون وكيل حي"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "إعادة ضبط"
 
@@ -1573,7 +1573,7 @@ msgstr "إعادة ضبط حالة العروض"
 msgid "Reset every file"
 msgstr "إعادة ضبط كل الملفات"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "إعادة ضبط شيفرة المظلِّل"
 
@@ -1726,7 +1726,7 @@ msgstr "شوهد {0} من {1}"
 msgid "Settings"
 msgstr "الإعدادات"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "صورة المظلِّل. حرِّك المؤشر فوقها أو اسحب لتدوير الضوء؛ انقر لإرسال تموّج."
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "منذ {minutes} د"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "ألوان {modelData}"
 

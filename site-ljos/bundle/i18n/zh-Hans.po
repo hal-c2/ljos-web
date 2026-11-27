@@ -395,7 +395,7 @@ msgstr "关闭菜单"
 msgid "Close shell source"
 msgstr "关闭外壳源码"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "关闭源码"
 
@@ -411,7 +411,7 @@ msgstr "关闭编辑器"
 msgid "Close the editor of {0}"
 msgstr "关闭 {0} 的编辑器"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "关闭着色器源码"
 
@@ -516,7 +516,7 @@ msgstr "桌面"
 msgid "Diagnostics: {0}"
 msgstr "诊断：{0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "未能编译；继续使用上一个可用版本：{0}"
 
@@ -560,7 +560,7 @@ msgstr "拖动圆环 · 三个弹簧追着它"
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "拖动以旋转 · 滚动或捏合以缩放"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "拖动让光旋转 · 点按发出波纹"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "编辑"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "编辑着色器"
 
@@ -613,7 +613,7 @@ msgstr "编辑着色器"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "编辑 Pantry 的 Shell.qml"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "编辑片段着色器"
 
@@ -621,7 +621,7 @@ msgstr "编辑片段着色器"
 msgid "Edit the running shell's QML"
 msgstr "编辑运行中外壳的 QML"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "编辑着色器源码"
 
@@ -734,7 +734,7 @@ msgstr "跟随系统配色方案"
 msgid "Forward"
 msgstr "前进"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "片段着色器 · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "回放视图"
 msgid "Replay · no live agent"
 msgstr "回放 · 非实时智能体"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "重置"
 
@@ -1573,7 +1573,7 @@ msgstr "重置演示状态"
 msgid "Reset every file"
 msgstr "重置所有文件"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "重置着色器源码"
 
@@ -1726,7 +1726,7 @@ msgstr "已观测 {0} / {1}"
 msgid "Settings"
 msgstr "设置"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "着色器画面。在上面移动或拖动指针让光旋转；点按发出波纹。"
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "{minutes} 分钟前"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "{modelData} 配色"
 

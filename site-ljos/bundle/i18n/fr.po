@@ -395,7 +395,7 @@ msgstr "Fermer le menu"
 msgid "Close shell source"
 msgstr "Fermer le source du shell"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Close source"
 msgstr "Fermer le code"
 
@@ -411,7 +411,7 @@ msgstr "Fermer l’éditeur"
 msgid "Close the editor of {0}"
 msgstr "Fermer l’éditeur de {0}"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Close the shader's source"
 msgstr "Fermer le code du shader"
 
@@ -516,7 +516,7 @@ msgstr "Bureau"
 msgid "Diagnostics: {0}"
 msgstr "Diagnostics : {0}"
 
-#: ../Demos/Shader.qml:370
+#: ../Demos/Shader.qml:376
 msgid "Did not compile; keeping the last working version: {0}"
 msgstr "Échec de la compilation ; la dernière version qui marchait reste : {0}"
 
@@ -560,7 +560,7 @@ msgstr "Faites glisser l’anneau · trois ressorts le suivent"
 msgid "Drag to orbit · scroll or pinch to zoom"
 msgstr "Glissez pour orbiter · défilez ou pincez pour zoomer"
 
-#: ../Demos/Shader.qml:175
+#: ../Demos/Shader.qml:181
 msgid "Drag to swirl the light · tap for a ripple"
 msgstr "Glissez pour faire tourbillonner · touchez pour une onde"
 
@@ -605,7 +605,7 @@ msgctxt "stage"
 msgid "Edit"
 msgstr "Modifier"
 
-#: ../Demos/Shader.qml:202
+#: ../Demos/Shader.qml:208
 msgid "Edit shader"
 msgstr "Modifier le shader"
 
@@ -613,7 +613,7 @@ msgstr "Modifier le shader"
 msgid "Edit the Pantry's Shell.qml"
 msgstr "Modifier le Shell.qml de Pantry"
 
-#: ../Demos/Shader.qml:351
+#: ../Demos/Shader.qml:357
 msgid "Edit the fragment shader"
 msgstr "Modifier le fragment shader"
 
@@ -621,7 +621,7 @@ msgstr "Modifier le fragment shader"
 msgid "Edit the running shell's QML"
 msgstr "Modifier le QML du shell actif"
 
-#: ../Demos/Shader.qml:187
+#: ../Demos/Shader.qml:193
 msgid "Edit the shader's source"
 msgstr "Modifier le code du shader"
 
@@ -734,7 +734,7 @@ msgstr "Suivre le thème du système"
 msgid "Forward"
 msgstr "Suivant"
 
-#: ../Demos/Shader.qml:299
+#: ../Demos/Shader.qml:305
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "Fragment shader · GLSL ES 3.0"
 
@@ -1557,7 +1557,7 @@ msgstr "Vues de rediffusion"
 msgid "Replay · no live agent"
 msgstr "Rediffusion · pas d’agent en direct"
 
-#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:325 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
+#: ../Demos/PantryDemo.qml:227 ../Demos/Shader.qml:331 ../Demos/Watch/StopwatchPage.qml:56 ../Site/CodeBlock.qml:824 ../Site/LiveSource.qml:150 ../Site/ShellSource.qml:172 ../Site/ShowcaseEngine.qml:371
 msgid "Reset"
 msgstr "Réinitialiser"
 
@@ -1573,7 +1573,7 @@ msgstr "Réinitialiser l’état des démos"
 msgid "Reset every file"
 msgstr "Réinitialiser tous les fichiers"
 
-#: ../Demos/Shader.qml:311
+#: ../Demos/Shader.qml:317
 msgid "Reset the shader's source"
 msgstr "Réinitialiser le code du shader"
 
@@ -1726,7 +1726,7 @@ msgstr "{0} sur {1} observés"
 msgid "Settings"
 msgstr "Réglages"
 
-#: ../Demos/Shader.qml:139
+#: ../Demos/Shader.qml:145
 msgid "Shader picture. Move or drag over it to swirl the light; tap to send a ripple."
 msgstr "Image du shader. Survolez-la ou glissez dessus pour faire tourbillonner la lumière ; touchez pour lancer une onde."
 
@@ -2539,7 +2539,7 @@ msgstr "{latin} · {season}"
 msgid "{minutes} min ago"
 msgstr "il y a {minutes} min"
 
-#: ../Demos/Shader.qml:241
+#: ../Demos/Shader.qml:247
 msgid "{modelData} colours"
 msgstr "Couleurs {modelData}"
 
