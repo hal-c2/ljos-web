@@ -7,6 +7,7 @@
 import { createEffect, onCleanup, runWithOwner } from "solid-js";
 import { settle, slot, whenComplete } from "../object.ts";
 import { untrack } from "#kernel";
+import { rules } from "./compute.ts";
 import type { Props, QObject } from "../object.ts";
 
 // What focus reads of an item and keeps on it.
@@ -196,6 +197,57 @@ function tell(window: FocusWindow, changed: Changed, reason: number = OtherFocus
   // A Window says which of its items the keys go to: `activeFocusItem`.
   const shown = window.top.$window;
   if (shown?.$slots) slot(shown, "activeFocusItem")?.provide(window.active);
+  for (let index = 1; index < changed.length; index += 2) {
+    if (changed[index] === "activeFocus") return follow(window, reason);
+  }
+}
+
+// The page's focus follows the keys. A screen reader says what the page's
+// focus is on, not what a style draws a ring around: a stop reached with
+// Tab is the page's focused element too, with the role and name its
+// `Accessible` gave it. Focus moved any other way (by code, by a press)
+// takes the page's focus only from inside this window: a reader who is
+// somewhere else on the page is not pulled away. One change can move
+// focus through several scopes, so where it ends is what is focused.
+// Where the page's focus was is read as focus moves: a field that loses
+// the keys lets go of the page's focus before this looks again.
+let following: { window: FocusWindow; keyed: boolean; within: boolean } | null = null;
+let ringless = false;
+
+function follow(window: FocusWindow, reason: number): void {
+  if (typeof document === "undefined" || window.nowhere) return;
+  const keyed = reason === TabFocusReason || reason === BacktabFocusReason;
+  const had = document.activeElement;
+  const within = Boolean(had && had !== document.body && window.top.$node?.contains(had));
+  if (following) {
+    following.window = window;
+    following.keyed ||= keyed;
+    following.within ||= within;
+    return;
+  }
+  following = { window, keyed, within };
+  queueMicrotask(() => {
+    const { window, keyed, within } = following!;
+    following = null;
+    const item = activeItem(window);
+    const node = item?.$node as HTMLElement | undefined;
+    if (!node?.isConnected) return;
+    const has = document.activeElement;
+    if (has && has !== document.body && node.contains(has)) return;
+    if (!keyed && !within) return;
+    // A text box's own field is what a reader types in: it takes the
+    // page's focus itself as its item gains the keys.
+    if ((item as { $input?: unknown }).$input || node.querySelector("input.qq-edit, textarea.qq-edit")) return;
+    // The style draws focus as it wants to (`visualFocus`): the browser's
+    // outline would be a second ring.
+    if (!ringless) {
+      ringless = true;
+      rules("[data-qq-focus]:focus { outline: none; }");
+    }
+    if (!node.hasAttribute("tabindex")) node.tabIndex = -1;
+    node.dataset.qqFocus = "";
+    node.focus({ preventScroll: true });
+  });
 }
 
 // `item.focus = value`, without settling what depends on it.
@@ -308,6 +360,10 @@ export function activate(item: Focusable): void {
 export function keyWindow(target: Node): FocusWindow | null {
   let found: FocusWindow | null = null;
   for (const window of windows) {
+    // An item that was a window's top before it was given a parent, as a
+    // button box's buttons are, is in its parent's window now: keys that
+    // reach it while the page's focus is on it are that window's.
+    if (parentOf(window.top)) continue;
     const top = window.top.$node!;
     if (top.contains(target) && (!found || found.top.$node!.contains(top))) found = window;
   }
