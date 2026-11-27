@@ -49,9 +49,14 @@ function faults(lines) {
 
 test("the front page's board keeps each line in its own room", async ({ page, errors }) => {
   await open(page, "/");
-  // The board's card: its title, the count under it and every ticket.
-  const lines = await linesAround(page, "North district dispatch", 4);
-  expect(lines.length, "the board draws its lines").toBeGreaterThan(5);
+  // The board's card: its title, the count under it and every ticket. The
+  // replay can swap the shown copy between finding the title and reading
+  // around it, so it is read again until the copy read is the drawn one.
+  let lines = [];
+  await expect(async () => {
+    lines = await linesAround(page, "North district dispatch", 4);
+    expect(lines.length, "the board draws its lines").toBeGreaterThan(5);
+  }).toPass({ timeout: 10_000 });
   expect(faults(lines)).toEqual([]);
   expect(unexpected(errors)).toEqual([]);
 });
