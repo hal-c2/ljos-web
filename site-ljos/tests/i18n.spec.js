@@ -168,6 +168,30 @@ test.describe("a page in the reader's language", () => {
     await expect(page.getByText("Add an item, then edit the code. Your basket stays.", { exact: true }).filter({ visible: true })).toHaveCount(0);
   });
 
+  // A product's name is longer in some languages ("Marmelade · £4.00")
+  // than its card is wide: it is set smaller, its letters stay inside.
+  for (const tag of ["de", "es", "fr"]) {
+    test(`the shop's products fit their cards in ${tag}`, async ({ page }) => {
+      await page.setViewportSize(DESKTOP);
+      await open(page, `/?lang=${tag}`);
+      await expect(headline(page, translated(tag, HEADLINE))).toBeVisible();
+      const name = translated(tag, "Jam · £{0}").replace("{0}", "4.00");
+      const label = page.getByText(name, { exact: true }).filter({ visible: true });
+      await expect(label).toHaveCount(1);
+      const over = await label.evaluate((text) => {
+        const range = document.createRange();
+        range.selectNodeContents(text);
+        const glyphs = range.getBoundingClientRect();
+        // The card: the first box around the name that starts left of it
+        // (the name is set 10 px in); the boxes between are the name's own.
+        let card = text.parentElement;
+        while (card && card.getBoundingClientRect().left >= glyphs.left - 1) card = card.parentElement;
+        return Math.round(glyphs.right - card.getBoundingClientRect().right);
+      });
+      expect(over, `${name} past its card's right edge, in px`).toBeLessThanOrEqual(0);
+    });
+  }
+
   test("the address names the language, and the browser's own is taken where it names none", async ({ browser }) => {
     const asked = await browser.newPage();
     await open(asked, "/?lang=ja");
