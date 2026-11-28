@@ -21,6 +21,7 @@
 // named in the data by that number (`prose.shows: [{ "n": 4 }]`): the
 // sheet gives its file, its lines and what it shows, and the code is cut
 // from the app as the features' is.
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,13 +48,31 @@ function placeOf(one, root) {
 }
 const rootOf = (one) => placeOf(one, one.source.root);
 
-// Where an app's published copy is elsewhere (Ljós web runs ljos-ui's
-// bench/inbox), a line links there only if that file is the same.
+// The revision a link pins: ".../blob/<sha>/...".
+const pinnedOf = (href) => href.match(/\/blob\/([0-9a-f]{7,40})\//u)?.[1];
+
+// A file as a revision of the checkout at `dir` has it, or undefined
+// where that revision has no such file (or the checkout no such
+// revision).
+function atRevision(dir, rev, file) {
+  try {
+    return execFileSync("git", ["-C", dir, "show", `${rev}:./${file}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 1 << 26 });
+  } catch {
+    return undefined;
+  }
+}
+
+// A line links to the app as published only if the file there, at the
+// revision the link pins, is the file the excerpt was cut from: the
+// checkout read may stand at another commit. Where the published copy
+// is elsewhere (Ljós web runs ljos-ui's bench/inbox), it is that copy
+// at that revision.
 function published(one, file) {
   if (!one.source.href) return false;
-  if (!one.source.published) return true;
-  const there = join(placeOf(one, one.source.published), file);
-  return existsSync(there) && readFileSync(there, "utf8") === readFileSync(join(rootOf(one), file), "utf8");
+  const rev = pinnedOf(one.source.href);
+  if (rev === undefined) return false;
+  const there = placeOf(one, one.source.published ?? one.source.root);
+  return atRevision(there, rev, file) === readFileSync(join(rootOf(one), file), "utf8");
 }
 
 // The lines a range names, with the indent they share taken off so a

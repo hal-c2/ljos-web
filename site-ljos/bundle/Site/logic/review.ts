@@ -284,7 +284,7 @@ export function anyPlaceholder(review: Review): boolean {
     review.intro.placeholder === true ||
     review.metrics.some((metric: Metric) => review.frameworks.some((one: Framework) => metric.values[one.id]?.placeholder === true)) ||
     review.features.some((feature: Feature) => review.frameworks.some((one: Framework) => feature.excerpts[one.id]?.placeholder === true)) ||
-    review.frameworks.some((one: Framework) => one.prose.placeholder === true)
+    review.frameworks.some((one: Framework) => one.prose.placeholder === true || one.prose.shows.some((excerpt: Excerpt) => excerpt.placeholder === true))
   );
 }
 
