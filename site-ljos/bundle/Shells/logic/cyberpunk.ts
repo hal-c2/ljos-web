@@ -8,6 +8,7 @@ import type { Router, Site, Theme } from "./shell-site.ts"
 export type PunkRouter = Router & {
     readonly demosRoute: boolean
     readonly showcaseRoute: boolean
+    readonly reviewRoute: boolean
     // Only how many there are is read here.
     readonly headings: readonly unknown[]
 }
