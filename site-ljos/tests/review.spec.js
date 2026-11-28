@@ -468,3 +468,47 @@ test("with less motion a new bar fades in at its length, and with motion it grow
   // Motion: it grows to its length over several frames.
   expect(widths(full).size, JSON.stringify(full)).toBeGreaterThan(2);
 });
+
+// The apps, their data and the scripts that measured them are published
+// whole (review.repo): an excerpt's file and lines lead to that file
+// there, pinned to the commit the review was cut from, and the page says
+// where to get them all to run.
+const pinnedHref = (one, excerpt) => `${review.repo.href.replace("/tree/", "/blob/")}/${one.source.root.replace(/^review:/u, "")}/${excerpt.file}#L${excerpt.lines.replace("-", "-L")}`;
+
+test("every excerpt links to its whole file in the published apps, at one commit", () => {
+  expect(review.repo.sha).toMatch(/^[0-9a-f]{40}$/u);
+  expect(review.repo.href).toBe(`https://github.com/hal-c2/ui-framework-review/tree/${review.repo.sha}`);
+  for (const feature of review.features) {
+    for (const [id, excerpt] of Object.entries(feature.excerpts)) {
+      const one = review.frameworks.find((framework) => framework.id === id);
+      expect(excerpt.href, `${feature.id} ${id}`).toBe(pinnedHref(one, excerpt));
+    }
+  }
+  for (const one of review.frameworks) {
+    for (const excerpt of one.prose.shows ?? []) expect(excerpt.href, `${one.id} shows ${excerpt.n}`).toBe(pinnedHref(one, excerpt));
+  }
+});
+
+test("with no script, the review leads to its apps to run, and each excerpt to its file", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await expect(page.getByRole("main").getByRole("link", { name: "Run it yourself", exact: true })).toHaveAttribute("href", review.repo.href);
+    const code = page.getByRole("region", { name: "The code of each picked framework", exact: true });
+    const feature = review.features[0];
+    for (const id of review.picked) {
+      const excerpt = feature.excerpts[id];
+      if (excerpt === undefined) continue;
+      await expect(code.getByRole("link", { name: `${excerpt.file}:${excerpt.lines}`, exact: true }).first(), id).toHaveAttribute("href", excerpt.href);
+    }
+    for (const one of review.frameworks.filter(({ id }) => review.picked.includes(id))) {
+      const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+      for (const excerpt of one.prose.shows) {
+        await expect(section.getByRole("link", { name: `${excerpt.file}:${excerpt.lines}`, exact: true }), one.id).toHaveAttribute("href", excerpt.href);
+      }
+    }
+  } finally {
+    await context.close();
+  }
+});

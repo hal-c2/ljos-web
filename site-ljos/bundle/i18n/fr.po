@@ -439,7 +439,7 @@ msgstr "Replier l’inspecteur"
 msgid "Community principles"
 msgstr "Principes communautaires"
 
-#: ../Site/ReviewPage.qml:174
+#: ../Site/ReviewPage.qml:193
 msgid "Compare at least two."
 msgstr "Comparez-en au moins deux."
 
@@ -592,7 +592,11 @@ msgstr "Conducteur réglé à {0}"
 msgid "Driver warmer"
 msgstr "Conducteur plus chaud"
 
-#: ../Site/ReviewPage.qml:202
+#: ../Site/ReviewPage.qml:87
+msgid "Each app's whole code, its data and the scripts that measured them are in one repository, at the commit measured here."
+msgstr "Le code complet de chaque app, ses données et les scripts qui l'ont mesurée sont dans un dépôt, au commit mesuré ici."
+
+#: ../Site/ReviewPage.qml:221
 msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
 msgstr "Chaque barre est la médiane de ses exécutions, la ligne à son extrémité va du minimum au maximum ; pour la recherche native, la barre est l’extrémité lente de toutes les touches tapées, et pour le web, la première touche, comme le dit chaque graphique. Sous chaque graphique, la commande qui l’a mesuré. Plus court est mieux sur chaque graphique. Une seule machine, partagée et chargée, sans GPU : les chiffres se comparent entre eux, pas avec d’autres ordinateurs."
 
@@ -600,7 +604,7 @@ msgstr "Chaque barre est la médiane de ses exécutions, la ligne à son extrém
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "Chaque démo est une application Ljós complète qui passe ljos check, compilée à l’avance et montée dans cette page. Une fois une démo lancée, passez du thème clair au thème sombre dans l’en-tête pour la voir suivre. Modifiez le code en direct sur les pages du cockpit et de la montre connectée, et réécrivez le shell d’une boutique pendant qu’elle tourne sur la {shopLink}. Une démo garde son image et sa description si le navigateur n’a pas le WebAssembly ou le WebGL 2 qu’il lui faut."
 
-#: ../Site/ReviewPage.qml:289
+#: ../Site/ReviewPage.qml:308
 msgid "Each framework, by a fan"
 msgstr "Chaque framework, par un fan"
 
@@ -774,7 +778,7 @@ msgstr "Framework"
 msgid "Framework review"
 msgstr "Comparatif des frameworks"
 
-#: ../Site/ReviewPage.qml:123
+#: ../Site/ReviewPage.qml:142
 msgid "Frameworks to compare"
 msgstr "Frameworks à comparer"
 
@@ -1220,7 +1224,7 @@ msgstr "NOV"
 msgid "NOW PLAYING"
 msgstr "EN LECTURE"
 
-#: ../Site/ReviewPage.qml:140
+#: ../Site/ReviewPage.qml:159
 msgid "Native"
 msgstr "Natif"
 
@@ -1256,7 +1260,7 @@ msgstr "Pas de barre pour {0} : cette mesure ne concerne que les apps natives."
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "Pas de barre pour {0} : cette mesure ne concerne que les apps web."
 
-#: ../Site/ReviewPage.qml:243
+#: ../Site/ReviewPage.qml:262
 msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
 msgstr "Pas de graphique des temps de compilation : les compilations de chaque app passaient par une file partagée avec d’autres travaux, leurs temps sont donc surtout de l’attente et ne se comparent pas."
 
@@ -1509,11 +1513,11 @@ msgstr "Mettre en pause {0}"
 msgid "Pick an object to see its properties."
 msgstr "Choisissez un objet pour voir ses propriétés."
 
-#: ../Site/ReviewPage.qml:127
+#: ../Site/ReviewPage.qml:146
 msgid "Pick the frameworks to compare"
 msgstr "Choisissez les frameworks à comparer"
 
-#: ../Site/ReviewPage.qml:97
+#: ../Site/ReviewPage.qml:116
 msgid "Placeholder data"
 msgstr "Données provisoires"
 
@@ -1714,6 +1718,10 @@ msgstr "Relancer"
 msgid "Run again: {0}"
 msgstr "Relancer : {0}"
 
+#: ../Site/ReviewPage.qml:86
+msgid "Run it yourself"
+msgstr "Lancez-le vous-même"
+
 #: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "Lancer {0}"
@@ -1863,7 +1871,7 @@ msgstr "Afficher moins"
 msgid "Show less of {0}"
 msgstr "Afficher moins de {0}"
 
-#: ../Site/ReviewPage.qml:212
+#: ../Site/ReviewPage.qml:231
 msgid "Show the numbers as a table"
 msgstr "Afficher les chiffres sous forme de tableau"
 
@@ -1911,7 +1919,7 @@ msgstr "Vive"
 msgid "Software you can reshape while it runs."
 msgstr "Des logiciels que vous pouvez remodeler pendant qu’ils tournent."
 
-#: ../Site/ReviewPage.qml:105
+#: ../Site/ReviewPage.qml:124
 msgid "Some numbers, code or words here stand in for what is still being measured and written. Each placeholder number says so in the table."
 msgstr "Certains chiffres, extraits de code ou textes tiennent lieu de ce qui est encore en cours de mesure et d’écriture. Chaque chiffre provisoire est signalé dans le tableau."
 
@@ -2142,11 +2150,11 @@ msgstr "La documentation"
 msgid "The files of {0}"
 msgstr "Fichiers : {0}"
 
-#: ../Site/ReviewPage.qml:303
+#: ../Site/ReviewPage.qml:322
 msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
 msgstr "Les frameworks choisis plus haut, chacun avec les mots de quelqu’un qui l’adore. Choisissez-en un autre pour lire son fan."
 
-#: ../Site/ReviewPage.qml:188
+#: ../Site/ReviewPage.qml:207
 msgid "The numbers"
 msgstr "Les chiffres"
 
@@ -2158,7 +2166,7 @@ msgstr "Les chiffres des frameworks choisis"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "Le toit-terrasse ouvre à vingt heures. Prends la veste, il fait frais là-haut."
 
-#: ../Site/ReviewPage.qml:259
+#: ../Site/ReviewPage.qml:278
 msgid "The same feature in each one's code"
 msgstr "La même fonctionnalité dans le code de chacun"
 
@@ -2371,7 +2379,7 @@ msgstr "Réveiller"
 msgid "Wakes the watch, or goes back to its face"
 msgstr "Réveille la montre ou revient au cadran"
 
-#: ../Site/ReviewPage.qml:141
+#: ../Site/ReviewPage.qml:160
 msgid "Web"
 msgstr "Web"
 
@@ -2395,7 +2403,7 @@ msgstr "Ce qui compte pour nous, et ce que nous laissons volontairement de côt�
 msgid "Where it is not as strong"
 msgstr "Là où il est moins fort"
 
-#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+#: ../Site/ReviewPage.qml:350 ../Site/ReviewPage.qml:354
 msgid "Where to find each one"
 msgstr "Où trouver chacun"
 
@@ -2579,7 +2587,7 @@ msgstr "{0} NOUVELLES"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
+#: ../Site/ReviewPage.qml:381 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "Documentation de {0}"
 
@@ -2619,7 +2627,7 @@ msgstr "{0} sur {1}"
 msgid "{0} of {1} done"
 msgstr "{0} sur {1} terminées"
 
-#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
+#: ../Site/ReviewPage.qml:386 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "Dépôt de {0}"
 
@@ -2627,7 +2635,7 @@ msgstr "Dépôt de {0}"
 msgid "{0} steps"
 msgstr "{0} pas"
 
-#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
+#: ../Site/ReviewPage.qml:376 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "Site de {0}"
 

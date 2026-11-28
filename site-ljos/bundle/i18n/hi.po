@@ -439,7 +439,7 @@ msgstr "इंस्पेक्टर समेटें"
 msgid "Community principles"
 msgstr "समुदाय सिद्धांत"
 
-#: ../Site/ReviewPage.qml:174
+#: ../Site/ReviewPage.qml:193
 msgid "Compare at least two."
 msgstr "कम से कम दो की तुलना करें।"
 
@@ -592,7 +592,11 @@ msgstr "चालक {0} पर सेट"
 msgid "Driver warmer"
 msgstr "चालक की ओर गर्म करें"
 
-#: ../Site/ReviewPage.qml:202
+#: ../Site/ReviewPage.qml:87
+msgid "Each app's whole code, its data and the scripts that measured them are in one repository, at the commit measured here."
+msgstr "हर ऐप का पूरा कोड, उसका डेटा और उसे मापने वाली स्क्रिप्ट एक ही रिपॉज़िटरी में हैं, उसी कमिट पर जो यहाँ मापा गया।"
+
+#: ../Site/ReviewPage.qml:221
 msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
 msgstr "हर पट्टी अपने रनों की माध्यिका है, और उसके सिरे की रेखा सबसे कम से सबसे ज़्यादा तक जाती है; नेटिव खोज में पट्टी टाइप की गई सभी कुंजियों का धीमा सिरा है, और वेब में पहली कुंजी, जैसा हर चार्ट बताता है। हर चार्ट के नीचे वह कमांड है जिसने उसे मापा। हर चार्ट पर छोटा बेहतर है। एक ही मशीन, साझा और व्यस्त, बिना GPU के: ये संख्याएँ आपस में तुलना के लिए हैं, दूसरे कंप्यूटरों से नहीं।"
 
@@ -600,7 +604,7 @@ msgstr "हर पट्टी अपने रनों की माध्य�
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "हर डेमो एक पूरा Ljós ऐप है जो ljos check पास करता है, पहले से कंपाइल किया गया है और इस पेज में लगाया गया है। डेमो चलने पर हेडर में लाइट और डार्क थीम बदलें और उसे साथ बदलते देखें। कॉकपिट और स्मार्टवॉच पेजों पर लाइव सोर्स बदलें, और {shopLink} पर एक दुकान का शेल चलते-चलते फिर से लिखें। जहाँ ब्राउज़र में ज़रूरी WebAssembly या WebGL 2 नहीं है, वहाँ डेमो अपनी तस्वीर और विवरण दिखाता रहता है।"
 
-#: ../Site/ReviewPage.qml:289
+#: ../Site/ReviewPage.qml:308
 msgid "Each framework, by a fan"
 msgstr "हर फ़्रेमवर्क, एक प्रशंसक की नज़र से"
 
@@ -774,7 +778,7 @@ msgstr "फ़्रेमवर्क"
 msgid "Framework review"
 msgstr "फ़्रेमवर्क समीक्षा"
 
-#: ../Site/ReviewPage.qml:123
+#: ../Site/ReviewPage.qml:142
 msgid "Frameworks to compare"
 msgstr "तुलना के लिए फ़्रेमवर्क"
 
@@ -1220,7 +1224,7 @@ msgstr "नवं"
 msgid "NOW PLAYING"
 msgstr "अभी बज रहा है"
 
-#: ../Site/ReviewPage.qml:140
+#: ../Site/ReviewPage.qml:159
 msgid "Native"
 msgstr "नेटिव"
 
@@ -1256,7 +1260,7 @@ msgstr "{0} के लिए कोई पट्टी नहीं: यह स�
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "{0} के लिए कोई पट्टी नहीं: यह सिर्फ़ वेब ऐप के लिए मापा जाता है।"
 
-#: ../Site/ReviewPage.qml:243
+#: ../Site/ReviewPage.qml:262
 msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
 msgstr "बिल्ड समय का कोई चार्ट नहीं: हर ऐप के बिल्ड दूसरे काम के साथ साझा एक कतार से गुज़रे, इसलिए उनका समय ज़्यादातर इंतज़ार है, और उनकी तुलना नहीं होती।"
 
@@ -1509,11 +1513,11 @@ msgstr "{0} रोकें"
 msgid "Pick an object to see its properties."
 msgstr "इसके गुण देखने के लिए कोई ऑब्जेक्ट चुनें।"
 
-#: ../Site/ReviewPage.qml:127
+#: ../Site/ReviewPage.qml:146
 msgid "Pick the frameworks to compare"
 msgstr "तुलना के लिए फ़्रेमवर्क चुनें"
 
-#: ../Site/ReviewPage.qml:97
+#: ../Site/ReviewPage.qml:116
 msgid "Placeholder data"
 msgstr "प्लेसहोल्डर डेटा"
 
@@ -1714,6 +1718,10 @@ msgstr "फिर चलाएँ"
 msgid "Run again: {0}"
 msgstr "फिर चलाएँ: {0}"
 
+#: ../Site/ReviewPage.qml:86
+msgid "Run it yourself"
+msgstr "ख़ुद चलाकर देखें"
+
 #: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "{0} चलाएँ"
@@ -1863,7 +1871,7 @@ msgstr "कम दिखाएँ"
 msgid "Show less of {0}"
 msgstr "{0} का कम हिस्सा दिखाएँ"
 
-#: ../Site/ReviewPage.qml:212
+#: ../Site/ReviewPage.qml:231
 msgid "Show the numbers as a table"
 msgstr "संख्याएँ तालिका में दिखाएँ"
 
@@ -1911,7 +1919,7 @@ msgstr "फुर्तीली"
 msgid "Software you can reshape while it runs."
 msgstr "सॉफ़्टवेयर जिसे आप चलते-चलते नया रूप दे सकते हैं।"
 
-#: ../Site/ReviewPage.qml:105
+#: ../Site/ReviewPage.qml:124
 msgid "Some numbers, code or words here stand in for what is still being measured and written. Each placeholder number says so in the table."
 msgstr "यहाँ कुछ संख्याएँ, कोड या शब्द उस चीज़ की जगह हैं जिसे अभी मापा और लिखा जा रहा है। हर प्लेसहोल्डर संख्या तालिका में यह बताती है।"
 
@@ -2142,11 +2150,11 @@ msgstr "दस्तावेज़"
 msgid "The files of {0}"
 msgstr "{0} की फ़ाइलें"
 
-#: ../Site/ReviewPage.qml:303
+#: ../Site/ReviewPage.qml:322
 msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
 msgstr "ऊपर चुने गए फ़्रेमवर्क, हर एक उसे पसंद करने वाले किसी व्यक्ति के शब्दों में। किसी और के प्रशंसक को पढ़ने के लिए उसे चुनें।"
 
-#: ../Site/ReviewPage.qml:188
+#: ../Site/ReviewPage.qml:207
 msgid "The numbers"
 msgstr "संख्याएँ"
 
@@ -2158,7 +2166,7 @@ msgstr "चुने गए फ़्रेमवर्क की संख्�
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "रूफ़टॉप वाली जगह आठ बजे खुलती है। जैकेट ले आना, वहाँ ऊपर ठंड होती है।"
 
-#: ../Site/ReviewPage.qml:259
+#: ../Site/ReviewPage.qml:278
 msgid "The same feature in each one's code"
 msgstr "हर एक के कोड में एक ही सुविधा"
 
@@ -2371,7 +2379,7 @@ msgstr "जगाएँ"
 msgid "Wakes the watch, or goes back to its face"
 msgstr "घड़ी को जगाता है, या उसके फ़ेस पर लौटता है"
 
-#: ../Site/ReviewPage.qml:141
+#: ../Site/ReviewPage.qml:160
 msgid "Web"
 msgstr "वेब"
 
@@ -2395,7 +2403,7 @@ msgstr "हमारे लिए क्या महत्वपूर्ण �
 msgid "Where it is not as strong"
 msgstr "जहाँ यह उतना मज़बूत नहीं है"
 
-#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+#: ../Site/ReviewPage.qml:350 ../Site/ReviewPage.qml:354
 msgid "Where to find each one"
 msgstr "हर एक कहाँ मिलेगा"
 
@@ -2579,7 +2587,7 @@ msgstr "{0} नई"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
+#: ../Site/ReviewPage.qml:381 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "{0} दस्तावेज़"
 
@@ -2619,7 +2627,7 @@ msgstr "{1} में से {0}"
 msgid "{0} of {1} done"
 msgstr "{1} में से {0} पूर्ण"
 
-#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
+#: ../Site/ReviewPage.qml:386 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "{0} रिपॉज़िटरी"
 
@@ -2627,7 +2635,7 @@ msgstr "{0} रिपॉज़िटरी"
 msgid "{0} steps"
 msgstr "{0} कदम"
 
-#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
+#: ../Site/ReviewPage.qml:376 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "{0} वेबसाइट"
 

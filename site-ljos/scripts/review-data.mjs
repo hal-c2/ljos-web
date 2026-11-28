@@ -7,11 +7,14 @@
 // RESULTS.md; until it lands a stand-in is flagged `placeholder` and the
 // page says so above its charts.
 //
-//   node scripts/review-data.mjs --compare <dir> --ljos-ui <checkout> [--results <RESULTS.json>] [--prose <prose.json>] [--placeholders]
+//   node scripts/review-data.mjs --review <clone> --compare <dir> [--results <RESULTS.json>] [--prose <prose.json>] [--placeholders]
 //
-// --compare is the directory holding one app per framework
-// (<dir>/<framework>/...) and its fact sheets (<dir>/facts/); --ljos-ui
-// a checkout of ljos-ui whose bench/inbox is the Ljós app; --results
+// --review is a clone of the published apps (REPO below), every app in
+// it as measured, in its own directory (a framework's `source.root`,
+// "review:<dir>"); each excerpt links to its file there, at the
+// clone's commit, and the page to the whole repository at that commit.
+// --compare is the directory holding the compare lead's fact sheets
+// (<dir>/facts/); --results
 // the compare lead's RESULTS.json, whose medians replace the stand-ins;
 // --prose the fans' words ({ intro, frameworks: { <id>: { fan, cool,
 // limits, shows: [n] } } }).
@@ -33,7 +36,8 @@ function option(name) {
   const at = process.argv.indexOf(name);
   return at < 0 ? null : process.argv[at + 1];
 }
-const roots = { compare: option("--compare"), "ljos-ui": option("--ljos-ui") };
+const roots = { compare: option("--compare"), review: option("--review") };
+const REPO = "https://github.com/hal-c2/ui-framework-review";
 const placeholders = process.argv.includes("--placeholders");
 
 const review = JSON.parse(readFileSync(file, "utf8"));
@@ -47,6 +51,17 @@ function placeOf(one, root) {
   return join(base, rest);
 }
 const rootOf = (one) => placeOf(one, one.source.root);
+
+// The published apps at the clone's commit: a reader can open the whole
+// file an excerpt was cut from, and build and run every app.
+if (roots.review == null) throw new Error("pass --review <clone of " + REPO + ">");
+const sha = execFileSync("git", ["-C", roots.review, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+review.repo = { href: `${REPO}/tree/${sha}`, sha };
+for (const one of review.frameworks) {
+  const [kind, dir] = one.source.root.split(/:(.*)/su);
+  if (kind !== "review") throw new Error(`${one.id}: its source.root ${one.source.root} is not in the published apps ("review:<dir>")`);
+  one.source = { root: one.source.root, href: `${REPO}/blob/${sha}/${dir}/` };
+}
 
 // The revision a link pins: ".../blob/<sha>/...".
 const pinnedOf = (href) => href.match(/\/blob\/([0-9a-f]{7,40})\//u)?.[1];
@@ -64,15 +79,11 @@ function atRevision(dir, rev, file) {
 
 // A line links to the app as published only if the file there, at the
 // revision the link pins, is the file the excerpt was cut from: the
-// checkout read may stand at another commit. Where the published copy
-// is elsewhere (Ljós web runs ljos-ui's bench/inbox), it is that copy
-// at that revision.
+// clone read may have changes not committed.
 function published(one, file) {
-  if (!one.source.href) return false;
   const rev = pinnedOf(one.source.href);
   if (rev === undefined) return false;
-  const there = placeOf(one, one.source.published ?? one.source.root);
-  return atRevision(there, rev, file) === readFileSync(join(rootOf(one), file), "utf8");
+  return atRevision(rootOf(one), rev, file) === readFileSync(join(rootOf(one), file), "utf8");
 }
 
 // The lines a range names, with the indent they share taken off so a

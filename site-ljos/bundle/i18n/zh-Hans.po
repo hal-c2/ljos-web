@@ -439,7 +439,7 @@ msgstr "收起检查器"
 msgid "Community principles"
 msgstr "社区原则"
 
-#: ../Site/ReviewPage.qml:174
+#: ../Site/ReviewPage.qml:193
 msgid "Compare at least two."
 msgstr "至少比较两个。"
 
@@ -592,7 +592,11 @@ msgstr "主驾设定为 {0}"
 msgid "Driver warmer"
 msgstr "主驾调暖"
 
-#: ../Site/ReviewPage.qml:202
+#: ../Site/ReviewPage.qml:87
+msgid "Each app's whole code, its data and the scripts that measured them are in one repository, at the commit measured here."
+msgstr "每个应用的完整代码、数据以及测量它的脚本都在同一个仓库里，停在这里测量时的提交。"
+
+#: ../Site/ReviewPage.qml:221
 msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
 msgstr "每根柱是多次运行的中位数，末端的线从最小值到最大值；原生搜索的柱是所有按键中较慢的一端，Web 搜索的柱是第一个按键，如各图表所述。每张图表下方是测量它的命令。每张图表都是越短越好。一台共享且繁忙、没有 GPU 的机器：这些数字只能相互比较，不能与其他电脑比较。"
 
@@ -600,7 +604,7 @@ msgstr "每根柱是多次运行的中位数，末端的线从最小值到最大
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "每个演示都是一个通过 ljos check 的完整 Ljós 应用，预先编译并嵌入本页。演示运行后，在页眉中切换浅色和深色主题，看它随之变化。在驾驶舱和智能手表页面上编辑实时源码，并在{shopLink}上趁商店运行时改写它的外壳。如果浏览器缺少所需的 WebAssembly 或 WebGL 2，演示会保留其图片和说明。"
 
-#: ../Site/ReviewPage.qml:289
+#: ../Site/ReviewPage.qml:308
 msgid "Each framework, by a fan"
 msgstr "每个框架，由一位粉丝来讲"
 
@@ -774,7 +778,7 @@ msgstr "框架"
 msgid "Framework review"
 msgstr "框架评测"
 
-#: ../Site/ReviewPage.qml:123
+#: ../Site/ReviewPage.qml:142
 msgid "Frameworks to compare"
 msgstr "要比较的框架"
 
@@ -1220,7 +1224,7 @@ msgstr "11月"
 msgid "NOW PLAYING"
 msgstr "正在播放"
 
-#: ../Site/ReviewPage.qml:140
+#: ../Site/ReviewPage.qml:159
 msgid "Native"
 msgstr "原生"
 
@@ -1256,7 +1260,7 @@ msgstr "{0} 没有柱：这一项只测量原生应用。"
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "{0} 没有柱：这一项只测量 Web 应用。"
 
-#: ../Site/ReviewPage.qml:243
+#: ../Site/ReviewPage.qml:262
 msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
 msgstr "没有构建时间图表：每个应用的构建都经过一个与其他工作共享的队列，所以时间大多是在等待，无法比较。"
 
@@ -1509,11 +1513,11 @@ msgstr "暂停 {0}"
 msgid "Pick an object to see its properties."
 msgstr "选择一个对象以查看其属性。"
 
-#: ../Site/ReviewPage.qml:127
+#: ../Site/ReviewPage.qml:146
 msgid "Pick the frameworks to compare"
 msgstr "选择要比较的框架"
 
-#: ../Site/ReviewPage.qml:97
+#: ../Site/ReviewPage.qml:116
 msgid "Placeholder data"
 msgstr "占位数据"
 
@@ -1714,6 +1718,10 @@ msgstr "重新运行"
 msgid "Run again: {0}"
 msgstr "重新运行：{0}"
 
+#: ../Site/ReviewPage.qml:86
+msgid "Run it yourself"
+msgstr "自己运行"
+
 #: ../Site/CodeBlock.qml:820 ../Site/DemoFrame.qml:286 ../Site/ReplayFrame.qml:126
 msgid "Run {0}"
 msgstr "运行 {0}"
@@ -1863,7 +1871,7 @@ msgstr "收起"
 msgid "Show less of {0}"
 msgstr "收起 {0}"
 
-#: ../Site/ReviewPage.qml:212
+#: ../Site/ReviewPage.qml:231
 msgid "Show the numbers as a table"
 msgstr "以表格显示数字"
 
@@ -1911,7 +1919,7 @@ msgstr "利落"
 msgid "Software you can reshape while it runs."
 msgstr "可在运行时重塑的软件。"
 
-#: ../Site/ReviewPage.qml:105
+#: ../Site/ReviewPage.qml:124
 msgid "Some numbers, code or words here stand in for what is still being measured and written. Each placeholder number says so in the table."
 msgstr "这里的部分数字、代码或文字是占位内容，代表仍在测量和撰写的部分。每个占位数字都会在表格中注明。"
 
@@ -2142,11 +2150,11 @@ msgstr "文档"
 msgid "The files of {0}"
 msgstr "{0} 的文件"
 
-#: ../Site/ReviewPage.qml:303
+#: ../Site/ReviewPage.qml:322
 msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
 msgstr "上面选中的框架，各由一位喜爱它的人来讲。再选一个，就能读到它的粉丝怎么说。"
 
-#: ../Site/ReviewPage.qml:188
+#: ../Site/ReviewPage.qml:207
 msgid "The numbers"
 msgstr "数字"
 
@@ -2158,7 +2166,7 @@ msgstr "所选框架的数字"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "天台那家店八点开门。记得带外套，上面挺冷的。"
 
-#: ../Site/ReviewPage.qml:259
+#: ../Site/ReviewPage.qml:278
 msgid "The same feature in each one's code"
 msgstr "同一功能在各框架中的代码"
 
@@ -2371,7 +2379,7 @@ msgstr "唤醒"
 msgid "Wakes the watch, or goes back to its face"
 msgstr "唤醒手表，或返回表盘"
 
-#: ../Site/ReviewPage.qml:141
+#: ../Site/ReviewPage.qml:160
 msgid "Web"
 msgstr "Web"
 
@@ -2395,7 +2403,7 @@ msgstr "我们在意什么，以及有意取舍了什么。"
 msgid "Where it is not as strong"
 msgstr "不那么强的地方"
 
-#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+#: ../Site/ReviewPage.qml:350 ../Site/ReviewPage.qml:354
 msgid "Where to find each one"
 msgstr "在哪里找到每一个"
 
@@ -2579,7 +2587,7 @@ msgstr "{0} 条新通知"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
+#: ../Site/ReviewPage.qml:381 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "{0} 文档"
 
@@ -2619,7 +2627,7 @@ msgstr "{0} / {1}"
 msgid "{0} of {1} done"
 msgstr "已完成 {0} / {1}"
 
-#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
+#: ../Site/ReviewPage.qml:386 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "{0} 代码仓库"
 
@@ -2627,7 +2635,7 @@ msgstr "{0} 代码仓库"
 msgid "{0} steps"
 msgstr "{0} 步"
 
-#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
+#: ../Site/ReviewPage.qml:376 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "{0} 网站"
 
