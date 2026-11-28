@@ -538,14 +538,19 @@ export function firefoxConditions(review: Review): string {
   return `Firefox${version} ran the web apps beside the sets, on ${web.renderer ?? "its default renderer"}.${runs} Its numbers are rows of the table.`;
 }
 
+// Text as an HTML attribute's value, in double quotes.
+function attribute(text: string): string {
+  return text.replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;");
+}
+
 // An entry's picture, lazy so a reader fetches only what they scroll to
 // and only in the scheme the page shows: an <img> in rich text stands in
 // the page's HTML as written, so a reader without script has it too.
 export function shotOf(one: Framework, dark: boolean, width: number): string {
   const shots = one.screenshot;
   if (shots === undefined || width <= 0) return "";
-  const src = dark ? shots.dark : shots.light;
-  const alt = `${one.name}: the inbox app, ${dark ? "dark" : "light"}`.replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;");
+  const src = attribute(dark ? shots.dark : shots.light);
+  const alt = attribute(`${one.name}: the inbox app, ${dark ? "dark" : "light"}`);
   return `<img loading="lazy" decoding="async" src="${src}" width="${width}" height="${Math.round((width * 800) / 1280)}" alt="${alt}">`;
 }
 

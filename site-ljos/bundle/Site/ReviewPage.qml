@@ -290,8 +290,9 @@ Column {
             set: page.shown
             more: page.more
         }
+        // Said with the table, whose rows it names.
         Text {
-            visible: page.review.firefox !== undefined
+            visible: page.tabled && page.review.firefox !== undefined
             width: Math.min(parent.width, Theme.measure)
             text: Review.firefoxConditions(page.review)
             color: Theme.textMuted

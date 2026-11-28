@@ -718,6 +718,44 @@ for (const colorScheme of ["light", "dark"]) {
 }
 
 // A web entry runs, as measured, in the reader's own browser.
+// Firefox's rows (Site/logic/review.ts), over a review that has them:
+// the aggregate may not, so the rows are checked on its data with a
+// Firefox run and numbers added, in the first load and in the later one.
+test("a picked web framework Firefox measured gets a row of its own", async () => {
+  const Review = await import("../bundle/Site/logic/review.ts");
+  const web = review.frameworks.find((one) => one.kind === "web");
+  const native = review.frameworks.find((one) => one.kind === "native");
+  const timedOne = review.metrics.find((metric) => !metric.counted);
+  const countedOne = review.metrics.find((metric) => metric.counted);
+  const value = { median: 41, min: 39, max: 45, runs: 5 };
+  const firefox = { browser: "Firefox", renderer: "WebRender", version: "140.0", runs: "5" };
+  const metrics = review.metrics.map((metric) => (metric === timedOne ? { ...metric, firefox: { [web.id]: value } } : metric));
+  const withFirefox = { ...review, firefox, metrics };
+  const picked = [native.id, web.id];
+
+  // None without a Firefox run, and none for a native framework.
+  expect(Review.linesOf(review, picked).map((line) => line.name)).toEqual(picked.map(named));
+  const lines = Review.linesOf(withFirefox, picked);
+  expect(lines.map((line) => line.name)).toEqual([...picked.map(named), `${named(web.id)}, Firefox`]);
+  const row = lines[2];
+  expect(row).toEqual({ id: web.id, name: `${named(web.id)}, Firefox`, firefox: true });
+  expect(Review.lineCell(metrics.find((metric) => metric.id === timedOne.id), row, FIRST)).toBe("41 (39–45, 5 runs)");
+  // A count is the same in any browser: Firefox's row shows the one number.
+  const counted = Review.inFirefox(countedOne);
+  expect(counted.values).toEqual(countedOne.values ?? {});
+  expect(Review.lineCell(countedOne, row, FIRST)).toBe(Review.cell((countedOne.values ?? {})[web.id]));
+  expect(Review.lineName(withFirefox, row, FIRST)).toMatch(new RegExp(`^${named(web.id)}, Firefox 41 \\(39–45, 5 runs\\)`, "u"));
+  expect(Review.firefoxConditions(withFirefox)).toBe("Firefox 140.0 ran the web apps beside the sets, on WebRender. 5 runs of each app. Its numbers are rows of the table.");
+  expect(Review.firefoxConditions(review)).toBe("");
+
+  // Firefox's numbers left for the later load: no row until they are in.
+  const firstLoad = { ...review, firefox, metrics: review.metrics.map((metric) => ({ ...metric, firefox: undefined })) };
+  expect(Review.linesOf(firstLoad, picked).map((line) => line.name)).toEqual(picked.map(named));
+  const later = Review.laterOf({ sets: {}, firefox: { [timedOne.id]: { [web.id]: value } }, prose: {} });
+  expect(Review.linesOf(firstLoad, picked, later).map((line) => line.name)).toEqual([...picked.map(named), `${named(web.id)}, Firefox`]);
+  expect(Review.lineCell(firstLoad.metrics.find((metric) => metric.id === timedOne.id), row, FIRST, later)).toBe("41 (39–45, 5 runs)");
+});
+
 test("each web entry links to its build to run in the browser", async ({ browser }) => {
   for (const one of review.frameworks) {
     if (one.kind === "web") expect(one.run, one.id).toMatch(/^https:\/\/hal-c2\.github\.io\/ui-framework-review\/run\/[a-z-]+\/$/u);
