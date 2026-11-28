@@ -77,6 +77,25 @@ Column {
             lineHeight: Theme.bodyLine
             wrap: Text.Wrap
         }
+        // Every excerpt below is cut from an app published whole, with
+        // its data and the scripts that measured it: a reader can build
+        // and run them all.
+        Text {
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
+            width: Math.min(parent.width, Theme.measure)
+            readonly property string runLink: Nav.anchor(page.review.repo.href, t`Run it yourself`, true, Theme.link)
+            readonly property string published: t`Each app's whole code, its data and the scripts that measured them are in one repository, at the commit measured here.`
+            format: Text.RichText
+            text: `${published} ${runLink}`
+            color: Theme.textMuted
+            linkColor: Theme.link
+            font.family: Theme.sans
+            font.size: Theme.bodySize
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.bodyLine
+            wrap: Text.Wrap
+            onLinkActivated: (to) => Nav.go(to)
+        }
         // Said once, above everything it covers, while any number,
         // excerpt or words are not the real ones yet.
         Rectangle {

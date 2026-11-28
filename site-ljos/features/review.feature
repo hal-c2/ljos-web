@@ -75,6 +75,12 @@ Feature: A totally biased review of mostly Rust UI frameworks
     Then the search code of each picked framework is shown, coloured as code, under its file and lines
     And no other framework's code is shown
 
+  Scenario: Every excerpt leads to its whole file, and the apps can be run
+    Given every app, its data and the scripts that measured it are published in one repository
+    When a reader with no script opens /review/
+    Then each excerpt's file and lines link to that file in the repository, at the commit measured
+    And a link "Run it yourself" leads to the repository at that commit
+
   Scenario: A placeholder never passes as a measurement
     Given a number or excerpt in the data that is marked as a placeholder
     When a reader opens /review/

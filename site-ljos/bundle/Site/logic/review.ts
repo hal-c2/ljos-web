@@ -107,8 +107,16 @@ export interface Intro {
   readonly text: string;
 }
 
+// The published apps, at the commit the review measured: every app's
+// whole code, its data and the scripts that measured it.
+export interface Repo {
+  readonly href: string;
+  readonly sha: string;
+}
+
 export interface Review {
   readonly intro: Intro;
+  readonly repo: Repo;
   readonly app: App;
   readonly picked: readonly string[];
   readonly frameworks: readonly Framework[];
