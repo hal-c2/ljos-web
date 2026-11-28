@@ -42,7 +42,7 @@ async function barsOf(page, metric) {
 // so the match allows one between any two characters and nothing else.
 const wrapped = (text) => new RegExp(`^${[...text].map((char) => char.replace(/[.*+?^${}()|[\]\\/]/gu, "\\$&")).join("\\s?")}$`, "u");
 const measured = (metric, ids) => ids.filter((id) => metric.values[id] != null).map(named).sort();
-const placeholders = () => review.metrics.some((metric) => Object.values(metric.values).some((value) => value?.placeholder)) || review.features.some((feature) => Object.values(feature.excerpts).some((excerpt) => excerpt?.placeholder)) || review.frameworks.some((one) => one.prose.placeholder);
+const placeholders = () => review.metrics.some((metric) => Object.values(metric.values).some((value) => value?.placeholder)) || review.features.some((feature) => Object.values(feature.excerpts).some((excerpt) => excerpt?.placeholder)) || review.frameworks.some((one) => one.prose.placeholder || (one.prose.shows ?? []).some((excerpt) => excerpt.placeholder));
 
 test("the data names every framework once, with its links, and picks two or more to start", () => {
   const ids = review.frameworks.map((one) => one.id);
