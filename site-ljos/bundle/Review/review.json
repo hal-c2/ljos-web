@@ -27,7 +27,7 @@
       },
       "source": {
         "root": "review:ljos",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos/"
       },
       "prose": {
         "fan": "You reach for Ljós when you want apps that people and their agents can inspect, drive, and reshape while they run. Interfaces are declarative with reactive bindings, scripts are typed TypeScript checked before anything runs, and existing QML runs as a way in.",
@@ -50,14 +50,22 @@
             "lines": "14-35",
             "lang": "qml",
             "code": "property list<Inbox.Issue> all: []\nproperty Inbox.Sort sort: \"updated\"\nproperty Inbox.Filter filter: \"inbox\"\nproperty string query: \"\"\nproperty int selectedId: -1\n// 0 Conversation, 1 Edit, 2 Insights.\nproperty int tab: 0\n// \"light\", \"dark\" or \"system\".\nproperty string look: \"system\"\n// Starts as the system's setting; the settings dialog changes it.\nproperty bool reduced: Motion.reduced\n\nreadonly property bool dark: store.look === \"dark\"\n    || (store.look === \"system\" && App.hints.colorScheme === ColorScheme.Dark)\n// The order is worked out when the records or the sort change; a key\n// typed in the search only filters it.\nreadonly property list<Inbox.Issue> ordered: Inbox.sorted(store.all, store.sort)\nreadonly property Inbox.Shown shown: Inbox.shown(store.ordered, store.filter, store.query)\nreadonly property list<Inbox.Issue> matches: store.shown.issues\nreadonly property list<Inbox.Key> rows: store.shown.keys\nreadonly property int selectedIndex: Inbox.indexOf(store.rows, store.selectedId)\nreadonly property Inbox.Issue selected: store.selectedId <= 0 ? Inbox.none : Inbox.pick(store.all, store.selectedId)",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos/Store.qml#L14-L35"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos/Store.qml#L14-L35"
           }
         ]
-      }
+      },
+      "results": "ljos",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/ljos/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/ljos/dark.png"
+      },
+      "pair": [
+        "ljos-web"
+      ]
     },
     {
       "id": "ljos-web",
-      "name": "Ljós web",
+      "name": "Ljós on the web",
       "kind": "web",
       "language": "Ljós's QML dialect and TypeScript, compiled to Solid",
       "version": "ljos-web e7fa0c3",
@@ -69,7 +77,7 @@
       },
       "source": {
         "root": "review:ljos-web/app",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos-web/app/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos-web/app/"
       },
       "prose": {
         "fan": "You reach for ljos-web when you want the same declarative Ljós and TypeScript app to run in the browser without rewriting it. At build time, qmlc compiles each file to a Solid component with nothing interpreting QML at run time, and WebAssembly is used only for the opt-in kernel and 3D.",
@@ -93,10 +101,19 @@
             "lines": "12-37",
             "lang": "qml",
             "code": "readonly property bool shown: panel.inbox.selectedId > 0 && panel.inbox.tab === panel.index\nreadonly property real away: panel.index < panel.inbox.tab ? -24 : 24\n\nx: 0\ny: 44\nwidth: parent.width\nheight: parent.height - 44\nopacity: panel.shown ? 1 : 0\nvisible: panel.opacity > 0\nenabled: panel.shown\n\nBehavior on opacity {\n    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }\n}\n\nItem {\n    id: holder\n    x: panel.shown || panel.inbox.reduced ? 0 : panel.away\n    y: 0\n    width: panel.width\n    height: panel.height\n\n    Behavior on x {\n        NumberAnimation { duration: panel.inbox.reduced ? 0 : 180; easing.type: Easing.OutCubic }\n    }\n}",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos-web/app/Panel.qml#L12-L37"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos-web/app/Panel.qml#L12-L37"
           }
         ]
-      }
+      },
+      "results": "ljos-web",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/ljos-web/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/ljos-web/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/ljos-web/",
+      "pair": [
+        "ljos"
+      ]
     },
     {
       "id": "qt",
@@ -112,7 +129,7 @@
       },
       "source": {
         "root": "review:qt",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/qt/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/qt/"
       },
       "prose": {
         "fan": "You reach for Qt Quick when you want a GPU-accelerated toolkit developed since 1995 across desktop, mobile, embedded, and web. C++ handles models and logic while QML gives you declarative bindings, transitions, controls, localization, and accessibility.",
@@ -136,9 +153,14 @@
             "lines": "5-34",
             "lang": "qml",
             "code": "required property int index\nrequired property int issueId\nrequired property string key\nrequired property string title\nrequired property string author\nrequired property string avatar\nrequired property int priority\nrequired property var tags\nrequired property bool starred\nrequired property int comments\nrequired property var updated\n\nreadonly property bool selected: Inbox.currentId === issueId\nwidth: ListView.view.width\nheight: 64\n\n// With reduced motion a removed row fades, then the gap closes at once.\nListView.onRemove: if (Inbox.animateRows && Inbox.reduceMotion) fadeOut.start()\nSequentialAnimation {\n    id: fadeOut\n    PropertyAction { target: row; property: \"ListView.delayRemove\"; value: true }\n    NumberAnimation { target: row; property: \"opacity\"; to: 0; duration: 200 }\n    PropertyAction { target: row; property: \"ListView.delayRemove\"; value: false }\n}\nListView.onReused: opacity = 1\n\nAccessible.role: Accessible.ListItem\nAccessible.name: title\nAccessible.description: key + \" · \" + author\nAccessible.selected: selected",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/qt/qml/IssueRow.qml#L5-L34"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/qt/qml/IssueRow.qml#L5-L34"
           }
         ]
+      },
+      "results": "qtquick",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/qtquick/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/qtquick/dark.png"
       }
     },
     {
@@ -155,7 +177,7 @@
       },
       "source": {
         "root": "review:slint",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/slint/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/slint/"
       },
       "prose": {
         "fan": "You reach for Slint when you want a compiled declarative UI language paired with Rust logic and a stable 1.x API. It covers desktop, mobile, and embedded devices from one markup language, with editor live preview, bundled translations, and AccessKit support built in.",
@@ -178,9 +200,14 @@
             "lines": "405-421",
             "lang": "slint",
             "code": "list := ListView {\n    width: parent.width;\n    height: parent.height;\n    accessible-role: AccessibleRole.list;\n    accessible-label: @tr(\"Inbox\");\n    for rd[i] in root.rows: IssueRow {\n        width: parent.width;\n        data: rd;\n        index: i;\n        total: root.count;\n        selected: rd.id == root.selected-id;\n        clicked => {\n            list-focus.focus();\n            root.select-index(i);\n        }\n    }\n}",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/slint/ui/main.slint#L405-L421"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/slint/ui/main.slint#L405-L421"
           }
         ]
+      },
+      "results": "slint",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/slint/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/slint/dark.png"
       }
     },
     {
@@ -197,7 +224,7 @@
       },
       "source": {
         "root": "review:egui",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/egui/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/egui/"
       },
       "prose": {
         "fan": "You reach for egui when you want an immediate-mode GUI in plain Rust with no reactive layer. State lives in an ordinary struct, the UI reads it each frame, and eframe takes that code to desktop, Android, and the web.",
@@ -221,14 +248,19 @@
             "lines": "477-500",
             "lang": "rust",
             "code": "// Drawn with egui's painter: egui_plot is an option but a bar chart this small does not need it.\nlet max = c.weeks.iter().copied().max().unwrap_or(0).max(1);\nlet ymax = crate::data::nice(max) as f32;\nfor (frac, v) in [(1.0, ymax), (0.5, ymax / 2.0)] {\n    let y = base - (base - top) * frac;\n    painter.hline(left..=right, y, egui::Stroke::new(1.0, p.border));\n    painter.text(pos2(left - 8.0, y), Align2::RIGHT_CENTER, fmt_n(v as usize), FontId::proportional(11.0), p.muted);\n}\npainter.hline(left..=right, base, egui::Stroke::new(1.0, p.muted));\nlet slot = (right - left) / 12.0;\nlet first = crate::data::first_week_start();\nfor (k, &v) in c.weeks.iter().enumerate() {\n    let x = left + slot * k as f32 + slot * 0.15;\n    let h = (base - top) * v as f32 / ymax;\n    painter.rect_filled(Rect::from_min_max(pos2(x, base - h), pos2(x + slot * 0.7, base)), 3.0, p.accent);\n    painter.text(pos2(x + slot * 0.35, base - h - 9.0), Align2::CENTER_CENTER, v.to_string(), FontId::proportional(11.0), p.text);\n    painter.text(\n        pos2(x + slot * 0.35, base + 15.0),\n        Align2::CENTER_CENTER,\n        crate::data::fmt_md(first + k as i64 * 7 * 86400, self.ja),\n        FontId::proportional(11.0),\n        p.muted,\n    );\n}",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/egui/src/views.rs#L477-L500"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/egui/src/views.rs#L477-L500"
           }
         ]
+      },
+      "results": "egui",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/egui/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/egui/dark.png"
       }
     },
     {
       "id": "gpui",
-      "name": "gpui",
+      "name": "GPUI",
       "kind": "native",
       "language": "Rust",
       "version": "gpui-kit 0.11.0",
@@ -240,7 +272,7 @@
       },
       "source": {
         "root": "review:gpui",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/gpui/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/gpui/"
       },
       "prose": {
         "fan": "You reach for GPUI when you want the GPU-accelerated Rust UI framework of the Zed editor, with Tailwind-like builder chains and explicit entity state. Paired with gpui-kit, you build views with theme switching, dialogs, and selects in plain Rust, with AccessKit through gpui-pre's Linux backend and hand-set roles.",
@@ -264,9 +296,14 @@
             "lines": "834-863",
             "lang": "rust",
             "code": "    v_virtual_list(cx.entity().clone(), \"issues\", self.sizes.clone(), |this, range, _window, cx| {\n        range.map(|pos| this.row(pos, cx)).collect()\n    })\n    .track_scroll(&self.scroll)\n    .into_any_element()\n};\nv_flex()\n    .id(\"list\")\n    .role(Role::List)\n    .aria_label(self.count_text())\n    .absolute()\n    .left(px(220.))\n    .top(px(56.))\n    .w(px(LIST_W))\n    .h(px(744.))\n    .border_r_1()\n    .border_color(cx.theme().border)\n    .track_focus(&self.list_focus)\n    .key_context(\"IssueList\")\n    .on_key_down(cx.listener(|this, ev: &KeyDownEvent, window, cx| {\n        let k = ev.keystroke.key.as_str();\n        let d: Option<isize> = match k {\n            \"down\" => Some(1),\n            \"up\" => Some(-1),\n            \"pagedown\" => Some(10),\n            \"pageup\" => Some(-10),\n            \"home\" => Some(-(this.view.len() as isize)),\n            \"end\" => Some(this.view.len() as isize),\n            _ => None,\n        };",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/gpui/src/main.rs#L834-L863"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/gpui/src/main.rs#L834-L863"
           }
         ]
+      },
+      "results": "gpui-x11",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/gpui/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/gpui/dark.png"
       }
     },
     {
@@ -283,7 +320,7 @@
       },
       "source": {
         "root": "review:iced",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/iced/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/iced/"
       },
       "prose": {
         "fan": "You reach for Iced when you want a type-safe, cross-platform Rust GUI with an Elm-inspired message-and-update architecture. State changes pass through one typed handler, side effects return as tasks, and rendering runs on wgpu with a tiny-skia fallback across desktop and the web.",
@@ -305,9 +342,14 @@
             "lines": "515-539",
             "lang": "rust",
             "code": "fn update(&mut self, msg: Message) -> Task<Message> {\n    match msg {\n        Message::Search(s) => {\n            self.search = s;\n            self.refresh_view();\n            self.scroll_to(0.0)\n        }\n        Message::SearchFocus => {\n            self.search_focus = true;\n            operation::focus(iced::widget::Id::new(\"search\"))\n        }\n        Message::SearchSubmit => {\n            if let Some(id) = self.selected {\n                self.set_opened(id);\n            }\n            Task::none()\n        }\n        Message::SortPicked(s) => {\n            self.sort = s;\n            self.refresh_view();\n            match self.selected.and_then(|id| self.pos_of(id)) {\n                Some(p) => self.scroll_row_into_view(p),\n                None => self.scroll_to(0.0),\n            }\n        }",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/iced/src/main.rs#L515-L539"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/iced/src/main.rs#L515-L539"
           }
         ]
+      },
+      "results": "iced",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/iced/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/iced/dark.png"
       }
     },
     {
@@ -324,7 +366,7 @@
       },
       "source": {
         "root": "review:flutter",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/flutter/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/flutter/"
       },
       "prose": {
         "fan": "You reach for Flutter when you want a Dart widget tree, stable since 1.0 in December 2018, where the engine draws every pixel across mobile, desktop, and web. Impeller, animation widgets, form validation, ICU localization, debug hot reload, and widget tests support building interfaces in Dart.",
@@ -348,9 +390,14 @@
             "lines": "78-104",
             "lang": "dart",
             "code": "Expanded(\n  child: AnimatedSwitcher(\n    duration: const Duration(milliseconds: 180),\n    transitionBuilder: (child, animation) {\n      final fade = FadeTransition(opacity: animation, child: child);\n      if (reduce || child.key != panelKey) return fade;\n      return AnimatedBuilder(\n        animation: animation,\n        builder: (_, c) => Transform.translate(\n          offset: Offset(24.0 * store.tabDirection * (1 - animation.value), 0),\n          child: c,\n        ),\n        child: fade,\n      );\n    },\n    child: KeyedSubtree(\n      key: panelKey,\n      child: issue == null\n          ? Center(child: Text(l.select))\n          : switch (store.tab) {\n              0 => ConversationPane(issue: issue),\n              1 => EditPane(key: ValueKey('edit${issue.id}'), issue: issue),\n              _ => const InsightsPane(),\n            },\n    ),\n  ),\n),",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/flutter/lib/detail_pane.dart#L78-L104"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/flutter/lib/detail_pane.dart#L78-L104"
           }
         ]
+      },
+      "results": "flutter",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/flutter/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/flutter/dark.png"
       }
     },
     {
@@ -367,7 +414,7 @@
       },
       "source": {
         "root": "review:declare",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/declare/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/declare/"
       },
       "prose": {
         "fan": "You reach for Declare when you want a declarative UI language where reactive constraints, datasets, springs, and standard controls make replication and virtualisation one line. Its UI tree compiles ahead of time for the browser and ships with a live editor and inspector.",
@@ -391,10 +438,16 @@
             "lines": "364-377",
             "lang": "declare",
             "code": "list: Table [ x = 220, y = 88, width = 480, height = 712,\n    accessibilityLabel = { tr(app.lang, \"list\") },\n    datapath = { app.shown.value },\n    selects = \"single\",\n    selectedItem = { app.selRow },\n    commit(sel: array) { app.select(sel != null && sel.length > 0 ? sel[0] : null) },\n    // a \"page\" is exactly 10 rows\n    onKeyDown(e: KeyEvent) {\n        if (e.key == \"PageDown\") this.step(Math.max(0, this.activeIndex) + 10, e, 1)\n        else if (e.key == \"PageUp\") this.step(Math.max(0, this.activeIndex) - 10, e, -1)\n        else super.onKeyDown(e)\n        },\n    IssueRow [ datapath = :rows[], virtualize = true ]\n    ],",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/declare/app/inbox.declare#L364-L377"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/declare/app/inbox.declare#L364-L377"
           }
         ]
-      }
+      },
+      "results": "declare",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/declare/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/declare/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/declare/"
     },
     {
       "id": "solid",
@@ -410,7 +463,7 @@
       },
       "source": {
         "root": "review:solid",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/solid/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/solid/"
       },
       "prose": {
         "fan": "You reach for Solid when you want TypeScript and JSX without a virtual DOM. Components run once, JSX compiles to direct DOM updates, and fine-grained signals and memos track what they read automatically so only the expressions that read a signal re-run.",
@@ -432,10 +485,16 @@
             "lines": "44-71",
             "lang": "tsx",
             "code": "  const rows = createMemo(() => {\n    const list = visible();\n    return v.items().flatMap((vi) => (list[vi.index] ? [{ issue: list[vi.index], index: vi.index }] : []));\n  });\n\n  return (\n    <section class=\"list\" aria-label={t(\"list\")}>\n      <div class=\"list-head\">\n        <span>{t(visible().length === 1 ? \"count.one\" : \"count.other\", { n: nf().format(visible().length) })}</span>\n        <span class=\"muted\">{t(`sort.${state.sort()}`)}</span>\n      </div>\n      <div\n        class=\"scroller\" ref={(el) => (scroller = el)} tabindex=\"0\" role=\"listbox\"\n        aria-label={t(\"list\")} onKeyDown={onKeyDown}\n        aria-activedescendant={selIndex() >= 0 ? `opt-${selectedId()}` : undefined}\n      >\n        <div class={[\"inner\", { sliding: state.sliding() && !state.reduce() }]} style={{ height: `${v.total()}px` }}>\n          <For each={rows()} keyed={(r) => r.issue.id}>\n            {(item) => <Row item={item} count={visible().length} retireAt={retireAt()} />}\n          </For>\n        </div>\n        <Show when={visible().length === 0}>\n          <div class=\"empty\">{t(\"empty\")}</div>\n        </Show>\n      </div>\n    </section>\n  );\n}",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/solid/src/IssueList.tsx#L44-L71"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/solid/src/IssueList.tsx#L44-L71"
           }
         ]
-      }
+      },
+      "results": "solid",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/solid/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/solid/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/solid/"
     },
     {
       "id": "leptos",
@@ -451,7 +510,7 @@
       },
       "source": {
         "root": "review:leptos",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/leptos/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/leptos/"
       },
       "prose": {
         "fan": "You reach for Leptos when you want Rust compiled to WebAssembly with fine-grained DOM reactivity and no virtual DOM overhead. Components run once, signals are Copy + 'static, and the same toolkit covers client-side apps, server-side rendering with hydration, HTTP streaming, and server functions.",
@@ -474,14 +533,20 @@
             "lines": "309-328",
             "lang": "rust",
             "code": "#[component]\nfn Row(id: u32) -> impl IntoView {\n    let st = expect_context::<St>();\n    let i18n = use_i18n();\n    let issue = Memo::new(move |_| st.issues.with(|v| v[id as usize - 1].clone()));\n    let index = move || st.pos.with(|p| p.get(&id).copied().unwrap_or(0));\n    view! {\n        <div\n            class=move || format!(\"row p{}{}\", issue.get().raw.priority, if st.entering.get() == Some(id) { \" enter\" } else { \"\" })\n            style:transform=move || format!(\"translateY({}px)\", index() as f64 * ROW_H)\n            role=\"option\"\n            aria-selected=move || (st.cursor.get() == Some(id)).to_string()\n            aria-posinset=move || (index() + 1).to_string()\n            aria-setsize=move || st.view.with(|v| v.len()).to_string()\n            aria-label=move || issue.get().raw.title.clone()\n            on:click=move |_| {\n                st.cursor.set(Some(id));\n                st.open.set(Some(id));\n                if let Some(el) = by_id(\"listbox\") { let _ = el.focus(); }\n            }>",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/leptos/src/main.rs#L309-L328"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/leptos/src/main.rs#L309-L328"
           }
         ]
-      }
+      },
+      "results": "leptos",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/leptos/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/leptos/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/leptos/"
     },
     {
       "id": "dioxus",
-      "name": "Dioxus",
+      "name": "Dioxus (web)",
       "kind": "web",
       "language": "Rust to WebAssembly",
       "version": "Dioxus 0.7.10",
@@ -493,7 +558,7 @@
       },
       "source": {
         "root": "review:dioxus",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/dioxus/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/"
       },
       "prose": {
         "fan": "You reach for Dioxus when you want a fullstack Rust app framework for web, desktop, and mobile with terse rsx markup, signals, and dx serve hot-reloading markup and styles. The README describes a \"full-time core team\", and it brings HTML, CSS, and Rust components together.",
@@ -517,10 +582,19 @@
             "lines": "528-555",
             "lang": "rust",
             "code": "#[component]\nfn EditForm(id: u32) -> Element {\n    let st = use_context::<St>();\n    let issue = st.issues.read()[id as usize - 1].clone();\n    let mut title = use_signal(|| issue.raw.title.clone());\n    let mut tags = use_signal(|| issue.raw.tags.join(\" \"));\n    let mut body = use_signal(|| issue.raw.body.clone());\n    let mut prio = use_signal(|| issue.raw.priority);\n    let mut assignee = use_signal(|| issue.raw.assignee.clone());\n    let people = people(&st.issues.read());\n    let (te, ge, be) = (title_err(&title.read()), tags_err(&tags.read()), body_err(&body.read()));\n    let valid = te.is_none() && ge.is_none() && be.is_none();\n    let tlen = title.read().chars().count();\n    rsx! {\n        div { class: \"form fade\",\n            label { class: \"l\", r#for: \"f-title\", style: \"top: 12px\", {t!(\"field-title\")} }\n            input { class: \"f\", id: \"f-title\", style: \"top: 40px; height: 40px\", value: \"{title}\",\n                \"aria-invalid\": \"{te.is_some()}\", \"aria-describedby\": \"e-title\",\n                oninput: move |e| title.set(e.value()) }\n            div { class: \"err\", id: \"e-title\", style: \"top: 84px\",\n                span { if let Some(e) = te { {err_text(e)} } else if tlen > 120 { {err_text(FieldErr::TitleLong)} } }\n                if tlen > 100 { span { class: \"counter\", \"{tlen}/120\" } }\n            }\n            label { class: \"l\", r#for: \"f-tags\", style: \"top: 108px\", {t!(\"field-tags\")} }\n            input { class: \"f\", id: \"f-tags\", style: \"top: 130px; height: 40px\", value: \"{tags}\",\n                \"aria-invalid\": \"{ge.is_some()}\", \"aria-describedby\": \"e-tags\",\n                oninput: move |e| tags.set(e.value()) }\n            div { class: \"err\", id: \"e-tags\", style: \"top: 174px\", if let Some(e) = ge { {err_text(e)} } }",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/dioxus/src/main.rs#L528-L555"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/src/main.rs#L528-L555"
           }
         ]
-      }
+      },
+      "results": "dioxus",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/dioxus/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/dioxus/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/dioxus/",
+      "pair": [
+        "dioxus-desktop"
+      ]
     },
     {
       "id": "sycamore",
@@ -536,7 +610,7 @@
       },
       "source": {
         "root": "review:sycamore",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/sycamore/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/sycamore/"
       },
       "prose": {
         "fan": "You reach for Sycamore when you want fine-grained Rust reactivity in WebAssembly with no virtual DOM and a builder-like view syntax. Signal handles are Copy, components do not rerun on updates, and a Copy store keeps derived memos updated without cloning boilerplate.",
@@ -559,10 +633,16 @@
             "lines": "150-163",
             "lang": "rust",
             "code": "form(class=\"edit fade-in\", on:submit=|e: web_sys::SubmitEvent| e.prevent_default()) {\n    label(class=\"cap\", style=\"top: 8px\", r#for=\"f-title\") { (t(\"field-title\")) }\n    input(id=\"f-title\", class=\"field\", style=\"top: 40px\", r#type=\"text\", prop:value=move || title.get_clone(),\n          on:input=move |e: Event| title.set(value_of::<HtmlInputElement>(&e, |x| x.value())),\n          aria-invalid=move || problems.with(|p| p.title.is_some()).to_string(), aria-describedby=\"e-title\")\n    div(id=\"e-title\", class=\"error\", style=\"top: 84px\", role=\"alert\") {\n        span { (msg(|p| p.title)) }\n        (if title_len.get() > 100 { view! { span { (format!(\"{}/120\", title_len.get())) } } } else { view! {} })\n    }\n    label(class=\"cap\", style=\"top: 108px\", r#for=\"f-tags\") { (t(\"field-tags\")) }\n    input(id=\"f-tags\", class=\"field\", style=\"top: 130px\", r#type=\"text\", prop:value=move || tags.get_clone(),\n          on:input=move |e: Event| tags.set(value_of::<HtmlInputElement>(&e, |x| x.value())),\n          aria-invalid=move || problems.with(|p| p.tags.is_some()).to_string(), aria-describedby=\"e-tags\")\n    div(id=\"e-tags\", class=\"error\", style=\"top: 174px\", role=\"alert\") { span { (msg(|p| p.tags)) } }",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/sycamore/src/detail.rs#L150-L163"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/sycamore/src/detail.rs#L150-L163"
           }
         ]
-      }
+      },
+      "results": "sycamore",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/sycamore/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/sycamore/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/sycamore/"
     },
     {
       "id": "yew",
@@ -578,7 +658,7 @@
       },
       "source": {
         "root": "review:yew",
-        "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/yew/"
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/yew/"
       },
       "prose": {
         "fan": "You reach for Yew when you want Rust in the browser with function components, hooks, reducers, and JSX-like markup. First published in 2017, it pairs an immutable reducer store and ContextProvider with virtual DOM diffing and PartialEq prop checks.",
@@ -601,10 +681,52 @@
             "lines": "143-172",
             "lang": "rust",
             "code": "impl Reducible for State {\n    type Action = Action;\n\n    fn reduce(self: Rc<Self>, action: Action) -> Rc<Self> {\n        let mut s = (*self).clone();\n        match action {\n            Action::Loaded(list) => {\n                let list: Vec<Rc<Issue>> = list\n                    .into_iter()\n                    .map(|mut i| {\n                        i.prepare();\n                        Rc::new(i)\n                    })\n                    .collect();\n                s.people = Rc::new(people(&list));\n                s.tags = Rc::new(all_tags(&list));\n                s.issues = Rc::new(list);\n                s.loaded = true;\n                s.rebuild();\n            }\n            Action::SetFilter(f) => {\n                if s.filter == f {\n                    return self;\n                }\n                s.filter = f;\n                s.rebuild();\n            }\n            Action::SetQuery(q) => {\n                s.query = q;\n                s.rebuild();",
-            "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/yew/src/state.rs#L143-L172"
+            "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/yew/src/state.rs#L143-L172"
           }
         ]
-      }
+      },
+      "results": "yew",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/yew/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/yew/dark.png"
+      },
+      "run": "https://hal-c2.github.io/ui-framework-review/run/yew/"
+    },
+    {
+      "id": "dioxus-desktop",
+      "name": "Dioxus (desktop)",
+      "kind": "native",
+      "language": "Rust",
+      "version": "Dioxus 0.7.10, wry 0.53.5, tao 0.34.8, WebKitGTK 2.54.1",
+      "licence": "MIT or Apache-2.0",
+      "links": {
+        "site": "https://dioxuslabs.com/",
+        "docs": "https://dioxuslabs.com/learn/0.7/",
+        "repo": "https://github.com/DioxusLabs/dioxus"
+      },
+      "source": {
+        "root": "review:dioxus",
+        "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/"
+      },
+      "prose": {
+        "fan": "The Dioxus web inbox built for Dioxus's desktop renderer: the same components and CSS, with the VirtualDom in a native Rust process and the DOM in the system WebView (wry over WebKitGTK). Data is read from disk at start-up and avatars come through an asset handler; DOM access goes through eval instead of web-sys. The window is undecorated, because GTK 3 draws its own title bar on Wayland. Title sort is a lowercase compare, not locale-aware, since the WebView's collator is only reachable asynchronously. A one-round smoke measured 2.9 % idle CPU, from WebKit's processes.",
+        "cool": [],
+        "limits": [],
+        "shows": [],
+        "placeholder": true
+      },
+      "results": "dioxus-desktop",
+      "screenshot": {
+        "light": "https://hal-c2.github.io/ui-framework-review/screenshots/dioxus-desktop/light.png",
+        "dark": "https://hal-c2.github.io/ui-framework-review/screenshots/dioxus-desktop/dark.png"
+      },
+      "strategy": "Dioxus desktop renderer: VirtualDom in a native Rust process, DOM in the system WebView (wry/WebKitGTK)",
+      "missing": [
+        "locale-aware title collation (lowercase compare)"
+      ],
+      "pair": [
+        "dioxus"
+      ]
     }
   ],
   "features": [
@@ -618,98 +740,98 @@
           "lines": "50-65",
           "lang": "qml",
           "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos/IssueList.qml#L50-L65"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos/IssueList.qml#L50-L65"
         },
         "ljos-web": {
           "file": "IssueList.qml",
           "lines": "50-65",
           "lang": "qml",
           "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos-web/app/IssueList.qml#L50-L65"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos-web/app/IssueList.qml#L50-L65"
         },
         "qt": {
           "file": "qml/ListPane.qml",
           "lines": "23-36",
           "lang": "qml",
           "code": "ListView {\n    id: view\n    y: 32; width: parent.width; height: parent.height - 32\n    focus: true\n    activeFocusOnTab: true\n    clip: true\n    model: Inbox.model\n    cacheBuffer: 128\n    boundsBehavior: Flickable.StopAtBounds\n    ScrollBar.vertical: ScrollBar {}\n    Accessible.role: Accessible.List\n    Accessible.name: qsTr(\"Issues\")\n\n    delegate: IssueRow {}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/qt/qml/ListPane.qml#L23-L36"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/qt/qml/ListPane.qml#L23-L36"
         },
         "slint": {
           "file": "ui/main.slint",
           "lines": "405-421",
           "lang": "slint",
           "code": "list := ListView {\n    width: parent.width;\n    height: parent.height;\n    accessible-role: AccessibleRole.list;\n    accessible-label: @tr(\"Inbox\");\n    for rd[i] in root.rows: IssueRow {\n        width: parent.width;\n        data: rd;\n        index: i;\n        total: root.count;\n        selected: rd.id == root.selected-id;\n        clicked => {\n            list-focus.focus();\n            root.select-index(i);\n        }\n    }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/slint/ui/main.slint#L405-L421"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/slint/ui/main.slint#L405-L421"
         },
         "egui": {
           "file": "src/views.rs",
           "lines": "205-214",
           "lang": "rust",
           "code": "area.show_rows(ui, ROW_H, disp_len, |ui, range| {\n    for k in range {\n        let issue = &issues[disp(k)];\n        let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());\n        let resp = draw_row(ui, p, issue, &uris[issue.avatar as usize], r, ROW_H, 1.0, selected == Some(issue.id), k, disp_len);\n        if resp.clicked() {\n            clicked = Some(issue.id);\n        }\n    }\n})",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/egui/src/views.rs#L205-L214"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/egui/src/views.rs#L205-L214"
         },
         "gpui": {
           "file": "src/main.rs",
           "lines": "823-839",
           "lang": "rust",
           "code": "fn list(&self, cx: &mut Context<Self>) -> impl IntoElement {\n    let body = if self.view.is_empty() {\n        div()\n            .size_full()\n            .flex()\n            .items_center()\n            .justify_center()\n            .text_color(cx.theme().muted_foreground)\n            .child(t!(\"empty\").to_string())\n            .into_any_element()\n    } else {\n        v_virtual_list(cx.entity().clone(), \"issues\", self.sizes.clone(), |this, range, _window, cx| {\n            range.map(|pos| this.row(pos, cx)).collect()\n        })\n        .track_scroll(&self.scroll)\n        .into_any_element()\n    };",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/gpui/src/main.rs#L823-L839"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/gpui/src/main.rs#L823-L839"
         },
         "iced": {
           "file": "src/ui.rs",
           "lines": "319-339",
           "lang": "rust",
           "code": "let first = app.first_visible(app.scroll_y);\nlet last = (first + (LIST_H / ROW_H).ceil() as usize + 3).min(n);\nlet mut col = column![];\nlet top = app.geometry(first).0;\ncol = col.push(Space::new().height(Length::Fixed(top)));\nlet mut end = top;\nfor i in first..last {\n    let (idx, animated) = app.item(i);\n    let (_, h) = app.geometry(i);\n    end += h;\n    let el = row_view(app, p, idx, animated);\n    col = col.push(container(el).height(Length::Fixed(h)).width(Length::Fill).clip(true));\n}\nlet rest = (app.content_h() - end).max(0.0);\ncol = col.push(Space::new().height(Length::Fixed(rest)));\nscrollable(col.width(Length::Fill))\n    .id(iced::widget::Id::new(LIST_ID))\n    .on_scroll(|v| Message::Scrolled(v.absolute_offset().y))\n    .height(Length::Fixed(LIST_H))\n    .width(Length::Fill)\n    .into()",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/iced/src/ui.rs#L319-L339"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/iced/src/ui.rs#L319-L339"
         },
         "flutter": {
           "file": "lib/list_pane.dart",
           "lines": "185-203",
           "lang": "dart",
           "code": "child: AnimatedList(\n  key: _listKey,\n  controller: _scroll,\n  initialItemCount: total,\n  itemBuilder: (context, index, animation) {\n    if (index >= store.view.length) return const SizedBox.shrink();\n    final issue = store.view[index];\n    return _AnimatedRow(\n      animation: animation,\n      reduce: _reduce,\n      child: IssueRow(\n        issue: issue,\n        selected: issue.id == store.selectedId,\n        position: index + 1,\n        total: store.view.length,\n      ),\n    );\n  },\n),",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/flutter/lib/list_pane.dart#L185-L203"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/flutter/lib/list_pane.dart#L185-L203"
         },
         "declare": {
           "file": "app/inbox.declare",
           "lines": "364-377",
           "lang": "declare",
           "code": "list: Table [ x = 220, y = 88, width = 480, height = 712,\n    accessibilityLabel = { tr(app.lang, \"list\") },\n    datapath = { app.shown.value },\n    selects = \"single\",\n    selectedItem = { app.selRow },\n    commit(sel: array) { app.select(sel != null && sel.length > 0 ? sel[0] : null) },\n    // a \"page\" is exactly 10 rows\n    onKeyDown(e: KeyEvent) {\n        if (e.key == \"PageDown\") this.step(Math.max(0, this.activeIndex) + 10, e, 1)\n        else if (e.key == \"PageUp\") this.step(Math.max(0, this.activeIndex) - 10, e, -1)\n        else super.onKeyDown(e)\n        },\n    IssueRow [ datapath = :rows[], virtualize = true ]\n    ],",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/declare/app/inbox.declare#L364-L377"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/declare/app/inbox.declare#L364-L377"
         },
         "solid": {
           "file": "src/IssueList.tsx",
           "lines": "74-94",
           "lang": "tsx",
           "code": "let el!: HTMLDivElement;\nconst issue = () => props.item().issue;\nconst index = () => props.item().index;\nconst leaving = () => state.retiring() === issue().id;\n// while a row leaves, the rows after it slide up into its place\nconst y = () => (index() - (props.retireAt >= 0 && index() > props.retireAt && !state.reduce() ? 1 : 0)) * ROW;\nconst dur = 200;\n\nonSettled(() => {\n  if (state.inserted() === issue().id) {\n    const frames: Keyframe[] = state.reduce()\n      ? [{ opacity: 0 }, { opacity: 1 }]\n      : [{ opacity: 0, height: \"0px\" }, { opacity: 1, height: `${ROW}px` }];\n    el.animate(frames, { duration: dur, easing: \"ease-out\" });\n  }\n});\ncreateEffect(leaving, (on) => {\n  if (!on) return;\n  const frames: Keyframe[] = state.reduce()\n    ? [{ opacity: 1 }, { opacity: 0 }]\n    : [{ opacity: 1, height: `${ROW}px` }, { opacity: 0, height: \"0px\" }];",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/solid/src/IssueList.tsx#L74-L94"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/solid/src/IssueList.tsx#L74-L94"
         },
         "leptos": {
           "file": "src/main.rs",
           "lines": "265-273",
           "lang": "rust",
           "code": "let first = Memo::new(move |_| ((st.scroll.get() / ROW_H) as usize).saturating_sub(OVERSCAN));\nlet window = Memo::new(move |_| {\n    let f = first.get();\n    st.view.with(|v| {\n        let start = f.min(v.len());\n        v[start..(f + 13 + 2 * OVERSCAN).min(v.len())].to_vec()\n    })\n});\nlet total = Memo::new(move |_| st.view.with(|v| v.len()));",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/leptos/src/main.rs#L265-L273"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/leptos/src/main.rs#L265-L273"
         },
         "dioxus": {
           "file": "src/main.rs",
           "lines": "256-277",
           "lang": "rust",
           "code": "let total = view.read().len();\nlet top = scroll();\nlet first = ((top / ROW_H) as usize).saturating_sub(OVERSCAN);\nlet last = (((top + 760.0) / ROW_H) as usize + 1 + OVERSCAN).min(total);\nlet ids: Vec<(usize, u32)> = view.read()[first.min(total)..last].iter().copied().enumerate().map(|(k, id)| (first + k, id)).collect();\nlet cursor = (st.cursor)();\nlet ghost = st.ghost.read().clone();\nrsx! {\n    div { class: \"listpane\",\n        div { class: \"listhead\", span { {count_text(total)} } span { {t!(&format!(\"sort-{}\", (st.sort)().code()))} } }\n        div {\n            class: \"listbox\", id: \"listbox\", role: \"listbox\", tabindex: \"0\",\n            \"aria-label\": t!(\"app-title\"),\n            onscroll: move |e| scroll.set(e.data().scroll_top()),\n            onkeydown: move |e| list_key(st, e),\n            if total == 0 {\n                div { class: \"empty\", {t!(\"empty\")} }\n            }\n            div { class: \"sizer\", style: \"height: {total as f64 * ROW_H}px\",\n                for (k, id) in ids {\n                    Row { key: \"{id}\", issue: issues.read()[id as usize - 1].clone(), index: k, total, selected: cursor == Some(id) }\n                }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/dioxus/src/main.rs#L256-L277"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/src/main.rs#L256-L277"
         },
         "sycamore": {
           "file": "src/list.rs",
           "lines": "107-128",
           "lang": "rust",
           "code": "let layout = create_memo(move || {\n    let view = store.view.get_clone();\n    let issues = store.issues.get_clone();\n    let len = view.len();\n    let ghost = store.ghost.get_clone();\n    let entering = store.entering.get();\n    // Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\n    let hold_gap = store.reduced.get() && ghost.is_some();\n    let ghost_at = ghost.as_ref().map(|g| g.index);\n    let first_row = first.get().min(len.saturating_sub(1));\n    let lo = first_row.saturating_sub(OVERSCAN);\n    let hi = (first_row + height.get() / ROW + 2 + OVERSCAN).min(len);\n    let mut rows: Vec<RowData> = (lo..hi)\n        .map(|pos| {\n            let issue = issues[view[pos]].clone();\n            let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n            RowData { entering: entering == Some(issue.id), issue, pos, y, leaving: false }\n        })\n        .collect();\n    if let Some(g) = ghost {\n        rows.push(RowData { y: g.index * ROW, pos: g.index, issue: g.issue, leaving: true, entering: false });\n    }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/sycamore/src/list.rs#L107-L128"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/sycamore/src/list.rs#L107-L128"
         },
         "yew": {
           "file": "src/list.rs",
           "lines": "136-154",
           "lang": "rust",
           "code": "let len = p.view.len();\n// Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\nlet hold_gap = p.reduced && p.ghost.is_some();\nlet ghost_at = p.ghost.as_ref().map(|g| g.index);\nlet first_row = (*first).min(len.saturating_sub(1));\nlet lo = first_row.saturating_sub(OVERSCAN);\nlet hi = (first_row + *height / ROW + 2 + OVERSCAN).min(len);\nlet total_h = (len + usize::from(hold_gap)) * ROW;\nlet slide = !p.reduced && (p.ghost.is_some() || p.entering.is_some());\n\nlet rows = (lo..hi).map(|pos| {\n    let issue = p.issues[p.view[pos]].clone();\n    let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n    let class = if p.entering == Some(issue.id) { \"entering\" } else { \"\" };\n    html! {\n        <Row key={issue.id} issue={issue.clone()} {pos} {y} total={len} selected={p.selected_pos == Some(pos)}\n             {class} dispatch={p.dispatch.clone()} />\n    }\n});",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/yew/src/list.rs#L136-L154"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/yew/src/list.rs#L136-L154"
         }
       }
     },
@@ -723,98 +845,98 @@
           "lines": "28-47",
           "lang": "qml",
           "code": "TextField {\n    id: search\n    objectName: \"search\"\n    x: 236\n    y: 12\n    width: 400\n    height: 32\n    placeholderText: t`Search issues`\n    Accessible.name: t`Search issues`\n    onTextChanged: bar.inbox.query = search.text\n    Keys.onPressed: (event: KeyEvent) => {\n        if (event.key === Key.Escape) {\n            search.text = \"\"\n            event.accepted = true\n        } else if (event.key === Key.Down) {\n            bar.down()\n            event.accepted = true\n        }\n    }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos/TopBar.qml#L28-L47"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos/TopBar.qml#L28-L47"
         },
         "ljos-web": {
           "file": "TopBar.qml",
           "lines": "28-47",
           "lang": "qml",
           "code": "TextField {\n    id: search\n    objectName: \"search\"\n    x: 236\n    y: 12\n    width: 400\n    height: 32\n    placeholderText: t`Search issues`\n    Accessible.name: t`Search issues`\n    onTextChanged: bar.inbox.query = search.text\n    Keys.onPressed: (event: KeyEvent) => {\n        if (event.key === Key.Escape) {\n            search.text = \"\"\n            event.accepted = true\n        } else if (event.key === Key.Down) {\n            bar.down()\n            event.accepted = true\n        }\n    }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos-web/app/TopBar.qml#L28-L47"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos-web/app/TopBar.qml#L28-L47"
         },
         "qt": {
           "file": "src/issuemodel.cpp",
           "lines": "110-131",
           "lang": "cpp",
           "code": "void IssueFilterModel::setSearch(const QString &text) {\n    beginFilterChange();\n    m_words = text.toLower().split(QRegularExpression(\"\\\\s+\"), Qt::SkipEmptyParts);\n    endFilterChange();\n}\n\nvoid IssueFilterModel::setSortKey(int key) { m_sort = key; invalidate(); }\nvoid IssueFilterModel::setCollation(const QLocale &l) { m_collator = QCollator(l); m_keys.clear(); if (m_sort == 3) invalidate(); }\n\nbool IssueFilterModel::filterAcceptsRow(int row, const QModelIndex &) const {\n    const Issue &i = m_src->at(row);\n    switch (m_view) {\n    case 0: if (i.closed) return false; break;\n    case 1: if (i.closed || i.assignee != QLatin1String(\"Ada Okafor\")) return false; break;\n    case 2: if (!i.starred) return false; break;\n    case 3: if (!i.closed) return false; break;\n    case 4: if (i.closed || !i.tags.contains(m_tag)) return false; break;\n    }\n    for (const QString &w : m_words)\n        if (!i.hay.contains(w)) return false;\n    return true;\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/qt/src/issuemodel.cpp#L110-L131"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/qt/src/issuemodel.cpp#L110-L131"
         },
         "slint": {
           "file": "ui/main.slint",
           "lines": "198-206",
           "lang": "slint",
           "code": "search-box := LineEdit {\n    x: 236px;\n    y: 12px;\n    width: 400px;\n    height: 32px;\n    placeholder-text: @tr(\"Search issues\");\n    accessible-label: @tr(\"Search issues\");\n    text <=> root.search-text;\n    edited(text) => { root.search(text); }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/slint/ui/main.slint#L198-L206"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/slint/ui/main.slint#L198-L206"
         },
         "egui": {
           "file": "src/main.rs",
           "lines": "463-481",
           "lang": "rust",
           "code": "let resp = ui.put(\n    sr,\n    TextEdit::singleline(&mut self.search)\n        .id(search_id)\n        .hint_text(t!(\"search.placeholder\"))\n        .vertical_align(Align::Center)\n        .margin(egui::Margin::symmetric(8, 6))\n        .desired_width(400.0),\n);\nname(&ctx, &resp, &t!(\"search.placeholder\"));\nlet mut changed = resp.changed();\nif esc && !self.search.is_empty() {\n    self.search.clear();\n    changed = true;\n}\nif changed {\n    self.refresh_view();\n    self.scroll_to = Some(0.0);\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/egui/src/main.rs#L463-L481"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/egui/src/main.rs#L463-L481"
         },
         "gpui": {
           "file": "src/main.rs",
           "lines": "163-170",
           "lang": "rust",
           "code": "let mut subs = Vec::new();\nsubs.push(cx.subscribe_in(&search, window, |this, state, ev: &InputEvent, _w, cx| {\n    if matches!(ev, InputEvent::Change) {\n        this.words = query_words(&state.read(cx).value());\n        this.rebuild_view(None);\n        cx.notify();\n    }\n}));",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/gpui/src/main.rs#L163-L170"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/gpui/src/main.rs#L163-L170"
         },
         "iced": {
           "file": "src/main.rs",
           "lines": "517-531",
           "lang": "rust",
           "code": "Message::Search(s) => {\n    self.search = s;\n    self.refresh_view();\n    self.scroll_to(0.0)\n}\nMessage::SearchFocus => {\n    self.search_focus = true;\n    operation::focus(iced::widget::Id::new(\"search\"))\n}\nMessage::SearchSubmit => {\n    if let Some(id) = self.selected {\n        self.set_opened(id);\n    }\n    Task::none()\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/iced/src/main.rs#L517-L531"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/iced/src/main.rs#L517-L531"
         },
         "flutter": {
           "file": "lib/main.dart",
           "lines": "136-149",
           "lang": "dart",
           "code": "child: TextField(\n  controller: _search,\n  focusNode: _node,\n  onChanged: store.setQuery,\n  style: const TextStyle(fontSize: 14),\n  decoration: InputDecoration(\n    isDense: true,\n    hintText: l.searchPlaceholder,\n    prefixIcon: const Icon(Icons.search, size: 18),\n    prefixIconConstraints: const BoxConstraints(minWidth: 36),\n    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),\n    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(16))),\n  ),\n),",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/flutter/lib/main.dart#L136-L149"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/flutter/lib/main.dart#L136-L149"
         },
         "declare": {
           "file": "app/inbox.declare",
           "lines": "301-311",
           "lang": "declare",
           "code": "search: SearchField [ x = 16, y = 12, width = 400, height = 32,\n    accessibilityLabel = { tr(app.lang, \"search.placeholder\") },\n    placeholder = { tr(app.lang, \"search.placeholder\") },\n    value = { app.query },\n    commit(t: string) { app.query = t },\n    onKeyDown(e: KeyEvent) {\n        if (e.key == \"Escape\") app.query = \"\"\n        else if (e.key == \"ArrowDown\") app.firstHit()\n        else super.onKeyDown(e)\n        }\n    ],",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/declare/app/inbox.declare#L301-L311"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/declare/app/inbox.declare#L301-L311"
         },
         "solid": {
           "file": "src/state.ts",
           "lines": "48-64",
           "lang": "ts",
           "code": "const matchesFilter = (i: Issue, f: FilterKey) => {\n  switch (f) {\n    case \"inbox\": return i.status === \"open\";\n    case \"assigned\": return i.status === \"open\" && i.assignee === ME;\n    case \"starred\": return i.starred;\n    case \"closed\": return i.status === \"closed\";\n    default: return i.status === \"open\" && i.tags.includes(f.slice(4));\n  }\n};\n\nconst visible = createMemo(() => {\n  const f = filter(), keep = retiring();\n  const words = query().toLowerCase().split(/\\s+/).filter(Boolean);\n  return sorted().filter(\n    (i) => i.id === keep || (matchesFilter(i, f) && words.every((w) => i.hay.includes(w))),\n  );\n});",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/solid/src/state.ts#L48-L64"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/solid/src/state.ts#L48-L64"
         },
         "leptos": {
           "file": "src/main.rs",
           "lines": "194-207",
           "lang": "rust",
           "code": "<input class=\"search\" type=\"search\" id=\"search\"\n    placeholder=move || t_string!(i18n, search_placeholder)\n    aria-label=move || t_string!(i18n, search_placeholder)\n    prop:value=move || st.query.get()\n    on:input=move |e| st.query.set(event_target_value(&e))\n    on:keydown=move |e: KeyboardEvent| match e.key().as_str() {\n        \"Escape\" => st.query.set(String::new()),\n        \"ArrowDown\" => {\n            e.prevent_default();\n            step_cursor(st, 1, true);\n            if let Some(el) = by_id(\"listbox\") { let _ = el.focus(); }\n        }\n        _ => {}\n    } />",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/leptos/src/main.rs#L194-L207"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/leptos/src/main.rs#L194-L207"
         },
         "dioxus": {
           "file": "src/main.rs",
           "lines": "156-176",
           "lang": "rust",
           "code": "fn TopBar() -> Element {\n    let st = use_context::<St>();\n    let mut query = st.query;\n    let mut sort = st.sort;\n    rsx! {\n        div { class: \"topbar\",\n            input {\n                class: \"search\", r#type: \"search\", id: \"search\",\n                placeholder: t!(\"search-placeholder\"), \"aria-label\": t!(\"search-placeholder\"),\n                value: \"{query}\",\n                oninput: move |e| query.set(e.value()),\n                onkeydown: move |e| match e.key() {\n                    Key::Escape => query.set(String::new()),\n                    Key::ArrowDown => {\n                        e.prevent_default();\n                        step_cursor(st, 1, true);\n                        if let Some(el) = by_id(\"listbox\") { let _ = el.focus(); }\n                    }\n                    _ => {}\n                },\n            }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/dioxus/src/main.rs#L156-L176"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/src/main.rs#L156-L176"
         },
         "sycamore": {
           "file": "src/state.rs",
           "lines": "80-89",
           "lang": "rust",
           "code": "let query = create_signal(String::new());\nlet sort = create_signal(Sort::Updated);\nlet lang = create_signal(Lang::En);\nlet selected = create_signal(None::<u32>);\nlet view = create_memo(move || {\n    // Memos are read through clones, never inside another signal's `with`: that would hold\n    // the runtime's borrow while a dirty memo tries to recompute.\n    let (is, q, f, o, l) = (issues.get_clone(), query.get_clone(), filter.get_clone(), sort.get(), lang.get());\n    Rc::new(build_view(&is, &f, &q, o, l.tag()))\n});",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/sycamore/src/state.rs#L80-L89"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/sycamore/src/state.rs#L80-L89"
         },
         "yew": {
           "file": "src/app.rs",
           "lines": "66-80",
           "lang": "rust",
           "code": "let on_search = {\n    let d = dispatch.clone();\n    Callback::from(move |e: InputEvent| d.dispatch(Action::SetQuery(e.target_unchecked_into::<HtmlInputElement>().value())))\n};\nlet on_search_key = {\n    let d = dispatch.clone();\n    Callback::from(move |e: KeyboardEvent| {\n        if e.key() == \"Escape\" {\n            d.dispatch(Action::SetQuery(String::new()));\n        } else if let Some(m) = nav_move(&e, true) {\n            e.prevent_default();\n            d.dispatch(Action::Move(m));\n        }\n    })\n};",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/yew/src/app.rs#L66-L80"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/yew/src/app.rs#L66-L80"
         }
       }
     },
@@ -828,98 +950,98 @@
           "lines": "10-17",
           "lang": "qml",
           "code": "id: form\nrequired property Store inbox\nrequired property bool open\n\nreadonly property Inbox.TitleError titleError: Inbox.titleError(title.text)\nreadonly property Inbox.TagsError tagsError: Inbox.tagsError(tags.text)\nreadonly property Inbox.BodyError bodyError: Inbox.bodyError(body.text)\nreadonly property bool valid: form.titleError === \"\" && form.tagsError === \"\" && form.bodyError === \"\"",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos/EditForm.qml#L10-L17"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos/EditForm.qml#L10-L17"
         },
         "ljos-web": {
           "file": "EditForm.qml",
           "lines": "10-17",
           "lang": "qml",
           "code": "id: form\nrequired property Store inbox\nrequired property bool open\n\nreadonly property Inbox.TitleError titleError: Inbox.titleError(title.text)\nreadonly property Inbox.TagsError tagsError: Inbox.tagsError(tags.text)\nreadonly property Inbox.BodyError bodyError: Inbox.bodyError(body.text)\nreadonly property bool valid: form.titleError === \"\" && form.tagsError === \"\" && form.bodyError === \"\"",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos-web/app/EditForm.qml#L10-L17"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos-web/app/EditForm.qml#L10-L17"
         },
         "qt": {
           "file": "qml/EditForm.qml",
           "lines": "10-17",
           "lang": "qml",
           "code": "readonly property string titleError:\n    title.text.trim() === \"\" ? qsTr(\"Title is required\")\n    : title.text.length > 120 ? qsTr(\"At most 120 characters\") : \"\"\nreadonly property string tagsError:\n    words.some(w => !/^[a-z0-9-]+$/.test(w)) ? qsTr(\"Tags are lowercase words\")\n    : words.length > 6 ? qsTr(\"At most 6 tags\") : \"\"\nreadonly property string bodyError: body.length > 10000 ? qsTr(\"At most 10 000 characters\") : \"\"\nreadonly property bool valid: titleError === \"\" && tagsError === \"\" && bodyError === \"\"",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/qt/qml/EditForm.qml#L10-L17"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/qt/qml/EditForm.qml#L10-L17"
         },
         "slint": {
           "file": "ui/main.slint",
           "lines": "633-650",
           "lang": "slint",
           "code": "title-edit := LineEdit {\n    x: 20px;\n    y: 40px;\n    width: 540px;\n    height: 40px;\n    text <=> root.edit-title;\n    accessible-label: @tr(\"Title\");\n    accessible-description: title-error.text;\n}\ntitle-error := Text {\n    x: 20px;\n    y: 84px;\n    width: 440px;\n    height: 20px;\n    text: root.errs.title == 1 ? @tr(\"Title is required\") : root.errs.title == 2 ? @tr(\"At most 120 characters\") : \"\";\n    color: Theme.error;\n    font-size: 12px;\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/slint/ui/main.slint#L633-L650"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/slint/ui/main.slint#L633-L650"
         },
         "egui": {
           "file": "src/views.rs",
           "lines": "450-459",
           "lang": "rust",
           "code": "let valid = terr.is_none() && gerr.is_none() && berr.is_none();\nlet cancel = ui.put(Rect::from_center_size(pos2(1090.0, 660.0), vec2(100.0, 32.0)), egui::Button::new(t!(\"cancel\").to_string()));\nlet save = ui.put(\n    Rect::from_center_size(pos2(1196.0, 660.0), vec2(100.0, 32.0)),\n    egui::Button::new(RichText::new(t!(\"save\").to_string()).color(if valid { p.on_accent } else { p.muted })).fill(if valid { p.accent } else { p.chip }),\n);\nlet save_ok = valid && save.clicked();\nif !valid {\n    ctx.accesskit_node_builder(save.id, |b| b.set_disabled());\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/egui/src/views.rs#L450-L459"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/egui/src/views.rs#L450-L459"
         },
         "gpui": {
           "file": "src/main.rs",
           "lines": "374-383",
           "lang": "rust",
           "code": "fn form_errors(&self, cx: &App) -> (Option<String>, Option<String>, Option<String>, usize) {\n    let title = self.title_in.read(cx).value();\n    let n = title.chars().count();\n    let e_title = if title.trim().is_empty() {\n        Some(t!(\"err.title.required\").to_string())\n    } else if n > 120 {\n        Some(t!(\"err.title.long\").to_string())\n    } else {\n        None\n    };",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/gpui/src/main.rs#L374-L383"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/gpui/src/main.rs#L374-L383"
         },
         "iced": {
           "file": "src/main.rs",
           "lines": "436-456",
           "lang": "rust",
           "code": "pub fn errors(&self) -> (Option<String>, Option<String>, Option<String>) {\n    let Some(e) = &self.edit else { return (None, None, None) };\n    let tlen = e.title.chars().count();\n    let title = if e.title.trim().is_empty() {\n        Some(t!(\"err.title.required\").to_string())\n    } else if tlen > 120 {\n        Some(t!(\"err.title.long\").to_string())\n    } else {\n        None\n    };\n    let words: Vec<&str> = e.tags.split_whitespace().collect();\n    let tags = if words.iter().any(|w| !w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')) {\n        Some(t!(\"err.tags\").to_string())\n    } else if words.len() > 6 {\n        Some(t!(\"err.tags.many\").to_string())\n    } else {\n        None\n    };\n    let body = if e.body.text().chars().count() > 10_000 { Some(t!(\"err.body.long\").to_string()) } else { None };\n    (title, tags, body)\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/iced/src/main.rs#L436-L456"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/iced/src/main.rs#L436-L456"
         },
         "flutter": {
           "file": "lib/detail_pane.dart",
           "lines": "294-309",
           "lang": "dart",
           "code": "return Form(\n  key: _formKey,\n  autovalidateMode: AutovalidateMode.always,\n  child: Stack(\n    children: [\n      Positioned(\n        left: 20,\n        top: 40,\n        width: 540,\n        height: 80,\n        child: TextFormField(\n          controller: _title,\n          style: const TextStyle(fontSize: 14),\n          decoration: deco(l.fieldTitle, counter: len > 100 ? '$len/120' : ''),\n          validator: (_) => _titleError(l),\n        ),",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/flutter/lib/detail_pane.dart#L294-L309"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/flutter/lib/detail_pane.dart#L294-L309"
         },
         "declare": {
           "file": "app/inbox.declare",
           "lines": "208-226",
           "lang": "declare",
           "code": "dTitle: string = \"\", dTags: string = \"\", dBody: string = \"\", dPrio: number = 2, dAssignee: string = \"\",\nerrTitle: string = { titleError(app.lang, app.dTitle) },\nerrTags: string = { tagsError(app.lang, app.dTags) },\nerrBody: string = { bodyError(app.lang, app.dBody) },\nvalid: boolean = { app.errTitle == \"\" && app.errTags == \"\" && app.errBody == \"\" },\n\nseedDraft() {\n    const r = this.selRec\n    if (r == null) return\n    dTitle = r.title; dTags = (r.tags ?? []).join(\" \"); dBody = r.body\n    dPrio = r.priority; dAssignee = r.assignee ?? \"\"\n    },\n\nsaveDraft() {\n    if (!valid || selId == 0) return\n    issues.save(selId, dTitle.trim(), splitTags(dTags), dBody, dPrio, dAssignee)\n    rev = rev + 1\n    this.setTab(\"conversation\")\n    },",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/declare/app/inbox.declare#L208-L226"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/declare/app/inbox.declare#L208-L226"
         },
         "solid": {
           "file": "src/Detail.tsx",
           "lines": "89-101",
           "lang": "tsx",
           "code": "const [title, setTitle] = createSignal(start.title);\nconst [tags, setTags] = createSignal(start.tags.join(\" \"));\nconst [priority, setPriority] = createSignal(start.priority);\nconst [assignee, setAssignee] = createSignal(start.assignee);\nconst [body, setBody] = createSignal(start.body);\n\nconst words = createMemo(() => tags().split(/\\s+/).filter(Boolean));\nconst titleErr = createMemo(() => (title().trim() === \"\" ? \"err.title.required\" : title().length > 120 ? \"err.title.long\" : null));\nconst tagsErr = createMemo(() => (words().some((w) => !TAG.test(w)) ? \"err.tags.bad\" : words().length > 6 ? \"err.tags.many\" : null));\nconst bodyErr = createMemo(() => (body().length > 10_000 ? \"err.body.long\" : null));\nconst valid = () => !titleErr() && !tagsErr() && !bodyErr();\n\nconst save = () => valid() && state.save(props.issue.id, { title: title().trim(), tags: words(), priority: priority(), assignee: assignee(), body: body() });",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/solid/src/Detail.tsx#L89-L101"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/solid/src/Detail.tsx#L89-L101"
         },
         "leptos": {
           "file": "src/main.rs",
           "lines": "538-558",
           "lang": "rust",
           "code": "let title = RwSignal::new(issue.raw.title.clone());\nlet tags = RwSignal::new(issue.raw.tags.join(\" \"));\nlet body = RwSignal::new(issue.raw.body.clone());\nlet prio = RwSignal::new(issue.raw.priority);\nlet assignee = RwSignal::new(issue.raw.assignee.clone());\nlet people = st.issues.with_untracked(|v| people(v));\nlet te = move || title_err(&title.read());\nlet ge = move || tags_err(&tags.read());\nlet be = move || body_err(&body.read());\nlet valid = move || te().is_none() && ge().is_none() && be().is_none();\nlet tlen = move || title.read().chars().count();\nview! {\n    <div class=\"form fade\">\n        <label class=\"l\" for=\"f-title\" style=\"top: 12px\">{t!(i18n, field_title)}</label>\n        <input class=\"f\" id=\"f-title\" style=\"top: 40px; height: 40px\" prop:value=move || title.get()\n            aria-invalid=move || te().is_some().to_string() aria-describedby=\"e-title\"\n            on:input=move |e| title.set(event_target_value(&e)) />\n        <div class=\"err\" id=\"e-title\" style=\"top: 84px\">\n            <span>{move || te().map(|e| err_text(i18n, e))}</span>\n            {move || (tlen() > 100).then(|| view! { <span class=\"counter\">{format!(\"{}/120\", tlen())}</span> })}\n        </div>",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/leptos/src/main.rs#L538-L558"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/leptos/src/main.rs#L538-L558"
         },
         "dioxus": {
           "file": "src/main.rs",
           "lines": "532-550",
           "lang": "rust",
           "code": "let mut title = use_signal(|| issue.raw.title.clone());\nlet mut tags = use_signal(|| issue.raw.tags.join(\" \"));\nlet mut body = use_signal(|| issue.raw.body.clone());\nlet mut prio = use_signal(|| issue.raw.priority);\nlet mut assignee = use_signal(|| issue.raw.assignee.clone());\nlet people = people(&st.issues.read());\nlet (te, ge, be) = (title_err(&title.read()), tags_err(&tags.read()), body_err(&body.read()));\nlet valid = te.is_none() && ge.is_none() && be.is_none();\nlet tlen = title.read().chars().count();\nrsx! {\n    div { class: \"form fade\",\n        label { class: \"l\", r#for: \"f-title\", style: \"top: 12px\", {t!(\"field-title\")} }\n        input { class: \"f\", id: \"f-title\", style: \"top: 40px; height: 40px\", value: \"{title}\",\n            \"aria-invalid\": \"{te.is_some()}\", \"aria-describedby\": \"e-title\",\n            oninput: move |e| title.set(e.value()) }\n        div { class: \"err\", id: \"e-title\", style: \"top: 84px\",\n            span { if let Some(e) = te { {err_text(e)} } else if tlen > 120 { {err_text(FieldErr::TitleLong)} } }\n            if tlen > 100 { span { class: \"counter\", \"{tlen}/120\" } }\n        }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/dioxus/src/main.rs#L532-L550"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/src/main.rs#L532-L550"
         },
         "sycamore": {
           "file": "src/detail.rs",
           "lines": "118-126",
           "lang": "rust",
           "code": "let title = create_signal(i.title.clone());\nlet tags = create_signal(i.tags.join(\" \"));\nlet body = create_signal(i.body.clone());\nlet priority = create_signal(i.priority);\nlet assignee = create_signal(i.assignee.clone());\nlet problems = create_memo(move || validate(&title.get_clone(), &tags.get_clone(), &body.get_clone()));\nlet t = move |k: &str| cat.with(|c| c.t(k));\nlet msg = move |pick: fn(&Problems) -> Option<&'static str>| move || problems.with(|p| pick(p)).map(|k| t(k)).unwrap_or_default();\nlet title_len = create_memo(move || title.with(|s| s.chars().count()));",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/sycamore/src/detail.rs#L118-L126"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/sycamore/src/detail.rs#L118-L126"
         },
         "yew": {
           "file": "src/model.rs",
           "lines": "247-266",
           "lang": "rust",
           "code": "pub fn validate(title: &str, tags: &str, body: &str) -> Problems {\n    let words: Vec<&str> = tags.split_whitespace().collect();\n    Problems {\n        title: if title.trim().is_empty() {\n            Some(\"err-title-required\")\n        } else if title.chars().count() > 120 {\n            Some(\"err-title-long\")\n        } else {\n            None\n        },\n        tags: if words.iter().any(|w| w.is_empty() || !w.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')) {\n            Some(\"err-tags\")\n        } else if words.len() > 6 {\n            Some(\"err-tags-many\")\n        } else {\n            None\n        },\n        body: if body.chars().count() > 10_000 { Some(\"err-body-long\") } else { None },\n    }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/yew/src/model.rs#L247-L266"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/yew/src/model.rs#L247-L266"
         }
       }
     },
@@ -933,98 +1055,98 @@
           "lines": "63-80",
           "lang": "qml",
           "code": "Repeater {\n    model: page.weeks\n    delegate: Item {\n        id: bar\n        required property Inbox.Week modelData\n        required property int index\n        readonly property real h: page.scaleTop > 0 ? page.chartH * modelData.count / page.scaleTop : 0\n\n        x: page.chartX + bar.index * page.slot\n        y: page.chartY\n        width: page.slot\n        height: page.chartH + 40\n        Accessible.role: Accessible.StaticText\n        Accessible.name: {\n            const week = page.inbox.week(bar.modelData.start)\n            const n = bar.modelData.count\n            return plural(n, { one: `${week}: # issue`, other: `${week}: # issues` })\n        }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos/Insights.qml#L63-L80"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos/Insights.qml#L63-L80"
         },
         "ljos-web": {
           "file": "Insights.qml",
           "lines": "63-80",
           "lang": "qml",
           "code": "Repeater {\n    model: page.weeks\n    delegate: Item {\n        id: bar\n        required property Inbox.Week modelData\n        required property int index\n        readonly property real h: page.scaleTop > 0 ? page.chartH * modelData.count / page.scaleTop : 0\n\n        x: page.chartX + bar.index * page.slot\n        y: page.chartY\n        width: page.slot\n        height: page.chartH + 40\n        Accessible.role: Accessible.StaticText\n        Accessible.name: {\n            const week = page.inbox.week(bar.modelData.start)\n            const n = bar.modelData.count\n            return plural(n, { one: `${week}: # issue`, other: `${week}: # issues` })\n        }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/ljos-web/app/Insights.qml#L63-L80"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/ljos-web/app/Insights.qml#L63-L80"
         },
         "qt": {
           "file": "qml/Insights.qml",
           "lines": "25-40",
           "lang": "qml",
           "code": "Repeater {\n    model: root.chartData.values\n    Item {\n        id: bar\n        required property int index\n        required property int modelData\n        x: 56 + index * 42; width: 42\n        readonly property real h: root.max > 0 ? (root.plotBottom - root.plotTop) * modelData / root.max : 0\n        Rectangle { x: 7; y: root.plotBottom - bar.h; width: 28; height: bar.h; radius: 3; color: Theme.accent }\n        Text { x: 0; width: 42; horizontalAlignment: Text.AlignHCenter; y: root.plotBottom - bar.h - 18\n            text: Fmt.number(bar.modelData, Inbox.language); font.pixelSize: 11; color: Theme.text }\n        Text { x: 0; width: 42; horizontalAlignment: Text.AlignHCenter; y: root.plotBottom + 6\n            text: Fmt.week(root.chartData.months[bar.index], root.chartData.days[bar.index], Inbox.language)\n            font.pixelSize: 11; color: Theme.muted }\n    }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/qt/qml/Insights.qml#L25-L40"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/qt/qml/Insights.qml#L25-L40"
         },
         "slint": {
           "file": "ui/main.slint",
           "lines": "802-817",
           "lang": "slint",
           "code": "for bar[i] in root.chart: Rectangle {\n    x: i * 45px;\n    width: 45px;\n    height: parent.height;\n    accessible-role: list-item;\n    accessible-label: @tr(\"week label\" => \"{0}/{1}\", bar.month, bar.day) + \": \" + bar.value;\n    property <length> bar-height: root.chart-max > 0 ? 222px * bar.value / root.chart-max : 0px;\n    Rectangle {\n        x: 9px;\n        y: 240px - parent.bar-height;\n        width: 27px;\n        height: parent.bar-height;\n        background: Theme.bar;\n        border-top-left-radius: 3px;\n        border-top-right-radius: 3px;\n    }",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/slint/ui/main.slint#L802-L817"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/slint/ui/main.slint#L802-L817"
         },
         "egui": {
           "file": "src/views.rs",
           "lines": "486-500",
           "lang": "rust",
           "code": "let slot = (right - left) / 12.0;\nlet first = crate::data::first_week_start();\nfor (k, &v) in c.weeks.iter().enumerate() {\n    let x = left + slot * k as f32 + slot * 0.15;\n    let h = (base - top) * v as f32 / ymax;\n    painter.rect_filled(Rect::from_min_max(pos2(x, base - h), pos2(x + slot * 0.7, base)), 3.0, p.accent);\n    painter.text(pos2(x + slot * 0.35, base - h - 9.0), Align2::CENTER_CENTER, v.to_string(), FontId::proportional(11.0), p.text);\n    painter.text(\n        pos2(x + slot * 0.35, base + 15.0),\n        Align2::CENTER_CENTER,\n        crate::data::fmt_md(first + k as i64 * 7 * 86400, self.ja),\n        FontId::proportional(11.0),\n        p.muted,\n    );\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/egui/src/views.rs#L486-L500"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/egui/src/views.rs#L486-L500"
         },
         "gpui": {
           "file": "src/main.rs",
           "lines": "1191-1205",
           "lang": "rust",
           "code": "v_flex()\n    .size_full()\n    .p_5()\n    .gap_3()\n    .child(div().text_sm().font_semibold().child(t!(\"chart.title\").to_string()))\n    .child(\n        div().h(px(380.)).w_full().child(\n            BarChart::new(data)\n                .band(|d| d.label.clone())\n                .value(|d| d.count)\n                .label(|d| format!(\"{}\", d.count as u32))\n                .fill(|_, _, _, _| Hsla::from(rgb(0x2f6df6)))\n                .appear(false),\n        ),\n    )",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/gpui/src/main.rs#L1191-L1205"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/gpui/src/main.rs#L1191-L1205"
         },
         "iced": {
           "file": "src/ui.rs",
           "lines": "542-563",
           "lang": "rust",
           "code": "let (l, r, top, bot) = (36.0_f32, 8.0_f32, 24.0_f32, 28.0_f32);\nlet w = bounds.width - l - r;\nlet h = bounds.height - top - bot;\nlet max = data::nice(*self.counts.iter().max().unwrap_or(&1)).max(1) as f32;\nfor k in 0..=2 {\n    let y = top + h - h * k as f32 / 2.0;\n    f.fill_rectangle(Point::new(l, y), Size::new(w, 1.0), with_alpha(self.p.border, if k == 0 { 1.0 } else { 0.6 }));\n    f.fill_text(canvas::Text {\n        content: format!(\"{}\", (max * k as f32 / 2.0) as u32),\n        position: Point::new(l - 6.0, y),\n        color: self.p.muted,\n        size: 11.0.into(),\n        align_x: iced::alignment::Horizontal::Right.into(),\n        align_y: iced::alignment::Vertical::Center,\n        ..Default::default()\n    });\n}\nlet slot = w / 12.0;\nfor (k, &c) in self.counts.iter().enumerate() {\n    let bh = h * c as f32 / max;\n    let x = l + slot * k as f32 + slot * 0.18;\n    f.fill_rectangle(Point::new(x, top + h - bh), Size::new(slot * 0.64, bh), self.p.accent);",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/iced/src/ui.rs#L542-L563"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/iced/src/ui.rs#L542-L563"
         },
         "flutter": {
           "file": "lib/detail_pane.dart",
           "lines": "511-530",
           "lang": "dart",
           "code": "@override\nvoid paint(Canvas canvas, Size size) {\n  const top = 24.0, bottom = 24.0;\n  final maxV = niceMax(values.fold(0, math.max));\n  final h = size.height - top - bottom;\n  final slot = size.width / values.length;\n  final base = size.height - bottom;\n  canvas.drawLine(Offset(0, base), Offset(size.width, base), Paint()..color = line);\n  for (var i = 0; i < values.length; i++) {\n    final bh = h * values[i] / maxV;\n    final x = i * slot + slot * 0.2;\n    canvas.drawRRect(\n      RRect.fromRectAndCorners(Rect.fromLTWH(x, base - bh, slot * 0.6, bh),\n          topLeft: const Radius.circular(3), topRight: const Radius.circular(3)),\n      Paint()..color = bar,\n    );\n    _text(canvas, numbers.format(values[i]), Offset(i * slot + slot / 2, base - bh - 16), text, 12);\n    _text(canvas, labels[i], Offset(i * slot + slot / 2, base + 6), muted, 11);\n  }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/flutter/lib/detail_pane.dart#L511-L530"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/flutter/lib/detail_pane.dart#L511-L530"
         },
         "declare": {
           "file": "app/inbox.declare",
           "lines": "462-478",
           "lang": "declare",
           "code": "chart: Dataset [ schema = [ bars[]: [ i: number, n: number, h: number, label: string ], counts: string ],\n    contents = { app.tab == \"insights\" ? chartOf(app.lang, app.shown.value?.rows ?? []) : ({ bars: [], counts: \"\" }) } ],\nins: View [ x = { 700 + (app.reduce ? 0 : (1 - app.tabT) * 24 * app.tabDir) }, y = 100, width = 580, height = 700,\n    opacity = { app.tabT },\n    visible = { app.tab == \"insights\" },\n    accessibilityRole = tabPanel,\n    h: Text [ x = 20, y = 14, fontSize = 15, fontWeight = semibold, wrap = false, text = { tr(app.lang, \"chart.title\") } ],\n    base: View [ x = 20, y = 288, width = 540, height = 1, fill = { provided(\"theme\").line } ],\n    bars: View [ x = 20, y = 0, width = 540, height = 320, datapath = { app.chart.value },\n        View [ datapath = :bars[], x = { 8 + :i * 44 }, width = 32, y = { 288 - :h }, height = { :h },\n            fill = { provided(\"theme\").accent }, cornerRadius = 3,\n            accessibilityRole = image, accessibilityLabel = { :label + \": \" + :n } ],\n        Text [ datapath = :bars[], x = { 2 + :i * 44 }, width = 44, textAlign = center,\n            y = { 288 - :h - 18 }, fontSize = 11, wrap = false, text = { \"\" + :n } ],\n        Text [ datapath = :bars[], x = { 2 + :i * 44 }, width = 44, textAlign = center,\n            y = 296, fontSize = 10.5, wrap = false, textColor = { provided(\"theme\").textMuted }, text = { :label } ]\n        ],",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/declare/app/inbox.declare#L462-L478"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/declare/app/inbox.declare#L462-L478"
         },
         "solid": {
           "file": "src/Detail.tsx",
           "lines": "159-177",
           "lang": "tsx",
           "code": "const W = 540, H = 250, L = 8, B = 28, T = 24, bw = (W - L) / 12;\nconst y = (v: number) => T + (H - T - B) * (1 - v / stats().top);\nreturn (\n  <div class=\"insights\">\n    <h3 class=\"chart-title\">{t(\"chart.title\")}</h3>\n    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role=\"img\" aria-label={t(\"chart.title\")}>\n      <For each={[0, 0.5, 1]} keyed={false}>{(f) => <line class=\"grid\" x1={L} x2={W} y1={y(stats().top * f())} y2={y(stats().top * f())} />}</For>\n      <For each={stats().weeks} keyed={false}>\n        {(n, i) => (\n          <g>\n            <rect class=\"bar\" x={L + i * bw + 6} width={bw - 12} y={y(n())} height={H - B - y(n())} rx=\"2\" />\n            <text class=\"val\" x={L + i * bw + bw / 2} y={y(n()) - 5} text-anchor=\"middle\">{nf().format(n())}</text>\n            <text class=\"wk\" x={L + i * bw + bw / 2} y={H - 8} text-anchor=\"middle\">{weekLabel(lastMonday + (i - 11) * WEEK)}</text>\n          </g>\n        )}\n      </For>\n      <line class=\"axis\" x1={L} x2={W} y1={H - B} y2={H - B} />\n      <text class=\"wk\" x={L} y={12}>{nf().format(stats().top)}</text>\n    </svg>",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/solid/src/Detail.tsx#L159-L177"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/solid/src/Detail.tsx#L159-L177"
         },
         "leptos": {
           "file": "src/main.rs",
           "lines": "613-631",
           "lang": "rust",
           "code": "let max = nice_max(*cw.iter().max().unwrap_or(&1));\nlet bars = (0..12usize).map(|k| {\n    let h = (base - topy) * cw[k] as f64 / max as f64;\n    let cx = x0 + slot * k as f64 + slot / 2.0 + 4.0;\n    view! {\n        <g>\n            <rect class=\"bar\" x=cx - 14.0 y=base - h width=\"28\" height=h rx=\"3\" />\n            <text x=cx y=base - h - 6.0 text-anchor=\"middle\">{fmt_num(cw[k] as i64)}</text>\n            <text class=\"ax\" x=cx y=base + 16.0 text-anchor=\"middle\">{fmt_week(days[k], ja)}</text>\n        </g>\n    }\n}).collect_view();\nview! {\n    <svg width=\"540\" height=\"290\" viewBox=\"0 0 540 290\" role=\"img\" aria-label=t_string!(i18n, chart_title)>\n        <line x1=x0 x2=\"538\" y1=topy y2=topy stroke=\"var(--line)\" />\n        <text class=\"ax\" x=x0 - 6.0 y=topy + 4.0 text-anchor=\"end\">{fmt_num(max as i64)}</text>\n        <line x1=x0 x2=\"538\" y1=base y2=base stroke=\"var(--muted)\" />\n        {bars}\n    </svg>",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/leptos/src/main.rs#L613-L631"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/leptos/src/main.rs#L613-L631"
         },
         "dioxus": {
           "file": "src/main.rs",
           "lines": "599-617",
           "lang": "rust",
           "code": "svg { width: \"540\", height: \"290\", view_box: \"0 0 540 290\", role: \"img\", \"aria-label\": t!(\"chart-title\"),\n    line { x1: \"{x0}\", x2: \"538\", y1: \"{topy}\", y2: \"{topy}\", stroke: \"var(--line)\" }\n    text { class: \"ax\", x: \"{x0 - 6.0}\", y: \"{topy + 4.0}\", \"text-anchor\": \"end\", \"{fmt_num(max as i64)}\" }\n    line { x1: \"{x0}\", x2: \"538\", y1: \"{base}\", y2: \"{base}\", stroke: \"var(--muted)\" }\n    for k in 0..12usize {\n        {\n            let v = counts_w[k];\n            let h = (base - topy) * v as f64 / max as f64;\n            let cx = x0 + slot * k as f64 + slot / 2.0 + 4.0;\n            rsx! {\n                g { key: \"{k}\",\n                    rect { class: \"bar\", x: \"{cx - 14.0}\", y: \"{base - h}\", width: \"28\", height: \"{h}\", rx: \"3\" }\n                    text { x: \"{cx}\", y: \"{base - h - 6.0}\", \"text-anchor\": \"middle\", \"{fmt_num(v as i64)}\" }\n                    text { class: \"ax\", x: \"{cx}\", y: \"{base + 16.0}\", \"text-anchor\": \"middle\", \"{fmt_week(days[k], ja)}\" }\n                }\n            }\n        }\n    }\n}",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/dioxus/src/main.rs#L599-L617"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/dioxus/src/main.rs#L599-L617"
         },
         "sycamore": {
           "file": "src/detail.rs",
           "lines": "203-220",
           "lang": "rust",
           "code": "let bars: Vec<View> = bins\n    .iter()\n    .enumerate()\n    .map(|(k, &(day, n))| {\n        let bh = plot * f64::from(n) / f64::from(max);\n        let x = left + slot * k as f64 + slot * 0.15;\n        let (_, m, d) = civil_from_days(day);\n        let label = if ja { format!(\"{m}月{d}日\") } else { format!(\"{m}/{d}\") };\n        let (x1, x2) = ((x + slot * 0.35).to_string(), (x + slot * 0.35).to_string());\n        view! {\n            g {\n                rect(class=\"bar\", x=x.to_string(), y=(top + plot - bh).to_string(), width=(slot * 0.7).to_string(), height=bh.to_string())\n                text(x=x1, y=(top + plot - bh - 5.0).to_string(), text-anchor=\"middle\") { (format_number(tag, f64::from(n))) }\n                text(x=x2, y=(h - 10.0).to_string(), text-anchor=\"middle\") { (label) }\n            }\n        }\n    })\n    .collect();",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/sycamore/src/detail.rs#L203-L220"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/sycamore/src/detail.rs#L203-L220"
         },
         "yew": {
           "file": "src/detail.rs",
           "lines": "199-216",
           "lang": "rust",
           "code": "let bins = use_memo((p.issues.clone(), p.view.clone()), |(issues, view)| weekly(issues, view));\nlet max = nice_ceiling(bins.iter().map(|b| b.1).max().unwrap_or(0));\nlet (w, h, left, top, bottom) = (540.0, 280.0, 8.0, 28.0, 28.0);\nlet slot = (w - left * 2.0) / bins.len() as f64;\nlet plot = h - top - bottom;\nlet bars = bins.iter().enumerate().map(|(k, &(day, n))| {\n    let bh = plot * f64::from(n) / f64::from(max);\n    let x = left + slot * k as f64 + slot * 0.15;\n    let (_, m, d) = civil_from_days(day);\n    let label = if ja { format!(\"{m}月{d}日\") } else { format!(\"{m}/{d}\") };\n    html! {\n        <g key={k}>\n            <rect class=\"bar\" x={x.to_string()} y={(top + plot - bh).to_string()} width={(slot * 0.7).to_string()} height={bh.to_string()} />\n            <text x={(x + slot * 0.35).to_string()} y={(top + plot - bh - 5.0).to_string()} text-anchor=\"middle\">{ format_number(tag, f64::from(n)) }</text>\n            <text x={(x + slot * 0.35).to_string()} y={(h - 10.0).to_string()} text-anchor=\"middle\">{ label }</text>\n        </g>\n    }\n});",
-          "href": "https://github.com/hal-c2/ui-framework-review/blob/ad5b4eda6b38923ee10dd6b256f96f17c4bed753/yew/src/detail.rs#L199-L216"
+          "href": "https://github.com/hal-c2/ui-framework-review/blob/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37/yew/src/detail.rs#L199-L216"
         }
       }
     }
@@ -1047,92 +1169,62 @@
           "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
         }
       ],
-      "values": {
-        "ljos": {
-          "median": 187,
-          "min": 94.81,
-          "max": 309,
-          "runs": 7
+      "sets": {
+        "gpu": {},
+        "sw-default": {
+          "ljos": {
+            "median": 163,
+            "min": 107,
+            "max": 180,
+            "runs": 3
+          },
+          "qt": {
+            "median": 507,
+            "min": 297,
+            "max": 700,
+            "runs": 3
+          },
+          "slint": {
+            "median": 182,
+            "min": 165,
+            "max": 527,
+            "runs": 3
+          },
+          "egui": {
+            "median": 141,
+            "min": 134,
+            "max": 147,
+            "runs": 3
+          },
+          "gpui": {
+            "median": 225,
+            "min": 210,
+            "max": 1290,
+            "runs": 3
+          },
+          "iced": {
+            "median": 619,
+            "min": 186,
+            "max": 887,
+            "runs": 3
+          },
+          "flutter": {
+            "median": 547,
+            "min": 352,
+            "max": 653,
+            "runs": 3
+          },
+          "dioxus-desktop": {
+            "median": 269,
+            "min": 117,
+            "max": 435,
+            "runs": 3
+          }
         },
-        "ljos-web": {
-          "median": 276,
-          "min": 244,
-          "max": 452,
-          "runs": 5
-        },
-        "qt": {
-          "median": 1099,
-          "min": 723,
-          "max": 1536,
-          "runs": 7
-        },
-        "slint": {
-          "median": 821,
-          "min": 546,
-          "max": 1239,
-          "runs": 7
-        },
-        "egui": {
-          "median": 3480,
-          "min": 3276,
-          "max": 4066,
-          "runs": 7
-        },
-        "gpui": {
-          "median": 1064,
-          "min": 908,
-          "max": 2349,
-          "runs": 7
-        },
-        "iced": {
-          "median": 4490,
-          "min": 3383,
-          "max": 5056,
-          "runs": 7
-        },
-        "flutter": {
-          "median": 798,
-          "min": 729,
-          "max": 1296,
-          "runs": 7
-        },
-        "declare": {
-          "median": 184,
-          "min": 172,
-          "max": 256,
-          "runs": 5
-        },
-        "solid": {
-          "median": 76,
-          "min": 64,
-          "max": 88,
-          "runs": 5
-        },
-        "leptos": {
-          "median": 64,
-          "min": 56,
-          "max": 92,
-          "runs": 5
-        },
-        "dioxus": {
-          "median": 92,
-          "min": 76,
-          "max": 140,
-          "runs": 5
-        },
-        "sycamore": {
-          "median": 76,
-          "min": 64,
-          "max": 84,
-          "runs": 5
-        },
-        "yew": {
-          "median": 72,
-          "min": 60,
-          "max": 96,
-          "runs": 5
-        }
-      }
+        "sw-4": {},
+        "sw-own": {}
+      },
+      "firefox": {}
     },
     {
       "id": "memory",
@@ -1151,92 +1243,62 @@
           "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
         }
       ],
-      "values": {
-        "ljos": {
-          "median": 97.05,
-          "min": 91.55,
-          "max": 97.73,
-          "runs": 7
+      "sets": {
+        "gpu": {},
+        "sw-default": {
+          "ljos": {
+            "median": 135,
+            "min": 134,
+            "max": 137,
+            "runs": 3
+          },
+          "qt": {
+            "median": 151,
+            "min": 126,
+            "max": 152,
+            "runs": 3
+          },
+          "slint": {
+            "median": 100,
+            "min": 84.8,
+            "max": 101,
+            "runs": 3
+          },
+          "egui": {
+            "median": 86.15,
+            "min": 86.09,
+            "max": 86.16,
+            "runs": 3
+          },
+          "gpui": {
+            "median": 90.63,
+            "min": 35.14,
+            "max": 94.26,
+            "runs": 3
+          },
+          "iced": {
+            "median": 106,
+            "min": 35.68,
+            "max": 106,
+            "runs": 3
+          },
+          "flutter": {
+            "median": 331,
+            "min": 242,
+            "max": 352,
+            "runs": 3
+          },
+          "dioxus-desktop": {
+            "median": 35.75,
+            "min": 26.83,
+            "max": 68.7,
+            "runs": 3
+          }
         },
-        "ljos-web": {
-          "median": 294,
-          "min": 283,
-          "max": 353,
-          "runs": 5
-        },
-        "qt": {
-          "median": 159,
-          "min": 140,
-          "max": 160,
-          "runs": 7
-        },
-        "slint": {
-          "median": 109,
-          "min": 64.56,
-          "max": 113,
-          "runs": 7
-        },
-        "egui": {
-          "median": 93.57,
-          "min": 58.42,
-          "max": 93.84,
-          "runs": 7
-        },
-        "gpui": {
-          "median": 101,
-          "min": 97.4,
-          "max": 105,
-          "runs": 7
-        },
-        "iced": {
-          "median": 115,
-          "min": 78.96,
-          "max": 116,
-          "runs": 7
-        },
-        "flutter": {
-          "median": 380,
-          "min": 368,
-          "max": 399,
-          "runs": 7
-        },
-        "declare": {
-          "median": 396,
-          "min": 386,
-          "max": 397,
-          "runs": 5
-        },
-        "solid": {
-          "median": 254,
-          "min": 245,
-          "max": 257,
-          "runs": 5
-        },
-        "leptos": {
-          "median": 257,
-          "min": 247,
-          "max": 261,
-          "runs": 5
-        },
-        "dioxus": {
-          "median": 257,
-          "min": 207,
-          "max": 262,
-          "runs": 5
-        },
-        "sycamore": {
-          "median": 217,
-          "min": 91.24,
-          "max": 251,
-          "runs": 5
-        },
-        "yew": {
-          "median": 258,
-          "min": 213,
-          "max": 259,
-          "runs": 5
-        }
-      }
+        "sw-4": {},
+        "sw-own": {}
+      },
+      "firefox": {}
     },
     {
       "id": "idle-cpu",
@@ -1256,92 +1318,62 @@
           "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
         }
       ],
-      "values": {
-        "ljos": {
-          "median": 0,
-          "min": 0,
-          "max": 0,
-          "runs": 7
+      "sets": {
+        "gpu": {},
+        "sw-default": {
+          "ljos": {
+            "median": 18.1,
+            "min": 0,
+            "max": 37.55,
+            "runs": 3
+          },
+          "qt": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "runs": 3
+          },
+          "slint": {
+            "median": 0,
+            "min": 0,
+            "max": 0.16,
+            "runs": 3
+          },
+          "egui": {
+            "median": 0.01,
+            "min": 0,
+            "max": 71.6,
+            "runs": 3
+          },
+          "gpui": {
+            "median": 0.28,
+            "min": 0.2,
+            "max": 1.04,
+            "runs": 3
+          },
+          "iced": {
+            "median": 0.26,
+            "min": 0.01,
+            "max": 0.32,
+            "runs": 3
+          },
+          "flutter": {
+            "median": 0.01,
+            "min": 0,
+            "max": 81.5,
+            "runs": 3
+          },
+          "dioxus-desktop": {
+            "median": 2.69,
+            "min": 0.3,
+            "max": 3.3,
+            "runs": 3
+          }
         },
-        "ljos-web": {
-          "median": 3.23,
-          "min": 2.99,
-          "max": 4.22,
-          "runs": 5
-        },
-        "qt": {
-          "median": 0,
-          "min": 0,
-          "max": 0,
-          "runs": 7
-        },
-        "slint": {
-          "median": 0,
-          "min": 0,
-          "max": 0.01,
-          "runs": 7
-        },
-        "egui": {
-          "median": 0,
-          "min": 0,
-          "max": 0.01,
-          "runs": 7
-        },
-        "gpui": {
-          "median": 0.31,
-          "min": 0.22,
-          "max": 0.37,
-          "runs": 7
-        },
-        "iced": {
-          "median": 0.01,
-          "min": 0.01,
-          "max": 0.01,
-          "runs": 7
-        },
-        "flutter": {
-          "median": 0.01,
-          "min": 0,
-          "max": 0.01,
-          "runs": 7
-        },
-        "declare": {
-          "median": 4.48,
-          "min": 3.72,
-          "max": 4.98,
-          "runs": 5
-        },
-        "solid": {
-          "median": 0.75,
-          "min": 0.62,
-          "max": 0.99,
-          "runs": 5
-        },
-        "leptos": {
-          "median": 0.37,
-          "min": 0.25,
-          "max": 0.62,
-          "runs": 5
-        },
-        "dioxus": {
-          "median": 0.62,
-          "min": 0.37,
-          "max": 0.74,
-          "runs": 5
-        },
-        "sycamore": {
-          "median": 0.62,
-          "min": 0.5,
-          "max": 1.24,
-          "runs": 5
-        },
-        "yew": {
-          "median": 0.37,
-          "min": 0.37,
-          "max": 0.5,
-          "runs": 5
-        }
-      }
+        "sw-4": {},
+        "sw-own": {}
+      },
+      "firefox": {}
     },
     {
       "id": "scroll",
@@ -1360,92 +1392,62 @@
           "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
         }
       ],
-      "values": {
-        "ljos": {
-          "median": 32.41,
-          "min": 16.35,
-          "max": 32.51,
-          "runs": 7
+      "sets": {
+        "gpu": {},
+        "sw-default": {
+          "ljos": {
+            "median": 81.08,
+            "min": 32.49,
+            "max": 81.17,
+            "runs": 3
+          },
+          "qt": {
+            "median": 49.44,
+            "min": 49.05,
+            "max": 49.51,
+            "runs": 3
+          },
+          "slint": {
+            "median": 33.71,
+            "min": 16.53,
+            "max": 42.5,
+            "runs": 3
+          },
+          "egui": {
+            "median": 16.46,
+            "min": 16.42,
+            "max": 81.99,
+            "runs": 3
+          },
+          "gpui": {
+            "median": 32.63,
+            "min": 16.42,
+            "max": 33.88,
+            "runs": 3
+          },
+          "iced": {
+            "median": 32.4,
+            "min": 32.37,
+            "max": 43.83,
+            "runs": 3
+          },
+          "flutter": {
+            "median": 53.65,
+            "min": 34.41,
+            "max": 171,
+            "runs": 3
+          },
+          "dioxus-desktop": {
+            "median": 16.8,
+            "min": 16.53,
+            "max": 16.94,
+            "runs": 3
+          }
         },
-        "ljos-web": {
-          "median": 16.8,
-          "min": 16.8,
-          "max": 33.4,
-          "runs": 5
-        },
-        "qt": {
-          "median": 49.2,
-          "min": 48.65,
-          "max": 49.77,
-          "runs": 7
-        },
-        "slint": {
-          "median": 40.72,
-          "min": 33.42,
-          "max": 49.6,
-          "runs": 7
-        },
-        "egui": {
-          "median": 16.54,
-          "min": 16.46,
-          "max": 32.72,
-          "runs": 7
-        },
-        "gpui": {
-          "median": 16.93,
-          "min": 16.77,
-          "max": 33.21,
-          "runs": 7
-        },
-        "iced": {
-          "median": 34,
-          "min": 33.75,
-          "max": 34.68,
-          "runs": 7
-        },
-        "flutter": {
-          "median": 50.31,
-          "min": 34.03,
-          "max": 66.61,
-          "runs": 7
-        },
-        "declare": {
-          "median": 16.7,
-          "min": 16.7,
-          "max": 16.8,
-          "runs": 5
-        },
-        "solid": {
-          "median": 16.7,
-          "min": 16.7,
-          "max": 16.8,
-          "runs": 5
-        },
-        "leptos": {
-          "median": 16.7,
-          "min": 16.7,
-          "max": 16.8,
-          "runs": 5
-        },
-        "dioxus": {
-          "median": 16.7,
-          "min": 16.7,
-          "max": 16.8,
-          "runs": 5
-        },
-        "sycamore": {
-          "median": 16.7,
-          "min": 16.7,
-          "max": 16.8,
-          "runs": 5
-        },
-        "yew": {
-          "median": 16.7,
-          "min": 16.7,
-          "max": 16.8,
-          "runs": 5
-        }
-      }
+        "sw-4": {},
+        "sw-own": {}
+      },
+      "firefox": {}
     },
     {
       "id": "search",
@@ -1464,106 +1466,78 @@
           "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
         }
       ],
-      "values": {
-        "ljos": {
-          "median": 75.23,
-          "min": 11.42,
-          "max": 100,
-          "runs": 84,
-          "of": "keys",
-          "stat": "p95"
+      "sets": {
+        "gpu": {},
+        "sw-default": {
+          "ljos": {
+            "median": 29.36,
+            "min": 9.72,
+            "max": 78.54,
+            "runs": 36,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "qt": {
+            "median": 44.41,
+            "min": 10.08,
+            "max": 59.67,
+            "runs": 29,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "slint": {
+            "median": 44.38,
+            "min": 13.21,
+            "max": 52.73,
+            "runs": 36,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "egui": {
+            "median": 53.33,
+            "min": 16.85,
+            "max": 57,
+            "runs": 36,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "gpui": {
+            "median": 44.15,
+            "min": 27.89,
+            "max": 67.57,
+            "runs": 29,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "iced": {
+            "median": 25.85,
+            "min": 8.75,
+            "max": 34.05,
+            "runs": 36,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "flutter": {
+            "median": 36.64,
+            "min": 11.31,
+            "max": 36.64,
+            "runs": 9,
+            "of": "keys",
+            "stat": "p95"
+          },
+          "dioxus-desktop": {
+            "median": 357,
+            "min": 15.48,
+            "max": 517,
+            "runs": 36,
+            "of": "keys",
+            "stat": "p95"
+          }
         },
-        "ljos-web": {
-          "median": 73.5,
-          "min": 62.8,
-          "max": 110,
-          "runs": 5
-        },
-        "qt": {
-          "median": 26.52,
-          "min": 8.97,
-          "max": 46.6,
-          "runs": 84,
-          "of": "keys",
-          "stat": "p95"
-        },
-        "slint": {
-          "median": 44.57,
-          "min": 22.92,
-          "max": 140,
-          "runs": 84,
-          "of": "keys",
-          "stat": "p95"
-        },
-        "egui": {
-          "median": 27.06,
-          "min": 14.66,
-          "max": 39.26,
-          "runs": 84,
-          "of": "keys",
-          "stat": "p95"
-        },
-        "gpui": {
-          "median": 30.84,
-          "min": 18.88,
-          "max": 50.75,
-          "runs": 84,
-          "of": "keys",
-          "stat": "p95"
-        },
-        "iced": {
-          "median": 13.66,
-          "min": 5.73,
-          "max": 21.8,
-          "runs": 84,
-          "of": "keys",
-          "stat": "p95"
-        },
-        "flutter": {
-          "median": 1281,
-          "min": 802,
-          "max": 1362,
-          "runs": 51,
-          "of": "keys",
-          "stat": "p95"
-        },
-        "declare": {
-          "median": 39.7,
-          "min": 37.8,
-          "max": 52.3,
-          "runs": 5
-        },
-        "solid": {
-          "median": 14,
-          "min": 7.6,
-          "max": 17.7,
-          "runs": 5
-        },
-        "leptos": {
-          "median": 11.1,
-          "min": 8.5,
-          "max": 15.8,
-          "runs": 5
-        },
-        "dioxus": {
-          "median": 11,
-          "min": 5.9,
-          "max": 15,
-          "runs": 5
-        },
-        "sycamore": {
-          "median": 13.3,
-          "min": 10.9,
-          "max": 14.1,
-          "runs": 5
-        },
-        "yew": {
-          "median": 11.6,
-          "min": 8.9,
-          "max": 34.8,
-          "runs": 5
-        }
-      }
+        "sw-4": {},
+        "sw-own": {}
+      },
+      "firefox": {}
     },
     {
       "id": "binary",
@@ -1625,6 +1599,13 @@
           "median": 24.8,
           "min": 24.8,
           "max": 24.8,
+          "runs": 1,
+          "of": "counts"
+        },
+        "dioxus-desktop": {
+          "median": 5.67,
+          "min": 5.67,
+          "max": 5.67,
           "runs": 1,
           "of": "counts"
         }
@@ -1806,12 +1787,53 @@
           "max": 1407,
           "runs": 1,
           "of": "counts"
+        },
+        "dioxus-desktop": {
+          "median": 1164,
+          "min": 1164,
+          "max": 1164,
+          "runs": 1,
+          "of": "counts"
         }
       }
     }
   ],
   "repo": {
-    "href": "https://github.com/hal-c2/ui-framework-review/tree/ad5b4eda6b38923ee10dd6b256f96f17c4bed753",
-    "sha": "ad5b4eda6b38923ee10dd6b256f96f17c4bed753"
-  }
+    "href": "https://github.com/hal-c2/ui-framework-review/tree/7ce60eedc57bd2765b0ad822882dd2baaa3f9f37",
+    "sha": "7ce60eedc57bd2765b0ad822882dd2baaa3f9f37"
+  },
+  "sets": [
+    {
+      "id": "gpu",
+      "label": "GPU",
+      "native": null,
+      "web": null
+    },
+    {
+      "id": "sw-default",
+      "label": "Software (llvmpipe)",
+      "native": {
+        "renderer": "Mesa llvmpipe for every app, at its default of one thread per CPU (32 here)",
+        "env": "__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json VK_LOADER_DRIVERS_DISABLE=*nvidia* LJOS_PAINTER=gl LP_NUM_THREADS=32",
+        "machine": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S, 32 CPUs, 94 GiB, Linux 7.2.15-1-omarchy",
+        "date": "2026-11-28",
+        "runs": "3",
+        "load": "1.7–26.33"
+      },
+      "web": null
+    },
+    {
+      "id": "sw-4",
+      "label": "Software, 4 threads",
+      "native": null,
+      "web": null
+    },
+    {
+      "id": "sw-own",
+      "label": "Software, each toolkit's own",
+      "native": null,
+      "web": null
+    }
+  ],
+  "firefox": null
 }

@@ -40,10 +40,32 @@ async function barsOf(page, metric) {
 // A command as it is drawn: the text wraps to its width, and a wrapped
 // line ends in a line break that reads as a space (after "harness/", say),
 // so the match allows one between any two characters and nothing else.
-const wrapped = (text) => new RegExp(`^${[...text].map((char) => char.replace(/[.*+?^${}()|[\]\\/]/gu, "\\$&")).join("\\s?")}$`, "u");
-const measured = (metric, ids) => ids.filter((id) => metric.values[id] != null).map(named).sort();
+// A quote stands as any one character: Playwright passes the pattern to
+// the page quoted, and a quote escaped there is no pattern under "u".
+const spread = (text) => [...text].map((char) => (/['"]/u.test(char) ? "." : char.replace(/[.*+?^${}()|[\]\\/]/gu, "\\$&"))).join("\\s?");
+const wrapped = (text) => new RegExp(`^${spread(text)}$`, "u");
+// A part of a wrapped text, anywhere in it.
+const within = (text) => new RegExp(spread(text), "u");
+// The renderer sets the numbers were measured in, the page's first its
+// default (Site/ReviewRenderers.qml), and a metric's numbers in one: a
+// timed metric has each set's own, a count is the same in all.
+const SETS = review.sets ?? [];
+const FIRST = SETS[0]?.id;
+const valuesOf = (metric, set = FIRST) => (metric.sets ? (metric.sets[set] ?? {}) : (metric.values ?? {}));
+// Every map of numbers a metric has: its counts, each set's, Firefox's.
+const allValues = (metric) => [metric.values, ...Object.values(metric.sets ?? {}), metric.firefox].filter((values) => values != null);
+// The first set with a number of a metric for a framework of each kind
+// asked: a test that reads bars shows it.
+const setWith = (metric, kinds) => SETS.find((set) => kinds.every((kind) => review.frameworks.some((one) => one.kind === kind && valuesOf(metric, set.id)[one.id] != null)))?.id;
+const labelOf = (set) => SETS.find((one) => one.id === set).label;
+const renderers = (page) => page.getByRole("group", { name: "Renderer", exact: true });
+const showSet = (page, set) => renderers(page).getByRole("radio", { name: labelOf(set), exact: true }).click();
+const measured = (metric, ids, set = FIRST) => ids.filter((id) => valuesOf(metric, set)[id] != null).map(named).sort();
+// The table's rows: the picked frameworks, then the picked web ones in
+// Firefox where it measured them.
+const rowsOf = (ids) => [...ids.map(named), ...(review.firefox ? ids.filter((id) => kindOf(id) === "web" && review.metrics.some((metric) => metric.firefox?.[id] != null)).map((id) => `${named(id)}, Firefox`) : [])];
 // As the page's anyPlaceholder (Site/logic/review.ts) asks it.
-const placeholders = () => review.intro.placeholder === true || review.metrics.some((metric) => Object.values(metric.values).some((value) => value?.placeholder)) || review.features.some((feature) => Object.values(feature.excerpts).some((excerpt) => excerpt?.placeholder)) || review.frameworks.some((one) => one.prose.placeholder || (one.prose.shows ?? []).some((excerpt) => excerpt.placeholder));
+const placeholders = () => review.intro.placeholder === true || review.metrics.some((metric) => allValues(metric).some((values) => Object.values(values).some((value) => value?.placeholder))) || review.features.some((feature) => Object.values(feature.excerpts).some((excerpt) => excerpt?.placeholder)) || review.frameworks.some((one) => one.prose.placeholder || (one.prose.shows ?? []).some((excerpt) => excerpt.placeholder));
 
 test("the data names every framework once, with its links, and picks two or more to start", () => {
   const ids = review.frameworks.map((one) => one.id);
@@ -53,7 +75,15 @@ test("the data names every framework once, with its links, and picks two or more
   for (const one of review.frameworks) {
     for (const link of ["site", "docs", "repo"]) expect(one.links[link], `${one.id}'s ${link}`).toMatch(/^https:\/\//);
     expect(["native", "web"]).toContain(one.kind);
-    expect(one.prose.limits.length, `${one.id} says where it is not as strong`).toBeGreaterThan(0);
+    // An entry new to the review has no words yet, and says so.
+    if (!one.prose.placeholder) expect(one.prose.limits.length, `${one.id} says where it is not as strong`).toBeGreaterThan(0);
+  }
+  // The GPU's set first, the page's default; a timed metric has numbers
+  // of its own for each set, and no other.
+  expect(SETS.map((set) => set.label)).toEqual(["GPU", "Software (llvmpipe)", "Software, 4 threads", "Software, each toolkit's own"]);
+  for (const metric of review.metrics) {
+    if (metric.counted) expect(metric.sets, metric.id).toBeUndefined();
+    else expect(Object.keys(metric.sets ?? {}).sort(), metric.id).toEqual(SETS.map((set) => set.id).sort());
   }
   // Every number names how it was made and how many runs it is, in a
   // group of its own kind: native and web apps share one only where they
@@ -66,7 +96,7 @@ test("the data names every framework once, with its links, and picks two or more
       expect(group.command, `${metric.id} ${group.kind}`).toBeTruthy();
     }
     expect(metric.groups.some((group) => group.kind === "all") ? metric.groups.length : 1, `${metric.id}: "all" stands alone`).toBe(1);
-    for (const [id, value] of Object.entries(metric.values)) {
+    for (const [id, value] of allValues(metric).flatMap((values) => Object.entries(values))) {
       expect(ids, `${metric.id} has a value for ${id}`).toContain(id);
       if (value === null) continue;
       expect(metric.groups.some((group) => group.kind === "all" || group.kind === kindOf(id)), `${metric.id} has a group for ${id}`).toBe(true);
@@ -229,12 +259,16 @@ test("native and web numbers are drawn on scales of their own", async ({ browser
     await page.waitForSelector(hydrated);
     const split = review.metrics.find((metric) => metric.groups.length === 2);
     expect(split, "a metric measured one way for native apps and another for web apps").toBeTruthy();
+    const set = setWith(split, ["native", "web"]);
+    test.skip(set === undefined, "no renderer set has measured both native and web apps yet");
+    await showSet(page, set);
+    const values = valuesOf(split, set);
     // A native and a web framework both measured, picked together.
     const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
     const now = [...review.picked];
     for (const kind of ["native", "web"]) {
-      if (now.some((id) => kindOf(id) === kind && split.values[id] != null)) continue;
-      const one = review.frameworks.find((framework) => framework.kind === kind && split.values[framework.id] != null);
+      if (now.some((id) => kindOf(id) === kind && values[id] != null)) continue;
+      const one = review.frameworks.find((framework) => framework.kind === kind && values[framework.id] != null);
       await picker.getByRole("button", { name: one.name, exact: true }).click();
       now.push(one.id);
     }
@@ -245,17 +279,17 @@ test("native and web numbers are drawn on scales of their own", async ({ browser
     // group holds.
     const fill = [];
     for (const group of split.groups) {
-      const ids = now.filter((id) => kindOf(id) === group.kind && split.values[id] != null);
+      const ids = now.filter((id) => kindOf(id) === group.kind && values[id] != null);
       const list = groupOf(page, split, group);
       await expect.poll(async () => (await namesIn(list)).sort(), group.kind).toEqual(ids.map(named).sort());
       await expect(chart.getByText(group.how, { exact: true }), group.kind).toBeVisible();
       await expect(chart.getByText(wrapped(group.command)), group.kind).toBeAttached();
-      const reach = Math.max(split.floor ?? 0, ...ids.map((id) => split.values[id].max));
-      const longest = ids.reduce((most, id) => (split.values[id].median > split.values[most].median ? id : most));
+      const reach = Math.max(split.floor ?? 0, ...ids.map((id) => values[id].max));
+      const longest = ids.reduce((most, id) => (values[id].median > values[most].median ? id : most));
       const bar = list.locator(`[role="listitem"][aria-label^="${named(longest)}:"] [data-object-name="reviewBar"]`);
       // Each group's track is as wide as the other's, so its longest bar
       // stands at the same share of it.
-      fill.push({ bar, share: split.values[longest].median / reach });
+      fill.push({ bar, share: values[longest].median / reach });
     }
     // A framework picked just now grows its bar in, so the widths are
     // read until it stands at its length.
@@ -289,8 +323,11 @@ test("a chart draws no group for a kind nobody picked, and says nothing of two s
       await expect(chart.getByText("Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across.", { exact: true }), `script ${javaScriptEnabled}`).toBeHidden();
       if (!javaScriptEnabled) continue;
       // Picking one of that kind brings its group, and the two scales'
-      // note, in.
-      const one = review.frameworks.find((framework) => framework.kind === absent.kind && split.values[framework.id] != null);
+      // note, in, in a set that measured both kinds.
+      const set = setWith(split, ["native", "web"]);
+      if (set === undefined) continue;
+      await showSet(page, set);
+      const one = review.frameworks.find((framework) => framework.kind === absent.kind && valuesOf(split, set)[framework.id] != null);
       await page.getByRole("group", { name: "Frameworks to compare", exact: true }).getByRole("button", { name: one.name, exact: true }).click();
       await expect(chart.getByText(absent.how, { exact: true })).toBeVisible();
       await expect(chart.getByText("Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across.", { exact: true })).toBeVisible();
@@ -309,13 +346,17 @@ test("a spread too small to matter is drawn small", async ({ browser }) => {
     const floored = review.metrics.filter((metric) => metric.floor != null);
     expect(floored.map((metric) => metric.id)).toContain("idle-cpu");
     for (const metric of floored) {
+      const set = setWith(metric, ["native"]);
+      if (set === undefined) continue;
+      await showSet(page, set);
       for (const group of metric.groups) {
-        const ids = review.picked.filter((id) => kindOf(id) === group.kind && metric.values[id] != null);
-        const reach = Math.max(metric.floor, ...ids.map((id) => metric.values[id].max));
+        const values = valuesOf(metric, set);
+        const ids = review.picked.filter((id) => kindOf(id) === group.kind && values[id] != null);
+        const reach = Math.max(metric.floor, ...ids.map((id) => values[id].max));
         for (const id of ids) {
           const item = groupOf(page, metric, group).locator(`[role="listitem"][aria-label^="${named(id)}:"]`);
           const row = (await item.boundingBox()).width;
-          const value = metric.values[id];
+          const value = values[id];
           // The whisker over the row, against the spread over the axis:
           // the row is wider than the track, so it may only be less.
           await expect
@@ -354,10 +395,10 @@ test("picking frameworks changes the charts, the table and the code, and two alw
     // The table names each picked framework once, with its values.
     await page.getByRole("button", { name: "Show the numbers as a table", exact: true }).click();
     const table = page.getByRole("table", { name: "The numbers of the picked frameworks", exact: true });
-    await expect(table.getByRole("rowheader")).toHaveText(now.map(named));
-    const metric = review.metrics.find((one) => one.values[added.id] != null);
-    const value = metric.values[added.id];
-    await expect(table.getByRole("row", { name: new RegExp(`^${added.name}\\b`, "u") })).toContainText(`${value.min}–${value.max}`);
+    await expect(table.getByRole("rowheader")).toHaveText(rowsOf(now));
+    const metric = review.metrics.find((one) => valuesOf(one)[added.id] != null);
+    const value = valuesOf(metric)[added.id];
+    await expect(table.getByRole("row", { name: new RegExp(`^${added.name}\\b`, "u") }).first()).toContainText(value.min === value.max ? `${value.median}` : `${value.min}–${value.max}`);
     for (const group of metric.groups) await expect(page.getByText(wrapped(group.command)).first()).toBeAttached();
 
     // The code of one feature, for the picked frameworks only.
@@ -425,8 +466,10 @@ test("with less motion a new bar fades in at its length, and with motion it grow
       const page = await context.newPage();
       await page.goto(route);
       await page.waitForSelector(hydrated);
-      const metric = review.metrics[0];
-      const added = review.frameworks.find((one) => !review.picked.includes(one.id) && metric.values[one.id] != null);
+      // A metric the page's first set has a number of a framework not
+      // picked yet for.
+      const metric = review.metrics.find((one) => review.frameworks.some((framework) => !review.picked.includes(framework.id) && valuesOf(one)[framework.id] != null));
+      const added = review.frameworks.find((one) => !review.picked.includes(one.id) && valuesOf(metric)[one.id] != null);
       // Each frame's width and opacity from the bar's first frame until
       // both rest, watched from before the click so no frame is missed.
       await page.evaluate(
@@ -507,6 +550,148 @@ test("with no script, the review leads to its apps to run, and each excerpt to i
       for (const excerpt of one.prose.shows) {
         await expect(section.getByRole("link", { name: `${excerpt.file}:${excerpt.lines}`, exact: true }), one.id).toHaveAttribute("href", excerpt.href);
       }
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+// The renderer sets (Site/ReviewRenderers.qml): a radio group, the GPU's
+// chosen to start; each choice redraws the timed charts with that set's
+// numbers alone and says under them how the set ran, and a framework the
+// set has no number of is said to be not measured in it.
+test("the renderer switch starts on the GPU and changes the charts and how they ran", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const radios = renderers(page).getByRole("radio");
+    await expect(radios).toHaveText(SETS.map((set) => set.label));
+    for (const [at, set] of SETS.entries()) await expect(radios.nth(at), set.id).toHaveAttribute("aria-checked", at === 0 ? "true" : "false");
+    const timed = review.metrics.filter((metric) => !metric.counted);
+    const counted = review.metrics.filter((metric) => metric.counted);
+    const conditionsOf = (metric) => page.getByRole("region", { name: metric.label, exact: true }).locator('[data-object-name="reviewConditions"]');
+    for (const set of SETS) {
+      if (set.id !== FIRST) await showSet(page, set.id);
+      await expect(renderers(page).getByRole("radio", { name: set.label, exact: true })).toHaveAttribute("aria-checked", "true");
+      for (const metric of timed) {
+        await expect.poll(() => barsOf(page, metric), `${set.id} ${metric.id}`).toEqual(measured(metric, review.picked, set.id));
+        // How the set ran the kinds picked, under each group drawn.
+        const shown = conditionsOf(metric).filter({ visible: true });
+        await expect(shown.first(), `${set.id} ${metric.id}`).toContainText(`${set.label}:`);
+        if (set.native !== null) await expect(shown.first(), `${set.id} ${metric.id}`).toContainText(within(set.native.env.split(" ")[0]));
+        const missing = review.picked.filter((id) => valuesOf(metric, set.id)[id] == null).map(named);
+        const said = page.getByRole("region", { name: metric.label, exact: true }).getByText(/^Not measured in this set: /u);
+        if (missing.length > 0) await expect(said, `${set.id} ${metric.id}`).toHaveText(`Not measured in this set: ${missing.join(", ")}.`);
+        else await expect(said, `${set.id} ${metric.id}`).toBeHidden();
+      }
+      // A count is the same in every set, and says nothing of one.
+      for (const metric of counted) {
+        await expect.poll(() => barsOf(page, metric), `${set.id} ${metric.id}`).toEqual(measured(metric, review.picked, set.id));
+        await expect(conditionsOf(metric).filter({ visible: true }), metric.id).toHaveCount(0);
+      }
+    }
+    // One stop on Tab, and the arrows move the choice along the row.
+    await showSet(page, FIRST);
+    // The page's focus is its own, drawn as a ring (as tests/watch.spec.js
+    // reads it), so Tab goes there rather than the DOM's focus().
+    const radios2 = renderers(page).getByRole("radio");
+    const ringed = () => radios2.evaluateAll((all) => all.filter((one) => / 2px inset/u.test(one.style.boxShadow)).map((one) => one.getAttribute("aria-label")));
+    for (let n = 0; (await ringed()).length === 0; n++) {
+      expect(n, "Tab comes to the renderer switch").toBeLessThan(200);
+      await page.keyboard.press("Tab");
+    }
+    expect(await ringed(), "Tab comes to the chosen set").toEqual([labelOf(FIRST)]);
+    await page.keyboard.press("Tab");
+    await expect.poll(ringed, { message: "the next Tab leaves the row: it is one stop" }).toEqual([]);
+    await page.keyboard.press("Shift+Tab");
+    await expect.poll(ringed).toEqual([labelOf(FIRST)]);
+    await page.keyboard.press("ArrowRight");
+    await expect(renderers(page).getByRole("radio", { name: SETS[1].label, exact: true })).toHaveAttribute("aria-checked", "true");
+    await expect.poll(ringed, { message: "the arrow moves the ring with the choice" }).toEqual([SETS[1].label]);
+  } finally {
+    await context.close();
+  }
+});
+
+// A framework that runs natively and on the web is two entries, one in
+// each group, each naming the other.
+test("a framework on both platforms is in both groups, and each names the other", async ({ browser }) => {
+  const pairs = review.frameworks.filter((one) => (one.pair ?? []).some((id) => kindOf(id) !== one.kind));
+  expect(pairs.map((one) => one.id)).toEqual(expect.arrayContaining(["dioxus", "dioxus-desktop", "ljos", "ljos-web"]));
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+    for (const one of pairs) {
+      const group = picker.getByRole("group", { name: one.kind === "web" ? "Web" : "Native", exact: true });
+      await expect(group.getByRole("button", { name: one.name, exact: true }), one.id).toBeVisible();
+      if (!review.picked.includes(one.id)) await picker.getByRole("button", { name: one.name, exact: true }).click();
+      const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+      const other = one.pair.map(named).join(", ");
+      await expect(section.getByText(one.kind === "web" ? `Also among the native apps: ${other}.` : `Also among the web apps: ${other}.`, { exact: true }), one.id).toBeVisible();
+    }
+    // What an entry could not do of the spec, it says.
+    for (const one of review.frameworks.filter((framework) => (framework.missing ?? []).length > 0)) {
+      if (!pairs.includes(one) && !review.picked.includes(one.id)) await picker.getByRole("button", { name: one.name, exact: true }).click();
+      const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+      await expect(section.locator('[data-object-name="reviewMissing"]'), one.id).toContainText(one.missing[0]);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+// Each entry's picture is the published repository's, in the page's
+// scheme, fetched only when a reader comes to it.
+for (const colorScheme of ["light", "dark"]) {
+  test(`each entry shows its screenshot in ${colorScheme}, with alt text, lazily`, async ({ browser }) => {
+    for (const one of review.frameworks) expect(one.screenshot?.[colorScheme], one.id).toMatch(/^https:\/\/hal-c2\.github\.io\/ui-framework-review\/screenshots\/[a-z-]+\/(light|dark)\.png$/u);
+    const context = await browser.newContext({ colorScheme, viewport: { width: 1440, height: 900 } });
+    try {
+      const page = await context.newPage();
+      // The pictures are the repository's site's, not the page's: no test
+      // reaches it, so none is fetched.
+      await page.route("https://hal-c2.github.io/**", (request) => request.fulfill({ status: 204 }));
+      await page.goto(route);
+      await page.waitForSelector(hydrated);
+      const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+      for (const one of review.frameworks.filter(({ id }) => !review.picked.includes(id))) await picker.getByRole("button", { name: one.name, exact: true }).click();
+      for (const one of review.frameworks) {
+        const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+        const shot = section.getByRole("img", { name: `${one.name}: the inbox app, ${colorScheme}`, exact: true });
+        await expect(shot, one.id).toBeAttached();
+        await expect(shot, one.id).toHaveAttribute("src", one.screenshot[colorScheme]);
+        await expect(shot, one.id).toHaveAttribute("loading", "lazy");
+        await expect(section.getByRole("img", { name: /: the inbox app, (light|dark)$/u }).filter({ visible: true }), one.id).toHaveCount(1);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+// A web entry runs, as measured, in the reader's own browser.
+test("each web entry links to its build to run in the browser", async ({ browser }) => {
+  for (const one of review.frameworks) {
+    if (one.kind === "web") expect(one.run, one.id).toMatch(/^https:\/\/hal-c2\.github\.io\/ui-framework-review\/run\/[a-z-]+\/$/u);
+    else expect(one.run, one.id).toBeUndefined();
+  }
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+    for (const one of review.frameworks.filter(({ id }) => !review.picked.includes(id))) await picker.getByRole("button", { name: one.name, exact: true }).click();
+    for (const one of review.frameworks) {
+      const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+      const run = section.getByRole("link", { name: `Run ${one.name} in your browser`, exact: true });
+      if (one.kind === "web") await expect(run, one.id).toHaveAttribute("href", one.run);
+      else await expect(run, one.id).toHaveCount(0);
     }
   } finally {
     await context.close();

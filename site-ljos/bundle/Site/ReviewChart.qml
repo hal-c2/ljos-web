@@ -9,6 +9,9 @@ import "logic/review.ts" as Review
 // the spread of the runs as a whisker across its end and the number at
 // its tip. One measure on one axis, in the accent alone, as each bar
 // names its framework; the command that measured it under the bars.
+// A timed metric is drawn as one renderer set measured it, and says
+// under each group how that set ran; a framework the set has no number
+// of has no bar, and the chart says so.
 //
 // Native and web apps measured differently (a browser's whole process
 // tree against an app's own, a first contentful paint against a first
@@ -25,7 +28,10 @@ Column {
     id: chart
 
     required property Review.Review review
-    required property Review.Metric metric
+    // As the shown renderer set measured it (Review.inSet).
+    required property Review.Measured metric
+    // That set, by its id.
+    property string set: ""
     required property list<string> picked
     // The page is running in a browser: a bar picked from here on eases
     // in. False as the page is built and while it is taken over.
@@ -40,6 +46,7 @@ Column {
     readonly property string only: Review.onlyKind(chart.metric)
     readonly property bool split: chart.metric.groups.length > 1
     readonly property int held: Review.groupsHeld(chart.review, chart.metric, chart.picked)
+    readonly property bool timed: Review.timed(chart.metric)
     // The names' column and the room after the longest bar for its number.
     readonly property real names: chart.wide ? 104 : 84
     readonly property real tip: 76
@@ -83,7 +90,9 @@ Column {
             // A kind's group with none of its kind picked would be a
             // method and a command over no bars: it comes in with the
             // first one picked.
-            visible: !chart.split || group.bars.length > 0
+            // A timed chart keeps the group of a picked kind in a set that
+            // has no number of it, to say how that set ran.
+            visible: !chart.split || group.bars.length > 0 || chart.timed && Review.holds(chart.review, group.modelData, chart.picked)
             width: parent.width
             topPadding: chart.split ? Theme.xs : 0
             spacing: Theme.xs
@@ -135,6 +144,12 @@ Column {
                         property real grow: 1
                         property real seen: 1
                         property bool easing: false
+                        // Where a value falls along the track, to the half
+                        // pixel: no finer is drawn, and the first load's page
+                        // carries every one of these numbers.
+                        function at(v: real): real {
+                            return Math.round(item.track * v / group.reach * item.grow * 2) / 2;
+                        }
 
                         width: parent.width
                         height: 24
@@ -197,7 +212,7 @@ Column {
                             objectName: "reviewBar"
                             x: chart.names
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.max(2, item.track * item.value.median / group.reach * item.grow)
+                            width: Math.max(2, item.at(item.value.median))
                             height: 16
                             radius: 4
                             fill: Theme.accent
@@ -211,15 +226,15 @@ Column {
                         // most, at the bar's end.
                         Rectangle {
                             objectName: "reviewSpread"
-                            x: chart.names + item.track * item.value.min / group.reach * item.grow
+                            x: chart.names + item.at(item.value.min)
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.max(1, item.track * (item.value.max - item.value.min) / group.reach * item.grow)
+                            width: Math.max(1, item.at(item.value.max) - item.at(item.value.min))
                             height: 2
                             fill: Theme.text
                             opacity: 0.6
                         }
                         Text {
-                            x: chart.names + item.track * item.value.max / group.reach * item.grow + Theme.xs
+                            x: chart.names + item.at(item.value.max) + Theme.xs
                             anchors.verticalCenter: parent.verticalCenter
                             text: Review.said(item.value.median, chart.metric.unit)
                             color: Theme.text
@@ -253,13 +268,27 @@ Column {
                 // away; a path wider than the window still breaks.
                 wrap: Text.Wrap
             }
+            // How the shown set ran this kind of app: what drew, what
+            // every app shared, the runs, the load and the machine.
+            Text {
+                objectName: "reviewConditions"
+                visible: chart.timed
+                width: parent.width
+                text: chart.timed ? Review.conditions(chart.review, chart.set, group.modelData.kind) : ""
+                color: Theme.textMuted
+                font.family: Theme.sans
+                font.size: Theme.captionSize
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.captionLine
+                wrap: Text.WrapAnywhere
+            }
         }
     }
 
     Text {
         visible: chart.missing.length > 0
         width: parent.width
-        text: chart.only === "native" ? t`No bar for ${chart.missing.join(", ")}: this is measured for native apps only.` : chart.only === "web" ? t`No bar for ${chart.missing.join(", ")}: this is measured for web apps only.` : t`No number yet for ${chart.missing.join(", ")}.`
+        text: chart.timed ? t`Not measured in this set: ${chart.missing.join(", ")}.` : chart.only === "native" ? t`No bar for ${chart.missing.join(", ")}: this is measured for native apps only.` : chart.only === "web" ? t`No bar for ${chart.missing.join(", ")}: this is measured for web apps only.` : t`No number yet for ${chart.missing.join(", ")}.`
         color: Theme.textMuted
         font.family: Theme.sans
         font.size: Theme.captionSize

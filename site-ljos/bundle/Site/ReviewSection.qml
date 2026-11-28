@@ -7,13 +7,22 @@ import "logic/review.ts" as Review
 
 // One framework of the review, in the words of someone who loves it:
 // what it is, why they reach for it and what they would show first, then
-// where it is not as strong, as plainly, and where to find it.
+// where it is not as strong, as plainly, and where to find it. Above
+// the words, the app as the published repository pictured it, in the
+// page's scheme, and what of the spec it could not do.
 Column {
     id: section
 
+    required property Review.Review review
     required property Review.Framework framework
     property bool wide: true
+    // The page runs in a browser: what the build does not write (the
+    // pictures) is made.
+    property bool live: false
     property Flickable scroller
+
+    // The picture's width: the measure, or the page's on a phone.
+    readonly property int shot: Math.min(width, Theme.measure + Theme.xxl)
 
     spacing: Theme.s
     Accessible.role: Accessible.Section
@@ -43,6 +52,77 @@ Column {
         lineHeight: Theme.captionLine
         wrap: Text.Wrap
     }
+    // How this entry builds the app, where the framework has more than
+    // one way, and the same framework's entry of the other kind.
+    Text {
+        visible: (section.framework.strategy ?? "") !== ""
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
+        width: Math.min(parent.width, Theme.measure)
+        text: section.framework.strategy ?? ""
+        color: Theme.textMuted
+        font.family: Theme.sans
+        font.size: Theme.captionSize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.captionLine
+        wrap: Text.Wrap
+    }
+    Text {
+        objectName: "reviewPair"
+        visible: (section.framework.pair ?? []).length > 0
+        width: parent.width
+        text: section.framework.kind === "web" ? t`Also among the native apps: ${Review.pairNames(section.review, section.framework)}.` : t`Also among the web apps: ${Review.pairNames(section.review, section.framework)}.`
+        color: Theme.textMuted
+        font.family: Theme.sans
+        font.size: Theme.captionSize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.captionLine
+        wrap: Text.Wrap
+    }
+    // The app as published, one picture for each scheme and only the
+    // page's shown: lazy, so a reader fetches the pictures of the
+    // sections they scroll to, from the repository's site, and the page
+    // carries none. Made once the page runs, not by the build: the page
+    // as written is made twice (wide and narrow), each picture with it,
+    // and its first load has no room to spare (tests/payload.spec.js).
+    // Both are made, the other hidden, so a change of scheme shows the
+    // other at once, and one place holds both.
+    Loader {
+        active: section.live && section.framework.screenshot !== undefined
+        visible: active
+        width: section.shot
+        height: Math.round(section.shot * 800 / 1280)
+        component: Item {
+            Text {
+                objectName: "reviewShot"
+                visible: !Theme.dark
+                width: section.shot
+                height: Math.round(section.shot * 800 / 1280)
+                format: Text.RichText
+                text: Review.shotOf(section.framework, false, section.shot)
+            }
+            Text {
+                objectName: "reviewShot"
+                visible: Theme.dark
+                width: section.shot
+                height: Math.round(section.shot * 800 / 1280)
+                format: Text.RichText
+                text: Review.shotOf(section.framework, true, section.shot)
+            }
+        }
+    }
+    Text {
+        objectName: "reviewMissing"
+        visible: (section.framework.missing ?? []).length > 0
+        x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
+        width: Math.min(parent.width, Theme.measure)
+        text: t`What of the spec this entry does not do: ${(section.framework.missing ?? []).join("; ")}.`
+        color: Theme.text
+        font.family: Theme.sans
+        font.size: Theme.captionSize + 1
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.captionLine
+        wrap: Text.Wrap
+    }
     Text {
         x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
         width: Math.min(parent.width, Theme.measure)
@@ -60,6 +140,7 @@ Column {
         height: Theme.xxs
     }
     Text {
+        visible: section.framework.prose.cool.length > 0 || section.framework.prose.shows.length > 0
         width: parent.width
         text: t`What a fan shows first`
         color: Theme.text
@@ -152,6 +233,7 @@ Column {
         height: Theme.xxs
     }
     Text {
+        visible: section.framework.prose.limits.length > 0
         width: parent.width
         text: t`Where it is not as strong`
         color: Theme.text
@@ -196,6 +278,18 @@ Column {
     Flow {
         width: parent.width
         spacing: Theme.xs
+        // A web build runs as measured, from the repository's site. Made
+        // only where there is one: a hidden button would still be on every
+        // native section of the first load's page.
+        Loader {
+            active: (section.framework.run ?? "") !== ""
+            visible: active
+            component: LinkButton {
+                objectName: "reviewRun"
+                label: t`Run ${section.framework.name} in your browser`
+                href: section.framework.run ?? ""
+            }
+        }
         LinkButton {
             quiet: true
             label: t`${section.framework.name} website`

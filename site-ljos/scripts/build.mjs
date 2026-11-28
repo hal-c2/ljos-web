@@ -375,7 +375,45 @@ const review = (() => {
   };
   for (const feature of data.features) for (const excerpt of Object.values(feature.excerpts)) colour(excerpt);
   for (const one of data.frameworks) for (const excerpt of one.prose.shows ?? []) colour(excerpt);
+  // Where an entry's numbers are filed in the results: the data's own
+  // join, which the page does not read.
+  for (const one of data.frameworks) delete one.results;
   return data;
+})();
+// What the page shows only once a reader asks for it: each timed
+// metric's sets after the first, the one the page opens on, Firefox's
+// numbers, and the words of the frameworks it does not open with. The review's module carries the first set alone, so its
+// first load holds one set's numbers however many sets there are
+// (tests/payload.spec.js); Site/later.js imports the rest.
+const reviewLater = (() => {
+  const first = review.sets?.[0]?.id;
+  const later = { sets: {}, firefox: {}, prose: {} };
+  // A framework's words are read in its section, and a section is made
+  // only once its framework is picked: the ones the page opens with keep
+  // theirs, the rest stand as empty words marked to come later (and as
+  // placeholders where they are).
+  const picked = new Set(review.picked);
+  review.frameworks = review.frameworks.map((one) => {
+    if (picked.has(one.id)) return one;
+    later.prose[one.id] = one.prose;
+    const placeholder = one.prose.placeholder === true || one.prose.shows.some((excerpt) => excerpt.placeholder === true);
+    return { ...one, prose: { fan: "", cool: [], shows: [], limits: [], later: true, ...(placeholder ? { placeholder } : {}) } };
+  });
+  for (const metric of review.metrics) {
+    if (metric.sets !== undefined) {
+      const kept = {};
+      for (const [set, values] of Object.entries(metric.sets)) {
+        if (set === first) kept[set] = values;
+        else (later.sets[metric.id] ??= {})[set] = values;
+      }
+      metric.sets = kept;
+    }
+    if (metric.firefox !== undefined) {
+      later.firefox[metric.id] = metric.firefox;
+      delete metric.firefox;
+    }
+  }
+  return later;
 })();
 // The apps built with Ljós the showcase shows, as data, and the
 // recordings and captures of each (bundle/Showcase).
@@ -487,6 +525,11 @@ Object {
 }
 `,
 );
+
+// The rest of the review's numbers (reviewLater), imported by
+// Site/later.js when the page asks. Written fresh each build and
+// gitignored, like ReviewData.qml.
+writeFileSync(join(bundle, "Site/review-later.json"), JSON.stringify(reviewLater));
 
 // The Pantry flagship's project, as data: the shell the editor
 // starts from and the files a visitor's shell compiles against,

@@ -59,6 +59,7 @@ ReviewChart 1.0 ReviewChart.qml
 ReviewTable 1.0 ReviewTable.qml
 ReviewCode 1.0 ReviewCode.qml
 ReviewSection 1.0 ReviewSection.qml
+ReviewRenderers 1.0 ReviewRenderers.qml
 Heading 1.0 Heading.qml
 Panel 1.0 Panel.qml
 DeviceFrame 1.0 DeviceFrame.qml

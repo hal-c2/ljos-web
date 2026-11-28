@@ -6,6 +6,7 @@ bundle/ljos-site.json
 bundle/Site/Content.qml
 bundle/Site/ShowcaseApps.qml
 bundle/Site/ReviewData.qml
+bundle/Site/review-later.json
 bundle/Site/ProText.qml
 bundle/Site/LandingCode.qml
 bundle/Examples/

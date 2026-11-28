@@ -57,6 +57,77 @@ const rootOf = (one) => placeOf(one, one.source.root);
 if (roots.review == null) throw new Error("pass --review <clone of " + REPO + ">");
 const sha = execFileSync("git", ["-C", roots.review, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 review.repo = { href: `${REPO}/tree/${sha}`, sha };
+
+const resultsFile = option("--results");
+const results = resultsFile == null ? null : JSON.parse(readFileSync(resultsFile, "utf8"));
+
+// Every entry the published repository lists (site/data/entries.json):
+// a framework that runs natively and on the web is two entries, each in
+// its own group, naming the other as its pair. An entry's picture and,
+// for a web build, the page that runs it come from the repository's
+// GitHub Pages site, loaded only when a reader scrolls to it, so the
+// review's own pages carry none of them. What an entry could not do of
+// the spec comes from the compare lead's ENTRIES-2.json (in RESULTS.json
+// as `entries`).
+const PAGES = "https://hal-c2.github.io/ui-framework-review";
+const listed = JSON.parse(readFileSync(join(roots.review, "site/data/entries.json"), "utf8")).entries;
+const noted = new Map((results?.entries ?? []).map((entry) => [entry.entry, entry]));
+const entryOf = new Map();
+// "review:ljos-web/app" is in the repository's "ljos-web" directory.
+const inDir = (framework, dir) => dir != null && (framework.source.root === `review:${dir}` || framework.source.root.startsWith(`review:${dir}/`));
+// Sizes and line counts of the entries the review had no section for,
+// as the repository writes them; COUNTED below has the others.
+const counted = { loc: {}, binary: {} };
+for (const entry of listed) {
+  // An entry already given a section is that section, whether this run
+  // or an earlier one named it.
+  let one = byId.get(entry.id) ?? review.frameworks.find((framework) => inDir(framework, entry.dir));
+  if (one == null) {
+    // An entry with no app of its own (Dioxus's desktop build is the web
+    // app's code) links to its pair's; its words are not written yet.
+    const pair = listed.find((other) => (entry.counterparts ?? []).includes(other.id) && other.dir != null);
+    const from = pair && review.frameworks.find((framework) => inDir(framework, pair.dir));
+    if (from == null) throw new Error(`${entry.id}: no app of its own and no pair with one`);
+    one = {
+      id: entry.id,
+      name: entry.name,
+      kind: entry.kind,
+      language: entry.language,
+      version: entry.version,
+      licence: from.licence,
+      links: from.links,
+      source: { root: from.source.root },
+      prose: { fan: entry.summary, cool: [], limits: [], shows: [], placeholder: true },
+    };
+    review.frameworks.push(one);
+    byId.set(one.id, one);
+    const count = (text, pattern) => Number(text?.match(pattern)?.[1]?.replace(/,/gu, ""));
+    const loc = count(entry.loc, /^([\d,]+)/u);
+    const bytes = count(entry.binary, /([\d,]+) B stripped/u);
+    if (loc > 0) counted.loc[one.id] = loc;
+    if (bytes > 0 && one.kind === "native") counted.binary[one.id] = Math.round(bytes / 1e4) / 100;
+  }
+  entryOf.set(entry.id, one);
+  one.name = entry.name;
+  one.results = entry.results;
+  const shot = (scheme) => `screenshots/${entry.id}/${scheme}.png`;
+  if (existsSync(join(roots.review, shot("light"))) && existsSync(join(roots.review, shot("dark")))) {
+    one.screenshot = { light: `${PAGES}/${shot("light")}`, dark: `${PAGES}/${shot("dark")}` };
+  } else delete one.screenshot;
+  if (entry.kind === "web" && existsSync(join(roots.review, "builds", entry.id))) one.run = `${PAGES}/run/${entry.id}/`;
+  else delete one.run;
+  const note = noted.get(entry.id);
+  if (note?.strategy != null) one.strategy = note.strategy;
+  const missing = note?.missing == null ? [] : [note.missing].flat();
+  if (missing.length > 0) one.missing = missing;
+  else delete one.missing;
+}
+for (const entry of listed) {
+  const pair = (entry.counterparts ?? []).map((id) => entryOf.get(id)?.id).filter((id) => id != null);
+  if (pair.length > 0) entryOf.get(entry.id).pair = pair;
+  else delete entryOf.get(entry.id).pair;
+}
+
 for (const one of review.frameworks) {
   const [kind, dir] = one.source.root.split(/:(.*)/su);
   if (kind !== "review") throw new Error(`${one.id}: its source.root ${one.source.root} is not in the published apps ("review:<dir>")`);
@@ -153,7 +224,9 @@ if (proseFile != null) {
     if (one == null) throw new Error(`${proseFile}: ${id} is no framework of the review`);
     one.prose = { fan: words.fan, cool: words.cool, limits: words.limits, shows: words.shows.map((n) => ({ n })) };
   }
-  const unwritten = review.frameworks.filter((one) => !(one.id in prose.frameworks)).map((one) => one.id);
+  // An entry new to the review keeps its placeholder until its words are
+  // written; every other framework must have them.
+  const unwritten = review.frameworks.filter((one) => !(one.id in prose.frameworks) && one.prose.placeholder !== true).map((one) => one.id);
   if (unwritten.length > 0) throw new Error(`${proseFile}: no words for ${unwritten.join(", ")}`);
 }
 
@@ -161,7 +234,7 @@ for (const one of review.frameworks) {
   // Until its words are written, a placeholder section shows its sheet's
   // first excerpt.
   if (one.prose.shows == null && placeholders) one.prose.shows = [{ n: 1 }];
-  if (one.prose.shows == null) continue;
+  if (one.prose.shows == null || one.prose.shows.length === 0) continue;
   const numbered = sheet(one);
   one.prose.shows = one.prose.shows.map(({ n }) => {
     const excerpt = numbered.get(n);
@@ -229,40 +302,99 @@ const COUNTED = {
   },
 };
 for (const metric of review.metrics) {
-  for (const [id, count] of Object.entries(COUNTED[metric.id] ?? {})) metric.values[id] = { median: count, min: count, max: count, runs: 1, of: "counts" };
+  for (const [id, count] of Object.entries({ ...COUNTED[metric.id], ...counted[metric.id] })) metric.values[id] = { median: count, min: count, max: count, runs: 1, of: "counts" };
 }
 
-// The runtimes RESULTS.json names that the page names otherwise.
-const RUNTIME = { qt: "qtquick", gpui: "gpui-x11" };
-const resultsFile = option("--results");
-if (resultsFile != null) {
-  const results = JSON.parse(readFileSync(resultsFile, "utf8"));
+// The renderer sets the numbers were measured in (compare/harness/
+// aggregate2.py's passes), in the order the page offers them, the first
+// its default. Native apps ran each set with one driver environment
+// shared by every app; the web apps ran in Chromium on the GPU for the
+// GPU set and in Chromium's own software path (SwiftShader) for the
+// others, since a browser has no llvmpipe thread count to set. Firefox
+// ran once, on its default, and is shown beside the sets, not in them.
+const SETS = [
+  { id: "gpu", label: "GPU", browser: "chromium-gpu" },
+  { id: "sw-default", label: "Software (llvmpipe)", browser: "chromium" },
+  { id: "sw-4", label: "Software, 4 threads", browser: "chromium" },
+  { id: "sw-own", label: "Software, each toolkit's own", browser: "chromium" },
+];
+const BROWSERS = { "chromium-gpu": "Chromium on the GPU", chromium: "Chromium, software (SwiftShader)", firefox: "Firefox" };
+if (results != null) {
   const dig = (at, path) => path.reduce((here, key) => (here == null ? null : here[key]), at);
+  const round = (value) => (Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 100) / 100);
+  const span = (numbers) => {
+    const known = numbers.filter((number) => typeof number === "number");
+    if (known.length === 0) return null;
+    const [least, most] = [Math.min(...known), Math.max(...known)];
+    return least === most ? `${round(least)}` : `${round(least)}–${round(most)}`;
+  };
+  const valueOf = (at, where, kind) => {
+    const path = where[kind];
+    const stat = path && at ? dig(at, path) : null;
+    const pooled = where.pooled?.[kind];
+    // A pooled number: the bar its 95th percentile, the line from the
+    // median key to the slowest.
+    if (pooled != null) return stat?.p95 == null ? null : { median: round(stat.p95), min: round(stat.p50), max: round(stat.max), runs: stat.n, of: pooled, stat: "p95" };
+    return stat?.median == null ? null : { median: round(stat.median), min: round(stat.min), max: round(stat.max), runs: stat.n };
+  };
+  const webIn = (browser) => {
+    const reports = Object.entries(results.web ?? {}).map(([, by]) => by[browser]).filter((report) => report != null);
+    if (reports.length === 0) return null;
+    return {
+      browser: BROWSERS[browser],
+      renderer: results.web_renderers?.[browser] ?? null,
+      seen: reports.find((report) => report.renderer)?.renderer ?? null,
+      version: reports.find((report) => report.version)?.version ?? null,
+      runs: span(reports.map((report) => report.runs)),
+    };
+  };
+  review.sets = SETS.map(({ id, label, browser }) => {
+    const pass = results.native?.[id];
+    const runtimes = Object.values(pass?.runtimes ?? {});
+    const machine = pass?.meta?.machine;
+    const native =
+      pass == null || runtimes.length === 0
+        ? null
+        : {
+            renderer: pass.renderer,
+            env: pass.env,
+            machine: machine == null ? null : `${machine.cpu}, ${machine.cpus} CPUs, ${Math.round(machine.memory_bytes / 2 ** 30)} GiB, Linux ${machine.kernel}`,
+            date: pass.meta.date ?? null,
+            runs: span(runtimes.map((runtime) => runtime.session?.runs)),
+            load: span(runtimes.flatMap((runtime) => runtime.session?.load_average?.values ?? [])),
+          };
+    return { id, label, native, web: webIn(browser) };
+  });
+  review.firefox = webIn("firefox");
   for (const metric of review.metrics) {
     const where = MEASURED[metric.id];
     if (where == null) continue;
-    for (const one of review.frameworks) {
-      const name = RUNTIME[one.id] ?? one.id;
-      const at = one.kind === "native" ? results.native?.runtimes?.[name] : results.web?.[name]?.chromium;
-      const path = where[one.kind];
-      const stat = path && at ? dig(at, path) : null;
-      const round = (value) => (Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 100) / 100);
-      const pooled = where.pooled?.[one.kind];
-      if (pooled != null) {
-        // A pooled number: the bar its 95th percentile, the line from the
-        // median key to the slowest.
-        if (stat?.p95 == null) continue;
-        metric.values[one.id] = { median: round(stat.p95), min: round(stat.p50), max: round(stat.max), runs: stat.n, of: pooled, stat: "p95" };
-        continue;
+    // A timed metric's numbers are each set's own: a set an app did not
+    // run in has no number for it, never another set's.
+    delete metric.values;
+    metric.sets = {};
+    metric.firefox = {};
+    for (const { id, browser } of SETS) {
+      const values = (metric.sets[id] = {});
+      for (const one of review.frameworks) {
+        const name = one.results ?? one.id;
+        const at = one.kind === "native" ? results.native?.[id]?.runtimes?.[name] : results.web?.[name]?.[browser];
+        const value = valueOf(at, where, one.kind);
+        if (value != null) values[one.id] = value;
       }
-      if (stat?.median == null) continue;
-      metric.values[one.id] = { median: round(stat.median), min: round(stat.min), max: round(stat.max), runs: stat.n };
+    }
+    for (const one of review.frameworks) {
+      const value = one.kind === "web" ? valueOf(results.web?.[one.results ?? one.id]?.firefox, where, "web") : null;
+      if (value != null) metric.firefox[one.id] = value;
     }
   }
 }
 
 if (placeholders) {
   for (const metric of review.metrics) {
+    // A renderer set's missing number stays missing: the page says the
+    // set has none.
+    if (metric.values == null) continue;
     for (const one of review.frameworks) {
       const measured = metric.values[one.id];
       if (measured != null && !measured.placeholder) continue;
