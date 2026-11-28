@@ -593,14 +593,14 @@ msgid "Driver warmer"
 msgstr "Fahrer wärmer"
 
 #: ../Site/ReviewPage.qml:202
-msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
-msgstr "Jeder Balken ist der Median seiner Läufe, die Linie über sein Ende reicht vom kleinsten zum größten Wert, und unter jedem Diagramm steht der Befehl, der es gemessen hat. Ein kürzerer Balken ist auf jedem Diagramm besser."
+msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
+msgstr "Jeder Balken ist der Median seiner Läufe, die Linie an seinem Ende reicht vom kleinsten zum größten Wert; bei der nativen Suche ist der Balken das langsame Ende aller getippten Tasten, im Web die erste Taste, wie jedes Diagramm sagt. Unter jedem Diagramm steht der Befehl, der es gemessen hat. Kürzer ist in jedem Diagramm besser. Ein Rechner, geteilt und ausgelastet, ohne GPU: Die Zahlen vergleichen sich untereinander, nicht mit anderen Rechnern."
 
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "Jede Demo ist eine vollständige Ljós-App, die ljos check besteht, vorkompiliert und direkt auf dieser Seite eingebunden. Wenn eine Demo läuft, wechsle oben zwischen hellem und dunklem Design, um sie folgen zu sehen. Bearbeite den Code live auf den Cockpit- und Smartwatch-Seiten, und schreibe die Shell eines Ladens um, während er läuft, auf der {shopLink}. Fehlt dem Browser das nötige WebAssembly oder WebGL 2, bleiben Bild und Beschreibung der Demo erhalten."
 
-#: ../Site/ReviewPage.qml:274
+#: ../Site/ReviewPage.qml:289
 msgid "Each framework, by a fan"
 msgstr "Jedes Framework, von einem Fan"
 
@@ -1168,7 +1168,7 @@ msgstr "Formbare Software, überall."
 msgid "Map: the route to {0}"
 msgstr "Karte: Route nach {0}"
 
-#: ../Site/ReviewChart.qml:195
+#: ../Site/ReviewChart.qml:232
 msgid "Measured with"
 msgstr "Gemessen mit"
 
@@ -1224,6 +1224,14 @@ msgstr "LÄUFT GERADE"
 msgid "Native"
 msgstr "Nativ"
 
+#: ../Site/ReviewChart.qml:62
+msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
+msgstr "Native Apps und Web-Apps werden hier unterschiedlich gemessen, daher hat jede Gruppe ihre eigene Skala: Vergleiche innerhalb einer Gruppe, nicht über Gruppen hinweg."
+
+#: ../Site/ReviewChart.qml:89
+msgid "Native apps"
+msgstr "Native Apps"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "Navigation"
@@ -1240,13 +1248,17 @@ msgstr "Nächster Titel"
 msgid "Next: {0}"
 msgstr "Weiter: {0}"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "Kein Balken für {0}: Das wird nur für native Apps gemessen."
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "Kein Balken für {0}: Das wird nur für Web-Apps gemessen."
+
+#: ../Site/ReviewPage.qml:243
+msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
+msgstr "Kein Diagramm der Build-Zeiten: Die Builds jeder App liefen durch eine Warteschlange, die mit anderer Arbeit geteilt wurde, ihre Zeiten sind also meist das Warten und lassen sich nicht vergleichen."
 
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
@@ -1256,7 +1268,7 @@ msgstr "Keine Compiler- oder Lint-Diagnosen in der offenen Datei."
 msgid "No crew"
 msgstr "Kein Team"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No number yet for {0}."
 msgstr "Noch keine Zahl für {0}."
 
@@ -2130,6 +2142,10 @@ msgstr "Die Doku"
 msgid "The files of {0}"
 msgstr "Dateien: {0}"
 
+#: ../Site/ReviewPage.qml:303
+msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
+msgstr "Die oben gewählten Frameworks, jedes in den Worten von jemandem, der es liebt. Wähle ein weiteres, um seinen Fan zu lesen."
+
 #: ../Site/ReviewPage.qml:188
 msgid "The numbers"
 msgstr "Die Zahlen"
@@ -2142,7 +2158,7 @@ msgstr "Die Zahlen der gewählten Frameworks"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "Die Dachterrasse macht um acht auf. Bring die Jacke mit, oben wird es kalt."
 
-#: ../Site/ReviewPage.qml:248
+#: ../Site/ReviewPage.qml:259
 msgid "The same feature in each one's code"
 msgstr "Dieselbe Funktion im Code jedes Frameworks"
 
@@ -2359,6 +2375,10 @@ msgstr "Weckt die Uhr oder kehrt zum Zifferblatt zurück"
 msgid "Web"
 msgstr "Web"
 
+#: ../Site/ReviewChart.qml:89
+msgid "Web apps"
+msgstr "Web-Apps"
+
 #: ../Site/ReviewSection.qml:64
 msgid "What a fan shows first"
 msgstr "Was ein Fan zuerst zeigt"
@@ -2371,9 +2391,13 @@ msgstr "Was ist Ljós?"
 msgid "What we care about, and what we leave out on purpose."
 msgstr "Was uns wichtig ist — und was wir bewusst weglassen."
 
-#: ../Site/ReviewSection.qml:155
+#: ../Site/ReviewSection.qml:156
 msgid "Where it is not as strong"
 msgstr "Wo es nicht so stark ist"
+
+#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+msgid "Where to find each one"
+msgstr "Wo du jedes findest"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2555,7 +2579,7 @@ msgstr "{0} NEU"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewSection.qml:205
+#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "Doku zu {0}"
 
@@ -2595,7 +2619,7 @@ msgstr "{0} von {1}"
 msgid "{0} of {1} done"
 msgstr "{0} von {1} erledigt"
 
-#: ../Site/ReviewSection.qml:210
+#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "Repository von {0}"
 
@@ -2603,7 +2627,7 @@ msgstr "Repository von {0}"
 msgid "{0} steps"
 msgstr "{0} Schritte"
 
-#: ../Site/ReviewSection.qml:200
+#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "Website von {0}"
 
@@ -2686,6 +2710,9 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#~ msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+#~ msgstr "Jeder Balken ist der Median seiner Läufe, die Linie über sein Ende reicht vom kleinsten zum größten Wert, und unter jedem Diagramm steht der Befehl, der es gemessen hat. Ein kürzerer Balken ist auf jedem Diagramm besser."
 
 #~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 #~ msgstr "Probier aus, StatusSlot unter Basket zu verschieben, color: \"#241a10\" zu setzen oder den Shop umzubenennen. Dein Korb und dein Hinweis bleiben, wie sie sind."

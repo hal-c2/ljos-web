@@ -1,8 +1,9 @@
 // The framework review (features/review.feature): the same inbox app in
 // each framework, as data (bundle/Review/review.json), shown before any
-// script runs as one section per framework with its links; with script
-// a reader picks the frameworks to compare and the charts, the table and
-// the code show those and no other.
+// script runs with a section for each framework picked to start and
+// every framework's links; with script a reader picks the frameworks to
+// compare and the charts, the table, the code and the fans' sections
+// show those and no other.
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,16 +19,28 @@ const TITLE = "Totally biased review of mostly Rust UI frameworks";
 const named = (id) => review.frameworks.find((one) => one.id === id).name;
 // What the page compares as it opens, by name.
 const firstPicked = review.picked.map(named);
-// A metric's chart, as a list of its bars (Site/ReviewChart.qml).
-const chartOf = (page, metric) => page.getByRole("list", { name: `${metric.label}, ${metric.unit}`, exact: true });
-// The frameworks a chart has a bar for, read from each bar's name
+const kindOf = (id) => review.frameworks.find((one) => one.id === id).kind;
+// A group of a metric's chart, as a list of its bars
+// (Site/ReviewChart.qml): native and web apps each have their own where
+// they are measured differently, and one group holds both where they
+// are not.
+const groupName = (metric, group) => (group.kind === "all" ? `${metric.label}, ${metric.unit}` : `${metric.label}, ${group.kind} apps, ${metric.unit}`);
+const groupOf = (page, metric, group) => page.getByRole("list", { name: groupName(metric, group), exact: true });
+// The names of a list's bars, each read from the bar's own
 // ("Ljós: 80.9 ms").
+const namesIn = async (list) => (await list.getByRole("listitem").evaluateAll((items) => items.map((item) => item.getAttribute("aria-label") ?? ""))).map((name) => name.split(":")[0]);
+// The frameworks a chart has a bar for, in any of its groups.
 async function barsOf(page, metric) {
-  const names = await chartOf(page, metric).getByRole("listitem").evaluateAll((items) => items.map((item) => item.getAttribute("aria-label") ?? ""));
-  return names.map((name) => name.split(":")[0]).sort();
+  const names = [];
+  for (const group of metric.groups) names.push(...(await namesIn(groupOf(page, metric, group))));
+  return names.sort();
 }
 // The metrics a framework in `ids` has a value for: a chart leaves out
 // a framework it has no number of, and says so.
+// A command as it is drawn: the text wraps to its width, and a wrapped
+// line ends in a line break that reads as a space (after "harness/", say),
+// so the match allows one between any two characters and nothing else.
+const wrapped = (text) => new RegExp(`^${[...text].map((char) => char.replace(/[.*+?^${}()|[\]\\/]/gu, "\\$&")).join("\\s?")}$`, "u");
 const measured = (metric, ids) => ids.filter((id) => metric.values[id] != null).map(named).sort();
 const placeholders = () => review.metrics.some((metric) => Object.values(metric.values).some((value) => value?.placeholder)) || review.features.some((feature) => Object.values(feature.excerpts).some((excerpt) => excerpt?.placeholder)) || review.frameworks.some((one) => one.prose.placeholder);
 
@@ -41,13 +54,25 @@ test("the data names every framework once, with its links, and picks two or more
     expect(["native", "web"]).toContain(one.kind);
     expect(one.prose.limits.length, `${one.id} says where it is not as strong`).toBeGreaterThan(0);
   }
-  // Every number names how it was made and how many runs it is.
+  // Every number names how it was made and how many runs it is, in a
+  // group of its own kind: native and web apps share one only where they
+  // were measured the same way.
   for (const metric of review.metrics) {
-    expect(metric.command, metric.id).toBeTruthy();
+    expect(metric.groups.length, metric.id).toBeGreaterThan(0);
+    for (const group of metric.groups) {
+      expect(["native", "web", "all"], metric.id).toContain(group.kind);
+      expect(group.how, `${metric.id} ${group.kind}`).toBeTruthy();
+      expect(group.command, `${metric.id} ${group.kind}`).toBeTruthy();
+    }
+    expect(metric.groups.some((group) => group.kind === "all") ? metric.groups.length : 1, `${metric.id}: "all" stands alone`).toBe(1);
     for (const [id, value] of Object.entries(metric.values)) {
       expect(ids, `${metric.id} has a value for ${id}`).toContain(id);
       if (value === null) continue;
-      expect(value.runs, `${metric.id} ${id}`).toBeGreaterThanOrEqual(value.placeholder ? 0 : 3);
+      expect(metric.groups.some((group) => group.kind === "all" || group.kind === kindOf(id)), `${metric.id} has a group for ${id}`).toBe(true);
+      // A size or a line count is counted once; a timing is run three
+      // times at least.
+      expect(value.runs, `${metric.id} ${id}`).toBeGreaterThanOrEqual(value.placeholder ? 0 : metric.counted ? 1 : 3);
+      if (value.stat !== undefined) expect(["p95"], `${metric.id} ${id}`).toContain(value.stat);
       expect(value.min, `${metric.id} ${id}`).toBeLessThanOrEqual(value.median);
       expect(value.max, `${metric.id} ${id}`).toBeGreaterThanOrEqual(value.median);
     }
@@ -84,7 +109,12 @@ test("with no script, every page's footer leads to the review, and the review st
       await expect(page.getByRole("heading", { level: 1, name: TITLE, exact: true })).toBeVisible();
       // Written as laid out, a line to an element: a line may break anywhere in it.
       await expect(page.getByRole("main")).toContainText(/bias\s+is\s+the\s+point/u);
-      for (const one of review.frameworks) {
+      // A fan's section for each framework picked to start, and for no
+      // other.
+      for (const one of review.frameworks.filter(({ id }) => !review.picked.includes(id))) {
+        await expect(page.getByRole("region", { name: `${one.name}, by a fan`, exact: true }), one.id).toHaveCount(0);
+      }
+      for (const one of review.frameworks.filter(({ id }) => review.picked.includes(id))) {
         const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
         await expect(section.getByRole("heading", { level: 3, name: one.name, exact: true })).toBeAttached();
         // What its fan shows first is the inbox's own code, under its
@@ -101,6 +131,13 @@ test("with no script, every page's footer leads to the review, and the review st
         await expect(section.getByRole("link", { name: `${one.name} docs`, exact: true })).toHaveAttribute("href", one.links.docs);
         await expect(section.getByRole("link", { name: `${one.name} repository`, exact: true })).toHaveAttribute("href", one.links.repo);
         await expect(section.getByRole("heading", { name: "Where it is not as strong", exact: true })).toBeAttached();
+      }
+      // Every framework, picked or not, is a link away.
+      const found = page.getByRole("region", { name: "Where to find each one", exact: true });
+      for (const one of review.frameworks) {
+        await expect(found.getByRole("link", { name: `${one.name} website`, exact: true }), one.id).toHaveAttribute("href", one.links.site);
+        await expect(found.getByRole("link", { name: `${one.name} docs`, exact: true }), one.id).toHaveAttribute("href", one.links.docs);
+        await expect(found.getByRole("link", { name: `${one.name} repository`, exact: true }), one.id).toHaveAttribute("href", one.links.repo);
       }
       // The charts are written for the frameworks picked to start.
       for (const metric of review.metrics) expect(await barsOf(page, metric), metric.id).toEqual(measured(metric, review.picked));
@@ -127,6 +164,11 @@ test("no code the review shows is marked as broken", async ({ browser }) => {
   try {
     await page.goto(route);
     await page.waitForSelector(hydrated);
+    // Every framework picked, so every fan's code and every feature's is
+    // there to be read.
+    const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+    for (const one of review.frameworks.filter(({ id }) => !review.picked.includes(id))) await picker.getByRole("button", { name: one.name, exact: true }).click();
+    await expect(page.getByRole("region", { name: /, by a fan$/u })).toHaveCount(review.frameworks.length);
     for (const feature of review.features) {
       await page.getByRole("tab", { name: feature.label, exact: true }).click();
       await expect(page.locator(".tok-keyword").first(), feature.id).toBeAttached();
@@ -137,10 +179,123 @@ test("no code the review shows is marked as broken", async ({ browser }) => {
   }
 });
 
+// The page carries each excerpt as its colouring alone where the code
+// reads back out of it (scripts/build.mjs): what Copy gives is still the
+// code as written, every excerpt of every fan and every feature.
+test("each excerpt's Copy copies its code as written", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+    const rest = review.frameworks.filter(({ id }) => !review.picked.includes(id)).map(({ id }) => id);
+    for (const id of rest) await picker.getByRole("button", { name: named(id), exact: true }).click();
+    const copies = async (where, excerpts) => {
+      const cards = where.getByRole("group", { name: /^Code: / });
+      await expect(cards, where.toString()).toHaveCount(excerpts.length);
+      for (const [at, excerpt] of excerpts.entries()) {
+        await cards.nth(at).getByRole("button", { name: /^(Copy|Copied)\b/u }).click();
+        await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()), `${excerpt.file}:${excerpt.lines}`).toBe(excerpt.code.replace(/\n$/u, ""));
+      }
+    };
+    for (const one of review.frameworks) await copies(page.getByRole("region", { name: `${one.name}, by a fan`, exact: true }), one.prose.shows);
+    const code = page.getByRole("region", { name: "The code of each picked framework", exact: true });
+    for (const feature of review.features) {
+      await page.getByRole("tablist", { name: "Feature", exact: true }).getByRole("tab", { name: feature.label, exact: true }).click();
+      await copies(code, [...review.picked, ...rest].map((id) => feature.excerpts[id]).filter((excerpt) => excerpt !== undefined));
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 test("a placeholder number or excerpt is said to be one", async ({ page }) => {
   await page.goto(route);
   await page.waitForSelector(hydrated);
-  await expect(page.getByText("Placeholder data", { exact: true })).toHaveCount(placeholders() ? 1 : 0);
+  // The notice stays in the page, hidden, once nothing stands in.
+  const notice = page.getByText("Placeholder data", { exact: true });
+  if (placeholders()) await expect(notice).toBeVisible();
+  else await expect(notice).toBeHidden();
+});
+
+test("native and web numbers are drawn on scales of their own", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const split = review.metrics.find((metric) => metric.groups.length === 2);
+    expect(split, "a metric measured one way for native apps and another for web apps").toBeTruthy();
+    // A native and a web framework both measured, picked together.
+    const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+    const now = [...review.picked];
+    for (const kind of ["native", "web"]) {
+      if (now.some((id) => kindOf(id) === kind && split.values[id] != null)) continue;
+      const one = review.frameworks.find((framework) => framework.kind === kind && split.values[framework.id] != null);
+      await picker.getByRole("button", { name: one.name, exact: true }).click();
+      now.push(one.id);
+    }
+    const chart = page.getByRole("region", { name: split.label, exact: true });
+    await expect(chart.getByText("Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across.", { exact: true })).toBeVisible();
+    // The widest bar of each group: its median over the most of the
+    // group's runs is its length over the track, whatever the other
+    // group holds.
+    const fill = [];
+    for (const group of split.groups) {
+      const ids = now.filter((id) => kindOf(id) === group.kind && split.values[id] != null);
+      const list = groupOf(page, split, group);
+      await expect.poll(async () => (await namesIn(list)).sort(), group.kind).toEqual(ids.map(named).sort());
+      await expect(chart.getByText(group.how, { exact: true }), group.kind).toBeVisible();
+      await expect(chart.getByText(wrapped(group.command)), group.kind).toBeAttached();
+      const reach = Math.max(split.floor ?? 0, ...ids.map((id) => split.values[id].max));
+      const longest = ids.reduce((most, id) => (split.values[id].median > split.values[most].median ? id : most));
+      const bar = list.locator(`[role="listitem"][aria-label^="${named(longest)}:"] [data-object-name="reviewBar"]`);
+      // Each group's track is as wide as the other's, so its longest bar
+      // stands at the same share of it.
+      fill.push({ bar, share: split.values[longest].median / reach });
+    }
+    // A framework picked just now grows its bar in, so the widths are
+    // read until it stands at its length.
+    await expect
+      .poll(async () => {
+        const tracks = await Promise.all(fill.map(async ({ bar, share }) => (await bar.boundingBox()).width / share));
+        return Math.abs(tracks[0] - tracks[1]) / Math.max(...tracks);
+      }, `${split.id}: each group on its own scale`)
+      .toBeLessThan(0.03);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a spread too small to matter is drawn small", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const floored = review.metrics.filter((metric) => metric.floor != null);
+    expect(floored.map((metric) => metric.id)).toContain("idle-cpu");
+    for (const metric of floored) {
+      for (const group of metric.groups) {
+        const ids = review.picked.filter((id) => kindOf(id) === group.kind && metric.values[id] != null);
+        const reach = Math.max(metric.floor, ...ids.map((id) => metric.values[id].max));
+        for (const id of ids) {
+          const item = groupOf(page, metric, group).locator(`[role="listitem"][aria-label^="${named(id)}:"]`);
+          const row = (await item.boundingBox()).width;
+          const value = metric.values[id];
+          // The whisker over the row, against the spread over the axis:
+          // the row is wider than the track, so it may only be less.
+          await expect
+            .poll(async () => (await item.locator('[data-object-name="reviewSpread"]').boundingBox()).width / row, `${metric.id} ${id}`)
+            .toBeLessThanOrEqual(Math.max((value.max - value.min) / reach, 2 / row) + 0.001);
+        }
+      }
+    }
+  } finally {
+    await context.close();
+  }
 });
 
 test("picking frameworks changes the charts, the table and the code, and two always stay", async ({ browser }) => {
@@ -152,12 +307,18 @@ test("picking frameworks changes the charts, the table and the code, and two alw
     const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
     const choice = (name) => picker.getByRole("button", { name, exact: true });
     for (const one of review.frameworks) await expect(choice(one.name)).toHaveAttribute("aria-pressed", review.picked.includes(one.id) ? "true" : "false");
+    // The fans' sections are the picked frameworks', in the data's order.
+    const sections = page.getByRole("region", { name: /, by a fan$/u });
+    const fans = (ids) => review.frameworks.filter((one) => ids.includes(one.id)).map((one) => `${one.name}, by a fan`);
+    const sectionsAre = (ids) => expect.poll(() => sections.evaluateAll((all) => all.map((one) => one.getAttribute("aria-label"))), "the fans' sections").toEqual(fans(ids));
+    await sectionsAre(review.picked);
 
     const added = review.frameworks.find((one) => !review.picked.includes(one.id));
     await choice(added.name).click();
     await expect(choice(added.name)).toHaveAttribute("aria-pressed", "true");
     const now = [...review.picked, added.id];
     for (const metric of review.metrics) await expect.poll(() => barsOf(page, metric), metric.id).toEqual(measured(metric, now));
+    await sectionsAre(now);
 
     // The table names each picked framework once, with its values.
     await page.getByRole("button", { name: "Show the numbers as a table", exact: true }).click();
@@ -166,7 +327,7 @@ test("picking frameworks changes the charts, the table and the code, and two alw
     const metric = review.metrics.find((one) => one.values[added.id] != null);
     const value = metric.values[added.id];
     await expect(table.getByRole("row", { name: new RegExp(`^${added.name}\\b`, "u") })).toContainText(`${value.min}–${value.max}`);
-    await expect(page.getByText(metric.command, { exact: true }).first()).toBeAttached();
+    for (const group of metric.groups) await expect(page.getByText(wrapped(group.command)).first()).toBeAttached();
 
     // The code of one feature, for the picked frameworks only.
     const search = review.features.find((feature) => feature.id === "search");
@@ -189,6 +350,7 @@ test("picking frameworks changes the charts, the table and the code, and two alw
       await expect(choice(named(id))).toHaveAttribute("aria-pressed", "true");
     }
     await expect(page.getByText("Compare at least two.", { exact: true })).toBeVisible();
+    await sectionsAre(now.slice(0, 2));
   } finally {
     await context.close();
   }
@@ -254,7 +416,7 @@ test("with less motion a new bar fades in at its length, and with motion it grow
             step();
           });
         },
-        [`${metric.label}, ${metric.unit}`, added.name],
+        [groupName(metric, metric.groups.find((group) => group.kind === "all" || group.kind === added.kind)), added.name],
       );
       await page.getByRole("group", { name: "Frameworks to compare", exact: true }).getByRole("button", { name: added.name, exact: true }).click();
       seen[reducedMotion] = await page.evaluate(() => window.__frames);

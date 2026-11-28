@@ -593,14 +593,14 @@ msgid "Driver warmer"
 msgstr "चालक की ओर गर्म करें"
 
 #: ../Site/ReviewPage.qml:202
-msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
-msgstr "हर पट्टी उसके रन की माध्यिका है, उसके सिरे पर की रेखा सबसे कम से सबसे ज़्यादा तक जाती है, और हर चार्ट के नीचे वह कमांड है जिससे उसे मापा गया। हर चार्ट पर छोटी पट्टी बेहतर है।"
+msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
+msgstr "हर पट्टी अपने रनों की माध्यिका है, और उसके सिरे की रेखा सबसे कम से सबसे ज़्यादा तक जाती है; नेटिव खोज में पट्टी टाइप की गई सभी कुंजियों का धीमा सिरा है, और वेब में पहली कुंजी, जैसा हर चार्ट बताता है। हर चार्ट के नीचे वह कमांड है जिसने उसे मापा। हर चार्ट पर छोटा बेहतर है। एक ही मशीन, साझा और व्यस्त, बिना GPU के: ये संख्याएँ आपस में तुलना के लिए हैं, दूसरे कंप्यूटरों से नहीं।"
 
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "हर डेमो एक पूरा Ljós ऐप है जो ljos check पास करता है, पहले से कंपाइल किया गया है और इस पेज में लगाया गया है। डेमो चलने पर हेडर में लाइट और डार्क थीम बदलें और उसे साथ बदलते देखें। कॉकपिट और स्मार्टवॉच पेजों पर लाइव सोर्स बदलें, और {shopLink} पर एक दुकान का शेल चलते-चलते फिर से लिखें। जहाँ ब्राउज़र में ज़रूरी WebAssembly या WebGL 2 नहीं है, वहाँ डेमो अपनी तस्वीर और विवरण दिखाता रहता है।"
 
-#: ../Site/ReviewPage.qml:274
+#: ../Site/ReviewPage.qml:289
 msgid "Each framework, by a fan"
 msgstr "हर फ़्रेमवर्क, एक प्रशंसक की नज़र से"
 
@@ -1168,7 +1168,7 @@ msgstr "लचीला सॉफ़्टवेयर, हर जगह।"
 msgid "Map: the route to {0}"
 msgstr "मानचित्र: {0} का मार्ग"
 
-#: ../Site/ReviewChart.qml:195
+#: ../Site/ReviewChart.qml:232
 msgid "Measured with"
 msgstr "मापने का कमांड"
 
@@ -1224,6 +1224,14 @@ msgstr "अभी बज रहा है"
 msgid "Native"
 msgstr "नेटिव"
 
+#: ../Site/ReviewChart.qml:62
+msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
+msgstr "यहाँ नेटिव और वेब ऐप अलग-अलग तरीके से मापे गए हैं, इसलिए हर समूह का अपना पैमाना है: तुलना समूह के भीतर करें, समूहों के बीच नहीं।"
+
+#: ../Site/ReviewChart.qml:89
+msgid "Native apps"
+msgstr "नेटिव ऐप"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "नेविगेशन"
@@ -1240,13 +1248,17 @@ msgstr "अगला ट्रैक"
 msgid "Next: {0}"
 msgstr "अगला: {0}"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "{0} के लिए कोई पट्टी नहीं: यह सिर्फ़ नेटिव ऐप के लिए मापा जाता है।"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "{0} के लिए कोई पट्टी नहीं: यह सिर्फ़ वेब ऐप के लिए मापा जाता है।"
+
+#: ../Site/ReviewPage.qml:243
+msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
+msgstr "बिल्ड समय का कोई चार्ट नहीं: हर ऐप के बिल्ड दूसरे काम के साथ साझा एक कतार से गुज़रे, इसलिए उनका समय ज़्यादातर इंतज़ार है, और उनकी तुलना नहीं होती।"
 
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
@@ -1256,7 +1268,7 @@ msgstr "खुली फ़ाइल में कोई कंपाइलर �
 msgid "No crew"
 msgstr "कोई टीम नहीं"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No number yet for {0}."
 msgstr "{0} के लिए अभी कोई संख्या नहीं।"
 
@@ -2130,6 +2142,10 @@ msgstr "दस्तावेज़"
 msgid "The files of {0}"
 msgstr "{0} की फ़ाइलें"
 
+#: ../Site/ReviewPage.qml:303
+msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
+msgstr "ऊपर चुने गए फ़्रेमवर्क, हर एक उसे पसंद करने वाले किसी व्यक्ति के शब्दों में। किसी और के प्रशंसक को पढ़ने के लिए उसे चुनें।"
+
 #: ../Site/ReviewPage.qml:188
 msgid "The numbers"
 msgstr "संख्याएँ"
@@ -2142,7 +2158,7 @@ msgstr "चुने गए फ़्रेमवर्क की संख्�
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "रूफ़टॉप वाली जगह आठ बजे खुलती है। जैकेट ले आना, वहाँ ऊपर ठंड होती है।"
 
-#: ../Site/ReviewPage.qml:248
+#: ../Site/ReviewPage.qml:259
 msgid "The same feature in each one's code"
 msgstr "हर एक के कोड में एक ही सुविधा"
 
@@ -2359,6 +2375,10 @@ msgstr "घड़ी को जगाता है, या उसके फ़�
 msgid "Web"
 msgstr "वेब"
 
+#: ../Site/ReviewChart.qml:89
+msgid "Web apps"
+msgstr "वेब ऐप"
+
 #: ../Site/ReviewSection.qml:64
 msgid "What a fan shows first"
 msgstr "प्रशंसक पहले क्या दिखाता है"
@@ -2371,9 +2391,13 @@ msgstr "Ljós क्या है?"
 msgid "What we care about, and what we leave out on purpose."
 msgstr "हमारे लिए क्या महत्वपूर्ण है, और हम जानबूझकर क्या बाहर रखते हैं।"
 
-#: ../Site/ReviewSection.qml:155
+#: ../Site/ReviewSection.qml:156
 msgid "Where it is not as strong"
 msgstr "जहाँ यह उतना मज़बूत नहीं है"
+
+#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+msgid "Where to find each one"
+msgstr "हर एक कहाँ मिलेगा"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2555,7 +2579,7 @@ msgstr "{0} नई"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewSection.qml:205
+#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "{0} दस्तावेज़"
 
@@ -2595,7 +2619,7 @@ msgstr "{1} में से {0}"
 msgid "{0} of {1} done"
 msgstr "{1} में से {0} पूर्ण"
 
-#: ../Site/ReviewSection.qml:210
+#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "{0} रिपॉज़िटरी"
 
@@ -2603,7 +2627,7 @@ msgstr "{0} रिपॉज़िटरी"
 msgid "{0} steps"
 msgstr "{0} कदम"
 
-#: ../Site/ReviewSection.qml:200
+#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "{0} वेबसाइट"
 
@@ -2686,6 +2710,9 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#~ msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+#~ msgstr "हर पट्टी उसके रन की माध्यिका है, उसके सिरे पर की रेखा सबसे कम से सबसे ज़्यादा तक जाती है, और हर चार्ट के नीचे वह कमांड है जिससे उसे मापा गया। हर चार्ट पर छोटी पट्टी बेहतर है।"
 
 #~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 #~ msgstr "StatusSlot को Basket के नीचे ले जाकर, color: \"#241a10\" सेट करके, या दुकान का नाम बदलकर देखें। आपकी बास्केट और नोट वैसे ही बने रहते हैं।"

@@ -17,7 +17,7 @@ Column {
     property bool wide: Place.wideIn(parent)
     property Flickable scroller
 
-    readonly property Review.Review review: ReviewBuilt.data
+    readonly property Review.Review review: Review.reviewOf(ReviewBuilt.data)
     // The frameworks compared, by id, in the order they were picked.
     property list<string> picked: page.review.picked.slice()
     // The page runs in a browser and has come to life: a bar picked from
@@ -142,7 +142,7 @@ Column {
             ]
             Column {
                 id: kind
-                required property unknown modelData
+                required property Review.Kind modelData
                 width: page.width
                 spacing: Theme.xs
                 Text {
@@ -199,7 +199,7 @@ Column {
         Text {
             x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
-            text: t`Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart.`
+            text: t`Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer.`
             color: Theme.textMuted
             font.family: Theme.sans
             font.size: Theme.bodySize - 1
@@ -237,6 +237,17 @@ Column {
                 }
             }
         }
+        Text {
+            x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
+            width: Math.min(parent.width, Theme.measure)
+            text: t`No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare.`
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.size: Theme.bodySize - 1
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.bodyLine - 2
+            wrap: Text.Wrap
+        }
     }
 
     Column {
@@ -269,9 +280,59 @@ Column {
         width: parent.width
         spacing: Theme.xxl
 
+        Column {
+            width: parent.width
+            spacing: Theme.s
+
+            Text {
+                width: parent.width
+                text: t`Each framework, by a fan`
+                color: Theme.text
+                font.family: Theme.sans
+                font.size: page.wide ? Theme.headlineSize - 2 : Theme.headlineSize - 6
+                font.weight: Font.Bold
+                lineHeightMode: Text.FixedHeight
+                lineHeight: page.wide ? Theme.headlineLine - 4 : Theme.headlineLine - 8
+                wrap: Text.Wrap
+                readonly property int headingLevel: 2
+                Accessible.role: Accessible.Heading
+            }
+            Text {
+                x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
+                width: Math.min(parent.width, Theme.measure)
+                text: t`The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan.`
+                color: Theme.textMuted
+                font.family: Theme.sans
+                font.size: Theme.bodySize
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.bodyLine
+                wrap: Text.Wrap
+            }
+        }
+        // The picked frameworks' sections only, by id, so a section that
+        // stays picked stays as it is.
+        Repeater {
+            model: Review.inOrder(page.review, page.picked)
+            ReviewSection {
+                required property string modelData
+                width: page.width
+                framework: Review.byId(page.review, modelData)
+                wide: page.wide
+                scroller: page.scroller
+            }
+        }
+    }
+
+    // Every framework, picked or not, a link away.
+    Column {
+        width: parent.width
+        spacing: Theme.m
+        Accessible.role: Accessible.Section
+        Accessible.name: t`Where to find each one`
+
         Text {
             width: parent.width
-            text: t`Each framework, by a fan`
+            text: t`Where to find each one`
             color: Theme.text
             font.family: Theme.sans
             font.size: page.wide ? Theme.headlineSize - 2 : Theme.headlineSize - 6
@@ -282,14 +343,31 @@ Column {
             readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
-        Repeater {
-            model: page.review.frameworks
-            ReviewSection {
-                required property Review.Framework modelData
-                width: page.width
-                framework: modelData
-                wide: page.wide
-                scroller: page.scroller
+        Flow {
+            width: parent.width
+            spacing: Theme.xs
+            Repeater {
+                model: page.review.frameworks
+                Flow {
+                    id: found
+                    required property Review.Framework modelData
+                    width: page.wide ? (parent.width - Theme.xs) / 2 : parent.width
+                    LinkButton {
+                        quiet: true
+                        label: t`${found.modelData.name} website`
+                        href: found.modelData.links.site
+                    }
+                    LinkButton {
+                        quiet: true
+                        label: t`${found.modelData.name} docs`
+                        href: found.modelData.links.docs
+                    }
+                    LinkButton {
+                        quiet: true
+                        label: t`${found.modelData.name} repository`
+                        href: found.modelData.links.repo
+                    }
+                }
             }
         }
     }

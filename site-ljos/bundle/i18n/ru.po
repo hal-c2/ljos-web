@@ -593,14 +593,14 @@ msgid "Driver warmer"
 msgstr "Водитель теплее"
 
 #: ../Site/ReviewPage.qml:202
-msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
-msgstr "Каждая полоса — медиана её запусков, черта на её конце — от наименьшего значения до наибольшего, а под каждым графиком — команда, которой он измерен. На каждом графике чем короче полоса, тем лучше."
+msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
+msgstr "Каждая полоса — медиана её запусков, линия на её конце идёт от наименьшего к наибольшему; у нативного поиска полоса — медленный край всех нажатых клавиш, у веб-поиска — первая клавиша, как сказано на каждом графике. Под каждым графиком — команда, которая его измерила. На каждом графике короче — лучше. Одна машина, общая и загруженная, без GPU: числа сравниваются друг с другом, а не с другими компьютерами."
 
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "Каждое демо — это полноценное приложение Ljós, которое проходит ljos check, скомпилировано заранее и встроено в эту страницу. Когда демо запущено, переключайте светлую и тёмную темы в шапке и смотрите, как оно меняется. Правьте живой код на страницах кокпита и смарт-часов, а оболочку магазина переписывайте прямо во время работы на {shopLink}. Если в браузере нет нужного WebAssembly или WebGL 2, у демо остаются картинка и описание."
 
-#: ../Site/ReviewPage.qml:274
+#: ../Site/ReviewPage.qml:289
 msgid "Each framework, by a fan"
 msgstr "Каждый фреймворк глазами фаната"
 
@@ -1168,7 +1168,7 @@ msgstr "Гибкие программы — повсюду."
 msgid "Map: the route to {0}"
 msgstr "Карта: маршрут к {0}"
 
-#: ../Site/ReviewChart.qml:195
+#: ../Site/ReviewChart.qml:232
 msgid "Measured with"
 msgstr "Измерено командой"
 
@@ -1224,6 +1224,14 @@ msgstr "СЕЙЧАС ИГРАЕТ"
 msgid "Native"
 msgstr "Нативные"
 
+#: ../Site/ReviewChart.qml:62
+msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
+msgstr "Нативные и веб-приложения здесь измеряются по-разному, поэтому у каждой группы своя шкала: сравнивать стоит внутри группы, а не между группами."
+
+#: ../Site/ReviewChart.qml:89
+msgid "Native apps"
+msgstr "Нативные приложения"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "Навигация"
@@ -1240,13 +1248,17 @@ msgstr "Следующий трек"
 msgid "Next: {0}"
 msgstr "Далее: {0}"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "Нет полосы для {0}: это измеряется только для нативных приложений."
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "Нет полосы для {0}: это измеряется только для веб-приложений."
+
+#: ../Site/ReviewPage.qml:243
+msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
+msgstr "Графика времени сборки нет: сборки каждого приложения шли через одну очередь, общую с другой работой, поэтому их время — в основном ожидание, и оно не сравнимо."
 
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
@@ -1256,7 +1268,7 @@ msgstr "В открытом файле нет диагностик компил�
 msgid "No crew"
 msgstr "Без команды"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No number yet for {0}."
 msgstr "Для {0} пока нет числа."
 
@@ -2130,6 +2142,10 @@ msgstr "Документация"
 msgid "The files of {0}"
 msgstr "Файлы: {0}"
 
+#: ../Site/ReviewPage.qml:303
+msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
+msgstr "Фреймворки, выбранные выше, — каждый словами того, кто его любит. Выберите ещё один, чтобы прочитать его фаната."
+
 #: ../Site/ReviewPage.qml:188
 msgid "The numbers"
 msgstr "Числа"
@@ -2142,7 +2158,7 @@ msgstr "Числа выбранных фреймворков"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "Крыша открывается в восемь. Захвати куртку, там наверху прохладно."
 
-#: ../Site/ReviewPage.qml:248
+#: ../Site/ReviewPage.qml:259
 msgid "The same feature in each one's code"
 msgstr "Одна и та же функция в коде каждого"
 
@@ -2359,6 +2375,10 @@ msgstr "Пробуждает часы или возвращает к цифер�
 msgid "Web"
 msgstr "Веб"
 
+#: ../Site/ReviewChart.qml:89
+msgid "Web apps"
+msgstr "Веб-приложения"
+
 #: ../Site/ReviewSection.qml:64
 msgid "What a fan shows first"
 msgstr "Что фанат покажет первым"
@@ -2371,9 +2391,13 @@ msgstr "Что такое Ljós?"
 msgid "What we care about, and what we leave out on purpose."
 msgstr "Что для нас важно — и что мы сознательно оставляем за скобками."
 
-#: ../Site/ReviewSection.qml:155
+#: ../Site/ReviewSection.qml:156
 msgid "Where it is not as strong"
 msgstr "Где он не так силён"
+
+#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+msgid "Where to find each one"
+msgstr "Где найти каждый"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2555,7 +2579,7 @@ msgstr "{0} НОВЫХ"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewSection.qml:205
+#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "Документация {0}"
 
@@ -2595,7 +2619,7 @@ msgstr "{0} из {1}"
 msgid "{0} of {1} done"
 msgstr "Готово {0} из {1}"
 
-#: ../Site/ReviewSection.qml:210
+#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "Репозиторий {0}"
 
@@ -2603,7 +2627,7 @@ msgstr "Репозиторий {0}"
 msgid "{0} steps"
 msgstr "{0} шагов"
 
-#: ../Site/ReviewSection.qml:200
+#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "Сайт {0}"
 
@@ -2686,6 +2710,9 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#~ msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+#~ msgstr "Каждая полоса — медиана её запусков, черта на её конце — от наименьшего значения до наибольшего, а под каждым графиком — команда, которой он измерен. На каждом графике чем короче полоса, тем лучше."
 
 #~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 #~ msgstr "Попробуйте перенести StatusSlot под Basket, задать color: \"#241a10\" или переименовать магазин. Ваша корзина и заметка останутся как есть."
