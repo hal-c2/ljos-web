@@ -1160,13 +1160,13 @@
       "groups": [
         {
           "kind": "native",
-          "how": "Process start to the first frame the app draws, in a headless sway with no GPU (software Vulkan and GL), at 1280×800. Ljós draws its window before it reads the records; most others read them first. egui and Iced start a wgpu device, which is slow on software Vulkan; RESULTS.md repeats the run on the machine's GPU.",
-          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+          "how": "Process start to the first frame the app draws, in a headless sway at 1280×800, on the renderer the set names under the chart. Ljós draws its window before it reads the records; most others read them first. egui and Iced start a wgpu device, which is slow on software Vulkan.",
+          "command": "harness/native/run.sh (ljos bench, rotated rounds; each set's runs are said under the chart), then harness/aggregate.py"
         },
         {
           "kind": "web",
           "how": "Navigation start to the first contentful paint in Playwright's headless Chromium, the build served gzip from localhost.",
-          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+          "command": "harness/web/run.sh (Playwright; each set's runs are said under the chart), then harness/aggregate.py"
         }
       ],
       "sets": {
@@ -1235,12 +1235,12 @@
         {
           "kind": "native",
           "how": "Anonymous PSS from the app's cgroup after the session: the heap the app made, its mapped libraries left out.",
-          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+          "command": "harness/native/run.sh (ljos bench, rotated rounds; each set's runs are said under the chart), then harness/aggregate.py"
         },
         {
           "kind": "web",
           "how": "PSS of Chromium's whole process tree after the session, so the browser's own cost, the same for every framework, is in it.",
-          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+          "command": "harness/web/run.sh (Playwright; each set's runs are said under the chart), then harness/aggregate.py"
         }
       ],
       "sets": {
@@ -1310,12 +1310,12 @@
         {
           "kind": "native",
           "how": "The app's CPU while it sits idle after it started, before the session's first input. Anything above 0 is work done while nothing changes.",
-          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+          "command": "harness/native/run.sh (ljos bench, rotated rounds; each set's runs are said under the chart), then harness/aggregate.py"
         },
         {
           "kind": "web",
           "how": "CPU of Chromium's whole process tree over the last 8 s of the idle step after the session, the browser's own cost in it.",
-          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+          "command": "harness/web/run.sh (Playwright; each set's runs are said under the chart), then harness/aggregate.py"
         }
       ],
       "sets": {
@@ -1384,12 +1384,12 @@
         {
           "kind": "native",
           "how": "The 95th percentile frame interval while PageDown, pressed 200 times, scrolls 2 000 rows.",
-          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+          "command": "harness/native/run.sh (ljos bench, rotated rounds; each set's runs are said under the chart), then harness/aggregate.py"
         },
         {
           "kind": "web",
           "how": "The 95th percentile frame interval in Chromium while PageDown, pressed 200 times, scrolls 2 000 rows.",
-          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+          "command": "harness/web/run.sh (Playwright; each set's runs are said under the chart), then harness/aggregate.py"
         }
       ],
       "sets": {
@@ -1458,12 +1458,12 @@
         {
           "kind": "native",
           "how": "The 95th percentile of every key's lag while \"render crash\" is typed, over all runs: from a key to the first frame that changed after it. The line runs from the median key to the slowest.",
-          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+          "command": "harness/native/run.sh (ljos bench, rotated rounds; each set's runs are said under the chart), then harness/aggregate.py"
         },
         {
           "kind": "web",
           "how": "The first key's lag in Chromium while \"render crash\" is typed: from the key to the first frame after the page changed, the median of the runs. The web session times only the first key, so this is not the native chart's measure.",
-          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+          "command": "harness/web/run.sh (Playwright; each set's runs are said under the chart), then harness/aggregate.py"
         }
       ],
       "sets": {

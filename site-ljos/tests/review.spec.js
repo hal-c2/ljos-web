@@ -35,6 +35,44 @@ async function barsOf(page, metric) {
   for (const group of metric.groups) names.push(...(await namesIn(groupOf(page, metric, group))));
   return names.sort();
 }
+// Every bar's name as a screen reader hears it, "Slint: 80 ms", and the
+// same said of a set's numbers (Review.barName).
+async function labelsOf(page, metric) {
+  const labels = [];
+  for (const group of metric.groups) labels.push(...(await groupOf(page, metric, group).getByRole("listitem").evaluateAll((items) => items.map((item) => item.getAttribute("aria-label") ?? ""))));
+  return labels.sort();
+}
+const saidOf = (value, unit) => (unit === "%" ? `${value}%` : `${value} ${unit}`);
+const namedValues = (metric, ids, set) =>
+  ids
+    .filter((id) => valuesOf(metric, set)[id] != null)
+    .map((id) => {
+      const value = valuesOf(metric, set)[id];
+      return `${named(id)}: ${saidOf(value.median, metric.unit)}${value.stat === undefined ? "" : ` ${value.stat}`}`;
+    })
+    .sort();
+// The bars whose whisker is not where the set's min and max put it,
+// against the bar's own length to the median, to a pixel and a half
+// (each end is drawn to the half pixel). A bar too short to scale by is
+// left out.
+async function spreadsOff(page, metric, set) {
+  const off = [];
+  for (const group of metric.groups) {
+    const values = valuesOf(metric, set);
+    for (const id of review.picked.filter((one) => values[one] != null && (group.kind === "all" || kindOf(one) === group.kind))) {
+      const item = groupOf(page, metric, group).locator(`[role="listitem"][aria-label^="${named(id)}:"]`);
+      const bar = await item.locator('[data-object-name="reviewBar"]').boundingBox();
+      const spread = await item.locator('[data-object-name="reviewSpread"]').boundingBox();
+      const value = values[id];
+      if (bar === null || spread === null || bar.width < 16 || value.median <= 0) continue;
+      const scale = bar.width / value.median;
+      const from = spread.x - bar.x;
+      const to = from + spread.width;
+      if (Math.abs(from - value.min * scale) > 1.5 || (value.max > value.min && Math.abs(to - value.max * scale) > 1.5)) off.push(`${id}: ${from.toFixed(1)}–${to.toFixed(1)} px, not ${(value.min * scale).toFixed(1)}–${(value.max * scale).toFixed(1)}`);
+    }
+  }
+  return off;
+}
 // The metrics a framework in `ids` has a value for: a chart leaves out
 // a framework it has no number of, and says so.
 // A command as it is drawn: the text wraps to its width, and a wrapped
@@ -577,6 +615,11 @@ test("the renderer switch starts on the GPU and changes the charts and how they 
       await expect(renderers(page).getByRole("radio", { name: set.label, exact: true })).toHaveAttribute("aria-checked", "true");
       for (const metric of timed) {
         await expect.poll(() => barsOf(page, metric), `${set.id} ${metric.id}`).toEqual(measured(metric, review.picked, set.id));
+        // And with the set's own numbers: each bar names its median, and
+        // its whisker runs from the set's min to its max (against the
+        // bar, which runs to the median on the same scale).
+        await expect.poll(() => labelsOf(page, metric), `${set.id} ${metric.id}`).toEqual(namedValues(metric, review.picked, set.id));
+        await expect.poll(() => spreadsOff(page, metric, set.id), `${set.id} ${metric.id}`).toEqual([]);
         // How the set ran the kinds picked, under each group drawn.
         const shown = conditionsOf(metric).filter({ visible: true });
         await expect(shown.first(), `${set.id} ${metric.id}`).toContainText(`${set.label}:`);
