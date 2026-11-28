@@ -580,7 +580,7 @@ test("the renderer switch starts on the GPU and changes the charts and how they 
         // How the set ran the kinds picked, under each group drawn.
         const shown = conditionsOf(metric).filter({ visible: true });
         await expect(shown.first(), `${set.id} ${metric.id}`).toContainText(`${set.label}:`);
-        if (set.native !== null) await expect(shown.first(), `${set.id} ${metric.id}`).toContainText(within(set.native.env.split(" ")[0]));
+        if (set.native != null) await expect(shown.first(), `${set.id} ${metric.id}`).toContainText(within(set.native.env.split(" ")[0]));
         const missing = review.picked.filter((id) => valuesOf(metric, set.id)[id] == null).map(named);
         const said = page.getByRole("region", { name: metric.label, exact: true }).getByText(/^Not measured in this set: /u);
         if (missing.length > 0) await expect(said, `${set.id} ${metric.id}`).toHaveText(`Not measured in this set: ${missing.join(", ")}.`);

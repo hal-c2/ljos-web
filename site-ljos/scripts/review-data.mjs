@@ -337,16 +337,19 @@ if (results != null) {
     if (pooled != null) return stat?.p95 == null ? null : { median: round(stat.p95), min: round(stat.p50), max: round(stat.max), runs: stat.n, of: pooled, stat: "p95" };
     return stat?.median == null ? null : { median: round(stat.median), min: round(stat.min), max: round(stat.max), runs: stat.n };
   };
+  // What a run did not report is left out, not null: the page's types
+  // have a missing value optional (ljos check's ts-no-null).
+  const known = (fields) => Object.fromEntries(Object.entries(fields).filter(([, value]) => value != null));
   const webIn = (browser) => {
     const reports = Object.entries(results.web ?? {}).map(([, by]) => by[browser]).filter((report) => report != null);
     if (reports.length === 0) return null;
-    return {
+    return known({
       browser: BROWSERS[browser],
       renderer: results.web_renderers?.[browser] ?? null,
       seen: reports.find((report) => report.renderer)?.renderer ?? null,
       version: reports.find((report) => report.version)?.version ?? null,
       runs: span(reports.map((report) => report.runs)),
-    };
+    });
   };
   review.sets = SETS.map(({ id, label, browser }) => {
     const pass = results.native?.[id];
@@ -355,17 +358,19 @@ if (results != null) {
     const native =
       pass == null || runtimes.length === 0
         ? null
-        : {
+        : known({
             renderer: pass.renderer,
             env: pass.env,
             machine: machine == null ? null : `${machine.cpu}, ${machine.cpus} CPUs, ${Math.round(machine.memory_bytes / 2 ** 30)} GiB, Linux ${machine.kernel}`,
             date: pass.meta.date ?? null,
             runs: span(runtimes.map((runtime) => runtime.session?.runs)),
             load: span(runtimes.flatMap((runtime) => runtime.session?.load_average?.values ?? [])),
-          };
-    return { id, label, native, web: webIn(browser) };
+          });
+    return known({ id, label, native, web: webIn(browser) });
   });
-  review.firefox = webIn("firefox");
+  const firefox = webIn("firefox");
+  if (firefox == null) delete review.firefox;
+  else review.firefox = firefox;
   for (const metric of review.metrics) {
     const where = MEASURED[metric.id];
     if (where == null) continue;

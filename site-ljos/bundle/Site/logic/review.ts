@@ -54,30 +54,30 @@ export interface Shots {
 export interface Native {
   readonly renderer: string;
   readonly env: string;
-  readonly machine: string | null;
-  readonly date: string | null;
+  readonly machine?: string;
+  readonly date?: string;
   // Ranges over the apps ("3", "3–7") and over every run ("1.7–20.5").
-  readonly runs: string | null;
-  readonly load: string | null;
+  readonly runs?: string;
+  readonly load?: string;
 }
 
 export interface Web {
   readonly browser: string;
-  readonly renderer: string | null;
+  readonly renderer?: string;
   // The WebGL renderer the browser reported.
-  readonly seen: string | null;
-  readonly version: string | null;
-  readonly runs: string | null;
+  readonly seen?: string;
+  readonly version?: string;
+  readonly runs?: string;
 }
 
 // A renderer set: every timed number of the page was measured in one,
 // and the page shows one set at a time. A kind the set has not run is
-// null.
+// left out.
 export interface RendererSet {
   readonly id: string;
   readonly label: string;
-  readonly native: Native | null;
-  readonly web: Web | null;
+  readonly native?: Native;
+  readonly web?: Web;
 }
 
 // One measured number: the median of its runs, their spread, and how
@@ -133,8 +133,16 @@ export interface Values {
 
 // A metric as one renderer set measured it, the numbers that set's
 // alone: what the charts and the table draw.
-export interface Measured extends Metric {
+export interface Measured {
+  readonly id: string;
+  readonly label: string;
+  readonly unit: string;
+  readonly counted?: boolean;
+  readonly floor?: number;
+  readonly groups: readonly Group[];
   readonly values: Values;
+  readonly sets?: { readonly [set: string]: Values };
+  readonly firefox?: Values;
 }
 
 // Lines of one framework's inbox, cut and coloured by the build. The
@@ -188,7 +196,7 @@ export interface Review {
   readonly metrics: readonly Metric[];
   // In the order the page offers them, the first its default.
   readonly sets?: readonly RendererSet[];
-  readonly firefox?: Web | null;
+  readonly firefox?: Web;
 }
 
 // A bar of a chart: a picked framework's value of one metric.
@@ -362,12 +370,16 @@ export function cell(value: Value | undefined): string {
 }
 
 // The renderer set the page shows first.
+export function setsOf(review: Review): readonly RendererSet[] {
+  return review.sets ?? [];
+}
+
 export function firstSet(review: Review): string {
   return review.sets?.[0]?.id ?? "";
 }
 
 // No set: the page's data before it has any.
-const NO_SET: RendererSet = { id: "", label: "", native: null, web: null };
+const NO_SET: RendererSet = { id: "", label: "" };
 
 export function setOf(review: Review, id: string): RendererSet {
   return review.sets?.find((one) => one.id === id) ?? review.sets?.[0] ?? NO_SET;
@@ -395,12 +407,36 @@ export function notYet(): Later {
   return NOT_YET;
 }
 
+// The build writes review-later.json from the same data as the page's
+// (scripts/build.mjs): an object of the right fields is trusted as it is.
+function isSets(value: unknown): value is Readonly<Record<string, Readonly<Record<string, Values>>>> {
+  return typeof value === "object" && value !== null;
+}
+
+function isFirefox(value: unknown): value is Readonly<Record<string, Values>> {
+  return typeof value === "object" && value !== null;
+}
+
+function isProse(value: unknown): value is Readonly<Record<string, Prose>> {
+  return typeof value === "object" && value !== null;
+}
+
 export function laterOf(data: unknown): Later {
   if (typeof data !== "object" || data === null) throw new Error("review-later.json is not the review's later numbers");
-  const { sets, firefox, prose } = data as { sets?: unknown; firefox?: unknown; prose?: unknown };
-  if (typeof sets !== "object" || sets === null || typeof firefox !== "object" || firefox === null || typeof prose !== "object" || prose === null)
-    throw new Error("review-later.json has no sets, firefox or prose");
-  return { loaded: true, sets: sets as Later["sets"], firefox: firefox as Later["firefox"], prose: prose as Later["prose"] };
+  if (!("sets" in data) || !("firefox" in data) || !("prose" in data)) throw new Error("review-later.json has no sets, firefox or prose");
+  const { sets, firefox, prose } = data;
+  if (!isSets(sets) || !isFirefox(firefox) || !isProse(prose)) throw new Error("review-later.json has no sets, firefox or prose");
+  return { loaded: true, sets, firefox, prose };
+}
+
+// An entry's pairs and what of the spec it does not do, none where it
+// names none.
+export function pairOf(one: Framework): readonly string[] {
+  return one.pair ?? [];
+}
+
+export function missingOf(one: Framework): readonly string[] {
+  return one.missing ?? [];
 }
 
 // Whether a framework's words are still to come.
@@ -437,7 +473,7 @@ export function inFirefox(metric: Metric, later: Later = NOT_YET): Measured {
 // The picked web frameworks Firefox has a number of: the table gives
 // each a row of its own.
 export function firefoxPicked(review: Review, picked: readonly string[], later: Later = NOT_YET): string[] {
-  if (review.firefox == null) return [];
+  if (review.firefox === undefined) return [];
   const ids: string[] = [];
   for (const id of picked) {
     if (kindOf(review, id) === "web" && review.metrics.some((metric) => (metric.firefox ?? later.firefox[metric.id])?.[id] !== undefined)) ids.push(id);
@@ -478,27 +514,27 @@ export function conditions(review: Review, set: string, kind: string): string {
   const one = setOf(review, set);
   if (kind === "web") {
     const web = one.web;
-    if (web === null) return `${one.label}: the web apps have not run in this set yet.`;
-    const seen = web.seen === null ? "" : `, WebGL renderer ${web.seen}`;
-    const version = web.version === null ? "" : ` ${web.version}`;
-    const runs = web.runs === null ? "" : ` ${web.runs} runs of each app.`;
+    if (web === undefined) return `${one.label}: the web apps have not run in this set yet.`;
+    const seen = web.seen === undefined ? "" : `, WebGL renderer ${web.seen}`;
+    const version = web.version === undefined ? "" : ` ${web.version}`;
+    const runs = web.runs === undefined ? "" : ` ${web.runs} runs of each app.`;
     return `${one.label}: ${web.browser}${version}, ${web.renderer ?? "its default renderer"}${seen}.${runs}`;
   }
   const native = one.native;
-  if (native === null) return `${one.label}: the native apps have not run in this set yet.`;
-  const runs = native.runs === null ? "" : ` ${native.runs} runs of each app`;
-  const load = native.load === null ? "" : `, load average ${native.load}`;
-  const machine = native.machine === null ? "" : `, on ${native.machine}`;
-  const date = native.date === null ? "" : `, ${native.date}`;
+  if (native === undefined) return `${one.label}: the native apps have not run in this set yet.`;
+  const runs = native.runs === undefined ? "" : ` ${native.runs} runs of each app`;
+  const load = native.load === undefined ? "" : `, load average ${native.load}`;
+  const machine = native.machine === undefined ? "" : `, on ${native.machine}`;
+  const date = native.date === undefined ? "" : `, ${native.date}`;
   return `${one.label}: ${native.renderer}. Every app ran with ${native.env}.${runs}${load}${machine}${date}.`;
 }
 
 // Firefox's run, said under the table.
 export function firefoxConditions(review: Review): string {
   const web = review.firefox;
-  if (web == null) return "";
-  const version = web.version === null ? "" : ` ${web.version}`;
-  const runs = web.runs === null ? "" : ` ${web.runs} runs of each app.`;
+  if (web === undefined) return "";
+  const version = web.version === undefined ? "" : ` ${web.version}`;
+  const runs = web.runs === undefined ? "" : ` ${web.runs} runs of each app.`;
   return `Firefox${version} ran the web apps beside the sets, on ${web.renderer ?? "its default renderer"}.${runs} Its numbers are rows of the table.`;
 }
 
@@ -515,7 +551,7 @@ export function shotOf(one: Framework, dark: boolean, width: number): string {
 
 // The names of an entry's pairs, the same framework of the other kind.
 export function pairNames(review: Review, one: Framework): string {
-  return (one.pair ?? []).map((id) => nameOf(review, id)).join(", ");
+  return pairOf(one).map((id: string) => nameOf(review, id)).join(", ");
 }
 
 // Whether any number, excerpt or section is still a placeholder.

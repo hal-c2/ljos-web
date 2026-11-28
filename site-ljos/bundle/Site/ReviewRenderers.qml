@@ -72,7 +72,7 @@ Column {
                         const rtl = App.layoutDirection === Direction.RightToLeft;
                         const ahead = event.key === Key.Down || (event.key === Key.Right && !rtl) || (event.key === Key.Left && rtl);
                         const at = (choice.index + (ahead ? 1 : -1) + choices.count) % choices.count;
-                        const next = (sets.review.sets ?? [])[at];
+                        const next = Review.setsOf(sets.review)[at];
                         if (next !== undefined)
                             sets.choose(next.id);
                         choices.focusAt(at);

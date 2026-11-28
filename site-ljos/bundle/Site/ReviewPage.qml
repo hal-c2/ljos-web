@@ -56,9 +56,9 @@ Column {
         if (page.asked)
             return;
         page.asked = true;
-        Later.reviewLater().then((module) => {
+        Later.reviewLater().then((module: Later.Module) => {
             page.more = Review.laterOf(module.default);
-        }, (error) => {
+        }, (error: unknown) => {
             // Asked again the next time: a network that failed once may not.
             page.asked = false;
             console.warn(`the review's other sets did not load: ${error}`);
@@ -291,7 +291,7 @@ Column {
             more: page.more
         }
         Text {
-            visible: page.review.firefox != null
+            visible: page.review.firefox !== undefined
             width: Math.min(parent.width, Theme.measure)
             text: Review.firefoxConditions(page.review)
             color: Theme.textMuted

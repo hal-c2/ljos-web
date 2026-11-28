@@ -68,7 +68,7 @@ Column {
     }
     Text {
         objectName: "reviewPair"
-        visible: (section.framework.pair ?? []).length > 0
+        visible: Review.pairOf(section.framework).length > 0
         width: parent.width
         text: section.framework.kind === "web" ? t`Also among the native apps: ${Review.pairNames(section.review, section.framework)}.` : t`Also among the web apps: ${Review.pairNames(section.review, section.framework)}.`
         color: Theme.textMuted
@@ -112,10 +112,10 @@ Column {
     }
     Text {
         objectName: "reviewMissing"
-        visible: (section.framework.missing ?? []).length > 0
+        visible: Review.missingOf(section.framework).length > 0
         x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
         width: Math.min(parent.width, Theme.measure)
-        text: t`What of the spec this entry does not do: ${(section.framework.missing ?? []).join("; ")}.`
+        text: t`What of the spec this entry does not do: ${Review.missingOf(section.framework).join("; ")}.`
         color: Theme.text
         font.family: Theme.sans
         font.size: Theme.captionSize + 1

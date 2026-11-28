@@ -1805,9 +1805,7 @@
   "sets": [
     {
       "id": "gpu",
-      "label": "GPU",
-      "native": null,
-      "web": null
+      "label": "GPU"
     },
     {
       "id": "sw-default",
@@ -1819,21 +1817,15 @@
         "date": "2026-11-28",
         "runs": "3",
         "load": "1.7–26.33"
-      },
-      "web": null
+      }
     },
     {
       "id": "sw-4",
-      "label": "Software, 4 threads",
-      "native": null,
-      "web": null
+      "label": "Software, 4 threads"
     },
     {
       "id": "sw-own",
-      "label": "Software, each toolkit's own",
-      "native": null,
-      "web": null
+      "label": "Software, each toolkit's own"
     }
-  ],
-  "firefox": null
+  ]
 }
