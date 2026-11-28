@@ -6,13 +6,19 @@ import "logic/review.ts" as Review
 
 // The review's numbers as a table, for a reader who would rather read
 // them than see bars, and for every number's spread and runs: a row per
-// picked framework, in the order they were picked, a column per metric.
+// picked framework, in the order they were picked, a column per metric,
+// the timed ones as the shown renderer set measured them; then a row
+// per picked web framework as Firefox measured it.
 // Wider than a phone, it scrolls sideways on its own, the page does not.
 Flickable {
     id: view
 
     required property Review.Review review
     required property list<string> picked
+    // The renderer set shown, by its id.
+    property string set: ""
+    // The numbers the page's first load left out, once in.
+    property Review.Later more: Review.notYet()
 
     readonly property real first: 112
     readonly property real column: 136
@@ -64,17 +70,17 @@ Flickable {
             }
         }
         Repeater {
-            model: view.picked
+            model: Review.linesOf(view.review, view.picked, view.more)
             Rectangle {
                 id: line
-                required property string modelData
+                required property Review.Line modelData
                 required property int index
-                readonly property string name: Review.nameOf(view.review, line.modelData)
+                readonly property string name: line.modelData.name
                 width: table.width
                 height: cells.height
                 fill: line.index % 2 === 0 ? Theme.surface : "transparent"
                 Accessible.role: Accessible.Row
-                Accessible.name: Review.rowName(view.review, line.modelData)
+                Accessible.name: Review.lineName(view.review, line.modelData, view.set, view.more)
 
                 Row {
                     id: cells
@@ -99,7 +105,7 @@ Flickable {
                             rightPadding: Theme.s
                             topPadding: Theme.xs
                             bottomPadding: Theme.xs
-                            text: Review.cell(modelData.values[line.modelData])
+                            text: Review.lineCell(modelData, line.modelData, view.set, view.more)
                             color: Theme.text
                             font.family: Theme.sans
                             font.size: Theme.captionSize

@@ -5,6 +5,7 @@ import "logic/place.ts" as Place
 import "logic/review.ts" as Review
 import Site
 import "../nav.js" as Nav
+import "later.js" as Later
 
 // The framework review: one app written in each framework, its numbers
 // side by side for the frameworks picked, the same feature in each one's
@@ -24,6 +25,45 @@ Column {
     // here on eases in. The bars the build drew stand as they are.
     property bool live: false
     property bool tabled: false
+    // The renderer set the numbers are shown in, by its id: the GPU's
+    // first.
+    property string set: Review.firstSet(page.review)
+    // What the first load leaves out (the other sets, Firefox's numbers,
+    // the words of the frameworks it does not open with),
+    // imported once a reader asks for them; until then the charts stay
+    // on the first set.
+    // Not `later`: that name is the page's call for after this frame.
+    property Review.Later more: Review.notYet()
+    property bool asked: false
+    readonly property string shown: page.set === Review.firstSet(page.review) ? page.set : Review.shownSet(page.review, page.set, page.more)
+
+    onSetChanged: {
+        if (page.set !== Review.firstSet(page.review))
+            page.askLater();
+    }
+    onTabledChanged: {
+        if (page.tabled)
+            page.askLater();
+    }
+    // A framework picked that the page did not open with has its words
+    // in the later data too.
+    onPickedChanged: {
+        if (Review.wordsLater(page.review, page.picked, page.more))
+            page.askLater();
+    }
+
+    function askLater(): void {
+        if (page.asked)
+            return;
+        page.asked = true;
+        Later.reviewLater().then((module: Later.Module) => {
+            page.more = Review.laterOf(module.default);
+        }, (error: unknown) => {
+            // Asked again the next time: a network that failed once may not.
+            page.asked = false;
+            console.warn(`the review's other sets did not load: ${error}`);
+        });
+    }
 
     width: parent !== null ? parent.width : 680
     spacing: page.wide ? Theme.xxxl : Theme.xxl
@@ -164,7 +204,10 @@ Column {
                 required property Review.Kind modelData
                 width: page.width
                 spacing: Theme.xs
+                Accessible.role: Accessible.Grouping
+                Accessible.name: kind.modelData.label
                 Text {
+                    Accessible.ignored: true
                     text: kind.modelData.label
                     color: Theme.textMuted
                     font.family: Theme.sans
@@ -218,13 +261,19 @@ Column {
         Text {
             x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
-            text: t`Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer.`
+            text: t`Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, in the renderer set chosen below: the numbers compare with each other, not with your computer.`
             color: Theme.textMuted
             font.family: Theme.sans
             font.size: Theme.bodySize - 1
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine - 2
             wrap: Text.Wrap
+        }
+        ReviewRenderers {
+            width: parent.width
+            review: page.review
+            chosen: page.set
+            onChosenChanged: page.set = chosen
         }
         StageButton {
             // Pressed while the table stands in for the charts.
@@ -238,6 +287,20 @@ Column {
             width: parent.width
             review: page.review
             picked: page.picked
+            set: page.shown
+            more: page.more
+        }
+        // Said with the table, whose rows it names.
+        Text {
+            visible: page.tabled && page.review.firefox !== undefined
+            width: Math.min(parent.width, Theme.measure)
+            text: Review.firefoxConditions(page.review)
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.size: Theme.captionSize
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.captionLine
+            wrap: Text.Wrap
         }
         Flow {
             visible: !page.tabled
@@ -249,7 +312,12 @@ Column {
                     required property Review.Metric modelData
                     width: page.wide ? Math.floor((page.width - Theme.xl) / 2) : page.width
                     review: page.review
-                    metric: modelData
+                    // The first set's numbers are in the first load: a
+                    // chart on it does not follow the later data, so the
+                    // words coming in for a framework picked do not make
+                    // its bars anew mid-fade.
+                    metric: page.shown === Review.firstSet(page.review) ? Review.inSet(modelData, page.shown) : Review.inSet(modelData, page.shown, page.more)
+                    set: page.shown
                     picked: page.picked
                     live: page.live
                     wide: page.wide
@@ -335,8 +403,10 @@ Column {
             ReviewSection {
                 required property string modelData
                 width: page.width
-                framework: Review.byId(page.review, modelData)
+                review: page.review
+                framework: Review.framed(page.review, modelData, page.more)
                 wide: page.wide
+                live: page.live
                 scroller: page.scroller
             }
         }

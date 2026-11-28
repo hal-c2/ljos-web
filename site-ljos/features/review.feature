@@ -118,3 +118,32 @@ Feature: A totally biased review of mostly Rust UI frameworks
     When they pick another framework
     Then its bars stand at their length and fade in
     But for a reader who did not ask, they grow as they fade in
+
+  Scenario: The numbers are shown one renderer set at a time, the GPU's first
+    When a reader opens /review/
+    Then a radio group "Renderer" offers "GPU", "Software (llvmpipe)", "Software, 4 threads" and "Software, each toolkit's own"
+    And "GPU" is chosen
+    When they choose another set, with the pointer or the arrow keys
+    Then every timed chart and the table show that set's numbers alone
+    And under each chart's group it says how that set ran: the renderer, the environment every app shared, the runs, the load average and the machine
+    And a picked framework the set has no number of is said to be "Not measured in this set", with no number standing in
+    And a size or a line count stays the same in every set
+
+  Scenario: A framework on both platforms is in both groups
+    Given a framework with a native entry and a web entry, Dioxus's desktop and web builds
+    When a reader opens /review/
+    Then the picker's "Native" group and its "Web" group each have one of them
+    And each one's section names the other
+    And another way to build a framework for the same platform, such as Qt Quick with its logic in Rust, is named among its own group's apps
+    And an entry that could not do part of the spec says which part
+
+  Scenario: Each entry shows its screenshot
+    When a reader picks every framework, in light or dark
+    Then each section the repository has a picture of shows it in the page's scheme, with alt text
+    And a section the repository has no picture of yet shows none
+    And the picture loads lazily, from the repository's site, so the page carries none
+
+  Scenario: A web entry runs in the reader's browser
+    When a reader picks every framework
+    Then each web entry's section links "Run <name> in your browser" to its build on the repository's site
+    And no native entry's does

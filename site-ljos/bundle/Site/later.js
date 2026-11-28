@@ -28,6 +28,10 @@ showcase.awaited = true;
 // as the showcase is, so the page made at `/review/` waits for it.
 function review() { return import("./ReviewPage.qml"); }
 review.awaited = true;
+// The review's numbers its first load leaves out: the renderer sets
+// after the first, and Firefox's (scripts/build.mjs), asked for once a
+// reader picks another set or opens the table.
+function reviewLater() { return import("./review-later.json"); }
 
 // The demos page, which no other page's first load carries: the Pantry
 // and the demos it shows are the front page's too, which a docs page has
