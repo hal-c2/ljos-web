@@ -270,6 +270,36 @@ test("native and web numbers are drawn on scales of their own", async ({ browser
   }
 });
 
+test("a chart draws no group for a kind nobody picked, and says nothing of two scales then", async ({ browser }) => {
+  const split = review.metrics.find((metric) => metric.groups.length === 2);
+  const kinds = new Set(review.picked.map(kindOf));
+  expect(kinds.size, "the page opens with frameworks of one kind").toBe(1);
+  const absent = split.groups.find((group) => !kinds.has(group.kind));
+  for (const javaScriptEnabled of [true, false]) {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, javaScriptEnabled });
+    try {
+      const page = await context.newPage();
+      await page.goto(route);
+      if (javaScriptEnabled) await page.waitForSelector(hydrated);
+      const chart = page.getByRole("region", { name: split.label, exact: true });
+      await expect(chart, `script ${javaScriptEnabled}`).toBeVisible();
+      await expect(chart.getByText(absent.kind === "web" ? "Web apps" : "Native apps", { exact: true }), `script ${javaScriptEnabled}`).toBeHidden();
+      await expect(chart.getByText(absent.how, { exact: true }), `script ${javaScriptEnabled}`).toBeHidden();
+      await expect(chart.getByText(wrapped(absent.command)), `script ${javaScriptEnabled}`).toBeHidden();
+      await expect(chart.getByText("Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across.", { exact: true }), `script ${javaScriptEnabled}`).toBeHidden();
+      if (!javaScriptEnabled) continue;
+      // Picking one of that kind brings its group, and the two scales'
+      // note, in.
+      const one = review.frameworks.find((framework) => framework.kind === absent.kind && split.values[framework.id] != null);
+      await page.getByRole("group", { name: "Frameworks to compare", exact: true }).getByRole("button", { name: one.name, exact: true }).click();
+      await expect(chart.getByText(absent.how, { exact: true })).toBeVisible();
+      await expect(chart.getByText("Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across.", { exact: true })).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 test("a spread too small to matter is drawn small", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   try {

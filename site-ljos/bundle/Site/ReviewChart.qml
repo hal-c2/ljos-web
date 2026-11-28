@@ -39,6 +39,7 @@ Column {
     readonly property list<string> missing: Review.unmeasured(chart.review, chart.metric, chart.picked)
     readonly property string only: Review.onlyKind(chart.metric)
     readonly property bool split: chart.metric.groups.length > 1
+    readonly property int held: Review.groupsHeld(chart.review, chart.metric, chart.picked)
     // The names' column and the room after the longest bar for its number.
     readonly property real names: chart.wide ? 104 : 84
     readonly property real tip: 76
@@ -57,7 +58,7 @@ Column {
         Accessible.role: Accessible.Heading
     }
     Text {
-        visible: chart.split
+        visible: chart.split && chart.held > 1
         width: parent.width
         text: t`Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across.`
         color: Theme.textMuted
@@ -79,6 +80,10 @@ Column {
             readonly property list<string> shown: group.bars.map((bar) => bar.id)
             readonly property real reach: Review.reach(group.bars, chart.metric.floor ?? 0)
 
+            // A kind's group with none of its kind picked would be a
+            // method and a command over no bars: it comes in with the
+            // first one picked.
+            visible: !chart.split || group.bars.length > 0
             width: parent.width
             topPadding: chart.split ? Theme.xs : 0
             spacing: Theme.xs

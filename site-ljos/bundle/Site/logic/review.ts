@@ -210,6 +210,15 @@ export function barsIn(review: Review, metric: Metric, group: Group, picked: rea
   );
 }
 
+// How many of a metric's groups hold a picked framework: a chart split
+// by kind draws only those, and says its scales differ only where it
+// draws two.
+export function groupsHeld(review: Review, metric: Metric, picked: readonly string[]): number {
+  let held = 0;
+  for (const group of metric.groups) if (barsIn(review, metric, group, picked).length > 0) held += 1;
+  return held;
+}
+
 export function kindOf(review: Review, id: string): string {
   const one = review.frameworks.find((framework) => framework.id === id);
   return one !== undefined ? one.kind : "";
