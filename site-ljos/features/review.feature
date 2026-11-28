@@ -15,8 +15,9 @@ Feature: A totally biased review of mostly Rust UI frameworks
   and the words of each section. A number or excerpt still waiting for
   its measurement is marked as a placeholder, and the page says so.
 
-  Covered by site-ljos/tests/review.spec.js, with the route in
-  parity.spec.js, hydrate.spec.js, a11y.spec.js and payload.spec.js.
+  Covered by site-ljos/tests/review.spec.js and review-nav.spec.js,
+  with the route in parity.spec.js, hydrate.spec.js, a11y.spec.js and
+  payload.spec.js.
 
   Background:
     Given the site is built
@@ -24,6 +25,27 @@ Feature: A totally biased review of mostly Rust UI frameworks
   Scenario: Every page leads to the review
     When a reader with no script opens any page
     Then its footer has a link "Framework review" to /review/
+
+  Scenario Outline: Each shell's main navigation leads to the review
+    Given a reader in the <shell> shell, <width> wide
+    When they open the shell's main navigation
+    Then it has a link to /review/ with words, not an icon alone
+    And Tab reaches it, and Enter opens the review
+
+    Examples:
+      | shell     | width |
+      | Elegant   | 1440  |
+      | Elegant   | 390   |
+      | Cyberpunk | 1440  |
+      | Cyberpunk | 390   |
+      | Workbench | 1440  |
+      | Workbench | 390   |
+      | Desktop   | 1440  |
+      | Desktop   | 390   |
+
+  Scenario: The home page names the review in its own words
+    When a reader opens the home page
+    Then a link to /review/ stands in its words, apart from the footer
 
   Scenario: Search finds the review
     When a reader searches for "biased"

@@ -297,6 +297,20 @@ Column {
                 wide: landing.wide
                 onFollowed: (link) => landing.follow(link)
             }
+            // How it stands beside the others: the review, losses and all.
+            Text {
+                width: Math.min(parent.width, Theme.measure)
+                format: Text.RichText
+                color: Theme.textMuted
+                linkColor: Theme.link
+                font.family: Theme.sans
+                font.size: Theme.bodySize
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.bodyLine
+                wrap: Text.Wrap
+                text: Nav.linked(Built.base, t`How does Ljós compare? The <a href="/review/">framework review</a> builds the same app in each of several UI frameworks and measures them, rows where Ljós loses included.`)
+                onLinkActivated: (link) => landing.follow(link)
+            }
         }
     }
 

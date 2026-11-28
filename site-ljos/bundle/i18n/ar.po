@@ -98,7 +98,7 @@ msgstr "أبر"
 msgid "AUG"
 msgstr "أغس"
 
-#: ../Shells/Desktop.qml:632 ../Shells/Desktop.qml:1169
+#: ../Shells/Desktop.qml:637 ../Shells/Desktop.qml:1182
 msgid "About ljos.dev"
 msgstr "حول ljos.dev"
 
@@ -150,7 +150,7 @@ msgstr "الوكيل: حوّل هذه إلى لوحة"
 msgid "All caught up"
 msgstr "لا توجد إشعارات جديدة"
 
-#: ../Shells/Desktop.qml:869
+#: ../Shells/Desktop.qml:882
 msgid "All demos"
 msgstr "جميع العروض"
 
@@ -222,7 +222,7 @@ msgstr "البطارية {0} %"
 msgid "BPM"
 msgstr "BPM"
 
-#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:569 ../Shells/Desktop.qml:692
+#: ../Demos/Watch/NoteDetail.qml:63 ../Shells/Desktop.qml:574 ../Shells/Desktop.qml:697
 msgid "Back"
 msgstr "رجوع"
 
@@ -242,7 +242,7 @@ msgstr "البطارية عند 20 %"
 msgid "Before"
 msgstr "قبل"
 
-#: ../Shells/Desktop.qml:723 ../Shells/Desktop.qml:860
+#: ../Shells/Desktop.qml:728 ../Shells/Desktop.qml:865
 msgid "Benchmarks"
 msgstr "المقاييس"
 
@@ -270,7 +270,7 @@ msgstr "النطّاطة"
 msgid "Bread · £{0}"
 msgstr "خبز · £{0}"
 
-#: ../Shells/Desktop.qml:717
+#: ../Shells/Desktop.qml:722
 msgid "Browse all interactive demos"
 msgstr "تصفح جميع العروض التفاعلية"
 
@@ -278,7 +278,7 @@ msgstr "تصفح جميع العروض التفاعلية"
 msgid "Built for agents"
 msgstr "مبني للوكلاء"
 
-#: ../Site/Landing.qml:347
+#: ../Site/Landing.qml:361
 msgid "Built together"
 msgstr "نُبنيه معًا"
 
@@ -290,27 +290,27 @@ msgstr "مبني باستخدام Ljós"
 msgid "Cancel timer"
 msgstr "إلغاء المؤقت"
 
-#: ../Shells/Desktop.qml:588
+#: ../Shells/Desktop.qml:593
 msgid "Capability: agentic first"
 msgstr "القدرة: الوكلاء أولًا"
 
-#: ../Shells/Desktop.qml:587
+#: ../Shells/Desktop.qml:592
 msgid "Capability: descriptive language"
 msgstr "القدرة: لغة وصفية"
 
-#: ../Shells/Desktop.qml:590
+#: ../Shells/Desktop.qml:595
 msgid "Capability: live updates"
 msgstr "القدرة: تحديثات فورية"
 
-#: ../Shells/Desktop.qml:592
+#: ../Shells/Desktop.qml:597
 msgid "Capability: malleable"
 msgstr "القدرة: قابل للتشكيل"
 
-#: ../Shells/Desktop.qml:589
+#: ../Shells/Desktop.qml:594
 msgid "Capability: several renderers"
 msgstr "القدرة: عدة محركات عرض"
 
-#: ../Shells/Desktop.qml:591
+#: ../Shells/Desktop.qml:596
 msgid "Capability: tools"
 msgstr "القدرة: أدوات"
 
@@ -370,15 +370,15 @@ msgstr "المناخ"
 msgid "Climate off"
 msgstr "المناخ متوقف"
 
-#: ../Shells/Cyberpunk.qml:352 ../Shells/Cyberpunk.qml:616
+#: ../Shells/Cyberpunk.qml:353 ../Shells/Cyberpunk.qml:617
 msgid "Clock"
 msgstr "الساعة"
 
-#: ../Shells/Cyberpunk.qml:354 ../Shells/Cyberpunk.qml:618
+#: ../Shells/Cyberpunk.qml:355 ../Shells/Cyberpunk.qml:619
 msgid "Clock {0}"
 msgstr "الساعة {0}"
 
-#: ../Shells/Desktop.qml:1195
+#: ../Shells/Desktop.qml:1208
 msgid "Close"
 msgstr "إغلاق"
 
@@ -415,7 +415,7 @@ msgstr "إغلاق محرر {0}"
 msgid "Close the shader's source"
 msgstr "إغلاق شيفرة المظلِّل"
 
-#: ../Shells/Desktop.qml:1009 ../Shells/Workbench.qml:744
+#: ../Shells/Desktop.qml:1022 ../Shells/Workbench.qml:744
 msgid "Close {0}"
 msgstr "إغلاق {0}"
 
@@ -492,7 +492,7 @@ msgstr "الرقص (متكرر)"
 msgid "Dark"
 msgstr "داكن"
 
-#: ../Shells/Desktop.qml:508
+#: ../Shells/Desktop.qml:513
 msgid "Dark colour scheme"
 msgstr "المظهر الداكن"
 
@@ -500,7 +500,7 @@ msgstr "المظهر الداكن"
 msgid "Defrost"
 msgstr "إزالة الضباب"
 
-#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:716 ../Shells/Desktop.qml:864 ../Site/Footer.qml:103 ../Site/Router.qml:42 ../Site/Router.qml:50 ../Site/Router.qml:88
+#: ../Shells/Cyberpunk.qml:50 ../Shells/Desktop.qml:721 ../Shells/Desktop.qml:877 ../Site/Footer.qml:103 ../Site/Router.qml:42 ../Site/Router.qml:51 ../Site/Router.qml:89
 msgid "Demos"
 msgstr "العروض"
 
@@ -540,11 +540,11 @@ msgstr "المسافة"
 msgid "Do not disturb"
 msgstr "عدم الإزعاج"
 
-#: ../Shells/Cyberpunk.qml:55 ../Site/Footer.qml:102 ../Site/Router.qml:41
+#: ../Shells/Cyberpunk.qml:56 ../Site/Footer.qml:102 ../Site/Router.qml:41
 msgid "Docs"
 msgstr "التوثيق"
 
-#: ../Shells/Desktop.qml:958
+#: ../Shells/Desktop.qml:971
 msgid "Documents"
 msgstr "المستندات"
 
@@ -746,11 +746,11 @@ msgctxt "menu bar"
 msgid "File"
 msgstr "ملف"
 
-#: ../Shells/Desktop.qml:514
+#: ../Shells/Desktop.qml:519
 msgid "Follow system colour scheme"
 msgstr "اتباع مظهر النظام"
 
-#: ../Shells/Desktop.qml:574 ../Shells/Desktop.qml:698
+#: ../Shells/Desktop.qml:579 ../Shells/Desktop.qml:703
 msgid "Forward"
 msgstr "للأمام"
 
@@ -758,15 +758,15 @@ msgstr "للأمام"
 msgid "Fragment shader · GLSL ES 3.0"
 msgstr "مظلِّل الأجزاء · GLSL ES 3.0"
 
-#: ../Shells/Cyberpunk.qml:364 ../Shells/Cyberpunk.qml:607
+#: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
 msgid "Frame rate"
 msgstr "معدل الإطارات"
 
-#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
+#: ../Shells/Cyberpunk.qml:367 ../Shells/Cyberpunk.qml:610
 msgid "Frame rate not measured yet"
 msgstr "لم يُقَس معدل الإطارات بعد"
 
-#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
+#: ../Shells/Cyberpunk.qml:367 ../Shells/Cyberpunk.qml:610
 msgid "Frame rate {0} fps"
 msgstr "معدل الإطارات {0} fps"
 
@@ -774,7 +774,7 @@ msgstr "معدل الإطارات {0} fps"
 msgid "Framework"
 msgstr "إطار العمل"
 
-#: ../Site/Footer.qml:105 ../Site/Router.qml:50 ../Site/Router.qml:92
+#: ../Shells/Desktop.qml:873 ../Site/Footer.qml:105 ../Site/Router.qml:51 ../Site/Router.qml:93
 msgid "Framework review"
 msgstr "مراجعة أُطر العمل"
 
@@ -802,7 +802,7 @@ msgstr "الجني (مرة واحدة)"
 msgid "Get started"
 msgstr "ابدأ الآن"
 
-#: ../Shells/Desktop.qml:614
+#: ../Shells/Desktop.qml:619
 msgid "Getting started guide"
 msgstr "دليل البداية"
 
@@ -818,20 +818,20 @@ msgstr "تبديل الساعة إلى شاشتها الأخرى"
 msgid "Glow"
 msgstr "التوهج"
 
-#: ../Shells/Desktop.qml:561
+#: ../Shells/Desktop.qml:566
 msgctxt "menu bar"
 msgid "Go"
 msgstr "انتقال"
 
-#: ../Shells/Desktop.qml:699
+#: ../Shells/Desktop.qml:704
 msgid "Go to next route"
 msgstr "الانتقال إلى المسار التالي"
 
-#: ../Shells/Desktop.qml:693
+#: ../Shells/Desktop.qml:698
 msgid "Go to previous route"
 msgstr "الانتقال إلى المسار السابق"
 
-#: ../Site/Landing.qml:427
+#: ../Site/Landing.qml:441
 msgid "Goals and principles"
 msgstr "الأهداف والمبادئ"
 
@@ -875,16 +875,20 @@ msgstr "معدل النبض، آخر {0} ثانية"
 msgid "Heating"
 msgstr "تدفئة"
 
-#: ../Shells/Desktop.qml:606
+#: ../Shells/Desktop.qml:611
 msgctxt "menu bar"
 msgid "Help"
 msgstr "مساعدة"
 
-#: ../Shells/Desktop.qml:704 ../Shells/Desktop.qml:842 ../Site/Router.qml:50 ../Site/Router.qml:86
+#: ../Shells/Desktop.qml:709 ../Shells/Desktop.qml:847 ../Site/Router.qml:51 ../Site/Router.qml:87
 msgid "Home"
 msgstr "الرئيسية"
 
-#: ../Shells/Desktop.qml:1113 ../Shells/Workbench.qml:1055
+#: ../Site/Landing.qml:311
+msgid "How does Ljós compare? The <a href=\"/review/\">framework review</a> builds the same app in each of several UI frameworks and measures them, rows where Ljós loses included."
+msgstr "كيف يقارَن Ljós بغيره؟ <a href=\"/review/\">مراجعة أُطر العمل</a> تبني التطبيق نفسه في كل واحد من عدة أُطر واجهات وتقيسها، بما في ذلك الصفوف التي يخسر فيها Ljós."
+
+#: ../Shells/Desktop.qml:1126 ../Shells/Workbench.qml:1055
 msgid "Hydrated in {0} ms"
 msgstr "تم التنشيط خلال {0} ms"
 
@@ -1020,7 +1024,7 @@ msgstr "يدع الساعة تستريح على واجهة التشغيل الد
 msgid "Light"
 msgstr "فاتح"
 
-#: ../Shells/Desktop.qml:502
+#: ../Shells/Desktop.qml:507
 msgid "Light colour scheme"
 msgstr "المظهر الفاتح"
 
@@ -1040,7 +1044,7 @@ msgstr "تخطيط القائمة"
 msgid "Live app"
 msgstr "تطبيق حي"
 
-#: ../Site/DemosPage.qml:44 ../Site/Landing.qml:418
+#: ../Site/DemosPage.qml:44 ../Site/Landing.qml:432
 msgid "Live demos"
 msgstr "عروض حية"
 
@@ -1056,7 +1060,7 @@ msgstr "بيئة تشغيل حية على شجرة مفتوحة"
 msgid "Live stage"
 msgstr "المنصة الحية"
 
-#: ../Site/Footer.qml:64 ../Site/Router.qml:50
+#: ../Site/Footer.qml:64 ../Site/Router.qml:51
 msgid "Ljós"
 msgstr "Ljós"
 
@@ -1084,11 +1088,11 @@ msgstr "Ljós هي حزمة واجهات مستخدم بلغة Rust لتطبيق
 msgid "Ljós on GitHub"
 msgstr "Ljós على GitHub"
 
-#: ../Site/Landing.qml:365
+#: ../Site/Landing.qml:379
 msgid "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome."
 msgstr "يسعى Ljós إلى اتباع مبادئ <a href=\"https://community-software.org/\">Community Software</a>: نبنيه معًا، كأقران، على نحو مفتوح.<br><br>الجميع مرحّب بهم.<br>نحن أقران.<br>كل مساهمة تُحدث فرقًا.<br>التأثير ينمو بالمشاركة.<br>كن لطيفًا مع الناس، ودقيقًا مع الأفكار.<br>«لا» و«ليس بعد» إجابتان مقبولتان.<br>اعتنِ بنفسك وببعضكم بعضًا.<br><br>الشيفرة إحدى طرق المساعدة. الاختبار والتوثيق والتصميم والترجمة ومراجعات إتاحة الوصول لها القدر نفسه من الأهمية، وأسئلة القادمين الجدد مرحّب بها دائمًا."
 
-#: ../Shells/Desktop.qml:645
+#: ../Shells/Desktop.qml:650
 msgid "Ljós — {0}"
 msgstr "Ljós — {0}"
 
@@ -1132,7 +1136,7 @@ msgstr "ماي"
 msgid "MCP log"
 msgstr "سجل MCP"
 
-#: ../Shells/Desktop.qml:618
+#: ../Shells/Desktop.qml:623
 msgid "MCP servers for agents"
 msgstr "خوادم MCP للوكلاء"
 
@@ -1172,7 +1176,7 @@ msgstr "برمجيات قابلة للتشكيل، في كل مكان."
 msgid "Map: the route to {0}"
 msgstr "الخريطة: المسار إلى {0}"
 
-#: ../Site/ReviewChart.qml:232
+#: ../Site/ReviewChart.qml:237
 msgid "Measured with"
 msgstr "قِيس بالأمر"
 
@@ -1180,7 +1184,7 @@ msgstr "قِيس بالأمر"
 msgid "Media"
 msgstr "الوسائط"
 
-#: ../Shells/Cyberpunk.qml:630 ../Shells/Desktop.qml:1208 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
+#: ../Shells/Cyberpunk.qml:631 ../Shells/Desktop.qml:1221 ../Shells/Elegant.qml:207 ../Shells/Workbench.qml:1204 ../Site/MenuButton.qml:14
 msgid "Menu"
 msgstr "القائمة"
 
@@ -1192,7 +1196,7 @@ msgstr "شريط القوائم"
 msgid "Message"
 msgstr "رسالة"
 
-#: ../Shells/Cyberpunk.qml:53
+#: ../Shells/Cyberpunk.qml:54
 msgid "Metrics"
 msgstr "المقاييس"
 
@@ -1228,11 +1232,11 @@ msgstr "قيد التشغيل الآن"
 msgid "Native"
 msgstr "أصلية"
 
-#: ../Site/ReviewChart.qml:62
+#: ../Site/ReviewChart.qml:63
 msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
 msgstr "تُقاس التطبيقات الأصلية وتطبيقات الويب هنا بطرق مختلفة، لذا لكل مجموعة مقياسها الخاص: قارن داخل المجموعة، لا بين المجموعات."
 
-#: ../Site/ReviewChart.qml:89
+#: ../Site/ReviewChart.qml:94
 msgid "Native apps"
 msgstr "التطبيقات الأصلية"
 
@@ -1252,11 +1256,11 @@ msgstr "المقطع التالي"
 msgid "Next: {0}"
 msgstr "التالي: {0}"
 
-#: ../Site/ReviewChart.qml:257
+#: ../Site/ReviewChart.qml:262
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "لا شريط لـ {0}: يُقاس هذا للتطبيقات الأصلية فقط."
 
-#: ../Site/ReviewChart.qml:257
+#: ../Site/ReviewChart.qml:262
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "لا شريط لـ {0}: يُقاس هذا لتطبيقات الويب فقط."
 
@@ -1272,7 +1276,7 @@ msgstr "لا توجد تشخيصات مصرّف أو تدقيق في الملف 
 msgid "No crew"
 msgstr "بلا فريق"
 
-#: ../Site/ReviewChart.qml:257
+#: ../Site/ReviewChart.qml:262
 msgid "No number yet for {0}."
 msgstr "لا رقم بعد لـ {0}."
 
@@ -1308,19 +1312,19 @@ msgstr "أكت"
 msgid "OUTDOOR RUN"
 msgstr "جري خارجي"
 
-#: ../Shells/Cyberpunk.qml:598
+#: ../Shells/Cyberpunk.qml:599
 msgid "Objects"
 msgstr "الكائنات"
 
-#: ../Shells/Cyberpunk.qml:358
+#: ../Shells/Cyberpunk.qml:359
 msgid "Objects alive"
 msgstr "الكائنات النشطة"
 
-#: ../Shells/Cyberpunk.qml:360 ../Shells/Cyberpunk.qml:600
+#: ../Shells/Cyberpunk.qml:361 ../Shells/Cyberpunk.qml:601
 msgid "Objects alive {0}"
 msgstr "الكائنات النشطة {0}"
 
-#: ../Shells/Desktop.qml:1119
+#: ../Shells/Desktop.qml:1132
 msgid "Objects alive: {0}"
 msgstr "الكائنات النشطة: {0}"
 
@@ -1328,7 +1332,7 @@ msgstr "الكائنات النشطة: {0}"
 msgid "Objects: {0}"
 msgstr "الكائنات: {0}"
 
-#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:729 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
+#: ../Demos/AgentView.qml:329 ../Shells/Desktop.qml:734 ../Shells/Workbench.qml:438 ../Site/HeroStage.qml:25 ../Site/ObserverDock.qml:121 ../Site/ObserverDock.qml:173
 msgid "Observer"
 msgstr "المراقب"
 
@@ -1345,7 +1349,7 @@ msgstr "مراقب Pantry"
 msgid "Observer for {0}"
 msgstr "مراقب {0}"
 
-#: ../Shells/Desktop.qml:622
+#: ../Shells/Desktop.qml:627
 msgid "Observer guide"
 msgstr "دليل المراقب"
 
@@ -1385,11 +1389,11 @@ msgstr "دقيقة أكثر"
 msgid "Open"
 msgstr "مفتوح"
 
-#: ../Site/Landing.qml:411
+#: ../Site/Landing.qml:425
 msgid "Open a window, then change it while it runs."
 msgstr "افتح نافذة، ثم غيّرها أثناء تشغيلها."
 
-#: ../Shells/Desktop.qml:468
+#: ../Shells/Desktop.qml:473
 msgid "Open benchmarks"
 msgstr "فتح المقاييس"
 
@@ -1397,7 +1401,7 @@ msgstr "فتح المقاييس"
 msgid "Open demos"
 msgstr "فتح العروض"
 
-#: ../Shells/Desktop.qml:473
+#: ../Shells/Desktop.qml:478
 msgid "Open documentation"
 msgstr "فتح التوثيق"
 
@@ -1405,19 +1409,23 @@ msgstr "فتح التوثيق"
 msgid "Open files"
 msgstr "الملفات المفتوحة"
 
+#: ../Shells/Desktop.qml:466
+msgid "Open framework review"
+msgstr "فتح مراجعة أُطر العمل"
+
 #: ../Shells/Desktop.qml:451
 msgid "Open home"
 msgstr "فتح الرئيسية"
 
-#: ../Shells/Desktop.qml:705
+#: ../Shells/Desktop.qml:710
 msgid "Open landing page"
 msgstr "فتح الصفحة الرئيسية"
 
-#: ../Shells/Desktop.qml:724
+#: ../Shells/Desktop.qml:729
 msgid "Open native desktop benchmark tables"
 msgstr "فتح جداول مقاييس سطح المكتب الأصلية"
 
-#: ../Shells/Desktop.qml:974 ../Shells/Desktop.qml:1059
+#: ../Shells/Desktop.qml:987 ../Shells/Desktop.qml:1072
 msgid "Open pages"
 msgstr "الصفحات المفتوحة"
 
@@ -1445,7 +1453,7 @@ msgstr "يعرض تطبيق البريد القياسي لدينا أول إطا
 msgid "Output"
 msgstr "المخرجات"
 
-#: ../Shells/Desktop.qml:837
+#: ../Shells/Desktop.qml:842
 msgid "Overview"
 msgstr "نظرة عامة"
 
@@ -1453,11 +1461,11 @@ msgstr "نظرة عامة"
 msgid "PAUSED"
 msgstr "متوقف مؤقتًا"
 
-#: ../Shells/Desktop.qml:1057
+#: ../Shells/Desktop.qml:1070
 msgid "Page"
 msgstr "الصفحة"
 
-#: ../Shells/Desktop.qml:825 ../Shells/Desktop.qml:1058 ../Site/PageTree.qml:21
+#: ../Shells/Desktop.qml:830 ../Shells/Desktop.qml:1071 ../Site/PageTree.qml:21
 msgid "Pages"
 msgstr "الصفحات"
 
@@ -1593,7 +1601,7 @@ msgstr "إعادة تشغيل مسجّلة"
 msgid "Recorded running"
 msgstr "مسجّل أثناء التشغيل"
 
-#: ../Shells/Desktop.qml:521 ../Site/MotionToggle.qml:25
+#: ../Shells/Desktop.qml:526 ../Site/MotionToggle.qml:25
 msgid "Reduce motion"
 msgstr "تقليل الحركة"
 
@@ -1609,15 +1617,15 @@ msgstr "تقليل الحركة: مفعّل – استخدم الحركة الك
 msgid "Reduced motion is on: the springs move more slowly and never swing past the ring."
 msgstr "تقليل الحركة مفعَّل: تتحرك النوابض أبطأ ولا تتجاوز الحلقة أبدًا."
 
-#: ../Shells/Cyberpunk.qml:371
+#: ../Shells/Cyberpunk.qml:372
 msgid "Renderer"
 msgstr "محرك العرض"
 
-#: ../Shells/Cyberpunk.qml:373
+#: ../Shells/Cyberpunk.qml:374
 msgid "Renderer {0}"
 msgstr "محرك العرض {0}"
 
-#: ../Shells/Desktop.qml:1135 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
+#: ../Shells/Desktop.qml:1148 ../Shells/Workbench.qml:1062 ../Shells/Workbench.qml:1190
 msgid "Renderer: {0}"
 msgstr "محرك العرض: {0}"
 
@@ -1637,7 +1645,7 @@ msgstr "إعادة ضبط"
 msgid "Reset demo"
 msgstr "إعادة ضبط العرض"
 
-#: ../Shells/Desktop.qml:484
+#: ../Shells/Desktop.qml:489
 msgid "Reset demo state"
 msgstr "إعادة ضبط حالة العروض"
 
@@ -1681,6 +1689,10 @@ msgstr "استئناف {0}"
 msgid "Retry"
 msgstr "إعادة المحاولة"
 
+#: ../Shells/Cyberpunk.qml:52 ../Site/Router.qml:44
+msgid "Review"
+msgstr "المراجعة"
+
 #: ../Demos/Cockpit/CarPanel.qml:38 ../Demos/Cockpit/CarPanel.qml:218
 msgid "Right door"
 msgstr "الباب الأيمن"
@@ -1693,15 +1705,15 @@ msgstr "قاعة Hekla، مع فريق العتاد. وصلت اللوحات ا�
 msgid "Round, 454"
 msgstr "دائرية، 454"
 
-#: ../Shells/Cyberpunk.qml:345 ../Shells/Cyberpunk.qml:589
+#: ../Shells/Cyberpunk.qml:346 ../Shells/Cyberpunk.qml:590
 msgid "Route"
 msgstr "المسار"
 
-#: ../Shells/Cyberpunk.qml:347 ../Shells/Cyberpunk.qml:591
+#: ../Shells/Cyberpunk.qml:348 ../Shells/Cyberpunk.qml:592
 msgid "Route {0}"
 msgstr "المسار {0}"
 
-#: ../Shells/Desktop.qml:1106 ../Shells/Workbench.qml:1162
+#: ../Shells/Desktop.qml:1119 ../Shells/Workbench.qml:1162
 msgid "Route: {0}"
 msgstr "المسار: {0}"
 
@@ -1754,7 +1766,7 @@ msgstr "أحد"
 msgid "Same app, different shell. Switching keeps your route, scroll position, and running demos."
 msgstr "التطبيق نفسه، بغلاف مختلف. يحافظ التبديل على مسارك وموضع التمرير والعروض الجارية."
 
-#: ../Shells/Desktop.qml:790
+#: ../Shells/Desktop.qml:795
 msgid "Scheme"
 msgstr "المظهر"
 
@@ -1782,7 +1794,7 @@ msgstr "المقعد متوقف"
 msgid "Seat {0}"
 msgstr "المقعد {0}"
 
-#: ../Shells/Cyberpunk.qml:424
+#: ../Shells/Cyberpunk.qml:425
 msgid "Sections"
 msgstr "الأقسام"
 
@@ -1823,7 +1835,7 @@ msgstr "مبدّل الغلاف"
 msgid "Shell.qml: edit it live"
 msgstr "Shell.qml: عدّله مباشرة"
 
-#: ../Shells/Desktop.qml:1141
+#: ../Shells/Desktop.qml:1154
 msgid "Shell: Desktop"
 msgstr "الغلاف: سطح المكتب"
 
@@ -1835,7 +1847,7 @@ msgstr "الغلاف: منضدة العمل"
 msgid "Shell: {label} – choose another layout"
 msgstr "الغلاف: {label} – اختر تخطيطًا آخر"
 
-#: ../Shells/Cyberpunk.qml:56 ../Shells/Desktop.qml:885
+#: ../Shells/Cyberpunk.qml:57 ../Shells/Desktop.qml:898
 msgid "Shells"
 msgstr "الأغلفة"
 
@@ -1879,7 +1891,7 @@ msgstr "اعرض الأرقام في جدول"
 msgid "Show the source"
 msgstr "إظهار الشيفرة المصدرية"
 
-#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:43 ../Site/Router.qml:50 ../Site/Router.qml:90
+#: ../Shells/Cyberpunk.qml:51 ../Site/Footer.qml:104 ../Site/Router.qml:43 ../Site/Router.qml:51 ../Site/Router.qml:91
 msgid "Showcase"
 msgstr "المعرض"
 
@@ -1923,7 +1935,7 @@ msgstr "برمجيات يمكنك إعادة تشكيلها أثناء تشغي�
 msgid "Some numbers, code or words here stand in for what is still being measured and written. Each placeholder number says so in the table."
 msgstr "بعض الأرقام أو الشيفرة أو الكلمات هنا تحلّ محلّ ما لا يزال قيد القياس والكتابة. كل رقم مؤقت يذكر ذلك في الجدول."
 
-#: ../Shells/Cyberpunk.qml:488 ../Site/HeroStage.qml:25
+#: ../Shells/Cyberpunk.qml:489 ../Site/HeroStage.qml:25
 msgid "Source"
 msgstr "المصدر"
 
@@ -1941,7 +1953,7 @@ msgstr "المصدر"
 msgid "Source of {0}"
 msgstr "مصدر {0}"
 
-#: ../Shells/Desktop.qml:626
+#: ../Shells/Desktop.qml:631
 msgid "Source on GitHub"
 msgstr "المصدر على GitHub"
 
@@ -1973,11 +1985,11 @@ msgstr "وقوف"
 msgid "Start"
 msgstr "ابدأ"
 
-#: ../Shells/Desktop.qml:580 ../Shells/Desktop.qml:850
+#: ../Shells/Desktop.qml:585 ../Shells/Desktop.qml:855
 msgid "Start in a minute"
 msgstr "ابدأ في دقيقة"
 
-#: ../Site/Landing.qml:382
+#: ../Site/Landing.qml:396
 msgid "Start reading"
 msgstr "ابدأ القراءة"
 
@@ -2005,7 +2017,7 @@ msgstr "جارٍ تشغيل {what}…"
 msgid "Starting…"
 msgstr "جارٍ التشغيل…"
 
-#: ../Shells/Desktop.qml:1090 ../Shells/Workbench.qml:1140
+#: ../Shells/Desktop.qml:1103 ../Shells/Workbench.qml:1140
 msgid "Status bar"
 msgstr "شريط الحالة"
 
@@ -2041,7 +2053,7 @@ msgstr "ساعة الإيقاف"
 msgid "Svala GT is a made-up car. Its model comes from a Blender script in this example; the map, the music and the streets are invented. Everything you see is drawn by Ljós."
 msgstr "Svala GT سيارة خيالية. نموذجها مستمد من نص برمجي في Blender ضمن هذا المثال؛ والخريطة والموسيقى والشوارع كلها مبتكرة. كل ما تراه مرسوم بواسطة Ljós."
 
-#: ../Shells/Desktop.qml:767
+#: ../Shells/Desktop.qml:772
 msgid "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"
 msgstr "بدّل بين أغلفة أنيق وسايبربانك ومنضدة العمل وسطح المكتب"
 
@@ -2049,19 +2061,19 @@ msgstr "بدّل بين أغلفة أنيق وسايبربانك ومنضدة ا
 msgid "Switch shell"
 msgstr "تبديل الغلاف"
 
-#: ../Shells/Desktop.qml:544
+#: ../Shells/Desktop.qml:549
 msgid "Switch to Cyberpunk shell"
 msgstr "التبديل إلى غلاف سايبربانك"
 
-#: ../Shells/Desktop.qml:552
+#: ../Shells/Desktop.qml:557
 msgid "Switch to Desktop shell"
 msgstr "التبديل إلى غلاف سطح المكتب"
 
-#: ../Shells/Desktop.qml:540
+#: ../Shells/Desktop.qml:545
 msgid "Switch to Elegant shell"
 msgstr "التبديل إلى غلاف أنيق"
 
-#: ../Shells/Desktop.qml:548
+#: ../Shells/Desktop.qml:553
 msgid "Switch to Workbench shell"
 msgstr "التبديل إلى غلاف منضدة العمل"
 
@@ -2101,7 +2113,7 @@ msgstr "قائمة المهام"
 msgid "Tea · £{0}"
 msgstr "شاي · £{0}"
 
-#: ../Shells/Cyberpunk.qml:568
+#: ../Shells/Cyberpunk.qml:569
 msgid "Telemetry"
 msgstr "القياس عن بُعد"
 
@@ -2126,7 +2138,7 @@ msgstr "شيفرة QML للغلاف الذي تنظر إليه. عدّلها و�
 msgid "The QML this page is made from. The shell around it is its own file: open the shell menu to see it."
 msgstr "شيفرة QML التي بُنيت منها هذه الصفحة. أما الغلاف المحيط بها فله ملفه الخاص: افتح قائمة الغلاف للاطلاع عليه."
 
-#: ../Site/Landing.qml:402
+#: ../Site/Landing.qml:416
 msgid "The big picture, in plain words."
 msgstr "الصورة الكبيرة، بكلمات واضحة."
 
@@ -2210,7 +2222,7 @@ msgstr "تعمل هذه اللوحة في المتصفح. على سطح المك
 msgid "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
 msgstr "هذا الموقع نفسه تطبيق Ljós، يُكتب إلى HTML عند بنائه ويعمل مباشرة في متصفحك."
 
-#: ../Shells/Desktop.qml:1178
+#: ../Shells/Desktop.qml:1191
 msgid "This site runs Ljós compiled to Solid DOM with ljos-web, with WebGPU and WebGL2 fallback for 3D scenes. Switch shells from the View menu or toolbar without reloading."
 msgstr "يشغّل هذا الموقع Ljós مُصرّفًا إلى Solid DOM عبر ljos-web، مع WebGPU وبديل WebGL2 للمشاهد ثلاثية الأبعاد. بدّل الأغلفة من قائمة عرض أو شريط الأدوات دون إعادة تحميل."
 
@@ -2234,23 +2246,23 @@ msgstr "انتهى الوقت"
 msgid "Timer"
 msgstr "المؤقت"
 
-#: ../Shells/Desktop.qml:533
+#: ../Shells/Desktop.qml:538
 msgid "Toggle Observer panel"
 msgstr "إظهار أو إخفاء لوحة المراقب"
 
-#: ../Shells/Desktop.qml:791
+#: ../Shells/Desktop.qml:796
 msgid "Toggle light and dark colour scheme"
 msgstr "تبديل المظهر الفاتح والداكن"
 
-#: ../Shells/Desktop.qml:730
+#: ../Shells/Desktop.qml:735
 msgid "Toggle live Observer panel"
 msgstr "إظهار أو إخفاء لوحة المراقب الحي"
 
-#: ../Shells/Desktop.qml:527
+#: ../Shells/Desktop.qml:532
 msgid "Toggle sidebar"
 msgstr "إظهار أو إخفاء الشريط الجانبي"
 
-#: ../Shells/Desktop.qml:680
+#: ../Shells/Desktop.qml:685
 msgid "Toolbar"
 msgstr "شريط الأدوات"
 
@@ -2266,7 +2278,7 @@ msgstr "مراجعة منحازة تمامًا لأُطر واجهات المس�
 msgid "Trunk"
 msgstr "الصندوق الخلفي"
 
-#: ../Site/Landing.qml:420
+#: ../Site/Landing.qml:434
 msgid "Try Ljós in your browser, with nothing to install."
 msgstr "جرّب Ljós في متصفحك، دون تثبيت أي شيء."
 
@@ -2330,24 +2342,24 @@ msgstr "استخدام المظهر الفاتح"
 msgid "Values"
 msgstr "القيم"
 
-#: ../Shells/Desktop.qml:494
+#: ../Shells/Desktop.qml:499
 msgctxt "menu bar"
 msgid "View"
 msgstr "عرض"
 
-#: ../Shells/Desktop.qml:796
+#: ../Shells/Desktop.qml:801
 msgid "View QML"
 msgstr "عرض QML"
 
-#: ../Shells/Desktop.qml:479 ../Site/ShellChoices.qml:150
+#: ../Shells/Desktop.qml:484 ../Site/ShellChoices.qml:150
 msgid "View this shell's QML"
 msgstr "عرض QML لهذا الغلاف"
 
-#: ../Shells/Desktop.qml:797
+#: ../Shells/Desktop.qml:802
 msgid "View this shell's QML source"
 msgstr "عرض شيفرة QML لهذا الغلاف"
 
-#: ../Shells/Desktop.qml:1053 ../Shells/Workbench.qml:1097
+#: ../Shells/Desktop.qml:1066 ../Shells/Workbench.qml:1097
 msgid "Views"
 msgstr "العروض"
 
@@ -2383,7 +2395,7 @@ msgstr "يوقظ الساعة، أو يعود إلى واجهتها"
 msgid "Web"
 msgstr "الويب"
 
-#: ../Site/ReviewChart.qml:89
+#: ../Site/ReviewChart.qml:94
 msgid "Web apps"
 msgstr "تطبيقات الويب"
 
@@ -2391,11 +2403,11 @@ msgstr "تطبيقات الويب"
 msgid "What a fan shows first"
 msgstr "ما يعرضه المعجب أولًا"
 
-#: ../Site/DocPage.qml:56 ../Site/Landing.qml:400
+#: ../Site/DocPage.qml:56 ../Site/Landing.qml:414
 msgid "What is Ljós?"
 msgstr "ما هو Ljós؟"
 
-#: ../Site/Landing.qml:429
+#: ../Site/Landing.qml:443
 msgid "What we care about, and what we leave out on purpose."
 msgstr "ما يهمنا، وما نتركه خارج النطاق عمدًا."
 
@@ -2463,7 +2475,7 @@ msgstr "سيارتك"
 msgid "Your edit"
 msgstr "تعديلك"
 
-#: ../Site/Footer.qml:106 ../Site/Landing.qml:409
+#: ../Site/Footer.qml:106 ../Site/Landing.qml:423
 msgid "Your first app"
 msgstr "تطبيقك الأول"
 
@@ -2591,7 +2603,7 @@ msgstr "{0} cm"
 msgid "{0} docs"
 msgstr "توثيق {0}"
 
-#: ../Shells/Cyberpunk.qml:365 ../Shells/Cyberpunk.qml:608
+#: ../Shells/Cyberpunk.qml:366 ../Shells/Cyberpunk.qml:609
 msgid "{0} fps"
 msgstr "{0} fps"
 
