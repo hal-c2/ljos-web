@@ -48,7 +48,8 @@ Rectangle {
         const first: P.Channel[] = [
             { label: t`Console`, to: "/", current: route === "/" },
             { label: t`Demos`, to: "/demos/", current: router.demosRoute },
-            { label: t`Showcase`, to: "/showcase/", current: router.showcaseRoute }
+            { label: t`Showcase`, to: "/showcase/", current: router.showcaseRoute },
+            { label: t`Review`, to: "/review/", current: router.reviewRoute }
         ];
         const metrics: P.Channel[] = router.nameOf(metricsRoute) !== metricsRoute ? [{ label: t`Metrics`, to: metricsRoute, current: route === metricsRoute }] : [];
         const last: P.Channel[] = [

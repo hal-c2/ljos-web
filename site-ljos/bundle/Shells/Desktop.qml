@@ -463,6 +463,11 @@ Rectangle {
                                 onTriggered: shell.go("/showcase/")
                             }
                             C.MenuItem {
+                                text: t`Open framework review`
+                                iconName: "star"
+                                onTriggered: shell.go("/review/")
+                            }
+                            C.MenuItem {
                                 visible: shell.hasMetrics
                                 height: visible ? implicitHeight : 0
                                 text: t`Open benchmarks`
@@ -861,6 +866,14 @@ Rectangle {
                     to: shell.metricsRoute
                     current: shell.route === shell.metricsRoute
                 }
+                Entry {
+                    host: shell
+                    colours: look
+                    icon: "star"
+                    label: t`Framework review`
+                    to: "/review/"
+                    current: shell.route === "/review/"
+                }
                 Group { colours: look; text: t`Demos` }
                 Entry {
                     host: shell
@@ -982,7 +995,7 @@ Rectangle {
                                 width: shell.wide ? 200 : documents.width
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
-                                icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : modelData === "/review/" ? "bar-chart" : "file-text"
+                                icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : modelData === "/review/" ? "star" : "file-text"
                                 label: shell.router !== undefined && L.given(shell.router) ? shell.router.nameOf(modelData) : modelData
                                 current: modelData === shell.route
                                 onPressed: modelData !== shell.route ? shell.go(modelData) : (shell.view = 0)

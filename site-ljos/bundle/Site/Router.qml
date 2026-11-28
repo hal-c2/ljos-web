@@ -40,7 +40,8 @@ Object {
     readonly property var sections: [
         { label: t`Docs`, to: "/start/", current: docsRoute },
         { label: t`Demos`, to: "/demos/", current: demosRoute },
-        { label: t`Showcase`, to: "/showcase/", current: showcaseRoute }
+        { label: t`Showcase`, to: "/showcase/", current: showcaseRoute },
+        { label: t`Review`, to: "/review/", current: reviewRoute }
     ]
     readonly property string github: "https://github.com/hal-c2/ljos-ui"
 
