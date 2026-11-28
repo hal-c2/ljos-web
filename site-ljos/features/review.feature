@@ -134,11 +134,13 @@ Feature: A totally biased review of mostly Rust UI frameworks
     When a reader opens /review/
     Then the picker's "Native" group and its "Web" group each have one of them
     And each one's section names the other
+    And another way to build a framework for the same platform, such as Qt Quick with its logic in Rust, is named among its own group's apps
     And an entry that could not do part of the spec says which part
 
   Scenario: Each entry shows its screenshot
     When a reader picks every framework, in light or dark
-    Then each section shows the published repository's picture of its app in the page's scheme, with alt text
+    Then each section the repository has a picture of shows it in the page's scheme, with alt text
+    And a section the repository has no picture of yet shows none
     And the picture loads lazily, from the repository's site, so the page carries none
 
   Scenario: A web entry runs in the reader's browser

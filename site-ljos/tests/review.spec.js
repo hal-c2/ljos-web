@@ -669,17 +669,39 @@ test("a framework on both platforms is in both groups, and each names the other"
     await page.goto(route);
     await page.waitForSelector(hydrated);
     const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
+    // A click on a picked framework unpicks it: each is picked once.
+    const on = new Set(review.picked);
+    const pick = async (one) => {
+      if (on.has(one.id)) return;
+      on.add(one.id);
+      await picker.getByRole("button", { name: one.name, exact: true }).click();
+    };
     for (const one of pairs) {
       const group = picker.getByRole("group", { name: one.kind === "web" ? "Web" : "Native", exact: true });
       await expect(group.getByRole("button", { name: one.name, exact: true }), one.id).toBeVisible();
-      if (!review.picked.includes(one.id)) await picker.getByRole("button", { name: one.name, exact: true }).click();
+      await pick(one);
       const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
-      const other = one.pair.map(named).join(", ");
-      await expect(section.getByText(one.kind === "web" ? `Also among the native apps: ${other}.` : `Also among the web apps: ${other}.`, { exact: true }), one.id).toBeVisible();
+      for (const [kind, group] of [["native", "native apps"], ["web", "web apps"]]) {
+        const other = one.pair.filter((id) => kindOf(id) === kind).map(named).join(", ");
+        const said = section.getByText(`Also among the ${group}: `).filter({ visible: true });
+        if (other === "") await expect(said, `${one.id} ${kind}`).toHaveCount(0);
+        else await expect(section.getByText(`Also among the ${group}: ${other}.`, { exact: true }), `${one.id} ${kind}`).toBeVisible();
+      }
+    }
+    // Another way to build a framework for the same platform is named in
+    // its own group's words, not as the other platform's.
+    const same = review.frameworks.filter((one) => (one.pair ?? []).some((id) => kindOf(id) === one.kind));
+    expect(same.map((one) => one.id)).toEqual(expect.arrayContaining(["qt", "cxx-qt", "qt-bridge"]));
+    for (const one of same) {
+      await pick(one);
+      const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+      const group = one.kind === "web" ? "web apps" : "native apps";
+      const other = one.pair.filter((id) => kindOf(id) === one.kind).map(named).join(", ");
+      await expect(section.getByText(`Also among the ${group}: ${other}.`, { exact: true }), one.id).toBeVisible();
     }
     // What an entry could not do of the spec, it says.
     for (const one of review.frameworks.filter((framework) => (framework.missing ?? []).length > 0)) {
-      if (!pairs.includes(one) && !review.picked.includes(one.id)) await picker.getByRole("button", { name: one.name, exact: true }).click();
+      await pick(one);
       const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
       await expect(section.locator('[data-object-name="reviewMissing"]'), one.id).toContainText(one.missing[0]);
     }
@@ -692,7 +714,11 @@ test("a framework on both platforms is in both groups, and each names the other"
 // scheme, fetched only when a reader comes to it.
 for (const colorScheme of ["light", "dark"]) {
   test(`each entry shows its screenshot in ${colorScheme}, with alt text, lazily`, async ({ browser }) => {
-    for (const one of review.frameworks) expect(one.screenshot?.[colorScheme], one.id).toMatch(/^https:\/\/hal-c2\.github\.io\/ui-framework-review\/screenshots\/[a-z-]+\/(light|dark)\.png$/u);
+    // An entry the repository has not published a picture of has none;
+    // most have one.
+    const shown = review.frameworks.filter((one) => one.screenshot !== undefined);
+    expect(shown.length).toBeGreaterThan(review.frameworks.length / 2);
+    for (const one of shown) expect(one.screenshot[colorScheme], one.id).toMatch(/^https:\/\/hal-c2\.github\.io\/ui-framework-review\/screenshots\/[a-z-]+\/(light|dark)\.png$/u);
     const context = await browser.newContext({ colorScheme, viewport: { width: 1440, height: 900 } });
     try {
       const page = await context.newPage();
@@ -703,7 +729,12 @@ for (const colorScheme of ["light", "dark"]) {
       await page.waitForSelector(hydrated);
       const picker = page.getByRole("group", { name: "Frameworks to compare", exact: true });
       for (const one of review.frameworks.filter(({ id }) => !review.picked.includes(id))) await picker.getByRole("button", { name: one.name, exact: true }).click();
-      for (const one of review.frameworks) {
+      for (const one of review.frameworks.filter((framework) => framework.screenshot === undefined)) {
+        const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
+        await expect(section, one.id).toBeAttached();
+        await expect(section.getByRole("img", { name: /: the inbox app, (light|dark)$/u }), one.id).toHaveCount(0);
+      }
+      for (const one of shown) {
         const section = page.getByRole("region", { name: `${one.name}, by a fan`, exact: true });
         const shot = section.getByRole("img", { name: `${one.name}: the inbox app, ${colorScheme}`, exact: true });
         await expect(shot, one.id).toBeAttached();

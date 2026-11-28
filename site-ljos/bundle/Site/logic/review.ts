@@ -554,9 +554,14 @@ export function shotOf(one: Framework, dark: boolean, width: number): string {
   return `<img loading="lazy" decoding="async" src="${src}" width="${width}" height="${Math.round((width * 800) / 1280)}" alt="${alt}">`;
 }
 
-// The names of an entry's pairs, the same framework of the other kind.
-export function pairNames(review: Review, one: Framework): string {
-  return pairOf(one).map((id: string) => nameOf(review, id)).join(", ");
+// The names of an entry's pairs of one kind: the same framework built
+// for the other platform, or another way to build it for the same one
+// (Qt Quick with its logic in Rust).
+export function pairNames(review: Review, one: Framework, kind: string): string {
+  return pairOf(one)
+    .filter((id: string) => review.frameworks.some((other: Framework) => other.id === id && other.kind === kind))
+    .map((id: string) => nameOf(review, id))
+    .join(", ");
 }
 
 // Whether any number, excerpt or section is still a placeholder.

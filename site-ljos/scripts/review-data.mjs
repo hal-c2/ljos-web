@@ -127,9 +127,61 @@ for (const entry of listed) {
   if (pair.length > 0) entryOf.get(entry.id).pair = pair;
   else delete entryOf.get(entry.id).pair;
 }
+// An entry the compare lead ran that the published repository does not
+// list yet (another way to build a listed framework's app, such as Qt
+// Quick with its logic in Rust) gets a section of its own beside the
+// entry it names as its pair. Its app is in the compare directory, so
+// its excerpts link nowhere and it has no picture until it is published.
+const UNLISTED = {
+  "cxx-qt": {
+    name: "CXX-Qt",
+    language: "QML + Rust",
+    version: "CXX-Qt 0.10.0 on Qt 6.12.0",
+    licence: "MIT OR Apache-2.0",
+    links: { site: "https://kdab.github.io/cxx-qt/book/", docs: "https://kdab.github.io/cxx-qt/book/", repo: "https://github.com/KDAB/cxx-qt" },
+  },
+  "qt-bridge": {
+    name: "Qt Bridge",
+    language: "QML + Rust",
+    version: "qtbridge 0.4.1",
+    licence: "LicenseRef-Qt-Commercial OR LGPL-3.0-only",
+    links: { site: "https://doc.qt.io/qtbridges/", docs: "https://doc.qt.io/qtbridge-rust/", repo: "https://code.qt.io/cgit/qt/qtbridge-rust.git/" },
+  },
+};
+for (const note of noted.values()) {
+  const with_ = entryOf.get(note.pair);
+  if (entryOf.has(note.entry) || with_ == null) continue;
+  const known = UNLISTED[note.entry];
+  if (known == null) throw new Error(`${note.entry}: in RESULTS.json's entries, not published, and not in UNLISTED`);
+  let one = byId.get(note.entry);
+  if (one == null) {
+    one = {
+      id: note.entry,
+      kind: note.platform,
+      source: { root: `compare:${note.entry}` },
+      prose: { fan: `${with_.name}'s inbox with its logic in Rust: ${note.strategy}.`, cool: [], limits: [], shows: [], placeholder: true },
+    };
+    review.frameworks.push(one);
+    byId.set(one.id, one);
+  }
+  Object.assign(one, known);
+  one.strategy = note.strategy;
+  const missing = [note.missing ?? []].flat();
+  if (missing.length > 0) one.missing = missing;
+  else delete one.missing;
+  delete one.screenshot;
+  delete one.run;
+  entryOf.set(note.entry, one);
+  one.pair = [with_.id];
+  with_.pair = [...new Set([...(with_.pair ?? []), one.id])];
+}
 
 for (const one of review.frameworks) {
   const [kind, dir] = one.source.root.split(/:(.*)/su);
+  if (kind === "compare" && entryOf.get(one.id)?.source.root === one.source.root && UNLISTED[one.id] != null) {
+    one.source = { root: one.source.root };
+    continue;
+  }
   if (kind !== "review") throw new Error(`${one.id}: its source.root ${one.source.root} is not in the published apps ("review:<dir>")`);
   one.source = { root: one.source.root, href: `${REPO}/blob/${sha}/${dir}/` };
 }
@@ -152,6 +204,7 @@ function atRevision(dir, rev, file) {
 // revision the link pins, is the file the excerpt was cut from: the
 // clone read may have changes not committed.
 function published(one, file) {
+  if (one.source.href == null) return false;
   const rev = pinnedOf(one.source.href);
   if (rev === undefined) return false;
   return atRevision(rootOf(one), rev, file) === readFileSync(join(rootOf(one), file), "utf8");

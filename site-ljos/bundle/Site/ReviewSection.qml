@@ -68,9 +68,21 @@ Column {
     }
     Text {
         objectName: "reviewPair"
-        visible: Review.pairOf(section.framework).length > 0
+        visible: Review.pairNames(section.review, section.framework, "native") !== ""
         width: parent.width
-        text: section.framework.kind === "web" ? t`Also among the native apps: ${Review.pairNames(section.review, section.framework)}.` : t`Also among the web apps: ${Review.pairNames(section.review, section.framework)}.`
+        text: t`Also among the native apps: ${Review.pairNames(section.review, section.framework, "native")}.`
+        color: Theme.textMuted
+        font.family: Theme.sans
+        font.size: Theme.captionSize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.captionLine
+        wrap: Text.Wrap
+    }
+    Text {
+        objectName: "reviewPair"
+        visible: Review.pairNames(section.review, section.framework, "web") !== ""
+        width: parent.width
+        text: t`Also among the web apps: ${Review.pairNames(section.review, section.framework, "web")}.`
         color: Theme.textMuted
         font.family: Theme.sans
         font.size: Theme.captionSize
