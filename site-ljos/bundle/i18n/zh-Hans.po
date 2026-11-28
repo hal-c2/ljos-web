@@ -593,14 +593,14 @@ msgid "Driver warmer"
 msgstr "主驾调暖"
 
 #: ../Site/ReviewPage.qml:202
-msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
-msgstr "每根柱是其各次运行的中位数，横过柱端的线从最小值到最大值，每张图下方是测量它的命令。每张图上都是越短越好。"
+msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
+msgstr "每根柱是多次运行的中位数，末端的线从最小值到最大值；原生搜索的柱是所有按键中较慢的一端，Web 搜索的柱是第一个按键，如各图表所述。每张图表下方是测量它的命令。每张图表都是越短越好。一台共享且繁忙、没有 GPU 的机器：这些数字只能相互比较，不能与其他电脑比较。"
 
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "每个演示都是一个通过 ljos check 的完整 Ljós 应用，预先编译并嵌入本页。演示运行后，在页眉中切换浅色和深色主题，看它随之变化。在驾驶舱和智能手表页面上编辑实时源码，并在{shopLink}上趁商店运行时改写它的外壳。如果浏览器缺少所需的 WebAssembly 或 WebGL 2，演示会保留其图片和说明。"
 
-#: ../Site/ReviewPage.qml:274
+#: ../Site/ReviewPage.qml:289
 msgid "Each framework, by a fan"
 msgstr "每个框架，由一位粉丝来讲"
 
@@ -1168,7 +1168,7 @@ msgstr "可塑软件，无处不在。"
 msgid "Map: the route to {0}"
 msgstr "地图：前往 {0} 的路线"
 
-#: ../Site/ReviewChart.qml:195
+#: ../Site/ReviewChart.qml:232
 msgid "Measured with"
 msgstr "测量命令"
 
@@ -1224,6 +1224,14 @@ msgstr "正在播放"
 msgid "Native"
 msgstr "原生"
 
+#: ../Site/ReviewChart.qml:62
+msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
+msgstr "这里原生应用和 Web 应用的测量方式不同，因此各有自己的刻度：只在组内比较，不跨组比较。"
+
+#: ../Site/ReviewChart.qml:89
+msgid "Native apps"
+msgstr "原生应用"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "导航"
@@ -1240,13 +1248,17 @@ msgstr "下一首"
 msgid "Next: {0}"
 msgstr "下一页：{0}"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "{0} 没有柱：这一项只测量原生应用。"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "{0} 没有柱：这一项只测量 Web 应用。"
+
+#: ../Site/ReviewPage.qml:243
+msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
+msgstr "没有构建时间图表：每个应用的构建都经过一个与其他工作共享的队列，所以时间大多是在等待，无法比较。"
 
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
@@ -1256,7 +1268,7 @@ msgstr "当前打开的文件没有编译或代码检查诊断信息。"
 msgid "No crew"
 msgstr "暂无班组"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No number yet for {0}."
 msgstr "{0} 还没有数字。"
 
@@ -2130,6 +2142,10 @@ msgstr "文档"
 msgid "The files of {0}"
 msgstr "{0} 的文件"
 
+#: ../Site/ReviewPage.qml:303
+msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
+msgstr "上面选中的框架，各由一位喜爱它的人来讲。再选一个，就能读到它的粉丝怎么说。"
+
 #: ../Site/ReviewPage.qml:188
 msgid "The numbers"
 msgstr "数字"
@@ -2142,7 +2158,7 @@ msgstr "所选框架的数字"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "天台那家店八点开门。记得带外套，上面挺冷的。"
 
-#: ../Site/ReviewPage.qml:248
+#: ../Site/ReviewPage.qml:259
 msgid "The same feature in each one's code"
 msgstr "同一功能在各框架中的代码"
 
@@ -2359,6 +2375,10 @@ msgstr "唤醒手表，或返回表盘"
 msgid "Web"
 msgstr "Web"
 
+#: ../Site/ReviewChart.qml:89
+msgid "Web apps"
+msgstr "Web 应用"
+
 #: ../Site/ReviewSection.qml:64
 msgid "What a fan shows first"
 msgstr "粉丝最先展示的"
@@ -2371,9 +2391,13 @@ msgstr "什么是 Ljós？"
 msgid "What we care about, and what we leave out on purpose."
 msgstr "我们在意什么，以及有意取舍了什么。"
 
-#: ../Site/ReviewSection.qml:155
+#: ../Site/ReviewSection.qml:156
 msgid "Where it is not as strong"
 msgstr "不那么强的地方"
+
+#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+msgid "Where to find each one"
+msgstr "在哪里找到每一个"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2555,7 +2579,7 @@ msgstr "{0} 条新通知"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewSection.qml:205
+#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "{0} 文档"
 
@@ -2595,7 +2619,7 @@ msgstr "{0} / {1}"
 msgid "{0} of {1} done"
 msgstr "已完成 {0} / {1}"
 
-#: ../Site/ReviewSection.qml:210
+#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "{0} 代码仓库"
 
@@ -2603,7 +2627,7 @@ msgstr "{0} 代码仓库"
 msgid "{0} steps"
 msgstr "{0} 步"
 
-#: ../Site/ReviewSection.qml:200
+#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "{0} 网站"
 
@@ -2686,6 +2710,9 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#~ msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+#~ msgstr "每根柱是其各次运行的中位数，横过柱端的线从最小值到最大值，每张图下方是测量它的命令。每张图上都是越短越好。"
 
 #~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 #~ msgstr "试试把 StatusSlot 移到 Basket 下方、设置 color: \"#241a10\"，或重命名商店。你的购物篮和留言都会保持原样。"

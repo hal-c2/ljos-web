@@ -593,14 +593,14 @@ msgid "Driver warmer"
 msgstr "تدفئة جهة السائق"
 
 #: ../Site/ReviewPage.qml:202
-msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
-msgstr "كل شريط هو وسيط مرّات تشغيله، والخط عند طرفه يمتد من الأقل إلى الأكثر، وتحت كل مخطط الأمر الذي قاسه. الشريط الأقصر أفضل في كل مخطط."
+msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
+msgstr "كل شريط هو وسيط مرات تشغيله، والخط عند طرفه يمتد من الأقل إلى الأكثر؛ وفي البحث في التطبيقات الأصلية يمثل الشريط الطرف البطيء من كل المفاتيح المكتوبة، وفي الويب يمثل المفتاح الأول، كما يقول كل مخطط. تحت كل مخطط الأمر الذي قاسه. الأقصر أفضل في كل المخططات. جهاز واحد، مشترك ومشغول، بلا معالج رسوميات: الأرقام تُقارن ببعضها، لا بأجهزة أخرى."
 
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "كل عرض تطبيق Ljós كامل يجتاز ljos check، مُصرَّف مسبقًا ومُركَّب في هذه الصفحة. عندما يعمل عرض، بدِّل بين السمة الفاتحة والداكنة في الترويسة لتراه يتبعها. حرِّر الشيفرة الحية في صفحتي قمرة القيادة والساعة الذكية، وأعد كتابة واجهة متجر وهو يعمل في {shopLink}. يحتفظ العرض بصورته ووصفه حيث يفتقر المتصفح إلى WebAssembly أو WebGL 2 الذي يحتاجه."
 
-#: ../Site/ReviewPage.qml:274
+#: ../Site/ReviewPage.qml:289
 msgid "Each framework, by a fan"
 msgstr "كل إطار عمل بقلم أحد محبيه"
 
@@ -1168,7 +1168,7 @@ msgstr "برمجيات قابلة للتشكيل، في كل مكان."
 msgid "Map: the route to {0}"
 msgstr "الخريطة: المسار إلى {0}"
 
-#: ../Site/ReviewChart.qml:195
+#: ../Site/ReviewChart.qml:232
 msgid "Measured with"
 msgstr "قِيس بالأمر"
 
@@ -1224,6 +1224,14 @@ msgstr "قيد التشغيل الآن"
 msgid "Native"
 msgstr "أصلية"
 
+#: ../Site/ReviewChart.qml:62
+msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
+msgstr "تُقاس التطبيقات الأصلية وتطبيقات الويب هنا بطرق مختلفة، لذا لكل مجموعة مقياسها الخاص: قارن داخل المجموعة، لا بين المجموعات."
+
+#: ../Site/ReviewChart.qml:89
+msgid "Native apps"
+msgstr "التطبيقات الأصلية"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "الملاحة"
@@ -1240,13 +1248,17 @@ msgstr "المقطع التالي"
 msgid "Next: {0}"
 msgstr "التالي: {0}"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "لا شريط لـ {0}: يُقاس هذا للتطبيقات الأصلية فقط."
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "لا شريط لـ {0}: يُقاس هذا لتطبيقات الويب فقط."
+
+#: ../Site/ReviewPage.qml:243
+msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
+msgstr "لا مخطط لأزمنة البناء: مرّت عمليات بناء كل تطبيق عبر طابور واحد مشترك مع أعمال أخرى، فمعظم أزمنتها انتظار، ولا تصلح للمقارنة."
 
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
@@ -1256,7 +1268,7 @@ msgstr "لا توجد تشخيصات مصرّف أو تدقيق في الملف 
 msgid "No crew"
 msgstr "بلا فريق"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No number yet for {0}."
 msgstr "لا رقم بعد لـ {0}."
 
@@ -2130,6 +2142,10 @@ msgstr "التوثيق"
 msgid "The files of {0}"
 msgstr "ملفات {0}"
 
+#: ../Site/ReviewPage.qml:303
+msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
+msgstr "أُطر العمل المختارة أعلاه، كلٌّ منها بقلم أحد محبيه. اختر إطارًا آخر لتقرأ ما كتبه محبّه."
+
 #: ../Site/ReviewPage.qml:188
 msgid "The numbers"
 msgstr "الأرقام"
@@ -2142,7 +2158,7 @@ msgstr "أرقام أُطر العمل المختارة"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "يفتح المكان على السطح في الثامنة. أحضر السترة، الجو بارد هناك."
 
-#: ../Site/ReviewPage.qml:248
+#: ../Site/ReviewPage.qml:259
 msgid "The same feature in each one's code"
 msgstr "الميزة نفسها في شيفرة كلٍّ منها"
 
@@ -2359,6 +2375,10 @@ msgstr "يوقظ الساعة، أو يعود إلى واجهتها"
 msgid "Web"
 msgstr "الويب"
 
+#: ../Site/ReviewChart.qml:89
+msgid "Web apps"
+msgstr "تطبيقات الويب"
+
 #: ../Site/ReviewSection.qml:64
 msgid "What a fan shows first"
 msgstr "ما يعرضه المعجب أولًا"
@@ -2371,9 +2391,13 @@ msgstr "ما هو Ljós؟"
 msgid "What we care about, and what we leave out on purpose."
 msgstr "ما يهمنا، وما نتركه خارج النطاق عمدًا."
 
-#: ../Site/ReviewSection.qml:155
+#: ../Site/ReviewSection.qml:156
 msgid "Where it is not as strong"
 msgstr "حيث لا يكون قويًا بالقدر نفسه"
+
+#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+msgid "Where to find each one"
+msgstr "أين تجد كلًّا منها"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2555,7 +2579,7 @@ msgstr "{0} جديدة"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewSection.qml:205
+#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "توثيق {0}"
 
@@ -2595,7 +2619,7 @@ msgstr "{0} من {1}"
 msgid "{0} of {1} done"
 msgstr "أُنجز {0} من {1}"
 
-#: ../Site/ReviewSection.qml:210
+#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "مستودع {0}"
 
@@ -2603,7 +2627,7 @@ msgstr "مستودع {0}"
 msgid "{0} steps"
 msgstr "{0} خطوة"
 
-#: ../Site/ReviewSection.qml:200
+#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "موقع {0}"
 
@@ -2686,6 +2710,9 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#~ msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+#~ msgstr "كل شريط هو وسيط مرّات تشغيله، والخط عند طرفه يمتد من الأقل إلى الأكثر، وتحت كل مخطط الأمر الذي قاسه. الشريط الأقصر أفضل في كل مخطط."
 
 #~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 #~ msgstr "جرّب نقل StatusSlot أسفل Basket، أو ضبط color: \"#241a10\"، أو إعادة تسمية المتجر. تبقى سلتك وملاحظتك كما هما."

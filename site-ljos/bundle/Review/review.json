@@ -1,11 +1,10 @@
 {
   "intro": {
-    "placeholder": true,
-    "text": "Placeholder: this review is written by fans, one for each framework. The bias is the point: each one shows what its fans love, then says plainly where it is not as strong."
+    "text": "One team issue inbox was written in fourteen UI frameworks, and the bias is the point. Each section speaks as that framework's biggest fan, showing why people reach for it. Every framework has value. The limits sit beside the praise so a reader can pick what fits them, and the charts show the numbers."
   },
   "app": {
     "name": "team inbox",
-    "about": "One app, written once in each framework from the same spec: 10 000 issues in a virtualised list, search, a validated edit form, a weekly chart, light and dark, English and Japanese. Every implementation was driven by the same scripted session on the same machine."
+    "about": "One app, written once in each framework from the same spec: 10 000 issues in a virtualised list, search, a validated edit form, a weekly chart, light and dark, English and Japanese. Every implementation was driven by the same scripted session on the same machine. Each app was written by an AI coding agent, one per framework; the Ljós one by the comparison's lead, who also wrote the harness that measured them all."
   },
   "picked": [
     "ljos",
@@ -31,23 +30,27 @@
         "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Ljós are written from its fact sheet once it lands.",
+        "fan": "You reach for Ljós when you want apps that people and their agents can inspect, drive, and reshape while they run. Interfaces are declarative with reactive bindings, scripts are typed TypeScript checked before anything runs, and existing QML runs as a way in.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The inbox needs no third-party dependencies because models, controls, PO translations with plurals, and AccessKit accessibility are built into the toolkit.",
+          "The store declares its state with types taken from the TypeScript module, and because a binding is re-evaluated when what it reads changes, sorting runs only when the records or the sort change and a key typed into the search only filters.",
+          "Every running app can be inspected and driven over MCP, ljos observe shows the same in a window, and dev mode reloads code on save."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "It is pre-1.0 at version 0.0.0 with no published release, a repo started on 2026-10-10, and no third-party libraries to speak of.",
+          "Writing the inbox turned up six findings about Ljós that needed workarounds in app code, including translated arrays stuck in their first language, a TabBar binding loop, a missed type check, and Promises unable to carry cooperative loading.",
+          "A keyed ListView copies every field of each row's record, forcing slim key objects, and the inbox rows animate opacity and position without the requested height change.",
+          "RTL layout, iOS support, production bundles, and a wgpu renderer remain unfinished milestone M4 work, and AT-SPI output was not verified for the inbox."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "List: a keyed, virtualised ListView",
-            "file": "IssueList.qml",
-            "lines": "50-71",
+            "n": 2,
+            "caption": "State: typed properties and a chain of derived bindings",
+            "file": "Store.qml",
+            "lines": "14-35",
             "lang": "qml",
-            "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`\n\n    onCurrentIndexChanged: {\n        if (view.currentIndex >= 0) {\n            view.positionViewAtIndex(view.currentIndex, ListView.Contain)\n        }\n    }",
-            "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/IssueList.qml#L50-L71"
+            "code": "property list<Inbox.Issue> all: []\nproperty Inbox.Sort sort: \"updated\"\nproperty Inbox.Filter filter: \"inbox\"\nproperty string query: \"\"\nproperty int selectedId: -1\n// 0 Conversation, 1 Edit, 2 Insights.\nproperty int tab: 0\n// \"light\", \"dark\" or \"system\".\nproperty string look: \"system\"\n// Starts as the system's setting; the settings dialog changes it.\nproperty bool reduced: Motion.reduced\n\nreadonly property bool dark: store.look === \"dark\"\n    || (store.look === \"system\" && App.hints.colorScheme === ColorScheme.Dark)\n// The order is worked out when the records or the sort change; a key\n// typed in the search only filters it.\nreadonly property list<Inbox.Issue> ordered: Inbox.sorted(store.all, store.sort)\nreadonly property Inbox.Shown shown: Inbox.shown(store.ordered, store.filter, store.query)\nreadonly property list<Inbox.Issue> matches: store.shown.issues\nreadonly property list<Inbox.Key> rows: store.shown.keys\nreadonly property int selectedIndex: Inbox.indexOf(store.rows, store.selectedId)\nreadonly property Inbox.Issue selected: store.selectedId <= 0 ? Inbox.none : Inbox.pick(store.all, store.selectedId)",
+            "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/Store.qml#L14-L35"
           }
         ]
       }
@@ -70,23 +73,28 @@
         "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Ljós web are written from its fact sheet once it lands.",
+        "fan": "You reach for ljos-web when you want the same declarative Ljós and TypeScript app to run in the browser without rewriting it. At build time, qmlc compiles each file to a Solid component with nothing interpreting QML at run time, and WebAssembly is used only for the opt-in kernel and 3D.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The native inbox compiled with no errors or warnings on the first build and kept its pinned layout, chart, dialog, themes, and both languages.",
+          "Keeping the DOM preserves the web's accessibility tree, text input, selection, find-in-page, and scrolling, with only 17 rows in the tree at 7 017 records.",
+          "Built-in translations compile into ICU MessageFormat backed by PO catalogues, with ja.po built as a lazily loaded chunk and languages switched at run time.",
+          "Hot reload keeps typed text, assigned state, and focus across saves, and the web inspector answers in the same shapes as the native one."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "It is pre-1.0 at version 0.0.0 with no tagged release, the pages read give no browser support matrix, and no third-party component libraries are named.",
+          "ListView enter, exit, and displaced transitions compile without warning yet do nothing on the web, so inserted and removed rows appear and vanish at once.",
+          "File paths built at run time are missed silently by the site builder, requiring 24 literal url properties for avatars and a script to write the site manifest.",
+          "The selected-row marker and sort popup options were not verified in the accessibility snapshot, and RTL support is unstated."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "The list: a keyed ListView over slim keys",
-            "file": "IssueList.qml",
-            "lines": "50-71",
+            "n": 3,
+            "caption": "Tab panel motion: Behaviors on opacity and position",
+            "file": "Panel.qml",
+            "lines": "12-37",
             "lang": "qml",
-            "code": "ListView {\n    id: view\n    objectName: \"issues\"\n    x: 0\n    y: 32\n    width: pane.width\n    height: pane.height - 32\n    clip: true\n    focus: true\n    model: pane.inbox.rows\n    key: \"id\"\n    currentIndex: pane.inbox.selectedIndex\n    keyNavigationEnabled: false\n    boundsBehavior: Flickable.StopAtBounds\n    Accessible.role: Accessible.List\n    Accessible.name: t`Issues`\n\n    onCurrentIndexChanged: {\n        if (view.currentIndex >= 0) {\n            view.positionViewAtIndex(view.currentIndex, ListView.Contain)\n        }\n    }",
-            "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/IssueList.qml#L50-L71"
+            "code": "readonly property bool shown: panel.inbox.selectedId > 0 && panel.inbox.tab === panel.index\nreadonly property real away: panel.index < panel.inbox.tab ? -24 : 24\n\nx: 0\ny: 44\nwidth: parent.width\nheight: parent.height - 44\nopacity: panel.shown ? 1 : 0\nvisible: panel.opacity > 0\nenabled: panel.shown\n\nBehavior on opacity {\n    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }\n}\n\nItem {\n    id: holder\n    x: panel.shown || panel.inbox.reduced ? 0 : panel.away\n    y: 0\n    width: panel.width\n    height: panel.height\n\n    Behavior on x {\n        NumberAnimation { duration: panel.inbox.reduced ? 0 : 180; easing.type: Easing.OutCubic }\n    }\n}",
+            "href": "https://github.com/hal-c2/ljos-ui/blob/33a6bf858509e2d6d3e772d39876a755c91b147f/bench/inbox/Panel.qml#L12-L37"
           }
         ]
       }
@@ -107,13 +115,18 @@
         "root": "compare:qt"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Qt Quick are written from its fact sheet once it lands.",
+        "fan": "You reach for Qt Quick when you want a GPU-accelerated toolkit developed since 1995 across desktop, mobile, embedded, and web. C++ handles models and logic while QML gives you declarative bindings, transitions, controls, localization, and accessibility.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The inbox needed no third-party libraries, pairing C++ list and sort-filter models, locale collation, and a virtualised ListView with declarative QML views.",
+          "Live translation is built in: the C++ app installs the translator, sets the default locale, gives the sort proxy the new collation, and calls retranslate() so the whole UI re-lays out in Japanese.",
+          "QML's Accessible attached properties exposed the virtualised list items, tabs, combo box, and sidebar items to AT-SPI on Linux without extra plumbing.",
+          "Its GPU scene graph renders on demand through QRhi across OpenGL ES, OpenGL, Vulkan, Metal, or Direct3D."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Licensing is commercial, GPLv3, or dynamically linked LGPLv3, and add-ons such as Qt Graphs and Qt Quick 3D are GPLv3 or commercial only.",
+          "QML errors appear only at run time, binding dependencies can drop silently, and lupdate could not parse newer QML pragma syntax without a workaround script.",
+          "ListView transitions fire on every model change unless gated by hand, combining reuseItems with transitions left stale delegates, and Qt Charts requires QtWidgets.",
+          "Qt offers no portable system query for reduced motion, and Basic style padding and headers made exact pixel pinning fiddly."
         ],
         "shows": [
           {
@@ -143,13 +156,17 @@
         "root": "compare:slint"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Slint are written from its fact sheet once it lands.",
+        "fan": "You reach for Slint when you want a compiled declarative UI language paired with Rust logic and a stable 1.x API. It covers desktop, mobile, and embedded devices from one markup language, with editor live preview, bundled translations, and AccessKit support built in.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "Compiled .slint markup pairs typed properties, repeaters, callbacks, and inline accessibility attributes with a Rust Model for a virtualised ListView.",
+          "Translation and plural forms live right in markup through @tr, with PO catalogues bundled into the binary and switched live at run time.",
+          "Declarative states with in and out animate declarations move and fade each row's inner body inside its slot, while editor tooling includes a language server and live preview on save."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Licensing offers three options: GPLv3, a royalty-free licence with attribution for proprietary desktop, mobile, and web apps excluding embedded systems, or a commercial licence with embedded pricing from $1.00 per device.",
+          "ListView cannot animate row height because rows need equal heights, and globals cannot animate, so the theme switch dropped cross-fading.",
+          "Slint lacks a dialog accessibility role, gives no .slint query for reduced motion on Linux, and warnings such as deprecated viewport-* properties fail slint-build.",
+          "Its WebAssembly target is not recommended for general-purpose web apps, and accessibility features, IME, and copy-paste are unavailable or missing on the web."
         ],
         "shows": [
           {
@@ -179,22 +196,27 @@
         "root": "compare:egui"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for egui are written from its fact sheet once it lands.",
+        "fan": "You reach for egui when you want an immediate-mode GUI in plain Rust with no reactive layer. State lives in an ordinary struct, the UI reads it each frame, and eframe takes that code to desktop, Android, and the web.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The inbox runs in plain Rust across four files, rebuilding its filtered index only on change and redrawing only on events.",
+          "ScrollArea::show_rows virtualises uniform rows out of the box, and animate_bool_with_time drives modal fades and layer scaling inline.",
+          "Custom graphics need no separate canvas widget, letting the 12-week bar chart paint bars, gridlines, and labels directly with painter calls.",
+          "Enabling AccessKit exposed the controls and only 13 visible list items, with position and set size, over AT-SPI on Linux."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Its README warns that interfaces remain in flux and new releases will have breaking changes, and 0.37 moved APIs such as App::ui and global_style.",
+          "The docs read name no translation layer, and egui ships no CJK font, no semibold weight, no icon font, and no system reduced-motion query, requiring manual font loading for Japanese.",
+          "Keyboard focus routing is manual, animating row heights required a separate show_viewport path, and a click without prior pointer motion did nothing under X11.",
+          "A native-looking interface is an explicit non-goal, and the inbox sorted titles by lowercased strings without locale collation."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "List: egui's own virtual list, and the hand-written path beside it",
+            "n": 4,
+            "caption": "Free pick: the bar chart, painted directly",
             "file": "src/views.rs",
-            "lines": "196-214",
+            "lines": "477-500",
             "lang": "rust",
-            "code": "let mut area = egui::ScrollArea::vertical().id_salt(\"rows\").auto_shrink([false, false]);\nif let Some(y) = self.scroll_to.take() {\n    area = area.vertical_scroll_offset(y);\n}\nlet out = ui\n    .scope_builder(UiBuilder::new().max_rect(body).accessibility_parent(list_id), |ui| {\n        ui.spacing_mut().item_spacing = vec2(0.0, 0.0);\n        if anim.is_none() {\n            // The usual case: egui's own virtual list, fixed row height.\n            area.show_rows(ui, ROW_H, disp_len, |ui, range| {\n                for k in range {\n                    let issue = &issues[disp(k)];\n                    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());\n                    let resp = draw_row(ui, p, issue, &uris[issue.avatar as usize], r, ROW_H, 1.0, selected == Some(issue.id), k, disp_len);\n                    if resp.clicked() {\n                        clicked = Some(issue.id);\n                    }\n                }\n            })"
+            "code": "// Drawn with egui's painter: egui_plot is an option but a bar chart this small does not need it.\nlet max = c.weeks.iter().copied().max().unwrap_or(0).max(1);\nlet ymax = crate::data::nice(max) as f32;\nfor (frac, v) in [(1.0, ymax), (0.5, ymax / 2.0)] {\n    let y = base - (base - top) * frac;\n    painter.hline(left..=right, y, egui::Stroke::new(1.0, p.border));\n    painter.text(pos2(left - 8.0, y), Align2::RIGHT_CENTER, fmt_n(v as usize), FontId::proportional(11.0), p.muted);\n}\npainter.hline(left..=right, base, egui::Stroke::new(1.0, p.muted));\nlet slot = (right - left) / 12.0;\nlet first = crate::data::first_week_start();\nfor (k, &v) in c.weeks.iter().enumerate() {\n    let x = left + slot * k as f32 + slot * 0.15;\n    let h = (base - top) * v as f32 / ymax;\n    painter.rect_filled(Rect::from_min_max(pos2(x, base - h), pos2(x + slot * 0.7, base)), 3.0, p.accent);\n    painter.text(pos2(x + slot * 0.35, base - h - 9.0), Align2::CENTER_CENTER, v.to_string(), FontId::proportional(11.0), p.text);\n    painter.text(\n        pos2(x + slot * 0.35, base + 15.0),\n        Align2::CENTER_CENTER,\n        crate::data::fmt_md(first + k as i64 * 7 * 86400, self.ja),\n        FontId::proportional(11.0),\n        p.muted,\n    );\n}"
           }
         ]
       }
@@ -215,13 +237,18 @@
         "root": "compare:gpui"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for gpui are written from its fact sheet once it lands.",
+        "fan": "You reach for GPUI when you want the GPU-accelerated Rust UI framework of the Zed editor, with Tailwind-like builder chains and explicit entity state. Paired with gpui-kit, you build views with theme switching, dialogs, and selects in plain Rust, with AccessKit through gpui-pre's Linux backend and hand-set roles.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "Chained Rust builder methods put layout, styling, focus tracking, accessibility roles, and keyboard handlers on one element tree.",
+          "v_virtual_list accepts per-row sizes, letting the inbox virtualise the list while growing and shrinking an animating row.",
+          "Views subscribe to entities and call cx.notify explicitly, and theme switching, the dialog, the select, and the bar chart were all easy to build.",
+          "With the AT-SPI bus flag set by hand, AccessKit exposed 3 page tabs and a list with only 13 visible list items, one with the SELECTED state."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "GPUI is pre-1.0, tied to Zed, and changes signatures often, while the main gpui crate was stale enough that the inbox relied on a gpui-pre snapshot through gpui-kit.",
+          "Documentation is thin enough that the implementer read crate sources to use controls, and there is no built-in i18n, collation, or date, number, and plural formatting.",
+          "Its global reduce-motion switch snaps animations instead of keeping fades, forcing custom frame tweens, and a focused caret blinks forever unless an idle timeout is configured.",
+          "Accessibility roles must be wired by hand, gpui-kit offers no application-wide RTL switch, and mobile platforms are not claimed."
         ],
         "shows": [
           {
@@ -251,22 +278,25 @@
         "root": "compare:iced"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Iced are written from its fact sheet once it lands.",
+        "fan": "You reach for Iced when you want a type-safe, cross-platform Rust GUI with an Elm-inspired message-and-update architecture. State changes pass through one typed handler, side effects return as tasks, and rendering runs on wgpu with a tiny-skia fallback across desktop and the web.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "Routing every interaction through a Message enum and an update function that returns a Task keeps state flow obvious.",
+          "Subscribing to window::frames only while an animation runs keeps an idle window from redrawing.",
+          "A dedicated canvas widget made the 12-week bar chart simple, and cosmic-text rendered Japanese with no font setup."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Iced 0.14 has no AccessKit integration, so nothing appeared in AT-SPI and screen readers cannot use it, while unfocusable buttons left Tab order and dialog focus return unmet.",
+          "It lacks a virtualised list, text ellipsis, text selection, transforms, and i18n, forcing hand-written spacer windowing, manual title truncation, overlay fades, and a rising dialog instead of scaling.",
+          "Its README calls it experimental software, APIs shifted between 0.13 and 0.14, and the implementer had to read crate source to match the new signatures."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "List: a hand-made window inside a scrollable",
-            "file": "src/ui.rs",
-            "lines": "315-340",
+            "n": 2,
+            "caption": "State: the Elm architecture's update",
+            "file": "src/main.rs",
+            "lines": "515-539",
             "lang": "rust",
-            "code": "let n = app.display_len();\nlet body: Element<'_, Message> = if n == 0 {\n    container(text(tr(\"empty\")).size(14).color(p.muted)).width(Length::Fill).height(Length::Fixed(LIST_H)).center_x(Length::Fill).center_y(Length::Fixed(LIST_H)).into()\n} else {\n    let first = app.first_visible(app.scroll_y);\n    let last = (first + (LIST_H / ROW_H).ceil() as usize + 3).min(n);\n    let mut col = column![];\n    let top = app.geometry(first).0;\n    col = col.push(Space::new().height(Length::Fixed(top)));\n    let mut end = top;\n    for i in first..last {\n        let (idx, animated) = app.item(i);\n        let (_, h) = app.geometry(i);\n        end += h;\n        let el = row_view(app, p, idx, animated);\n        col = col.push(container(el).height(Length::Fixed(h)).width(Length::Fill).clip(true));\n    }\n    let rest = (app.content_h() - end).max(0.0);\n    col = col.push(Space::new().height(Length::Fixed(rest)));\n    scrollable(col.width(Length::Fill))\n        .id(iced::widget::Id::new(LIST_ID))\n        .on_scroll(|v| Message::Scrolled(v.absolute_offset().y))\n        .height(Length::Fixed(LIST_H))\n        .width(Length::Fill)\n        .into()\n};"
+            "code": "fn update(&mut self, msg: Message) -> Task<Message> {\n    match msg {\n        Message::Search(s) => {\n            self.search = s;\n            self.refresh_view();\n            self.scroll_to(0.0)\n        }\n        Message::SearchFocus => {\n            self.search_focus = true;\n            operation::focus(iced::widget::Id::new(\"search\"))\n        }\n        Message::SearchSubmit => {\n            if let Some(id) = self.selected {\n                self.set_opened(id);\n            }\n            Task::none()\n        }\n        Message::SortPicked(s) => {\n            self.sort = s;\n            self.refresh_view();\n            match self.selected.and_then(|id| self.pos_of(id)) {\n                Some(p) => self.scroll_row_into_view(p),\n                None => self.scroll_to(0.0),\n            }\n        }"
           }
         ]
       }
@@ -287,22 +317,27 @@
         "root": "compare:flutter"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Flutter are written from its fact sheet once it lands.",
+        "fan": "You reach for Flutter when you want a Dart widget tree, stable since 1.0 in December 2018, where the engine draws every pixel across mobile, desktop, and web. Impeller, animation widgets, form validation, ICU localization, debug hot reload, and widget tests support building interfaces in Dart.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "Flutter widgets, the separate material_ui package, and intl covered the inbox exercised in widget tests, pairing AnimatedList, AnimatedSwitcher, showGeneralDialog, and live Form validation with CustomPainter for the bar chart.",
+          "ARB files, gen-l10n, and intl provide ICU plurals, locale number and date formatting, and live language switching, while Directionality supports RTL.",
+          "Two widget tests drove the full session at 1280 by 800 and found two bugs the screenshots had not: a sidebar ListTile inside a ColoredBox that hid the selected colour, and the missing Cupertino delegate for ja.",
+          "Isolate.run parses the JSON fixture off the UI isolate."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Dart's core libraries lack a locale-aware collator, so the inbox sorted titles by lowercased code units instead of locale collation.",
+          "Moving Material 3 into the separate material_ui package churned APIs and caused ambiguous localization delegates, and a widget test found a missing Japanese Cupertino delegate.",
+          "On Linux desktop, apps depend on GTK and ship engine shared libraries alongside a generated C++ runner.",
+          "The session ran only in widget tests rather than with live sandbox pointer input, and neither AT-SPI output nor CJK glyph rendering was verified on Linux."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "List: an AnimatedList inside a Semantics container",
-            "file": "lib/list_pane.dart",
-            "lines": "182-203",
+            "n": 3,
+            "caption": "Motion: a tab change that fades and slides",
+            "file": "lib/detail_pane.dart",
+            "lines": "78-104",
             "lang": "dart",
-            "code": "child: Semantics(\n  container: true,\n  explicitChildNodes: true,\n  child: AnimatedList(\n    key: _listKey,\n    controller: _scroll,\n    initialItemCount: total,\n    itemBuilder: (context, index, animation) {\n      if (index >= store.view.length) return const SizedBox.shrink();\n      final issue = store.view[index];\n      return _AnimatedRow(\n        animation: animation,\n        reduce: _reduce,\n        child: IssueRow(\n          issue: issue,\n          selected: issue.id == store.selectedId,\n          position: index + 1,\n          total: store.view.length,\n        ),\n      );\n    },\n  ),"
+            "code": "Expanded(\n  child: AnimatedSwitcher(\n    duration: const Duration(milliseconds: 180),\n    transitionBuilder: (child, animation) {\n      final fade = FadeTransition(opacity: animation, child: child);\n      if (reduce || child.key != panelKey) return fade;\n      return AnimatedBuilder(\n        animation: animation,\n        builder: (_, c) => Transform.translate(\n          offset: Offset(24.0 * store.tabDirection * (1 - animation.value), 0),\n          child: c,\n        ),\n        child: fade,\n      );\n    },\n    child: KeyedSubtree(\n      key: panelKey,\n      child: issue == null\n          ? Center(child: Text(l.select))\n          : switch (store.tab) {\n              0 => ConversationPane(issue: issue),\n              1 => EditPane(key: ValueKey('edit${issue.id}'), issue: issue),\n              _ => const InsightsPane(),\n            },\n    ),\n  ),\n),"
           }
         ]
       }
@@ -323,13 +358,18 @@
         "root": "compare:declare"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Declare are written from its fact sheet once it lands.",
+        "fan": "You reach for Declare when you want a declarative UI language where reactive constraints, datasets, springs, and standard controls make replication and virtualisation one line. Its UI tree compiles ahead of time for the browser and ships with a live editor and inspector.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The entire inbox spans inbox.declare and inbox-data.ts with no third-party libraries beyond Declare's own controls.",
+          "A derived Dataset handles filtering, searching, and sorting declaratively, and virtualising the 10 000-row Table takes one attribute, with Chromium's accessibility tree counting 23 rows, the visible window only.",
+          "The bar chart is plain replicated views bound to a dataset computed only on the Insights tab, with accessibility labels on each bar.",
+          "Built-in tooling includes a side-by-side live editor, an overlay inspector, and declare-verify checks."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "It is pre-1.0 at version 0.7.1 with a small ecosystem, frequent releases where a breaking change is always a release, no packaging story for its macOS host, and no other native desktop target named in the guide read.",
+          "Strict compiler rules, Table internals during row-height animation, and default Dialog positioning added friction, while DataSource required wrapping the fixture JSON under a named root.",
+          "Built-in Spring physics only approximate fixed millisecond durations, and the guide read names no message catalogue, plural API, or runtime-language feature.",
+          "Canvas rendering is opaque to screen readers, declare-verify's boot check could not run in the sandbox, and accessibility was not verified with a real screen reader."
         ],
         "shows": [
           {
@@ -359,13 +399,16 @@
         "root": "compare:solid"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Solid are written from its fact sheet once it lands.",
+        "fan": "You reach for Solid when you want TypeScript and JSX without a virtual DOM. Components run once, JSX compiles to direct DOM updates, and fine-grained signals and memos track what they read automatically so only the expressions that read a signal re-run.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The inbox is written in TypeScript, TSX, and CSS, with createMemo keeping sorting separate from per-keystroke filtering without dependency arrays.",
+          "Solid renders plain DOM, so accessibility is the browser's own, alongside a native dialog, Web Animations API row transitions, inline SVG bars, Intl.Collator sorting, and a virtualised list where only the visible window is in Chromium's accessibility tree.",
+          "Each validation rule is a memo over the field's signal, with error text, the live n/120 counter, and ARIA validity attributes bound to those memos as you type."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Solid 2.0 broke 1.x ecosystem packages, leaving @tanstack/solid-virtual unusable and forcing a custom adapter over @tanstack/virtual-core.",
+          "Solid 2.0 API shifts such as split createEffect, microtask-batched writes, onSettled, and string ARIA booleans added friction, while 2.0 support in community devtools and the new Vite plugin's HMR remained unverified.",
+          "Neither Solid nor @solid-primitives/i18n provides plural or ICU rules, so plurals were branched by hand, and Solid does not claim native desktop or mobile targets."
         ],
         "shows": [
           {
@@ -395,22 +438,26 @@
         "root": "compare:leptos"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Leptos are written from its fact sheet once it lands.",
+        "fan": "You reach for Leptos when you want Rust compiled to WebAssembly with fine-grained DOM reactivity and no virtual DOM overhead. Components run once, signals are Copy + 'static, and the same toolkit covers client-side apps, server-side rendering with hydration, HTTP streaming, and server functions.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "Each row and form field runs once and binds reactive closures directly to individual DOM attributes, ARIA states, and text nodes without component reruns.",
+          "Validation rules in the edit form are plain derived closures over local RwSignal fields, updating error text, counters, and Save state automatically.",
+          "Paired with leptos_i18n, translation keys are checked at compile time and switch to Japanese live, while Chromium's aria snapshot has 64 rows and both Chromium's and Firefox's errors are empty."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Leptos is pre-1.0, its generic native rendering plan was shelved with no official desktop or mobile claim found on the pages fetched, core ships no i18n, and windowing was hand-written after leptos-use was tried and removed.",
+          "Because <For> removes a row at once, animated removals needed a timed ghost row, and closures still needed explicit clones for the borrow checker.",
+          "leptos_i18n required rendering interpolated messages as views under load_locales, passing plural counts as closures, duplicating _one keys for Japanese, and touching Rust files so Cargo noticed locale edits.",
+          "Full stripping broke wasm-opt by dropping target_features, data-integrity=\"none\" was set to avoid a Chromium console warning, and the implementer read leptos_i18n 0.6.4's sources, its book, and Leptos's macros to debug."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "The windowed list: a reactive count, <Show>, and a keyed <For>",
+            "n": 2,
+            "caption": "A row: one memo and reactive attribute closures",
             "file": "src/main.rs",
-            "lines": "274-303",
+            "lines": "309-328",
             "lang": "rust",
-            "code": "view! {\n    <div class=\"listpane\">\n        <div class=\"listhead\">\n            <span>{move || {\n                let n = total.get();\n                // Reading the locale makes this closure rerun on a language change.\n                let _ = i18n.get_locale();\n                t!(i18n, count, count = move || n as i32, s = fmt_num(n as i64))\n            }}</span>\n            <span>{move || sort_name(i18n, st.sort.get())}</span>\n        </div>\n        <div class=\"listbox\" id=\"listbox\" role=\"listbox\" tabindex=\"0\"\n            aria-label=move || t_string!(i18n, app_title)\n            on:scroll=move |e| {\n                let el = event_target::<web_sys::HtmlElement>(&e);\n                st.scroll.set(el.scroll_top() as f64);\n            }\n            on:keydown=move |e| list_key(st, e)>\n            <Show when=move || total.get() == 0>\n                <div class=\"empty\">{t!(i18n, empty)}</div>\n            </Show>\n            <div class=\"sizer\" style:height=move || format!(\"{}px\", total.get() as f64 * ROW_H)>\n                <For each=move || window.get() key=|id| *id children=move |id| view! { <Row id /> } />\n                {move || st.ghost.get().map(|(issue, pos)| view! {\n                    <div class=format!(\"row ghost p{}\", issue.raw.priority)\n                        style=format!(\"transform: translateY({}px)\", pos as f64 * ROW_H) aria-hidden=\"true\">\n                        <span class=\"t\">{issue.raw.title.clone()}</span>\n                    </div>\n                })}\n            </div>"
+            "code": "#[component]\nfn Row(id: u32) -> impl IntoView {\n    let st = expect_context::<St>();\n    let i18n = use_i18n();\n    let issue = Memo::new(move |_| st.issues.with(|v| v[id as usize - 1].clone()));\n    let index = move || st.pos.with(|p| p.get(&id).copied().unwrap_or(0));\n    view! {\n        <div\n            class=move || format!(\"row p{}{}\", issue.get().raw.priority, if st.entering.get() == Some(id) { \" enter\" } else { \"\" })\n            style:transform=move || format!(\"translateY({}px)\", index() as f64 * ROW_H)\n            role=\"option\"\n            aria-selected=move || (st.cursor.get() == Some(id)).to_string()\n            aria-posinset=move || (index() + 1).to_string()\n            aria-setsize=move || st.view.with(|v| v.len()).to_string()\n            aria-label=move || issue.get().raw.title.clone()\n            on:click=move |_| {\n                st.cursor.set(Some(id));\n                st.open.set(Some(id));\n                if let Some(el) = by_id(\"listbox\") { let _ = el.focus(); }\n            }>"
           }
         ]
       }
@@ -431,22 +478,27 @@
         "root": "compare:dioxus"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Dioxus are written from its fact sheet once it lands.",
+        "fan": "You reach for Dioxus when you want a fullstack Rust app framework for web, desktop, and mobile with terse rsx markup, signals, and dx serve hot-reloading markup and styles. The README describes a \"full-time core team\", and it brings HTML, CSS, and Rust components together.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "The rsx macro lets you write Rust for loops and if branches directly inside markup, with terse signals and cheap hot-path updates.",
+          "Signals, memos, async use_resource, and component reruns let live form validation live in plain let bindings that recompute when a signal changes.",
+          "Built-in dx tooling hot-reloads markup and styles with experimental Rust hot-patching, while the public/ directory copies the fixture data to the dist root around dx's hashed asset names.",
+          "Native HTML controls, dialog, inline SVG, and ARIA attributes ran with empty error lists in Chromium and Firefox and produced a Chromium aria snapshot with 59 rows."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Dioxus is pre-1.0, its native WGPU renderer remains experimental, and desktop and mobile targets rely on webviews by default.",
+          "It ships no built-in list virtualiser, no list exit-transition hook, and no core i18n, requiring hand-written windowing and a timed ghost row for animated removals.",
+          "The community dioxus-i18n crate emitted Fluent Unicode bidi isolate characters around interpolated values with no toggle to disable them, forcing a custom stripping wrapper.",
+          "Static string keys are rejected, Dioxus.toml schema changes caused errors, setting root attributes required web-sys, and the implementer read crate sources to debug."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "The windowed list: rows near the viewport, keyed, in a full-height sizer",
+            "n": 4,
+            "caption": "The edit form: validation recomputed on every render",
             "file": "src/main.rs",
-            "lines": "256-285",
+            "lines": "528-555",
             "lang": "rust",
-            "code": "let total = view.read().len();\nlet top = scroll();\nlet first = ((top / ROW_H) as usize).saturating_sub(OVERSCAN);\nlet last = (((top + 760.0) / ROW_H) as usize + 1 + OVERSCAN).min(total);\nlet ids: Vec<(usize, u32)> = view.read()[first.min(total)..last].iter().copied().enumerate().map(|(k, id)| (first + k, id)).collect();\nlet cursor = (st.cursor)();\nlet ghost = st.ghost.read().clone();\nrsx! {\n    div { class: \"listpane\",\n        div { class: \"listhead\", span { {count_text(total)} } span { {t!(&format!(\"sort-{}\", (st.sort)().code()))} } }\n        div {\n            class: \"listbox\", id: \"listbox\", role: \"listbox\", tabindex: \"0\",\n            \"aria-label\": t!(\"app-title\"),\n            onscroll: move |e| scroll.set(e.data().scroll_top()),\n            onkeydown: move |e| list_key(st, e),\n            if total == 0 {\n                div { class: \"empty\", {t!(\"empty\")} }\n            }\n            div { class: \"sizer\", style: \"height: {total as f64 * ROW_H}px\",\n                for (k, id) in ids {\n                    Row { key: \"{id}\", issue: issues.read()[id as usize - 1].clone(), index: k, total, selected: cursor == Some(id) }\n                }\n                if let Some((issue, pos)) = ghost {\n                    div { class: \"row ghost p{issue.raw.priority}\", style: \"transform: translateY({pos as f64 * ROW_H}px)\", \"aria-hidden\": \"true\",\n                        span { class: \"t\", \"{issue.raw.title}\" }\n                    }\n                }\n            }\n        }\n    }"
+            "code": "#[component]\nfn EditForm(id: u32) -> Element {\n    let st = use_context::<St>();\n    let issue = st.issues.read()[id as usize - 1].clone();\n    let mut title = use_signal(|| issue.raw.title.clone());\n    let mut tags = use_signal(|| issue.raw.tags.join(\" \"));\n    let mut body = use_signal(|| issue.raw.body.clone());\n    let mut prio = use_signal(|| issue.raw.priority);\n    let mut assignee = use_signal(|| issue.raw.assignee.clone());\n    let people = people(&st.issues.read());\n    let (te, ge, be) = (title_err(&title.read()), tags_err(&tags.read()), body_err(&body.read()));\n    let valid = te.is_none() && ge.is_none() && be.is_none();\n    let tlen = title.read().chars().count();\n    rsx! {\n        div { class: \"form fade\",\n            label { class: \"l\", r#for: \"f-title\", style: \"top: 12px\", {t!(\"field-title\")} }\n            input { class: \"f\", id: \"f-title\", style: \"top: 40px; height: 40px\", value: \"{title}\",\n                \"aria-invalid\": \"{te.is_some()}\", \"aria-describedby\": \"e-title\",\n                oninput: move |e| title.set(e.value()) }\n            div { class: \"err\", id: \"e-title\", style: \"top: 84px\",\n                span { if let Some(e) = te { {err_text(e)} } else if tlen > 120 { {err_text(FieldErr::TitleLong)} } }\n                if tlen > 100 { span { class: \"counter\", \"{tlen}/120\" } }\n            }\n            label { class: \"l\", r#for: \"f-tags\", style: \"top: 108px\", {t!(\"field-tags\")} }\n            input { class: \"f\", id: \"f-tags\", style: \"top: 130px; height: 40px\", value: \"{tags}\",\n                \"aria-invalid\": \"{ge.is_some()}\", \"aria-describedby\": \"e-tags\",\n                oninput: move |e| tags.set(e.value()) }\n            div { class: \"err\", id: \"e-tags\", style: \"top: 174px\", if let Some(e) = ge { {err_text(e)} } }"
           }
         ]
       }
@@ -467,22 +519,26 @@
         "root": "compare:sycamore"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Sycamore are written from its fact sheet once it lands.",
+        "fan": "You reach for Sycamore when you want fine-grained Rust reactivity in WebAssembly with no virtual DOM and a builder-like view syntax. Signal handles are Copy, components do not rerun on updates, and a Copy store keeps derived memos updated without cloning boilerplate.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "A Copy store of signals and memos passes into handlers with no cloning boilerplate, keeping the filtered list, tags, selection position, chart bins, and form checks in sync.",
+          "Each changing DOM attribute and ARIA state binds its own closure, updating only the touched node on every keystroke.",
+          "Direct web-sys, js-sys, and create_node_ref interop were easy for the native dialog and Intl formatting, while a catalog memo follows the language signal as context for live Fluent language switching."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Sycamore is pre-1.0 with a single crates.io owner, exploratory native and TUI targets, no maintained virtual-list crate, and no i18n API on the pages fetched.",
+          "The implementer read framework source to diagnose three runtime pitfalls: RefCell borrow panics when reading memos inside with, browser timers running outside the reactive scope without run_in, and hidden release panics under panic abort.",
+          "The view macro wraps non-literal expressions in FnMut closures that trip the borrow checker, lacks an attr directive, and leaves Keyed rows non-reactive in their item data.",
+          "Enabling the suspense feature was required just to use spawn_local_scoped, Trunk needed custom wasm-opt flags, and accessibility was not tested with a real screen reader."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "List: the window as a memo",
-            "file": "src/list.rs",
-            "lines": "107-133",
+            "n": 4,
+            "caption": "Free pick: validation as you type, in view!",
+            "file": "src/detail.rs",
+            "lines": "150-163",
             "lang": "rust",
-            "code": "let layout = create_memo(move || {\n    let view = store.view.get_clone();\n    let issues = store.issues.get_clone();\n    let len = view.len();\n    let ghost = store.ghost.get_clone();\n    let entering = store.entering.get();\n    // Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\n    let hold_gap = store.reduced.get() && ghost.is_some();\n    let ghost_at = ghost.as_ref().map(|g| g.index);\n    let first_row = first.get().min(len.saturating_sub(1));\n    let lo = first_row.saturating_sub(OVERSCAN);\n    let hi = (first_row + height.get() / ROW + 2 + OVERSCAN).min(len);\n    let mut rows: Vec<RowData> = (lo..hi)\n        .map(|pos| {\n            let issue = issues[view[pos]].clone();\n            let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n            RowData { entering: entering == Some(issue.id), issue, pos, y, leaving: false }\n        })\n        .collect();\n    if let Some(g) = ghost {\n        rows.push(RowData { y: g.index * ROW, pos: g.index, issue: g.issue, leaving: true, entering: false });\n    }\n    rows\n});\nlet total_h = create_memo(move || (store.view.with(|v| v.len()) + usize::from(store.reduced.get() && store.ghost.with(|g| g.is_some()))) * ROW);\nlet slide = create_memo(move || !store.reduced.get() && (store.ghost.with(|g| g.is_some()) || store.entering.get().is_some()));\nlet empty = create_memo(move || store.view.with(|v| v.is_empty()) && store.ghost.with(|g| g.is_none()));"
+            "code": "form(class=\"edit fade-in\", on:submit=|e: web_sys::SubmitEvent| e.prevent_default()) {\n    label(class=\"cap\", style=\"top: 8px\", r#for=\"f-title\") { (t(\"field-title\")) }\n    input(id=\"f-title\", class=\"field\", style=\"top: 40px\", r#type=\"text\", prop:value=move || title.get_clone(),\n          on:input=move |e: Event| title.set(value_of::<HtmlInputElement>(&e, |x| x.value())),\n          aria-invalid=move || problems.with(|p| p.title.is_some()).to_string(), aria-describedby=\"e-title\")\n    div(id=\"e-title\", class=\"error\", style=\"top: 84px\", role=\"alert\") {\n        span { (msg(|p| p.title)) }\n        (if title_len.get() > 100 { view! { span { (format!(\"{}/120\", title_len.get())) } } } else { view! {} })\n    }\n    label(class=\"cap\", style=\"top: 108px\", r#for=\"f-tags\") { (t(\"field-tags\")) }\n    input(id=\"f-tags\", class=\"field\", style=\"top: 130px\", r#type=\"text\", prop:value=move || tags.get_clone(),\n          on:input=move |e: Event| tags.set(value_of::<HtmlInputElement>(&e, |x| x.value())),\n          aria-invalid=move || problems.with(|p| p.tags.is_some()).to_string(), aria-describedby=\"e-tags\")\n    div(id=\"e-tags\", class=\"error\", style=\"top: 174px\", role=\"alert\") { span { (msg(|p| p.tags)) } }"
           }
         ]
       }
@@ -503,22 +559,26 @@
         "root": "compare:yew"
       },
       "prose": {
-        "placeholder": true,
-        "fan": "Placeholder: the fan's words for Yew are written from its fact sheet once it lands.",
+        "fan": "You reach for Yew when you want Rust in the browser with function components, hooks, reducers, and JSX-like markup. First published in 2017, it pairs an immutable reducer store and ContextProvider with virtual DOM diffing and PartialEq prop checks.",
         "cool": [
-          "Placeholder: what a fan shows first."
+          "A single use_reducer store with Rc-shared records and ContextProvider fits this app, returning the same Rc to skip re-renders when nothing changes.",
+          "Keyed rows with PartialEq props keep unchanged virtualised items from re-rendering, and no framework source reading was needed to build the app.",
+          "Direct web-sys and js-sys interop covered the native dialog, Intl.Collator sorting, inline SVG, and ARIA attributes, where the Chromium accessibility snapshot counted 76 rows, as did Firefox."
         ],
         "limits": [
-          "Placeholder: where it is not as strong, from the measurements."
+          "Yew remains pre-1.0 after a gap of about 26 months between 0.21 and 0.22, with experimental SSR, work-in-progress testing support, and native desktop or mobile targets not claimed on the pages fetched.",
+          "Ecosystem crates lag behind 0.23, with yew-i18n targeting 0.21 and no maintained virtual-list crate, forcing fluent-bundle and hand-written list windowing.",
+          "Nodes are removed immediately with no exit-transition hook, requiring a timed ghost row, while the html macro rejects textarea children, lacks attribute spread, and needs hand-stringified ARIA values.",
+          "Trunk's default wasm-opt rejected rustc 1.98 output without manual feature flags, full stripping caused wasm-bindgen warnings, and accessibility was not tested with a real screen reader."
         ],
         "shows": [
           {
-            "n": 1,
-            "caption": "List: a hand-written window over 10 000 rows",
-            "file": "src/list.rs",
-            "lines": "136-160",
+            "n": 2,
+            "caption": "State: one reducer, every change an Action",
+            "file": "src/state.rs",
+            "lines": "143-172",
             "lang": "rust",
-            "code": "let len = p.view.len();\n// Reduced motion: the rows below a removed one wait for the fade, then the gap closes at once.\nlet hold_gap = p.reduced && p.ghost.is_some();\nlet ghost_at = p.ghost.as_ref().map(|g| g.index);\nlet first_row = (*first).min(len.saturating_sub(1));\nlet lo = first_row.saturating_sub(OVERSCAN);\nlet hi = (first_row + *height / ROW + 2 + OVERSCAN).min(len);\nlet total_h = (len + usize::from(hold_gap)) * ROW;\nlet slide = !p.reduced && (p.ghost.is_some() || p.entering.is_some());\n\nlet rows = (lo..hi).map(|pos| {\n    let issue = p.issues[p.view[pos]].clone();\n    let y = (pos + usize::from(hold_gap && ghost_at.is_some_and(|g| pos >= g))) * ROW;\n    let class = if p.entering == Some(issue.id) { \"entering\" } else { \"\" };\n    html! {\n        <Row key={issue.id} issue={issue.clone()} {pos} {y} total={len} selected={p.selected_pos == Some(pos)}\n             {class} dispatch={p.dispatch.clone()} />\n    }\n});\nlet ghost = p.ghost.as_ref().map(|g| {\n    html! {\n        <Row key={g.issue.id} issue={g.issue.clone()} pos={g.index} y={g.index * ROW} total={len} selected={false}\n             class=\"leaving\" dispatch={p.dispatch.clone()} />\n    }\n});"
+            "code": "impl Reducible for State {\n    type Action = Action;\n\n    fn reduce(self: Rc<Self>, action: Action) -> Rc<Self> {\n        let mut s = (*self).clone();\n        match action {\n            Action::Loaded(list) => {\n                let list: Vec<Rc<Issue>> = list\n                    .into_iter()\n                    .map(|mut i| {\n                        i.prepare();\n                        Rc::new(i)\n                    })\n                    .collect();\n                s.people = Rc::new(people(&list));\n                s.tags = Rc::new(all_tags(&list));\n                s.issues = Rc::new(list);\n                s.loaded = true;\n                s.rebuild();\n            }\n            Action::SetFilter(f) => {\n                if s.filter == f {\n                    return self;\n                }\n                s.filter = f;\n                s.rebuild();\n            }\n            Action::SetQuery(q) => {\n                s.query = q;\n                s.rebuild();"
           }
         ]
       }
@@ -904,106 +964,102 @@
       "label": "Startup",
       "unit": "ms",
       "lower": true,
-      "how": "Native: process start to the first drawn frame. Web: navigation start to the first contentful paint.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "groups": [
+        {
+          "kind": "native",
+          "how": "Process start to the first frame the app draws, in a headless sway with no GPU (software Vulkan and GL), at 1280×800. Ljós draws its window before it reads the records; most others read them first. egui and Iced start a wgpu device, which is slow on software Vulkan; RESULTS.md repeats the run on the machine's GPU.",
+          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+        },
+        {
+          "kind": "web",
+          "how": "Navigation start to the first contentful paint in Playwright's headless Chromium, the build served gzip from localhost.",
+          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 517,
-          "min": 476,
-          "max": 559,
-          "runs": 0,
-          "placeholder": true
+          "median": 187,
+          "min": 94.81,
+          "max": 309,
+          "runs": 7
         },
         "ljos-web": {
-          "median": 257,
-          "min": 236,
-          "max": 277,
-          "runs": 0,
-          "placeholder": true
+          "median": 276,
+          "min": 244,
+          "max": 452,
+          "runs": 5
         },
         "qt": {
-          "median": 668,
-          "min": 614,
-          "max": 721,
-          "runs": 0,
-          "placeholder": true
+          "median": 1099,
+          "min": 723,
+          "max": 1536,
+          "runs": 7
         },
         "slint": {
-          "median": 866,
-          "min": 797,
-          "max": 936,
-          "runs": 0,
-          "placeholder": true
+          "median": 821,
+          "min": 546,
+          "max": 1239,
+          "runs": 7
         },
         "egui": {
-          "median": 612,
-          "min": 563,
-          "max": 661,
-          "runs": 0,
-          "placeholder": true
+          "median": 3480,
+          "min": 3276,
+          "max": 4066,
+          "runs": 7
         },
         "gpui": {
-          "median": 785,
-          "min": 722,
-          "max": 848,
-          "runs": 0,
-          "placeholder": true
+          "median": 1064,
+          "min": 908,
+          "max": 2349,
+          "runs": 7
         },
         "iced": {
-          "median": 221,
-          "min": 203,
-          "max": 238,
-          "runs": 0,
-          "placeholder": true
+          "median": 4490,
+          "min": 3383,
+          "max": 5056,
+          "runs": 7
         },
         "flutter": {
-          "median": 438,
-          "min": 403,
-          "max": 473,
-          "runs": 0,
-          "placeholder": true
+          "median": 798,
+          "min": 729,
+          "max": 1296,
+          "runs": 7
         },
         "declare": {
-          "median": 105,
-          "min": 96,
-          "max": 113,
-          "runs": 0,
-          "placeholder": true
+          "median": 184,
+          "min": 172,
+          "max": 256,
+          "runs": 5
         },
         "solid": {
-          "median": 372,
-          "min": 342,
-          "max": 402,
-          "runs": 0,
-          "placeholder": true
+          "median": 76,
+          "min": 64,
+          "max": 88,
+          "runs": 5
         },
         "leptos": {
-          "median": 647,
-          "min": 595,
-          "max": 699,
-          "runs": 0,
-          "placeholder": true
+          "median": 64,
+          "min": 56,
+          "max": 92,
+          "runs": 5
         },
         "dioxus": {
-          "median": 762,
-          "min": 701,
-          "max": 822,
-          "runs": 0,
-          "placeholder": true
+          "median": 92,
+          "min": 76,
+          "max": 140,
+          "runs": 5
         },
         "sycamore": {
-          "median": 386,
-          "min": 355,
-          "max": 417,
-          "runs": 0,
-          "placeholder": true
+          "median": 76,
+          "min": 64,
+          "max": 84,
+          "runs": 5
         },
         "yew": {
-          "median": 843,
-          "min": 776,
-          "max": 911,
-          "runs": 0,
-          "placeholder": true
+          "median": 72,
+          "min": 60,
+          "max": 96,
+          "runs": 5
         }
       }
     },
@@ -1012,106 +1068,102 @@
       "label": "Memory when idle",
       "unit": "MiB",
       "lower": true,
-      "how": "Native: proportional set size after the session. Web: the tab's heap after the session.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "groups": [
+        {
+          "kind": "native",
+          "how": "Anonymous PSS from the app's cgroup after the session: the heap the app made, its mapped libraries left out.",
+          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+        },
+        {
+          "kind": "web",
+          "how": "PSS of Chromium's whole process tree after the session, so the browser's own cost, the same for every framework, is in it.",
+          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 357,
-          "min": 328,
-          "max": 386,
-          "runs": 0,
-          "placeholder": true
+          "median": 97.05,
+          "min": 91.55,
+          "max": 97.73,
+          "runs": 7
         },
         "ljos-web": {
-          "median": 66,
-          "min": 60,
-          "max": 71,
-          "runs": 0,
-          "placeholder": true
+          "median": 294,
+          "min": 283,
+          "max": 353,
+          "runs": 5
         },
         "qt": {
-          "median": 235,
-          "min": 216,
-          "max": 254,
-          "runs": 0,
-          "placeholder": true
+          "median": 159,
+          "min": 140,
+          "max": 160,
+          "runs": 7
         },
         "slint": {
-          "median": 31,
-          "min": 29,
-          "max": 34,
-          "runs": 0,
-          "placeholder": true
+          "median": 109,
+          "min": 64.56,
+          "max": 113,
+          "runs": 7
         },
         "egui": {
-          "median": 378,
-          "min": 347,
-          "max": 408,
-          "runs": 0,
-          "placeholder": true
+          "median": 93.57,
+          "min": 58.42,
+          "max": 93.84,
+          "runs": 7
         },
         "gpui": {
-          "median": 193,
-          "min": 177,
-          "max": 208,
-          "runs": 0,
-          "placeholder": true
+          "median": 101,
+          "min": 97.4,
+          "max": 105,
+          "runs": 7
         },
         "iced": {
-          "median": 123,
-          "min": 113,
-          "max": 132,
-          "runs": 0,
-          "placeholder": true
+          "median": 115,
+          "min": 78.96,
+          "max": 116,
+          "runs": 7
         },
         "flutter": {
-          "median": 194,
-          "min": 179,
-          "max": 210,
-          "runs": 0,
-          "placeholder": true
+          "median": 380,
+          "min": 368,
+          "max": 399,
+          "runs": 7
         },
         "declare": {
-          "median": 35,
-          "min": 32,
-          "max": 38,
-          "runs": 0,
-          "placeholder": true
+          "median": 396,
+          "min": 386,
+          "max": 397,
+          "runs": 5
         },
         "solid": {
-          "median": 259,
-          "min": 239,
-          "max": 280,
-          "runs": 0,
-          "placeholder": true
+          "median": 254,
+          "min": 245,
+          "max": 257,
+          "runs": 5
         },
         "leptos": {
-          "median": 150,
-          "min": 138,
-          "max": 162,
-          "runs": 0,
-          "placeholder": true
+          "median": 257,
+          "min": 247,
+          "max": 261,
+          "runs": 5
         },
         "dioxus": {
-          "median": 237,
-          "min": 218,
-          "max": 256,
-          "runs": 0,
-          "placeholder": true
+          "median": 257,
+          "min": 207,
+          "max": 262,
+          "runs": 5
         },
         "sycamore": {
-          "median": 37,
-          "min": 34,
-          "max": 40,
-          "runs": 0,
-          "placeholder": true
+          "median": 217,
+          "min": 91.24,
+          "max": 251,
+          "runs": 5
         },
         "yew": {
-          "median": 66,
-          "min": 61,
-          "max": 72,
-          "runs": 0,
-          "placeholder": true
+          "median": 258,
+          "min": 213,
+          "max": 259,
+          "runs": 5
         }
       }
     },
@@ -1120,106 +1172,103 @@
       "label": "CPU when idle",
       "unit": "%",
       "lower": true,
-      "how": "Over the last 8 s of a 10 s wait after the session. Anything above 0 is work done while nothing changes.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "floor": 1,
+      "groups": [
+        {
+          "kind": "native",
+          "how": "The app's CPU while it sits idle after it started, before the session's first input. Anything above 0 is work done while nothing changes.",
+          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+        },
+        {
+          "kind": "web",
+          "how": "CPU of Chromium's whole process tree over the last 8 s of the idle step after the session, the browser's own cost in it.",
+          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 0.9,
-          "min": 0.9,
-          "max": 1,
-          "runs": 0,
-          "placeholder": true
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "runs": 7
         },
         "ljos-web": {
-          "median": 2.9,
-          "min": 2.7,
-          "max": 3.2,
-          "runs": 0,
-          "placeholder": true
+          "median": 3.23,
+          "min": 2.99,
+          "max": 4.22,
+          "runs": 5
         },
         "qt": {
-          "median": 2.5,
-          "min": 2.3,
-          "max": 2.7,
-          "runs": 0,
-          "placeholder": true
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "runs": 7
         },
         "slint": {
-          "median": 2.9,
-          "min": 2.7,
-          "max": 3.2,
-          "runs": 0,
-          "placeholder": true
+          "median": 0,
+          "min": 0,
+          "max": 0.01,
+          "runs": 7
         },
         "egui": {
-          "median": 1.9,
-          "min": 1.7,
-          "max": 2,
-          "runs": 0,
-          "placeholder": true
+          "median": 0,
+          "min": 0,
+          "max": 0.01,
+          "runs": 7
         },
         "gpui": {
-          "median": 1.9,
-          "min": 1.7,
-          "max": 2,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.31,
+          "min": 0.22,
+          "max": 0.37,
+          "runs": 7
         },
         "iced": {
-          "median": 0.1,
-          "min": 0.1,
-          "max": 0.1,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.01,
+          "min": 0.01,
+          "max": 0.01,
+          "runs": 7
         },
         "flutter": {
-          "median": 2.2,
-          "min": 2,
-          "max": 2.3,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.01,
+          "min": 0,
+          "max": 0.01,
+          "runs": 7
         },
         "declare": {
-          "median": 0.5,
-          "min": 0.5,
-          "max": 0.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 4.48,
+          "min": 3.72,
+          "max": 4.98,
+          "runs": 5
         },
         "solid": {
-          "median": 1.8,
-          "min": 1.7,
-          "max": 1.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.75,
+          "min": 0.62,
+          "max": 0.99,
+          "runs": 5
         },
         "leptos": {
-          "median": 0.9,
-          "min": 0.9,
-          "max": 1,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.37,
+          "min": 0.25,
+          "max": 0.62,
+          "runs": 5
         },
         "dioxus": {
-          "median": 0.8,
-          "min": 0.8,
-          "max": 0.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.62,
+          "min": 0.37,
+          "max": 0.74,
+          "runs": 5
         },
         "sycamore": {
-          "median": 1.8,
-          "min": 1.6,
-          "max": 1.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.62,
+          "min": 0.5,
+          "max": 1.24,
+          "runs": 5
         },
         "yew": {
-          "median": 1.1,
-          "min": 1,
-          "max": 1.1,
-          "runs": 0,
-          "placeholder": true
+          "median": 0.37,
+          "min": 0.37,
+          "max": 0.5,
+          "runs": 5
         }
       }
     },
@@ -1228,106 +1277,102 @@
       "label": "Frame time while scrolling, p95",
       "unit": "ms",
       "lower": true,
-      "how": "The 95th percentile frame interval while PageDown scrolls 2 000 rows.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "groups": [
+        {
+          "kind": "native",
+          "how": "The 95th percentile frame interval while PageDown, pressed 200 times, scrolls 2 000 rows.",
+          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+        },
+        {
+          "kind": "web",
+          "how": "The 95th percentile frame interval in Chromium while PageDown, pressed 200 times, scrolls 2 000 rows.",
+          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 16.3,
-          "min": 15,
-          "max": 17.6,
-          "runs": 0,
-          "placeholder": true
+          "median": 32.41,
+          "min": 16.35,
+          "max": 32.51,
+          "runs": 7
         },
         "ljos-web": {
-          "median": 18.8,
-          "min": 17.3,
-          "max": 20.3,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.8,
+          "min": 16.8,
+          "max": 33.4,
+          "runs": 5
         },
         "qt": {
-          "median": 13,
-          "min": 12,
-          "max": 14.1,
-          "runs": 0,
-          "placeholder": true
+          "median": 49.2,
+          "min": 48.65,
+          "max": 49.77,
+          "runs": 7
         },
         "slint": {
-          "median": 15.6,
-          "min": 14.4,
-          "max": 16.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 40.72,
+          "min": 33.42,
+          "max": 49.6,
+          "runs": 7
         },
         "egui": {
-          "median": 5.3,
-          "min": 4.8,
-          "max": 5.7,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.54,
+          "min": 16.46,
+          "max": 32.72,
+          "runs": 7
         },
         "gpui": {
-          "median": 16.5,
-          "min": 15.2,
-          "max": 17.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.93,
+          "min": 16.77,
+          "max": 33.21,
+          "runs": 7
         },
         "iced": {
-          "median": 11.7,
-          "min": 10.7,
-          "max": 12.6,
-          "runs": 0,
-          "placeholder": true
+          "median": 34,
+          "min": 33.75,
+          "max": 34.68,
+          "runs": 7
         },
         "flutter": {
-          "median": 10.5,
-          "min": 9.6,
-          "max": 11.3,
-          "runs": 0,
-          "placeholder": true
+          "median": 50.31,
+          "min": 34.03,
+          "max": 66.61,
+          "runs": 7
         },
         "declare": {
-          "median": 17.7,
-          "min": 16.3,
-          "max": 19.1,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8,
+          "runs": 5
         },
         "solid": {
-          "median": 9.6,
-          "min": 8.9,
-          "max": 10.4,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8,
+          "runs": 5
         },
         "leptos": {
-          "median": 11.6,
-          "min": 10.7,
-          "max": 12.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8,
+          "runs": 5
         },
         "dioxus": {
-          "median": 11.1,
-          "min": 10.2,
-          "max": 11.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8,
+          "runs": 5
         },
         "sycamore": {
-          "median": 7.8,
-          "min": 7.2,
-          "max": 8.4,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8,
+          "runs": 5
         },
         "yew": {
-          "median": 6,
-          "min": 5.6,
-          "max": 6.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8,
+          "runs": 5
         }
       }
     },
@@ -1336,106 +1381,116 @@
       "label": "Search latency",
       "unit": "ms",
       "lower": true,
-      "how": "From the last key of \"render crash\" to the frame whose count is final.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "groups": [
+        {
+          "kind": "native",
+          "how": "The 95th percentile of every key's lag while \"render crash\" is typed, over all runs: from a key to the first frame that changed after it. The line runs from the median key to the slowest.",
+          "command": "harness/native/run.sh (ljos bench, 7 rotated rounds), then harness/aggregate.py"
+        },
+        {
+          "kind": "web",
+          "how": "The first key's lag in Chromium while \"render crash\" is typed: from the key to the first frame after the page changed, the median of the runs. The web session times only the first key, so this is not the native chart's measure.",
+          "command": "harness/web/run.sh (Playwright, 5 runs), then harness/aggregate.py"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 10.5,
-          "min": 9.6,
-          "max": 11.3,
-          "runs": 0,
-          "placeholder": true
+          "median": 75.23,
+          "min": 11.42,
+          "max": 100,
+          "runs": 84,
+          "of": "keys",
+          "stat": "p95"
         },
         "ljos-web": {
-          "median": 15.5,
-          "min": 14.3,
-          "max": 16.8,
-          "runs": 0,
-          "placeholder": true
+          "median": 73.5,
+          "min": 62.8,
+          "max": 110,
+          "runs": 5
         },
         "qt": {
-          "median": 3.8,
-          "min": 3.5,
-          "max": 4.1,
-          "runs": 0,
-          "placeholder": true
+          "median": 26.52,
+          "min": 8.97,
+          "max": 46.6,
+          "runs": 84,
+          "of": "keys",
+          "stat": "p95"
         },
         "slint": {
-          "median": 58,
-          "min": 53.4,
-          "max": 62.7,
-          "runs": 0,
-          "placeholder": true
+          "median": 44.57,
+          "min": 22.92,
+          "max": 140,
+          "runs": 84,
+          "of": "keys",
+          "stat": "p95"
         },
         "egui": {
-          "median": 40.5,
-          "min": 37.3,
-          "max": 43.8,
-          "runs": 0,
-          "placeholder": true
+          "median": 27.06,
+          "min": 14.66,
+          "max": 39.26,
+          "runs": 84,
+          "of": "keys",
+          "stat": "p95"
         },
         "gpui": {
-          "median": 31.4,
-          "min": 28.9,
-          "max": 33.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 30.84,
+          "min": 18.88,
+          "max": 50.75,
+          "runs": 84,
+          "of": "keys",
+          "stat": "p95"
         },
         "iced": {
-          "median": 8.4,
-          "min": 7.8,
-          "max": 9.1,
-          "runs": 0,
-          "placeholder": true
+          "median": 13.66,
+          "min": 5.73,
+          "max": 21.8,
+          "runs": 84,
+          "of": "keys",
+          "stat": "p95"
         },
         "flutter": {
-          "median": 30.5,
-          "min": 28.1,
-          "max": 33,
-          "runs": 0,
-          "placeholder": true
+          "median": 1281,
+          "min": 802,
+          "max": 1362,
+          "runs": 51,
+          "of": "keys",
+          "stat": "p95"
         },
         "declare": {
-          "median": 50.5,
-          "min": 46.4,
-          "max": 54.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 39.7,
+          "min": 37.8,
+          "max": 52.3,
+          "runs": 5
         },
         "solid": {
-          "median": 3.2,
-          "min": 3,
-          "max": 3.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 14,
+          "min": 7.6,
+          "max": 17.7,
+          "runs": 5
         },
         "leptos": {
-          "median": 7.3,
-          "min": 6.7,
-          "max": 7.9,
-          "runs": 0,
-          "placeholder": true
+          "median": 11.1,
+          "min": 8.5,
+          "max": 15.8,
+          "runs": 5
         },
         "dioxus": {
-          "median": 7,
-          "min": 6.4,
-          "max": 7.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 11,
+          "min": 5.9,
+          "max": 15,
+          "runs": 5
         },
         "sycamore": {
-          "median": 59.7,
-          "min": 54.9,
-          "max": 64.5,
-          "runs": 0,
-          "placeholder": true
+          "median": 13.3,
+          "min": 10.9,
+          "max": 14.1,
+          "runs": 5
         },
         "yew": {
-          "median": 3.5,
-          "min": 3.2,
-          "max": 3.7,
-          "runs": 0,
-          "placeholder": true
+          "median": 11.6,
+          "min": 8.9,
+          "max": 34.8,
+          "runs": 5
         }
       }
     },
@@ -1444,66 +1499,64 @@
       "label": "Binary size, stripped",
       "unit": "MB",
       "lower": true,
-      "only": "native",
-      "how": "Native only: the stripped release binary, without shared system libraries.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "counted": true,
+      "groups": [
+        {
+          "kind": "native",
+          "how": "The stripped release build. Ljós's is the whole ljos CLI (runtime, compilers, MCP server and the rest), as no runtime-only build exists yet. Qt Quick's is the app and the Qt libraries it links. Flutter's is its bundle.",
+          "command": "strip, then the sizes of what the app runs (the comparison lead's count)"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 40,
-          "min": 36.8,
-          "max": 43.2,
-          "runs": 0,
-          "placeholder": true
+          "median": 139,
+          "min": 139,
+          "max": 139,
+          "runs": 1,
+          "of": "counts"
         },
-        "ljos-web": null,
         "qt": {
-          "median": 28.3,
-          "min": 26,
-          "max": 30.6,
-          "runs": 0,
-          "placeholder": true
+          "median": 40.07,
+          "min": 40.07,
+          "max": 40.07,
+          "runs": 1,
+          "of": "counts"
         },
         "slint": {
-          "median": 24.4,
-          "min": 22.4,
-          "max": 26.3,
-          "runs": 0,
-          "placeholder": true
+          "median": 22.6,
+          "min": 22.6,
+          "max": 22.6,
+          "runs": 1,
+          "of": "counts"
         },
         "egui": {
-          "median": 39.4,
-          "min": 36.3,
-          "max": 42.6,
-          "runs": 0,
-          "placeholder": true
+          "median": 22.4,
+          "min": 22.4,
+          "max": 22.4,
+          "runs": 1,
+          "of": "counts"
         },
         "gpui": {
-          "median": 32.6,
-          "min": 30,
-          "max": 35.3,
-          "runs": 0,
-          "placeholder": true
+          "median": 44.7,
+          "min": 44.7,
+          "max": 44.7,
+          "runs": 1,
+          "of": "counts"
         },
         "iced": {
-          "median": 56.8,
-          "min": 52.3,
-          "max": 61.4,
-          "runs": 0,
-          "placeholder": true
+          "median": 20.5,
+          "min": 20.5,
+          "max": 20.5,
+          "runs": 1,
+          "of": "counts"
         },
         "flutter": {
-          "median": 51.6,
-          "min": 47.5,
-          "max": 55.8,
-          "runs": 0,
-          "placeholder": true
-        },
-        "declare": null,
-        "solid": null,
-        "leptos": null,
-        "dioxus": null,
-        "sycamore": null,
-        "yew": null
+          "median": 24.8,
+          "min": 24.8,
+          "max": 24.8,
+          "runs": 1,
+          "of": "counts"
+        }
       }
     },
     {
@@ -1511,173 +1564,63 @@
       "label": "Transfer size, gzip",
       "unit": "kB",
       "lower": true,
-      "only": "web",
-      "how": "Web only: everything a cold load fetches, gzip, data and avatars included.",
-      "command": "placeholder: the command comes from RESULTS.md",
-      "values": {
-        "ljos": null,
-        "ljos-web": {
-          "median": 710,
-          "min": 653,
-          "max": 767,
-          "runs": 0,
-          "placeholder": true
-        },
-        "qt": null,
-        "slint": null,
-        "egui": null,
-        "gpui": null,
-        "iced": null,
-        "flutter": null,
-        "declare": {
-          "median": 140,
-          "min": 128,
-          "max": 151,
-          "runs": 0,
-          "placeholder": true
-        },
-        "solid": {
-          "median": 752,
-          "min": 692,
-          "max": 812,
-          "runs": 0,
-          "placeholder": true
-        },
-        "leptos": {
-          "median": 1858,
-          "min": 1709,
-          "max": 2007,
-          "runs": 0,
-          "placeholder": true
-        },
-        "dioxus": {
-          "median": 1576,
-          "min": 1450,
-          "max": 1702,
-          "runs": 0,
-          "placeholder": true
-        },
-        "sycamore": {
-          "median": 1919,
-          "min": 1766,
-          "max": 2073,
-          "runs": 0,
-          "placeholder": true
-        },
-        "yew": {
-          "median": 1297,
-          "min": 1193,
-          "max": 1401,
-          "runs": 0,
-          "placeholder": true
+      "counted": true,
+      "groups": [
+        {
+          "kind": "web",
+          "how": "The code alone: gzip -9 over the production build's HTML, CSS, JavaScript and wasm (kB = 1 000 bytes). Every app also loads the same 7.1 MB fixture, about 630 kB gzip, and the avatars.",
+          "command": "gzip -9 over each production build (the comparison lead's count)"
         }
-      }
-    },
-    {
-      "id": "build",
-      "label": "Clean release build",
-      "unit": "s",
-      "lower": true,
-      "how": "A clean release build, dependencies included, on the same machine.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      ],
       "values": {
-        "ljos": {
-          "median": 322,
-          "min": 296,
-          "max": 348,
-          "runs": 0,
-          "placeholder": true
-        },
         "ljos-web": {
-          "median": 100,
-          "min": 92,
-          "max": 108,
-          "runs": 0,
-          "placeholder": true
-        },
-        "qt": {
-          "median": 88,
-          "min": 81,
-          "max": 95,
-          "runs": 0,
-          "placeholder": true
-        },
-        "slint": {
-          "median": 158,
-          "min": 146,
-          "max": 171,
-          "runs": 0,
-          "placeholder": true
-        },
-        "egui": {
-          "median": 287,
-          "min": 264,
-          "max": 310,
-          "runs": 0,
-          "placeholder": true
-        },
-        "gpui": {
-          "median": 301,
-          "min": 277,
-          "max": 325,
-          "runs": 0,
-          "placeholder": true
-        },
-        "iced": {
-          "median": 40,
-          "min": 37,
-          "max": 43,
-          "runs": 0,
-          "placeholder": true
-        },
-        "flutter": {
-          "median": 354,
-          "min": 326,
-          "max": 382,
-          "runs": 0,
-          "placeholder": true
+          "median": 216,
+          "min": 216,
+          "max": 216,
+          "runs": 1,
+          "of": "counts"
         },
         "declare": {
-          "median": 58,
-          "min": 53,
-          "max": 62,
-          "runs": 0,
-          "placeholder": true
+          "median": 192,
+          "min": 192,
+          "max": 192,
+          "runs": 1,
+          "of": "counts"
         },
         "solid": {
-          "median": 114,
-          "min": 105,
-          "max": 123,
-          "runs": 0,
-          "placeholder": true
+          "median": 37,
+          "min": 37,
+          "max": 37,
+          "runs": 1,
+          "of": "counts"
         },
         "leptos": {
-          "median": 37,
-          "min": 34,
-          "max": 40,
-          "runs": 0,
-          "placeholder": true
+          "median": 249,
+          "min": 249,
+          "max": 249,
+          "runs": 1,
+          "of": "counts"
         },
         "dioxus": {
-          "median": 294,
-          "min": 270,
-          "max": 317,
-          "runs": 0,
-          "placeholder": true
+          "median": 340,
+          "min": 340,
+          "max": 340,
+          "runs": 1,
+          "of": "counts"
         },
         "sycamore": {
-          "median": 65,
-          "min": 60,
-          "max": 70,
-          "runs": 0,
-          "placeholder": true
+          "median": 216,
+          "min": 216,
+          "max": 216,
+          "runs": 1,
+          "of": "counts"
         },
         "yew": {
-          "median": 11,
-          "min": 10,
-          "max": 12,
-          "runs": 0,
-          "placeholder": true
+          "median": 215,
+          "min": 215,
+          "max": 215,
+          "runs": 1,
+          "of": "counts"
         }
       }
     },
@@ -1686,106 +1629,112 @@
       "label": "Lines of code",
       "unit": "lines",
       "lower": true,
-      "how": "Code lines only, by tokei or its equivalent, the fixture left out.",
-      "command": "placeholder: the command comes from RESULTS.md",
+      "counted": true,
+      "groups": [
+        {
+          "kind": "all",
+          "how": "Code lines counted with cloc over each app's own source: no fixture, translation catalogues, build configuration or generated files. One agent wrote each app, so this is how much that agent wrote, not the least the toolkit needs.",
+          "command": "cloc, code lines only (the comparison lead's count)"
+        }
+      ],
       "values": {
         "ljos": {
-          "median": 1888,
-          "min": 1737,
-          "max": 2039,
-          "runs": 0,
-          "placeholder": true
+          "median": 1686,
+          "min": 1686,
+          "max": 1686,
+          "runs": 1,
+          "of": "counts"
         },
         "ljos-web": {
-          "median": 1502,
-          "min": 1382,
-          "max": 1622,
-          "runs": 0,
-          "placeholder": true
+          "median": 1712,
+          "min": 1712,
+          "max": 1712,
+          "runs": 1,
+          "of": "counts"
         },
         "qt": {
-          "median": 1738,
-          "min": 1599,
-          "max": 1877,
-          "runs": 0,
-          "placeholder": true
+          "median": 1316,
+          "min": 1316,
+          "max": 1316,
+          "runs": 1,
+          "of": "counts"
         },
         "slint": {
-          "median": 952,
-          "min": 876,
-          "max": 1028,
-          "runs": 0,
-          "placeholder": true
+          "median": 1819,
+          "min": 1819,
+          "max": 1819,
+          "runs": 1,
+          "of": "counts"
         },
         "egui": {
-          "median": 2316,
-          "min": 2131,
-          "max": 2501,
-          "runs": 0,
-          "placeholder": true
+          "median": 1373,
+          "min": 1373,
+          "max": 1373,
+          "runs": 1,
+          "of": "counts"
         },
         "gpui": {
-          "median": 2386,
-          "min": 2195,
-          "max": 2577,
-          "runs": 0,
-          "placeholder": true
+          "median": 1547,
+          "min": 1547,
+          "max": 1547,
+          "runs": 1,
+          "of": "counts"
         },
         "iced": {
-          "median": 2442,
-          "min": 2247,
-          "max": 2637,
-          "runs": 0,
-          "placeholder": true
+          "median": 1483,
+          "min": 1483,
+          "max": 1483,
+          "runs": 1,
+          "of": "counts"
         },
         "flutter": {
-          "median": 1652,
-          "min": 1520,
-          "max": 1784,
-          "runs": 0,
-          "placeholder": true
+          "median": 1531,
+          "min": 1531,
+          "max": 1531,
+          "runs": 1,
+          "of": "counts"
         },
         "declare": {
-          "median": 1380,
-          "min": 1270,
-          "max": 1490,
-          "runs": 0,
-          "placeholder": true
+          "median": 577,
+          "min": 577,
+          "max": 577,
+          "runs": 1,
+          "of": "counts"
         },
         "solid": {
-          "median": 1334,
-          "min": 1227,
-          "max": 1441,
-          "runs": 0,
-          "placeholder": true
+          "median": 798,
+          "min": 798,
+          "max": 798,
+          "runs": 1,
+          "of": "counts"
         },
         "leptos": {
-          "median": 1666,
-          "min": 1533,
-          "max": 1799,
-          "runs": 0,
-          "placeholder": true
+          "median": 1063,
+          "min": 1063,
+          "max": 1063,
+          "runs": 1,
+          "of": "counts"
         },
         "dioxus": {
-          "median": 1064,
-          "min": 979,
-          "max": 1149,
-          "runs": 0,
-          "placeholder": true
+          "median": 1025,
+          "min": 1025,
+          "max": 1025,
+          "runs": 1,
+          "of": "counts"
         },
         "sycamore": {
-          "median": 866,
-          "min": 797,
-          "max": 935,
-          "runs": 0,
-          "placeholder": true
+          "median": 1369,
+          "min": 1369,
+          "max": 1369,
+          "runs": 1,
+          "of": "counts"
         },
         "yew": {
-          "median": 1118,
-          "min": 1029,
-          "max": 1207,
-          "runs": 0,
-          "placeholder": true
+          "median": 1407,
+          "min": 1407,
+          "max": 1407,
+          "runs": 1,
+          "of": "counts"
         }
       }
     }

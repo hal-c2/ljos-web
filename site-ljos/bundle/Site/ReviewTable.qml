@@ -74,7 +74,7 @@ Flickable {
                 height: cells.height
                 fill: line.index % 2 === 0 ? Theme.surface : "transparent"
                 Accessible.role: Accessible.Row
-                Accessible.name: [line.name].concat(view.review.metrics.map((metric) => Review.cell(metric.values[line.modelData] ?? null))).join(" ")
+                Accessible.name: Review.rowName(view.review, line.modelData)
 
                 Row {
                     id: cells
@@ -99,7 +99,7 @@ Flickable {
                             rightPadding: Theme.s
                             topPadding: Theme.xs
                             bottomPadding: Theme.xs
-                            text: Review.cell(modelData.values[line.modelData] ?? null)
+                            text: Review.cell(modelData.values[line.modelData])
                             color: Theme.text
                             font.family: Theme.sans
                             font.size: Theme.captionSize

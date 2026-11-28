@@ -593,14 +593,14 @@ msgid "Driver warmer"
 msgstr "Ökumaður hlýrri"
 
 #: ../Site/ReviewPage.qml:202
-msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
-msgstr "Hver súla er miðgildi keyrslna hennar, línan yfir enda hennar nær frá minnsta til mesta gildis og undir hverju grafi er skipunin sem mældi það. Styttri súla er betri á öllum gröfum."
+msgid "Each bar is the median of its runs, the line across its end the least to the most; the native search's bar is the slow end of every key typed, and the web's the first key's, as each chart says. Under each chart, the command that measured it. Shorter is better on every chart. One machine, shared and busy, with no GPU: the numbers compare with each other, not with your computer."
+msgstr "Hver súla er miðgildi keyrslna hennar og línan við enda hennar nær frá því minnsta til þess mesta; í leit innbyggðu forritanna er súlan hægi endinn á öllum innslegnum lyklum og á vefnum fyrsti lykillinn, eins og hvert graf segir. Undir hverju grafi er skipunin sem mældi það. Styttra er betra á öllum gröfum. Ein vél, samnýtt og upptekin, án skjákorts: tölurnar má bera saman innbyrðis, ekki við aðrar tölvur."
 
 #: ../Site/DemosPage.qml:53
 msgid "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a demo runs, switch between light and dark themes in the header to watch it follow. Edit the live source on the cockpit and smartwatch pages, and rewrite a shop's shell while it runs on the {shopLink}. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs."
 msgstr "Hver kynning er heilt Ljós-forrit sem stenst ljos check, þýtt fyrir fram og sett inn í þessa síðu. Þegar kynning keyrir geturðu skipt á milli ljóss og dökks útlits í hausnum og séð hana fylgja. Breyttu kóðanum lifandi á síðum stjórnklefans og snjallúrsins, og endurskrifaðu skel verslunar á meðan hún keyrir á {shopLink}. Kynning heldur mynd sinni og lýsingu þar sem vafrann vantar WebAssembly eða WebGL 2 sem hún þarf."
 
-#: ../Site/ReviewPage.qml:274
+#: ../Site/ReviewPage.qml:289
 msgid "Each framework, by a fan"
 msgstr "Hver rammi, frá aðdáanda"
 
@@ -1168,7 +1168,7 @@ msgstr "Sveigjanlegur hugbúnaður, alls staðar."
 msgid "Map: the route to {0}"
 msgstr "Kort: leið til {0}"
 
-#: ../Site/ReviewChart.qml:195
+#: ../Site/ReviewChart.qml:232
 msgid "Measured with"
 msgstr "Mælt með"
 
@@ -1224,6 +1224,14 @@ msgstr "Í SPILUN"
 msgid "Native"
 msgstr "Innbyggt"
 
+#: ../Site/ReviewChart.qml:62
+msgid "Native and web apps are measured differently here, so each has a scale of its own: compare within a group, not across."
+msgstr "Innbyggð forrit og vefforrit eru mæld á ólíkan hátt hér, svo hver hópur hefur sinn eigin kvarða: samanburður gildir innan hóps, ekki á milli hópa."
+
+#: ../Site/ReviewChart.qml:89
+msgid "Native apps"
+msgstr "Innbyggð forrit"
+
 #: ../Demos/Cockpit/Cockpit.qml:194
 msgid "Navigation"
 msgstr "Leiðsögn"
@@ -1240,13 +1248,17 @@ msgstr "Næsta lag"
 msgid "Next: {0}"
 msgstr "Næst: {0}"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for native apps only."
 msgstr "Engin súla fyrir {0}: þetta er aðeins mælt fyrir innbyggð forrit."
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No bar for {0}: this is measured for web apps only."
 msgstr "Engin súla fyrir {0}: þetta er aðeins mælt fyrir vefforrit."
+
+#: ../Site/ReviewPage.qml:243
+msgid "No chart of build times: each app's builds ran through one queue shared with other work, so its times are mostly the wait, and they do not compare."
+msgstr "Ekkert graf af smíðatímum: smíðar hvers forrits fóru í gegnum eina biðröð sem var samnýtt með annarri vinnu, svo tímarnir eru að mestu biðin og ekki er hægt að bera þá saman."
 
 #: ../Shells/Workbench.qml:928
 msgid "No compiler or lint diagnostics in the open file."
@@ -1256,7 +1268,7 @@ msgstr "Engar þýðanda- eða gæðagreiningar í opinni skrá."
 msgid "No crew"
 msgstr "Ekkert lið"
 
-#: ../Site/ReviewChart.qml:185
+#: ../Site/ReviewChart.qml:257
 msgid "No number yet for {0}."
 msgstr "Engin tala enn fyrir {0}."
 
@@ -2130,6 +2142,10 @@ msgstr "Skjölunin"
 msgid "The files of {0}"
 msgstr "Skrár: {0}"
 
+#: ../Site/ReviewPage.qml:303
+msgid "The frameworks picked above, each in the words of someone who loves it. Pick another to read its fan."
+msgstr "Rammarnir sem eru valdir hér að ofan, hver í orðum einhvers sem elskar hann. Veldu annan til að lesa aðdáanda hans."
+
 #: ../Site/ReviewPage.qml:188
 msgid "The numbers"
 msgstr "Tölurnar"
@@ -2142,7 +2158,7 @@ msgstr "Tölur valinna ramma"
 msgid "The rooftop place opens at eight. Bring the jacket, it gets cold up there."
 msgstr "Þakstaðurinn opnar klukkan átta. Taktu jakkann, það er kalt þarna uppi."
 
-#: ../Site/ReviewPage.qml:248
+#: ../Site/ReviewPage.qml:259
 msgid "The same feature in each one's code"
 msgstr "Sami eiginleiki í kóða hvers og eins"
 
@@ -2359,6 +2375,10 @@ msgstr "Vekur úrið, eða fer aftur á skífuna"
 msgid "Web"
 msgstr "Vefur"
 
+#: ../Site/ReviewChart.qml:89
+msgid "Web apps"
+msgstr "Vefforrit"
+
 #: ../Site/ReviewSection.qml:64
 msgid "What a fan shows first"
 msgstr "Það sem aðdáandi sýnir fyrst"
@@ -2371,9 +2391,13 @@ msgstr "Hvað er Ljós?"
 msgid "What we care about, and what we leave out on purpose."
 msgstr "Það sem skiptir okkur máli — og það sem við sleppum viljandi."
 
-#: ../Site/ReviewSection.qml:155
+#: ../Site/ReviewSection.qml:156
 msgid "Where it is not as strong"
 msgstr "Þar sem hann er ekki eins sterkur"
+
+#: ../Site/ReviewPage.qml:331 ../Site/ReviewPage.qml:335
+msgid "Where to find each one"
+msgstr "Hvar hvern og einn er að finna"
 
 #: ../Demos/WatchDemo.qml:219
 msgid "Whether the face stays on, dim, while the watch rests"
@@ -2555,7 +2579,7 @@ msgstr "{0} NÝ"
 msgid "{0} cm"
 msgstr "{0} cm"
 
-#: ../Site/ReviewSection.qml:205
+#: ../Site/ReviewPage.qml:362 ../Site/ReviewSection.qml:206
 msgid "{0} docs"
 msgstr "Skjölun fyrir {0}"
 
@@ -2595,7 +2619,7 @@ msgstr "{0} af {1}"
 msgid "{0} of {1} done"
 msgstr "{0} af {1} lokið"
 
-#: ../Site/ReviewSection.qml:210
+#: ../Site/ReviewPage.qml:367 ../Site/ReviewSection.qml:211
 msgid "{0} repository"
 msgstr "Kóðageymsla fyrir {0}"
 
@@ -2603,7 +2627,7 @@ msgstr "Kóðageymsla fyrir {0}"
 msgid "{0} steps"
 msgstr "{0} skref"
 
-#: ../Site/ReviewSection.qml:200
+#: ../Site/ReviewPage.qml:357 ../Site/ReviewSection.qml:201
 msgid "{0} website"
 msgstr "Vefsíða fyrir {0}"
 
@@ -2686,6 +2710,9 @@ msgstr "♪ {0} · {1}"
 #: ../Demos/FieldGuide.qml:136
 msgid "✓ {name}"
 msgstr "✓ {name}"
+
+#~ msgid "Each bar is the median of its runs, the line across its end the least to the most, and under each chart the command that measured it. Shorter is better on every chart."
+#~ msgstr "Hver súla er miðgildi keyrslna hennar, línan yfir enda hennar nær frá minnsta til mesta gildis og undir hverju grafi er skipunin sem mældi það. Styttri súla er betri á öllum gröfum."
 
 #~ msgid "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
 #~ msgstr "Prófaðu að færa StatusSlot fyrir neðan Basket, stilla color: \"#241a10\" eða endurnefna búðina. Karfan þín og skilaboðin haldast óbreytt."

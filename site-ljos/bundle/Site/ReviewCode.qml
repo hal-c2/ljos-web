@@ -17,9 +17,9 @@ Column {
     property bool wide: true
     property Flickable scroller
     // The feature shown, by its id.
-    property string feature: code.review.features.length > 0 ? code.review.features[0].id : ""
+    property string feature: Review.featureOf(code.review, "").id
 
-    readonly property Review.Feature chosen: code.review.features.find((one) => one.id === code.feature)
+    readonly property Review.Feature chosen: Review.featureOf(code.review, code.feature)
     readonly property real side: code.wide ? Math.floor((width - Theme.l) / 2) : width
 
     spacing: Theme.m
@@ -43,7 +43,7 @@ Column {
             // ARIA tab pattern): the stop is the chosen feature's tab.
             function focusAt(at: int): void {
                 const next = tabs.itemAt((at + tabs.count) % tabs.count);
-                if (next)
+                if (Review.isFocusable(next))
                     next.forceActiveFocus(FocusReason.Tab);
             }
             delegate: Rectangle {
@@ -98,7 +98,7 @@ Column {
     Text {
         x: App.layoutDirection === Direction.RightToLeft ? parent.width - width : 0
         width: Math.min(parent.width, Theme.measure)
-        text: code.chosen ? code.chosen.about : ""
+        text: code.chosen.about
         color: Theme.textMuted
         font.family: Theme.sans
         font.size: Theme.bodySize - 1
@@ -116,6 +116,9 @@ Column {
             Column {
                 id: one
                 required property Review.Shown modelData
+                readonly property string href: Review.hrefOf(one.modelData.excerpt)
+                // Read here: inside the CodeBlock, `code` is its own text.
+                readonly property Flickable scroller: code.scroller
                 width: code.side
                 spacing: Theme.xs
 
@@ -135,9 +138,9 @@ Column {
                     // published.
                     Text {
                         topPadding: 3
-                        format: one.modelData.excerpt.href ? Text.RichText : Text.PlainText
-                        text: one.modelData.excerpt.href ? Nav.anchor(one.modelData.excerpt.href, one.modelData.where, false, Theme.link) : one.modelData.where
-                        color: one.modelData.excerpt.href ? Theme.link : Theme.textMuted
+                        format: one.href !== "" ? Text.RichText : Text.PlainText
+                        text: one.href !== "" ? Nav.anchor(one.href, one.modelData.where, false, Theme.link) : one.modelData.where
+                        color: one.href !== "" ? Theme.link : Theme.textMuted
                         linkColor: Theme.link
                         font.family: Theme.mono
                         font.size: Theme.captionSize
@@ -146,9 +149,9 @@ Column {
                 }
                 CodeBlock {
                     width: parent.width
-                    scroller: code.scroller
+                    scroller: one.scroller
                     lang: one.modelData.excerpt.lang
-                    code: one.modelData.excerpt.code
+                    code: Review.codeOf(one.modelData.excerpt)
                     rich: one.modelData.excerpt.rich
                 }
             }

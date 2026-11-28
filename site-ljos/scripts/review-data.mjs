@@ -7,12 +7,14 @@
 // RESULTS.md; until it lands a stand-in is flagged `placeholder` and the
 // page says so above its charts.
 //
-//   node scripts/review-data.mjs --compare <dir> --ljos-ui <checkout> [--results <RESULTS.json>] [--placeholders]
+//   node scripts/review-data.mjs --compare <dir> --ljos-ui <checkout> [--results <RESULTS.json>] [--prose <prose.json>] [--placeholders]
 //
 // --compare is the directory holding one app per framework
 // (<dir>/<framework>/...) and its fact sheets (<dir>/facts/); --ljos-ui
 // a checkout of ljos-ui whose bench/inbox is the Ljós app; --results
-// the compare lead's RESULTS.json, whose medians replace the stand-ins.
+// the compare lead's RESULTS.json, whose medians replace the stand-ins;
+// --prose the fans' words ({ intro, frameworks: { <id>: { fan, cool,
+// limits, shows: [n] } } }).
 //
 // What a fan shows first in a framework's section is one of the
 // excerpts its fact sheet (<dir>/facts/<framework>.excerpts.md) numbers,
@@ -109,6 +111,22 @@ function sheet(one) {
   return found;
 }
 
+// The fans' words, written from the fact sheets alone and checked
+// against them sentence by sentence before they come here: they replace
+// the placeholders whole, and name the excerpts they show by number.
+const proseFile = option("--prose");
+if (proseFile != null) {
+  const prose = JSON.parse(readFileSync(proseFile, "utf8"));
+  review.intro = { text: prose.intro };
+  for (const [id, words] of Object.entries(prose.frameworks)) {
+    const one = byId.get(id);
+    if (one == null) throw new Error(`${proseFile}: ${id} is no framework of the review`);
+    one.prose = { fan: words.fan, cool: words.cool, limits: words.limits, shows: words.shows.map((n) => ({ n })) };
+  }
+  const unwritten = review.frameworks.filter((one) => !(one.id in prose.frameworks)).map((one) => one.id);
+  if (unwritten.length > 0) throw new Error(`${proseFile}: no words for ${unwritten.join(", ")}`);
+}
+
 for (const one of review.frameworks) {
   // Until its words are written, a placeholder section shows its sheet's
   // first excerpt.
@@ -130,7 +148,7 @@ for (const one of review.frameworks) {
 function standIn(metric, id) {
   let hash = 2166136261;
   for (const char of `${metric}/${id}`) hash = Math.imul(hash ^ char.codePointAt(0), 16777619) >>> 0;
-  const span = { startup: [40, 900], memory: [20, 400], "idle-cpu": [0, 3], scroll: [4, 20], search: [2, 60], binary: [3, 60], transfer: [80, 2000], build: [10, 400], loc: [500, 2500] }[metric] ?? [1, 100];
+  const span = { startup: [40, 900], memory: [20, 400], "idle-cpu": [0, 3], scroll: [4, 20], search: [2, 60], binary: [3, 60], transfer: [30, 400], loc: [500, 2500] }[metric] ?? [1, 100];
   const median = span[0] + ((hash % 1000) / 1000) * (span[1] - span[0]);
   const round = (value) => (span[1] >= 100 ? Math.round(value) : Math.round(value * 10) / 10);
   return { median: round(median), min: round(median * 0.92), max: round(median * 1.08), runs: 0, placeholder: true };
@@ -139,15 +157,51 @@ function standIn(metric, id) {
 // The measured numbers, from the compare lead's RESULTS.json
 // (compare/harness/aggregate.py): each a median over the runs that
 // finished, with their least and most. Where a metric lives in it is
-// named per kind of framework; a web number is Chromium's.
+// named per kind of framework; a web number is Chromium's. Native
+// memory is anonymous PSS, the heap the app made, as the shared
+// libraries a toolkit maps would otherwise count against it. A native
+// search is every key's lag pooled over the runs, at its 95th
+// percentile, as the first key's alone hides an app that stalls on the
+// later ones. The web session times only the first key, so a web search
+// is that key's lag over the runs; the two are on separate charts.
+// Sizes and line counts are counted once, by the compare lead, and come
+// from RESULTS.md's tables (COUNTED below).
 const MEASURED = {
   startup: { native: ["session", "first_frame_ms"], web: ["fcp_ms"] },
-  memory: { native: ["session", "pss_after_session_mib"], web: ["pss_after_session_mib_browser_tree"] },
+  memory: { native: ["session", "anon_pss_after_session_mib"], web: ["pss_after_session_mib_browser_tree"] },
   "idle-cpu": { native: ["session", "idle_cpu_percent"], web: ["idle_cpu_percent_browser_tree"] },
   scroll: { native: ["session", "steps", "2000 rows down", "frame_p95_ms"], web: ["steps", "2000 rows down", "frame_p95_ms"] },
-  search: { native: ["session", "steps", "search", "lag_ms"], web: ["steps", "search", "lag_ms"] },
-  transfer: { web: ["startup_transfer_kib"] },
+  search: { native: ["session", "steps", "search", "every_input_lag_ms"], web: ["steps", "search", "lag_ms"], pooled: { native: "keys" } },
 };
+// RESULTS.md's "Code, size and build" section, as counted once:
+// stripped native builds in MB (Qt Quick's is its 1.07 MB app and the
+// 39.0 MB of Qt libraries it links; Flutter's its bundle), each web
+// build's code alone gzip -9 in kB of 1 000 bytes, and cloc's code
+// lines.
+const COUNTED = {
+  binary: { ljos: 139, qt: 40.07, slint: 22.6, egui: 22.4, iced: 20.5, gpui: 44.7, flutter: 24.8 },
+  transfer: { solid: 37, declare: 192, yew: 215, sycamore: 216, "ljos-web": 216, leptos: 249, dioxus: 340 },
+  loc: {
+    ljos: 1686,
+    "ljos-web": 1712,
+    qt: 1316,
+    slint: 1819,
+    egui: 1373,
+    iced: 1483,
+    gpui: 1547,
+    flutter: 1531,
+    solid: 798,
+    declare: 577,
+    yew: 1407,
+    sycamore: 1369,
+    dioxus: 1025,
+    leptos: 1063,
+  },
+};
+for (const metric of review.metrics) {
+  for (const [id, count] of Object.entries(COUNTED[metric.id] ?? {})) metric.values[id] = { median: count, min: count, max: count, runs: 1, of: "counts" };
+}
+
 // The runtimes RESULTS.json names that the page names otherwise.
 const RUNTIME = { qt: "qtquick", gpui: "gpui-x11" };
 const resultsFile = option("--results");
@@ -162,8 +216,16 @@ if (resultsFile != null) {
       const at = one.kind === "native" ? results.native?.runtimes?.[name] : results.web?.[name]?.chromium;
       const path = where[one.kind];
       const stat = path && at ? dig(at, path) : null;
-      if (stat?.median == null) continue;
       const round = (value) => (Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 100) / 100);
+      const pooled = where.pooled?.[one.kind];
+      if (pooled != null) {
+        // A pooled number: the bar its 95th percentile, the line from the
+        // median key to the slowest.
+        if (stat?.p95 == null) continue;
+        metric.values[one.id] = { median: round(stat.p95), min: round(stat.p50), max: round(stat.max), runs: stat.n, of: pooled, stat: "p95" };
+        continue;
+      }
+      if (stat?.median == null) continue;
       metric.values[one.id] = { median: round(stat.median), min: round(stat.min), max: round(stat.max), runs: stat.n };
     }
   }
@@ -176,7 +238,9 @@ if (placeholders) {
       if (measured != null && !measured.placeholder) continue;
       // A metric only one kind of framework has (a native binary, a web
       // transfer) has no number of the other.
-      metric.values[one.id] = metric.only != null && metric.only !== one.kind ? null : standIn(metric.id, one.id);
+      const grouped = metric.groups.some((group) => group.kind === "all" || group.kind === one.kind);
+      if (grouped) metric.values[one.id] = standIn(metric.id, one.id);
+      else delete metric.values[one.id];
     }
   }
 }

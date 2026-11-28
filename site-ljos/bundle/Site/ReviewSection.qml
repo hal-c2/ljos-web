@@ -127,9 +127,10 @@ Column {
                 }
                 Text {
                     topPadding: 2
-                    format: shown.modelData.href ? Text.RichText : Text.PlainText
-                    text: shown.modelData.href ? Nav.anchor(shown.modelData.href, `${shown.modelData.file}:${shown.modelData.lines}`, false, Theme.link) : `${shown.modelData.file}:${shown.modelData.lines}`
-                    color: shown.modelData.href ? Theme.link : Theme.textMuted
+                    readonly property string href: Review.hrefOf(shown.modelData)
+                    format: href !== "" ? Text.RichText : Text.PlainText
+                    text: href !== "" ? Nav.anchor(href, `${shown.modelData.file}:${shown.modelData.lines}`, false, Theme.link) : `${shown.modelData.file}:${shown.modelData.lines}`
+                    color: href !== "" ? Theme.link : Theme.textMuted
                     linkColor: Theme.link
                     font.family: Theme.mono
                     font.size: Theme.captionSize
@@ -140,7 +141,7 @@ Column {
                 width: parent.width
                 scroller: section.scroller
                 lang: shown.modelData.lang
-                code: shown.modelData.code
+                code: Review.codeOf(shown.modelData)
                 rich: shown.modelData.rich
             }
         }
